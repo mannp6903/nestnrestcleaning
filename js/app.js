@@ -771,6 +771,138 @@
     });
   }
 
+  /* ---------- Trust strip ---------- */
+  function renderTrust() {
+    var b = C.badges || {};
+    var extra = [
+      [b.insured, "i-shield", "Fully insured", "Liability coverage on every visit"],
+      [b.ecoProducts, "i-leaf", "Eco-friendly products", "Safe around kids and pets"],
+      [b.backgroundChecked, "i-user", "Background-checked", "Police-checked cleaners"]
+    ].filter(function (x) { return x[0]; });
+    $("[data-trust]").insertAdjacentHTML("beforeend", extra.map(function (x) {
+      return '<li><svg class="ic" aria-hidden="true"><use href="#' + x[1] + '"/></svg><div><strong>' + esc(x[2]) + "</strong><span>" + esc(x[3]) + "</span></div></li>";
+    }).join(""));
+  }
+
+  /* ---------- Room-by-room checklist ---------- */
+  function renderChecklist() {
+    var rooms = C.checklist || [];
+    var tabs = $("[data-room-tabs]");
+    var panel = $("[data-room-panel]");
+    var cols = ["regular", "deep", "move"].map(function (k) { return C.services[k].name.replace(" Home Cleaning", "").replace(" Cleaning", "").replace("Move-In / ", ""); });
+    var cell = function (v) {
+      if (v === "yes") return '<td><svg class="ic yes" role="img" aria-label="Included"><use href="#i-check"/></svg></td>';
+      if (v === "add") return '<td><span class="addon-mark">Add-on</span></td>';
+      return '<td><span class="no-mark" aria-label="Not included">–</span></td>';
+    };
+    tabs.innerHTML = rooms.map(function (r, i) {
+      return '<button type="button" role="tab" id="room-tab-' + i + '" aria-controls="room-panel" aria-selected="' + (i === 0) + '" tabindex="' + (i === 0 ? 0 : -1) + '" data-room="' + i + '">' + esc(r.room) + "</button>";
+    }).join("");
+    panel.id = "room-panel";
+    function show(i) {
+      $$("[data-room]", tabs).forEach(function (t) {
+        var on = +t.getAttribute("data-room") === i;
+        t.setAttribute("aria-selected", String(on));
+        t.tabIndex = on ? 0 : -1;
+      });
+      panel.setAttribute("aria-labelledby", "room-tab-" + i);
+      panel.innerHTML = '<div class="table-scroll"><table class="check-table"><thead><tr><th scope="col">' + esc(rooms[i].room) + "</th>" +
+        cols.map(function (c) { return '<th scope="col">' + esc(c) + "</th>"; }).join("") + "</tr></thead><tbody>" +
+        rooms[i].tasks.map(function (t) { return '<tr><th scope="row">' + esc(t[0]) + "</th>" + cell(t[1]) + cell(t[2]) + cell(t[3]) + "</tr>"; }).join("") +
+        "</tbody></table></div>";
+    }
+    tabs.addEventListener("click", function (e) {
+      var t = e.target.closest("[data-room]");
+      if (t) show(+t.getAttribute("data-room"));
+    });
+    tabs.addEventListener("keydown", function (e) {
+      if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+      var cur = +document.activeElement.getAttribute("data-room");
+      var next = (cur + (e.key === "ArrowRight" ? 1 : -1) + rooms.length) % rooms.length;
+      show(next);
+      $('[data-room="' + next + '"]', tabs).focus();
+    });
+    if (rooms.length) show(0);
+  }
+
+  /* ---------- Office quotes ---------- */
+  function bindOfficeForm() {
+    var O = C.office;
+    var of = $("[data-office-form]");
+    var opts = function (list) { return list.map(function (v) { return "<option>" + esc(v) + "</option>"; }).join(""); };
+    $("[data-office-includes]").innerHTML = O.includes.map(function (i) {
+      return '<li><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg><span>' + esc(i) + "</span></li>";
+    }).join("");
+    $("[data-office-types]").innerHTML = opts(O.types);
+    $("[data-office-sizes]").innerHTML = opts(O.sizes);
+    $("[data-office-freqs]").innerHTML = opts(O.frequencies);
+
+    of.addEventListener("input", function (e) { if (e.target.classList.contains("invalid")) setInvalid(e.target, false); });
+    of.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var err = $("[data-office-error]");
+      var checks = [
+        ["#o-business", function (v) { return v.trim().length >= 2; }, "Add your business name."],
+        ["#o-name", function (v) { return v.trim().length >= 2; }, "Add your name."],
+        ["#o-phone", phoneOk, "Add a 10-digit phone number."],
+        ["#o-email", emailOk, "Check your email address, or leave it blank."],
+        ["#o-postal", fullPostalOk, "Add a full postal code, like M1B 2K3."]
+      ];
+      var first = null, msg = "";
+      checks.forEach(function (c) {
+        var el = $(c[0]);
+        var bad = !c[1](el.value);
+        setInvalid(el, bad);
+        if (bad && !first) { first = el; msg = c[2]; }
+      });
+      if (first) { err.textContent = msg; err.hidden = false; first.focus(); return; }
+      err.hidden = true;
+      var v = function (id) { return $(id).value.trim(); };
+      var z = zoneFor(v("#o-postal"));
+      var btn = of.querySelector('button[type="submit"]');
+      btn.disabled = true;
+      btn.textContent = "Sending…";
+      var summary = [
+        "Office quote request", "Business: " + v("#o-business"), "Contact: " + v("#o-name") + ", " + v("#o-phone"),
+        "Space: " + v("#o-type") + ", " + v("#o-size") + ", " + v("#o-washrooms") + " washroom(s)",
+        "How often: " + v("#o-freq") + ", " + v("#o-when"), "Postal code: " + formatPostal(v("#o-postal")),
+        v("#o-notes") ? "Notes: " + v("#o-notes") : ""
+      ].filter(Boolean).join("\n");
+      send({
+        _subject: "New office quote request: " + v("#o-business"),
+        _template: "table", _captcha: "false",
+        _replyto: v("#o-email") || undefined,
+        _honey: of.querySelector('[name="_honey"]').value,
+        "Business": v("#o-business"), "Contact": v("#o-name"), "Phone": v("#o-phone"), "Email": v("#o-email") || "not given",
+        "Type of space": v("#o-type"), "Size": v("#o-size"), "Washrooms": v("#o-washrooms"),
+        "How often": v("#o-freq"), "Best time": v("#o-when"),
+        "Postal code": formatPostal(v("#o-postal")) + (z ? " (" + z.zone + " zone)" : ""),
+        "Notes": v("#o-notes") || "None"
+      }).then(function (res) {
+        of.hidden = true;
+        var done = $("[data-office-done]");
+        var first = v("#o-name").split(/\s+/)[0];
+        if (PREVIEW && res && res.skipped) {
+          $("[data-office-done-title]").textContent = "Preview only: request not sent.";
+          $("[data-office-done-text]").textContent = "On the live site, " + C.business.ownerFirstName + " gets this quote request by email.";
+        } else {
+          $("[data-office-done-title]").textContent = "Thanks, " + first + ". Quote request received.";
+          $("[data-office-done-text]").textContent = C.business.ownerFirstName + " will get back to you " + O.replyPromise +
+            " with a quote for " + v("#o-business") + ". Questions in the meantime? Call or text " + C.business.phoneDisplay + ".";
+        }
+        done.hidden = false;
+        done.focus();
+      }).catch(function () {
+        err.innerHTML = "We couldn't send that online. Please " +
+          '<a href="' + smsHref(summary) + '">text it to us</a> or <a href="' + mailHref("Office quote request", summary) + '">email it</a>; your details are filled in.';
+        err.hidden = false;
+      }).then(function () {
+        btn.disabled = false;
+        btn.textContent = "Request a free quote";
+      });
+    });
+  }
+
   /* ---------- Page chrome ---------- */
   function bindChrome() {
     var nav = $("#nav");
@@ -793,6 +925,7 @@
         bar.classList.toggle("is-hidden", visible.size > 0);
       }, { threshold: 0 });
       io.observe($(".booker"));
+      io.observe($(".office-grid"));
       io.observe($(".site-footer"));
     }
 
@@ -827,7 +960,10 @@
 
   /* ---------- Boot ---------- */
   fillBusiness();
+  renderTrust();
   renderServices();
+  renderChecklist();
+  bindOfficeForm();
   renderBookingControls();
   restore();
   syncControls();

@@ -41,7 +41,8 @@
     { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Regular Home Cleaning" } },
     { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Deep Cleaning" } },
     { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Move-In / Move-Out Cleaning" } },
-    { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Kitchen & Bath Detailing" } }
+    { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Kitchen & Bath Detailing" } },
+    { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Small Office Cleaning" } }
   ]
 }
 </script>
@@ -68,6 +69,9 @@
     <symbol id="i-door" viewBox="0 0 24 24"><path d="M6 20.5V4.5h12v16M3.5 20.5h17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M14.5 12.5h.01" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></symbol>
     <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3.5 5 6v5.5c0 4.2 3 7.8 7 9 4-1.2 7-4.8 7-9V6Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="m9 12 2 2 4-4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
     <symbol id="i-gift" viewBox="0 0 24 24"><rect x="4" y="9" width="16" height="11" rx="1" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3 9h18M12 9v11M12 9c-1.5-4-6-4-5-1.5.6 1.5 5 1.5 5 1.5Zm0 0c1.5-4 6-4 5-1.5-.6 1.5-5 1.5-5 1.5Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
+    <symbol id="i-tag" viewBox="0 0 24 24"><path d="M3.5 12.2V4.5a1 1 0 0 1 1-1h7.7l8.3 8.3a1.5 1.5 0 0 1 0 2.1l-6.1 6.1a1.5 1.5 0 0 1-2.1 0Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="8" cy="8" r="1.6" fill="currentColor"/></symbol>
+    <symbol id="i-leaf" viewBox="0 0 24 24"><path d="M5 19c0-8 5-13 15-14-1 10-6 15-14 15M5 19l7-7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.8" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M4.5 20.5c1.2-3.8 4-5.5 7.5-5.5s6.3 1.7 7.5 5.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
     <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
     <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
   </defs>
@@ -83,6 +87,7 @@
     <nav class="nav" id="nav" aria-label="Main">
       <a href="#services">Services</a>
       <a href="#ritual">How we work</a>
+      <a href="#office">Offices</a>
       <a href="#area">Service area</a>
       <a href="#reviews">Reviews</a>
       <a href="#faq">FAQ</a>
@@ -109,17 +114,13 @@
           <a class="btn btn-primary btn-lg" href="#book" data-book>Book a clean <svg class="ic"><use href="#i-arrow"/></svg></a>
           <a class="btn btn-ghost btn-lg" data-tel href="tel:+16479786903"><svg class="ic"><use href="#i-phone"/></svg> Call or text</a>
         </div>
-        <ul class="hero-points">
-          <li><svg class="ic"><use href="#i-check"/></svg> Instant price, no surprises</li>
-          <li><svg class="ic"><use href="#i-check"/></svg> Indoor-only house shoes</li>
-          <li><svg class="ic"><use href="#i-check"/></svg> Free quotes, call or text</li>
-        </ul>
       </div>
 
       <aside class="quick-card" aria-labelledby="quick-title">
         <div class="offer-tag" data-offer-tag hidden><svg class="ic"><use href="#i-sparkle"/></svg> <span></span></div>
         <h2 id="quick-title">What can we clean for you?</h2>
         <div class="quick-services" data-quick-services></div>
+        <a class="office-link" href="#office">Cleaning an office? Get a free quote <svg class="ic"><use href="#i-arrow"/></svg></a>
         <form class="pc-check" data-pc-form novalidate>
           <label for="pc-hero">Check your postal code</label>
           <div class="pc-row">
@@ -133,6 +134,16 @@
     <svg class="spark s1" aria-hidden="true"><use href="#i-sparkle"/></svg>
     <svg class="spark s2" aria-hidden="true"><use href="#i-sparkle"/></svg>
     <svg class="spark s3" aria-hidden="true"><use href="#i-sparkle"/></svg>
+  </section>
+
+  <!-- TRUST STRIP -->
+  <section class="trust" aria-label="Why clients choose us">
+    <ul class="wrap trust-list" data-trust>
+      <li><svg class="ic"><use href="#i-shield"/></svg><div><strong>100% satisfaction</strong><span>Free re-clean within 24 hours</span></div></li>
+      <li><svg class="ic"><use href="#i-tag"/></svg><div><strong>Price before you book</strong><span>Instant estimate, pay after</span></div></li>
+      <li><svg class="ic"><use href="#i-cal"/></svg><div><strong>Open Saturdays</strong><span data-hours>Mon to Sat, 8am to 6pm</span></div></li>
+      <li><svg class="ic"><use href="#i-shoe"/></svg><div><strong>House shoes indoors</strong><span>Street shoes stay at the door</span></div></li>
+    </ul>
   </section>
 
   <!-- OFFER STRIP -->
@@ -152,6 +163,16 @@
         <p class="section-sub">Prices start from a 1-bedroom, 1-bathroom home. Your exact price updates as you book.</p>
       </div>
       <div class="services-grid" data-services></div>
+
+      <div class="checklist" id="checklist">
+        <div class="checklist-head">
+          <h3>What's included, room by room</h3>
+          <p>Pick a room to see what each clean covers.</p>
+        </div>
+        <div class="room-tabs" role="tablist" aria-label="Rooms" data-room-tabs></div>
+        <div class="room-panel" role="tabpanel" data-room-panel tabindex="0"></div>
+        <p class="fine">Kitchen &amp; Bath Detailing covers every kitchen and bathroom task in the Deep column. Items marked “Add-on” can be added when you book.</p>
+      </div>
 
       <div class="addons-panel">
         <div>
@@ -377,6 +398,84 @@
     </div>
   </section>
 
+  <!-- OFFICE -->
+  <section class="section office" id="office" aria-labelledby="office-title">
+    <div class="wrap office-grid">
+      <div class="office-copy">
+        <p class="eyebrow">For businesses</p>
+        <h2 id="office-title">Small office cleaning.</h2>
+        <p class="section-sub" data-office-short>Offices, clinics, studios and shops. We work around your opening hours, on a schedule that suits you.</p>
+        <ul class="office-includes" data-office-includes></ul>
+        <p class="office-note"><svg class="ic"><use href="#i-clock"/></svg> Free quote, usually within one business day. No contract needed to start.</p>
+      </div>
+
+      <form class="office-form" id="office-form" data-office-form novalidate>
+        <h3>Request a free quote</h3>
+        <div class="form-grid">
+          <div class="field span-2">
+            <label for="o-business">Business name</label>
+            <input id="o-business" name="business" autocomplete="organization" required>
+          </div>
+          <div class="field">
+            <label for="o-name">Your name</label>
+            <input id="o-name" name="name" autocomplete="name" required>
+          </div>
+          <div class="field">
+            <label for="o-phone">Phone</label>
+            <input id="o-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" required>
+          </div>
+          <div class="field span-2">
+            <label for="o-email">Email <span class="opt">optional</span></label>
+            <input id="o-email" name="email" type="email" inputmode="email" autocomplete="email">
+          </div>
+          <div class="field">
+            <label for="o-type">Type of space</label>
+            <select id="o-type" name="type" data-office-types></select>
+          </div>
+          <div class="field">
+            <label for="o-size">Approximate size</label>
+            <select id="o-size" name="size" data-office-sizes></select>
+          </div>
+          <div class="field">
+            <label for="o-washrooms">Washrooms</label>
+            <select id="o-washrooms" name="washrooms">
+              <option>1</option><option>2</option><option>3</option><option>4 or more</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="o-freq">How often</label>
+            <select id="o-freq" name="frequency" data-office-freqs></select>
+          </div>
+          <div class="field">
+            <label for="o-when">Best time to clean</label>
+            <select id="o-when" name="when">
+              <option>Before we open</option>
+              <option>During business hours</option>
+              <option>After we close</option>
+              <option>Saturdays</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="o-postal">Postal code</label>
+            <input id="o-postal" name="postal" autocomplete="postal-code" maxlength="7" placeholder="M1B 2K3" required>
+          </div>
+          <div class="field span-2">
+            <label for="o-notes">Anything else? <span class="opt">optional</span></label>
+            <textarea id="o-notes" name="notes" rows="3" placeholder="Floors, kitchenette, special requests, start date…"></textarea>
+          </div>
+          <input type="text" name="_honey" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+        </div>
+        <p class="form-error" data-office-error role="alert" hidden></p>
+        <button type="submit" class="btn btn-leaf btn-lg office-submit">Request a free quote</button>
+      </form>
+      <div class="office-done" data-office-done hidden tabindex="-1">
+        <div class="done-badge"><svg class="ic"><use href="#i-check"/></svg></div>
+        <h3 data-office-done-title>Quote request received.</h3>
+        <p data-office-done-text></p>
+      </div>
+    </div>
+  </section>
+
   <!-- AREA -->
   <section class="section area" id="area">
     <div class="wrap area-grid">
@@ -516,6 +615,7 @@
     <nav aria-label="Footer">
       <a href="#services">Services</a>
       <a href="#book">Book a clean</a>
+      <a href="#office">Office cleaning</a>
       <a href="#area">Service area</a>
       <a href="#reviews">Reviews</a>
       <a href="#faq">FAQ</a>

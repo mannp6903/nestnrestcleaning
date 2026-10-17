@@ -30,6 +30,14 @@ window.NR_CONFIG = {
     endpoint: "https://formsubmit.co/ajax/mannp6903@gmail.com"
   },
 
+  /* Extra trust badges. Only switch one to true once it's actually true for your business:
+     the badge then appears in the strip under the headline. */
+  badges: {
+    insured: false,            // you hold business liability insurance
+    ecoProducts: false,        // your products are eco-friendly and pet-safe
+    backgroundChecked: false   // every cleaner has a police background check
+  },
+
   currency: "CAD",
   // Small suppliers (under $30,000 in 12 months) don't have to charge HST in Ontario.
   // Once you register for HST, set taxRate to 0.13.
@@ -160,6 +168,67 @@ window.NR_CONFIG = {
     },
     areas: ["Scarborough", "North York", "East York", "Old Toronto", "Etobicoke", "York",
             "Markham", "Pickering", "Ajax", "Whitby", "Richmond Hill", "Vaughan", "Mississauga"]
+  },
+
+  /* Room-by-room checklist. For each task: [task, regular, deep, move]
+     using "yes" (included), "add" (available as an add-on) or "" (not part of that clean). */
+  checklist: [
+    { room: "Kitchen", tasks: [
+      ["Counters and backsplash wiped", "yes", "yes", "yes"],
+      ["Sink and taps cleaned and shined", "yes", "yes", "yes"],
+      ["Stovetop degreased", "yes", "yes", "yes"],
+      ["Appliance fronts and handles", "yes", "yes", "yes"],
+      ["Microwave inside and out", "", "yes", "yes"],
+      ["Cabinet fronts wiped", "", "yes", "yes"],
+      ["Inside cabinets and drawers", "add", "add", "yes"],
+      ["Inside fridge and oven", "add", "add", "yes"],
+      ["Floors vacuumed and mopped", "yes", "yes", "yes"]
+    ] },
+    { room: "Bathrooms", tasks: [
+      ["Toilet cleaned inside and out", "yes", "yes", "yes"],
+      ["Tub, shower and glass", "yes", "yes", "yes"],
+      ["Sink, counter and taps", "yes", "yes", "yes"],
+      ["Mirrors polished", "yes", "yes", "yes"],
+      ["Build-up removed from tile and grout", "", "yes", "yes"],
+      ["Fixtures descaled", "", "yes", "yes"],
+      ["Inside vanity and drawers", "", "", "yes"],
+      ["Floors washed", "yes", "yes", "yes"]
+    ] },
+    { room: "Bedrooms & living", tasks: [
+      ["Reachable surfaces and décor dusted", "yes", "yes", "yes"],
+      ["Beds made", "yes", "yes", ""],
+      ["Mirrors and glass", "yes", "yes", "yes"],
+      ["Floors vacuumed and mopped", "yes", "yes", "yes"],
+      ["Baseboards and door frames", "", "yes", "yes"],
+      ["Switches and door handles", "", "yes", "yes"],
+      ["Under and behind movable furniture", "", "yes", "yes"],
+      ["Window sills and vents", "", "yes", "yes"],
+      ["Inside closets", "", "", "yes"]
+    ] },
+    { room: "Whole home", tasks: [
+      ["Bins emptied", "yes", "yes", "yes"],
+      ["Entryway and stairs", "yes", "yes", "yes"],
+      ["Walls spot-cleaned", "add", "add", "yes"],
+      ["Interior windows", "add", "add", "add"],
+      ["Laundry, wash and fold", "add", "add", ""],
+      ["Balcony or patio sweep", "add", "add", "add"]
+    ] }
+  ],
+
+  /* Small office cleaning: quote only, no instant price. */
+  office: {
+    includes: [
+      "Desks, shelves and electronics dusted",
+      "Washrooms cleaned and sanitized",
+      "Kitchenette or break room cleaned",
+      "High-touch points: handles, switches, phones",
+      "Floors vacuumed and mopped",
+      "Bins emptied and liners replaced"
+    ],
+    types: ["Office", "Clinic or dental office", "Studio or gym", "Retail shop", "Other"],
+    sizes: ["Under 1,000 sq ft", "1,000 to 2,500 sq ft", "2,500 to 5,000 sq ft", "Over 5,000 sq ft"],
+    frequencies: ["One time", "Weekly", "2 to 3 times a week", "Every weekday", "Every 2 weeks"],
+    replyPromise: "within one business day"
   },
 
   /* Real reviews only. Add them here as they come in, for example:

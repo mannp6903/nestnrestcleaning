@@ -10,6 +10,9 @@ Plain HTML, CSS and JavaScript. No build step, no monthly platform fee.
 - **Offers:** Founding Client 20% off the first clean, recurring discounts (weekly 15%, every 2 weeks 10%, every 4 weeks 5%), $25 refer-a-friend, $15 off for an honest review.
 - **Service-area checker:** postal code lookup (M1 = home turf, all M = Toronto, listed L codes = extended GTA with travel fee).
 - **Honest review system:** no fake testimonials. Customers submit reviews through the site, you verify them, then add them to `reviews` in `js/config.js`. A Google review button appears once you add your link.
+- **Trust strip** under the headline: satisfaction re-clean guarantee, price before you book, open Saturdays, house shoes indoors. Insurance, eco-product and police-check badges are built in but switched off: turn each on in `badges` in `js/config.js` only once it's true.
+- **Room-by-room checklist:** what Regular, Deep and Move-out cleans cover in each room (`checklist` in `js/config.js`).
+- **Small office cleaning:** quote-only service with its own request form (`office` in `js/config.js`).
 - **Trust content:** "The first minute at your door" (your Threshold Ritual from the uniform guide), founder note, promises, FAQ.
 - **Always-there contact:** sticky bottom bar on phones with Call, Text and Book.
 - **SEO basics:** page title and description, LocalBusiness structured data, sitemap, robots.txt, social preview image.
