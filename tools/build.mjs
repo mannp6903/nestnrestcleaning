@@ -97,7 +97,8 @@ function header(L, opts = {}) {
       <button class="menu-btn" type="button" aria-controls="menu" aria-expanded="false" aria-label="Open menu"><svg class="ic"><use href="#i-menu"/></svg></button>
     </div>
   </div>
-  <div class="menu" id="menu" hidden>
+</header>
+<div class="menu" id="menu" hidden>
     <div class="wrap menu-inner">
       <p class="label">Services</p>
       <ul class="menu-list">
@@ -116,7 +117,7 @@ function header(L, opts = {}) {
       </div>
     </div>
   </div>
-</header>`;
+`;
 }
 
 function footer(L) {
