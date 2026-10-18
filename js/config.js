@@ -5,7 +5,7 @@
   New pages (a new service or area) need a rebuild: run `node tools/build.mjs`.
 */
 window.NR_CONFIG = {
-  siteUrl: "https://mannp6903.github.io/nestandrestcleaning",
+  siteUrl: "https://nestnrestcleaning.com",
 
   business: {
     name: "Nest & Rest Cleaning",

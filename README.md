@@ -40,7 +40,7 @@ The site then reports: book clicks, call and text taps, instant-price use, booki
 
 ## Hosting
 
-GitHub Pages serves the `main` branch root at https://mannp6903.github.io/nestandrestcleaning/.
+Live at https://nestnrestcleaning.com (GitHub Pages, custom domain set by the `CNAME` file).
 When you connect a custom domain, update `siteUrl` in `js/config.js` and run `node tools/build.mjs`.
 
 ## Files
