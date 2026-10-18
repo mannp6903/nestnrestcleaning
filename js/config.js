@@ -11,7 +11,7 @@ window.NR_CONFIG = {
     ownerFirstName: "Mann",
     phoneDisplay: "+1 647 978 6903",
     phone: "+16479786903",
-    email: "mannp6903@gmail.com",
+    email: "nestnrestcleaning@gmail.com",
     base: "Scarborough, Toronto",
     hours: "Mon to Sat, 8am to 6pm",
     replyPromise: "within 2 hours during business hours",
@@ -27,7 +27,7 @@ window.NR_CONFIG = {
      Set provider to "none" to skip the email relay and only offer text / email buttons. */
   delivery: {
     provider: "formsubmit",
-    endpoint: "https://formsubmit.co/ajax/mannp6903@gmail.com"
+    endpoint: "https://formsubmit.co/ajax/nestnrestcleaning@gmail.com"
   },
 
   /* Extra trust badges. Only switch one to true once it's actually true for your business:

@@ -23,7 +23,7 @@ Edit **`js/config.js`** only. Every price, discount, time slot, open day, postal
 
 ## How booking requests reach you
 
-Requests are emailed to `mannp6903@gmail.com` through [FormSubmit](https://formsubmit.co) (free, no account).
+Requests are emailed to `nestnrestcleaning@gmail.com` through [FormSubmit](https://formsubmit.co) (free, no account).
 
 1. After the site is live, make one test booking yourself.
 2. FormSubmit emails you an **Activate** link. Click it once. From then on every booking arrives as an email.
