@@ -1,7 +1,7 @@
 {
   "name": "Nest & Rest Cleaning",
   "short_name": "Nest & Rest",
-  "start_url": "/",
+  "start_url": "./",
   "display": "standalone",
   "background_color": "#F7F4EE",
   "theme_color": "#0B2C4D",
