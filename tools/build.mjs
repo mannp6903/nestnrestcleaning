@@ -67,6 +67,8 @@ const ICONS = `
 <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s-6.5-6-6.5-11a6.5 6.5 0 0 1 13 0c0 5-6.5 11-6.5 11Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><circle cx="12" cy="10" r="2.3" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
 <symbol id="i-leaf" viewBox="0 0 24 24"><path d="M5 19c0-8 5-13 15-14-1 10-6 15-14 15M5 19l7-7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
 <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.8" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M4.5 20.5c1.2-3.8 4-5.5 7.5-5.5s6.3 1.7 7.5 5.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+<symbol id="i-facebook" viewBox="0 0 24 24"><path d="M13.6 21v-7.6h2.6l.4-3h-3V8.5c0-.9.3-1.5 1.5-1.5h1.6V4.3c-.3 0-1.2-.1-2.3-.1-2.3 0-3.9 1.4-3.9 4v2.2H8v3h2.5V21z"/></symbol>
+<symbol id="i-instagram" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="4.8" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="12" r="3.9" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="17.2" cy="6.8" r="1.1"/></symbol>
 <symbol id="i-menu" viewBox="0 0 24 24"><path d="M3 8h18M3 16h18" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
 <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
 <symbol id="i-chev" viewBox="0 0 24 24"><path d="m7 9.5 5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
@@ -115,9 +117,17 @@ function header(L, opts = {}) {
         <a class="btn btn-primary btn-block" href="${L("book/")}">Book your clean</a>
         <a class="btn btn-ghost btn-block" data-tel href="tel:${B.phone}">Call or text ${esc(B.phoneDisplay)}</a>
       </div>
+      ${socialLinks("social-menu")}
     </div>
   </div>
 `;
+}
+
+function socialLinks(cls = "") {
+  return `<div class="social ${cls}">
+    <a class="social-link" data-social="facebook" aria-label="${esc(B.name)} on Facebook" aria-disabled="true"><svg class="ic" aria-hidden="true"><use href="#i-facebook"/></svg></a>
+    <a class="social-link" data-social="instagram" aria-label="${esc(B.name)} on Instagram" aria-disabled="true"><svg class="ic" aria-hidden="true"><use href="#i-instagram"/></svg></a>
+  </div>`;
 }
 
 function footer(L) {
@@ -125,8 +135,9 @@ function footer(L) {
   <div class="wrap">
     <div class="footer-top">
       <div class="footer-brand">
-        <img src="${L("assets/badge-navy.png")}" alt="${esc(B.name)}" width="1110" height="436">
+        <img src="${L("assets/badge.png")}" alt="${esc(B.name)}" width="720" height="201">
         <p class="footer-tag">${esc(B.tagline)}</p>
+        ${socialLinks()}
       </div>
       <div class="footer-cols">
         <div>
@@ -143,14 +154,18 @@ function footer(L) {
             <li><a data-tel href="tel:${B.phone}" data-phone-text>${esc(B.phoneDisplay)}</a></li>
             <li><a data-mailto href="mailto:${B.email}" data-email-text>${esc(B.email)}</a></li>
             <li><span data-hours>${esc(B.hours)}</span></li>
-            <li><span>${esc(B.base)}</span></li>
+            <li><span>${esc(B.areaLabel)}</span></li>
           </ul>
         </div>
       </div>
     </div>
     <div class="footer-bottom">
-      <p>© <span data-year>${YEAR}</span> ${esc(B.name)}. Your details are used only to schedule and deliver your clean.</p>
-      <p><a href="${L("review/")}">Leave a review</a> · <a href="${L("book/")}">Book a clean</a></p>
+      <p>© <span data-year>${YEAR}</span> ${esc(B.name)}, ${esc(B.base)}, Ontario.</p>
+      <ul class="legal">
+        <li><a href="${L("privacy/")}">Privacy Policy</a></li>
+        <li><a href="${L("policies/")}">Service Policies</a></li>
+        <li><a href="${L("review/")}">Leave a review</a></li>
+      </ul>
     </div>
   </div>
 </footer>`;
@@ -178,7 +193,7 @@ function pricer(L, defaultKey = "regular", heading = "Your price, in seconds") {
     </select><svg class="ic" aria-hidden="true"><use href="#i-chev"/></svg></div>
   </div>
   <div class="field">
-    <label for="p-home">Home</label>
+    <label for="p-home">Type of home</label>
     <div class="select-wrap"><select id="p-home" data-p-home>
       ${Object.keys(C.homeTypes).map((k) => `<option value="${k}">${esc(C.homeTypes[k].label)}</option>`).join("")}
     </select><svg class="ic" aria-hidden="true"><use href="#i-chev"/></svg></div>
@@ -212,7 +227,7 @@ function assurances() {
     ["i-shield", "Free re-clean within 24 hours"],
     ["i-card", "Pay after your clean"],
     ["i-cal", "Saturday appointments"],
-    ["i-pin", "Scarborough & the GTA"]
+    ["i-pin", "Scarborough & North York"]
   ];
   return `<ul class="assure" data-assure>${items.map(([i, t]) => `<li><svg class="ic" aria-hidden="true"><use href="#${i}"/></svg>${esc(t)}</li>`).join("")}</ul>`;
 }
@@ -262,9 +277,10 @@ function businessSchema() {
     name: B.name, slogan: B.tagline, url: SITE + "/", logo: SITE + "/assets/logo.png", image: SITE + "/assets/icon-512.png",
     telephone: B.phone, email: B.email, priceRange: "$$",
     founder: { "@type": "Person", name: B.owner },
-    address: { "@type": "PostalAddress", addressLocality: "Scarborough", addressRegion: B.region, addressCountry: "CA" },
-    areaServed: C.areas.map((a) => a.name),
+    address: { "@type": "PostalAddress", addressLocality: "Toronto", addressRegion: B.region, addressCountry: "CA" },
+    areaServed: C.areas.map((a) => ({ "@type": "Place", name: a.name + ", Toronto, ON" })),
     openingHoursSpecification: [{ "@type": "OpeningHoursSpecification", dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"], opens: "08:00", closes: "18:00" }],
+    ...([B.facebookUrl, B.instagramUrl].filter(Boolean).length ? { sameAs: [B.facebookUrl, B.instagramUrl].filter(Boolean) } : {}),
     makesOffer: allServices.map((s) => ({ "@type": "Offer", itemOffered: { "@type": "Service", name: s.name, url: SITE + "/services/" + s.slug + "/" } }))
   };
 }
@@ -287,9 +303,8 @@ function page({ depth, pathOut, title, description, body, schemas = [], pageType
 <meta property="og:image" content="${SITE}/assets/og-image.png">
 <link rel="icon" type="image/png" sizes="48x48" href="${L("assets/favicon-48.png")}">
 <link rel="apple-touch-icon" href="${L("assets/apple-touch-icon.png")}">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=Montserrat:wght@600;700;800&display=swap">
+<link rel="preload" href="${L("assets/fonts/montserrat.woff2")}" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="${L("assets/fonts/dm-sans.woff2")}" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="${L("css/site.css")}">
 ${ld}`;
   const bodyInner = `${ICONS}
@@ -333,15 +348,14 @@ const examplePrice = price("regular", example.beds, example.baths);
 
 urls.push(page({
   depth: 0, pathOut: "index.html", pageType: "home",
-  title: `${B.name} | Home Cleaning in Scarborough & Toronto`,
-  description: "Meticulous home cleaning in Scarborough, Toronto and the GTA. See your exact price in seconds, book online in two minutes, pay after your clean.",
+  title: `Home Cleaning in Scarborough & North York from ${money(C.services.regular.base)} | ${B.name}`,
+  description: "Meticulous home cleaning in Scarborough and North York, Toronto. See your exact price in seconds, book online in two minutes, pay after your clean.",
   schemas: [businessSchema(), homeFaq.schema],
   body: (L) => `
 <section class="hero">
   <div class="wrap hero-grid">
     <div class="hero-copy">
-      <p class="label">Scarborough · Toronto · GTA</p>
-      <h1>We clean.<br><span>You rest.</span></h1>
+      <h1><span class="h1-kicker">Home cleaning in Scarborough &amp; North York</span>We clean.<br><span class="h1-line2">You rest.</span></h1>
       <p class="lede">Meticulous home cleaning by a uniformed team that changes into house shoes at your door. See your exact price in seconds, choose a time, and come home to it done.</p>
       <p class="hero-talk">Prefer to talk? <a data-tel href="tel:${B.phone}">Call or text <span data-phone-text>${esc(B.phoneDisplay)}</span></a></p>
     </div>
@@ -434,6 +448,7 @@ urls.push(page({
 <section class="section founder" id="founder">
   <div class="wrap founder-grid">
     <figure class="founder-quote">
+      <p class="label">New in Scarborough &amp; North York</p>
       <blockquote><p>“Every clean carries my name. If anything isn't right, tell me, and I'll come back and make it right.”</p></blockquote>
       <figcaption><strong data-owner>${esc(B.owner)}</strong><span>Founder &amp; Owner</span></figcaption>
     </figure>
@@ -457,7 +472,8 @@ urls.push(page({
   <div class="wrap split">
     <div class="split-head">
       <p class="label">Service area</p>
-      <h2>Based in Scarborough. Across the GTA.</h2>
+      <h2>Scarborough and North York.</h2>
+      <p class="muted">We focus on two districts so we can be on time, every time. Check your postal code to confirm we come to you.</p>
       <form class="pc-check" data-pc-form novalidate>
         <label for="pc-home">Check your postal code</label>
         <div class="pc-row"><input id="pc-home" name="pc" autocomplete="postal-code" placeholder="M1B 2K3" maxlength="7"><button class="btn btn-primary" type="submit">Check</button></div>
@@ -465,7 +481,7 @@ urls.push(page({
       </form>
     </div>
     <ul class="area-list">
-      ${C.areas.map((a) => `<li><a href="${L("areas/" + a.slug + "/")}"><span>${esc(a.name)}</span><small>${a.zone === "extended" ? "Small travel fee" : "No travel fee"}</small><svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></a></li>`).join("")}
+      ${C.areas.map((a) => `<li><a href="${L("areas/" + a.slug + "/")}"><span>${esc(a.name)}</span><small>${a.neighbourhoods.length} neighbourhoods</small><svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></a></li>`).join("")}
     </ul>
   </div>
 </section>
@@ -496,6 +512,7 @@ urls.push(page({
         <form id="booking-form" class="booking-form" novalidate>
           <fieldset class="step" data-step="1">
             <legend>Your home</legend>
+            <div class="field"><label for="f-postal">Postal code of the home</label><input id="f-postal" name="postal" autocomplete="postal-code" autocapitalize="characters" maxlength="7" placeholder="M1B 2K3" required><small class="pc-result" data-pc-booking aria-live="polite"></small></div>
             <div class="field"><span class="field-label" id="svc-label">Service</span>
               <div class="choice-grid" role="radiogroup" aria-labelledby="svc-label">
                 ${svcKeys.map((k) => { const s = C.services[k]; return `<label class="choice"><input type="radio" name="service" value="${k}"><span class="choice-body"><strong>${esc(s.name)}</strong><span class="choice-from">from <b data-from="${k}">${money(s.base)}</b></span><span class="choice-desc">${esc(s.short)}</span></span></label>`; }).join("")}
@@ -538,13 +555,13 @@ urls.push(page({
 
           <fieldset class="step" data-step="3" hidden>
             <legend>Your details</legend>
+            <p class="field-note">All fields are required unless marked optional.</p>
             <div class="form-grid">
               <div class="field"><label for="f-name">Full name</label><input id="f-name" name="name" autocomplete="name" required></div>
               <div class="field"><label for="f-phone">Mobile</label><input id="f-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="647 555 0123" required></div>
               <div class="field span-2"><label for="f-email">Email <span class="opt">for your confirmation</span></label><input id="f-email" name="email" type="email" inputmode="email" autocomplete="email"></div>
               <div class="field span-2"><label for="f-address">Street address and unit</label><input id="f-address" name="address" autocomplete="street-address" required></div>
-              <div class="field"><label for="f-postal">Postal code</label><input id="f-postal" name="postal" autocomplete="postal-code" maxlength="7" placeholder="M1B 2K3" required><small class="pc-result" data-pc-booking aria-live="polite"></small></div>
-              <div class="field"><label for="f-access">Getting in</label><div class="select-wrap"><select id="f-access" name="access"><option>I'll be home</option><option>Concierge or front desk</option><option>Lockbox or key code</option><option>Let's discuss</option></select><svg class="ic" aria-hidden="true"><use href="#i-chev"/></svg></div></div>
+              <div class="field span-2"><label for="f-access">Getting in</label><div class="select-wrap"><select id="f-access" name="access"><option>I'll be home</option><option>Concierge or front desk</option><option>Lockbox or key code</option><option>Let's discuss</option></select><svg class="ic" aria-hidden="true"><use href="#i-chev"/></svg></div></div>
               <div class="field span-2"><span class="field-label" id="pets-label">Pets</span>
                 <div class="seg" role="radiogroup" aria-labelledby="pets-label">
                   <label><input type="radio" name="pets" value="No pets" checked><span>No pets</span></label>
@@ -552,7 +569,7 @@ urls.push(page({
                   <label><input type="radio" name="pets" value="Cat or other"><span>Cat / other</span></label>
                 </div>
               </div>
-              <div class="field span-2"><label for="f-notes">Notes <span class="opt">optional</span></label><textarea id="f-notes" name="notes" rows="3" placeholder="Parking, buzzer code, rooms to focus on, products to avoid"></textarea></div>
+              <div class="field span-2"><label for="f-notes">Notes <span class="opt">optional</span></label><textarea id="f-notes" name="notes" rows="3" placeholder="Parking, rooms to focus on, products to avoid"></textarea><small class="field-hint">Please don't type door or lockbox codes here. We'll ask for them by text once your booking is confirmed.</small></div>
               <div class="field span-2"><span class="field-label" id="pref-label">Confirm by</span>
                 <div class="seg" role="radiogroup" aria-labelledby="pref-label">
                   <label><input type="radio" name="contactPref" value="Text" checked><span>Text</span></label>
@@ -561,6 +578,8 @@ urls.push(page({
                 </div>
               </div>
               <label class="check span-2 consent"><input type="checkbox" id="f-consent"> I understand this is a booking request. ${esc(B.name)} will confirm the time and final price with me before the clean.</label>
+              <p class="field-note span-2">Free to reschedule or cancel up to ${C.policies.cancelNoticeHours} hours before your arrival window. Nothing to pay until after your clean.</p>
+              <p class="privacy-note span-2">We use your details only to arrange and deliver your clean. Your request is sent through FormSubmit to our Google email inbox, which may store data outside Canada. See our <a href="${L("privacy/")}">Privacy Policy</a> and <a href="${L("policies/")}">Service Policies</a>.</p>
               <input type="text" name="_honey" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
             </div>
             <p class="form-error" data-form-error role="alert" hidden></p>
@@ -569,7 +588,7 @@ urls.push(page({
           <div class="step-nav">
             <button type="button" class="btn btn-ghost" data-prev hidden><svg class="ic" aria-hidden="true"><use href="#i-back"/></svg> Back</button>
             <button type="button" class="btn btn-primary btn-grow" data-next>Continue <svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></button>
-            <button type="submit" class="btn btn-primary btn-grow" data-submit hidden>Request this booking</button>
+            <button type="submit" class="btn btn-primary btn-grow" data-submit hidden>Request booking</button>
           </div>
         </form>
 
@@ -578,6 +597,7 @@ urls.push(page({
           <h2 data-done-title>Thank you.</h2>
           <p data-done-text></p>
           <p class="ref">Reference <strong data-ref></strong></p>
+          <dl class="done-list" data-done-list></dl>
           <div class="done-actions">
             <button type="button" class="btn btn-primary" data-ics><svg class="ic" aria-hidden="true"><use href="#i-cal"/></svg> Add to calendar</button>
             <a class="btn btn-ghost" data-sms-booking href="#"><svg class="ic" aria-hidden="true"><use href="#i-sms"/></svg> Text us these details</a>
@@ -591,7 +611,7 @@ urls.push(page({
 
       <aside class="summary" data-summary aria-live="polite">
         <button type="button" class="summary-toggle" data-summary-toggle aria-expanded="false">
-          <span class="sum-label">Your estimate</span>
+          <span class="sum-label" data-sum-label>Your estimate</span>
           <span class="sum-total" data-total>${money(price("regular", 1, 1))}</span>
           <svg class="ic" aria-hidden="true"><use href="#i-chev"/></svg>
         </button>
@@ -618,16 +638,16 @@ function checklistFor(s) {
 
 for (const k of svcKeys) {
   const s = C.services[k];
-  const trail = [["Home", ""], ["Services", "#services"], [s.name, "services/" + s.slug + "/"]];
+  const trail = [["Home", ""], [s.name, "services/" + s.slug + "/"]];
   const fq = faqBlock(k);
   const others = allServices.filter((o) => o.key !== k);
   const included = (C.includedAddons[k] || []);
   urls.push(page({
     depth: 2, pathOut: `services/${s.slug}/index.html`, pageType: "service",
-    title: `${s.name} in Scarborough & Toronto | ${B.name}`,
-    description: `${s.name} from ${money(s.base)} in Scarborough, Toronto and the GTA. ${s.short} See your exact price and book online in two minutes.`,
+    title: `${s.name} in Scarborough & North York | ${B.name}`,
+    description: `${s.name} from ${money(s.base)} in Scarborough and North York, Toronto. ${s.short} See your exact price and book online in two minutes.`,
     schemas: [
-      { "@context": "https://schema.org", "@type": "Service", name: s.name, serviceType: s.name, description: s.intro, provider: { "@id": SITE + "/#business" }, areaServed: C.areas.map((a) => a.name), offers: { "@type": "Offer", priceCurrency: C.currency, price: s.base, description: "Starting price for a 1-bedroom, 1-bathroom home" } },
+      { "@context": "https://schema.org", "@type": "Service", name: s.name, serviceType: s.name, description: s.intro, provider: { "@id": SITE + "/#business" }, areaServed: C.areas.map((a) => ({ "@type": "Place", name: a.name + ", Toronto, ON" })), offers: { "@type": "Offer", priceCurrency: C.currency, price: s.base, description: "Starting price for a 1-bedroom, 1-bathroom home" } },
       crumbSchema(trail), fq.schema
     ],
     body: (L) => `
@@ -686,7 +706,7 @@ ${finalCta(L)}`
 /* ---------- quote pages ---------- */
 for (const k of quoteKeys) {
   const q = C.quoteServices[k];
-  const trail = [["Home", ""], ["Services", "#services"], [q.name, "services/" + q.slug + "/"]];
+  const trail = [["Home", ""], [q.name, "services/" + q.slug + "/"]];
   const fq = faqBlock(k);
   const field = (f) => {
     const span = f.span === 2 ? " span-2" : "";
@@ -695,10 +715,10 @@ for (const k of quoteKeys) {
   };
   urls.push(page({
     depth: 2, pathOut: `services/${q.slug}/index.html`, pageType: "quote",
-    title: `${q.name} in Toronto & the GTA | ${B.name}`,
-    description: `${q.name} in Scarborough, Toronto and the GTA. ${q.short} Request a free quote online.`,
+    title: `${q.name} in Scarborough & North York | ${B.name}`,
+    description: `${q.name} in Scarborough and North York, Toronto. ${q.short} Request a free quote online.`,
     schemas: [
-      { "@context": "https://schema.org", "@type": "Service", name: q.name, serviceType: q.name, description: q.intro, provider: { "@id": SITE + "/#business" }, areaServed: C.areas.map((a) => a.name) },
+      { "@context": "https://schema.org", "@type": "Service", name: q.name, serviceType: q.name, description: q.intro, provider: { "@id": SITE + "/#business" }, areaServed: C.areas.map((a) => ({ "@type": "Place", name: a.name + ", Toronto, ON" })) },
       crumbSchema(trail), fq.schema
     ],
     body: (L) => `
@@ -714,18 +734,20 @@ for (const k of quoteKeys) {
     <div class="hero-pricer">
       <form class="quote-form" data-quote-form data-quote-name="${esc(q.name)}" data-reply-time="${esc(q.replyPromise)}" novalidate>
         <p class="pricer-title">Request a free quote</p>
+        <p class="field-note">All fields are required unless marked optional.</p>
         <div class="form-grid">
           <div class="field"><label for="q-name">Your name</label><input id="q-name" name="Name" autocomplete="name" required data-required></div>
           <div class="field"><label for="q-phone">Phone</label><input id="q-phone" name="Phone" type="tel" inputmode="tel" autocomplete="tel" required data-phone></div>
           <div class="field span-2"><label for="q-email">Email <span class="opt">optional</span></label><input id="q-email" name="Email" type="email" inputmode="email" autocomplete="email" data-email></div>
           ${q.fields.map(field).join("")}
-          <div class="field"><label for="q-postal">Postal code</label><input id="q-postal" name="Postal code" autocomplete="postal-code" maxlength="7" placeholder="M1B 2K3" required data-postal></div>
+          <div class="field"><label for="q-postal">Postal code</label><input id="q-postal" name="Postal code" autocomplete="postal-code" autocapitalize="characters" maxlength="7" placeholder="M1B 2K3" required data-postal></div>
           <div class="field span-2"><label for="q-notes">Anything else? <span class="opt">optional</span></label><textarea id="q-notes" name="Notes" rows="3"></textarea></div>
           <input type="text" name="_honey" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
         </div>
         <p class="form-error" data-q-error role="alert" hidden></p>
         <button type="submit" class="btn btn-primary btn-block">Request a free quote</button>
         <p class="pricer-fine">Reply ${esc(q.replyPromise)} · No obligation</p>
+        <p class="privacy-note">We use your details only to prepare your quote. Your request is sent through FormSubmit to our Google email inbox, which may store data outside Canada. See our <a href="${L("privacy/")}">Privacy Policy</a>.</p>
       </form>
       <div class="quote-done" data-quote-done hidden tabindex="-1"><p class="label">Request received</p><h2 data-qd-title>Thank you.</h2><p data-qd-text></p></div>
     </div>
@@ -738,32 +760,44 @@ ${finalCta(L, "Prefer to talk it through?", "Call or text and we'll answer your 
 
 /* ---------- area pages ---------- */
 for (const a of C.areas) {
-  const trail = [["Home", ""], ["Areas", "#areas"], [a.name, "areas/" + a.slug + "/"]];
+  const trail = [["Home", ""], [a.name, "areas/" + a.slug + "/"]];
   const fq = faqBlock("area", `Cleaning in ${a.name}: questions.`);
-  const fee = a.zone === "extended" ? `${money(C.serviceArea.extended.travelFee)} travel fee` : "No travel fee";
   urls.push(page({
     depth: 2, pathOut: `areas/${a.slug}/index.html`, pageType: "area",
-    title: `House Cleaning in ${a.name} | ${B.name}`,
-    description: `House cleaning in ${a.name}: ${a.neighbourhoods.slice(0, 4).join(", ")} and more. See your exact price in seconds and book online. ${fee}.`,
-    schemas: [crumbSchema(trail), fq.schema, { "@context": "https://schema.org", "@type": "Service", name: `House cleaning in ${a.name}`, provider: { "@id": SITE + "/#business" }, areaServed: { "@type": "Place", name: a.name } }],
+    title: `House Cleaning in ${a.name}, Toronto | ${B.name}`,
+    description: `House cleaning in ${a.name}: ${a.neighbourhoods.slice(0, 4).join(", ")} and more. See your exact price in seconds, book online in two minutes, pay after your clean.`,
+    schemas: [crumbSchema(trail), fq.schema, { "@context": "https://schema.org", "@type": "Service", name: `House cleaning in ${a.name}`, serviceType: "House cleaning", provider: { "@id": SITE + "/#business" }, areaServed: { "@type": "Place", name: a.name + ", Toronto, ON" } }],
     body: (L) => `
 <section class="hero hero-sub">
   <div class="wrap">${breadcrumbs(L, trail)}</div>
   <div class="wrap hero-grid">
     <div class="hero-copy">
-      <p class="label">${esc(fee)}</p>
+      <p class="label">Service area</p>
       <h1 class="h1-sub">House cleaning in ${esc(a.name)}.</h1>
       <p class="lede">${esc(a.intro)}</p>
-      <p class="label label-sm">Neighbourhoods we clean</p>
-      <ul class="hood-list">${a.neighbourhoods.map((n) => `<li>${esc(n)}</li>`).join("")}</ul>
     </div>
     <div class="hero-pricer">${pricer(L, "regular", "Your price in " + a.name)}</div>
   </div>
 </section>
 
+<section class="section section-stone">
+  <div class="wrap split">
+    <div class="split-head">
+      <p class="label">Neighbourhoods</p>
+      <h2>Where we clean in ${esc(a.name)}.</h2>
+      <form class="pc-check" data-pc-form novalidate>
+        <label for="pc-area">Check your postal code</label>
+        <div class="pc-row"><input id="pc-area" name="pc" autocomplete="postal-code" placeholder="M1B 2K3" maxlength="7"><button class="btn btn-primary" type="submit">Check</button></div>
+        <p class="pc-result" data-pc-result aria-live="polite"></p>
+      </form>
+    </div>
+    <ul class="hood-list">${a.neighbourhoods.map((n) => `<li>${esc(n)}</li>`).join("")}</ul>
+  </div>
+</section>
+
 <section class="section">
   <div class="wrap">
-    <div class="section-head"><p class="label">Services in ${esc(a.name)}</p><h2>Every service, every week.</h2></div>
+    <div class="section-head"><p class="label">Services</p><h2>Every service, in ${esc(a.name)}.</h2></div>
     <ul class="svc-list">
       ${allServices.map((s) => `<li><a class="svc-row" href="${L("services/" + s.slug + "/")}"><span class="svc-name">${esc(s.name)}</span><span class="svc-desc">${esc(s.short)}</span><span class="svc-price">${s.quote ? "By quote" : `From <b data-from="${s.key}">${money(s.base)}</b>`}</span><svg class="ic svc-arrow" aria-hidden="true"><use href="#i-arrow"/></svg></a></li>`).join("")}
     </ul>
@@ -774,12 +808,12 @@ for (const a of C.areas) {
   <div class="wrap split">
     <div class="split-head">
       <p class="label">The standard</p>
-      <h2>The same careful visit, wherever you live.</h2>
+      <h2>The same careful visit, in every home.</h2>
       <p class="muted">Uniformed, introduced by name, house shoes on at your door. Every visit starts and ends the same way.</p>
       <a class="text-link" href="${L("#standard")}">See our standard <svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></a>
     </div>
     <ul class="area-list">
-      ${C.areas.filter((o) => o.slug !== a.slug).map((o) => `<li><a href="${L("areas/" + o.slug + "/")}"><span>${esc(o.name)}</span><small>${o.zone === "extended" ? "Small travel fee" : "No travel fee"}</small><svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></a></li>`).join("")}
+      ${C.areas.filter((o) => o.slug !== a.slug).map((o) => `<li><a href="${L("areas/" + o.slug + "/")}"><span>Also in ${esc(o.name)}</span><small>${o.neighbourhoods.length} neighbourhoods</small><svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></a></li>`).join("")}
     </ul>
   </div>
 </section>
@@ -798,7 +832,7 @@ urls.push(page({
   <div class="wrap narrow">
     <p class="label">Your review</p>
     <h1 class="h1-sub">How did we do?</h1>
-    <p class="lede">Honest reviews help neighbours choose with confidence. As a thank-you, we'll take $<span data-review-thanks>${C.offers.reviewThanks}</span> off your next clean.</p>
+    <p class="lede">Your honest feedback helps us improve and helps neighbours choose with confidence. It takes about a minute.</p>
     <form class="review-form" data-review-form novalidate>
       <fieldset class="stars-field"><legend>Your rating</legend>
         <div class="stars-input">
@@ -806,8 +840,8 @@ urls.push(page({
         </div>
       </fieldset>
       <div class="form-grid">
-        <div class="field"><label for="rv-name">First name and last initial</label><input id="rv-name" name="name" autocomplete="name" placeholder="Priya S."></div>
-        <div class="field"><label for="rv-area">Neighbourhood <span class="opt">optional</span></label><input id="rv-area" name="area" placeholder="Agincourt"></div>
+        <div class="field"><label for="rv-name">First name and last initial</label><input id="rv-name" name="name" autocomplete="name" placeholder="e.g. Priya S."></div>
+        <div class="field"><label for="rv-area">Neighbourhood <span class="opt">optional</span></label><input id="rv-area" name="area" placeholder="e.g. Agincourt"></div>
         <div class="field span-2"><label for="rv-service">Service</label><div class="select-wrap"><select id="rv-service" name="service">${allServices.map((s) => `<option>${esc(s.name)}</option>`).join("")}</select><svg class="ic" aria-hidden="true"><use href="#i-chev"/></svg></div></div>
         <div class="field span-2"><label for="rv-text">Your review</label><textarea id="rv-text" name="text" rows="5" placeholder="What stood out? What could be better?"></textarea></div>
         <div class="field span-2"><label for="rv-contact">Phone or email you booked with <span class="opt">so we can match your visit</span></label><input id="rv-contact" name="contact"></div>
@@ -815,16 +849,119 @@ urls.push(page({
       </div>
       <p class="form-error" data-review-error role="alert" hidden></p>
       <button type="submit" class="btn btn-primary btn-block">Send review</button>
-      <p class="fine">We publish every rating, not only the good ones, after matching it to a completed visit.</p>
+      <p class="fine">We publish every rating, not only the good ones, after matching it to a completed visit. We show only your first name, last initial and neighbourhood. See our <a href="${L("privacy/")}">Privacy Policy</a>.</p>
     </form>
     <div class="quote-done" data-review-done hidden tabindex="-1">
       <p class="label">Thank you</p><h2>Review received.</h2>
-      <p data-review-done-text>We'll publish it once it's matched to your visit, and text you your thank-you discount.</p>
+      <p data-review-done-text>We'll publish it once it's matched to your visit. Thank you for taking the time.</p>
       <a class="btn btn-ghost" data-google-review href="#" target="_blank" rel="noopener" hidden>Also post it on Google</a>
     </div>
   </div>
 </section>`
 }));
+
+/* ---------- legal pages ---------- */
+const P = C.policies;
+function legalPage({ slug, title, h1, description, intro, sections }) {
+  const trail = [["Home", ""], [h1, slug + "/"]];
+  urls.push(page({
+    depth: 1, pathOut: `${slug}/index.html`, pageType: "legal",
+    title: `${title} | ${B.name}`, description,
+    schemas: [crumbSchema(trail)],
+    body: (L) => `
+<section class="section legal-page">
+  <div class="wrap narrow">
+    ${breadcrumbs(L, trail)}
+    <p class="label">Last updated ${esc(P.effectiveDate)}</p>
+    <h1 class="h1-sub">${esc(h1)}</h1>
+    <p class="lede">${intro}</p>
+    <nav aria-label="On this page"><ol class="legal-toc">${sections.map((s, i) => `<li><a href="#${s.id}">${i + 1}. ${esc(s.h)}</a></li>`).join("")}</ol></nav>
+    <div class="legal-body">
+      ${sections.map((s, i) => `<section id="${s.id}" aria-labelledby="${s.id}-h"><h2 id="${s.id}-h">${i + 1}. ${esc(s.h)}</h2>${s.html(L)}</section>`).join("")}
+    </div>
+  </div>
+</section>`
+  }));
+}
+const contactLine = `<a data-mailto href="mailto:${B.email}">${esc(B.email)}</a> or <a data-tel href="tel:${B.phone}">${esc(B.phoneDisplay)}</a>`;
+
+legalPage({
+  slug: "privacy", title: "Privacy Policy", h1: "Privacy Policy",
+  description: `How ${B.name} collects, uses and protects your personal information under Canada's PIPEDA.`,
+  intro: `This policy explains what personal information ${esc(B.name)} collects, why, who it is shared with, and the choices you have. We follow Canada's <em>Personal Information Protection and Electronic Documents Act</em> (PIPEDA).`,
+  sections: [
+    { id: "who", h: "Who we are", html: () => `<p>${esc(B.name)} is a home cleaning business owned and operated by ${esc(B.owner)} in ${esc(B.base)}, Ontario. ${esc(B.owner)} is responsible for how we handle personal information and is our privacy contact. You can reach us at ${contactLine}. Our mailing address is available on request.</p>` },
+    { id: "collect", h: "What we collect", html: () => `
+      <div class="table-scroll"><table>
+        <thead><tr><th scope="col">When</th><th scope="col">What we collect</th></tr></thead>
+        <tbody>
+          <tr><td>You request a booking</td><td>Name, mobile number, email (optional), street address and postal code, home type and size, extras, preferred day and arrival window, how we get in (for example a lockbox or concierge), pets, notes, and how you'd like us to confirm.</td></tr>
+          <tr><td>You request a quote</td><td>Name, phone, email (optional), postal code, details about the space, and any notes you add.</td></tr>
+          <tr><td>You leave a review</td><td>Rating, first name and last initial, neighbourhood (optional), the service, your review, and the phone or email you booked with so we can match it to your visit.</td></tr>
+          <tr><td>You call, text or email us</td><td>Your number or address and what you tell us.</td></tr>
+          <tr><td>You pay</td><td>Payment records such as the amount, date and method. We do not store full card numbers.</td></tr>
+          <tr><td>You visit the website</td><td>Technical information your browser sends, such as your IP address and browser type, which our website host receives to deliver the site.</td></tr>
+        </tbody>
+      </table></div>
+      <p>We only collect what we need to arrange and deliver your clean. Please don't send us sensitive information we haven't asked for, such as health or financial details.</p>` },
+    { id: "use", h: "How we use it", html: () => `<ul>
+      <li>To schedule, confirm and deliver your cleaning, and to get into your home as you've arranged.</li>
+      <li>To contact you about your booking, quote, a change of plans or a problem with a visit.</li>
+      <li>To prepare quotes, keep payment and tax records, and meet our legal obligations.</li>
+      <li>To publish your review on our website, using only your first name, last initial, neighbourhood and review, if you've sent us one.</li>
+      <li>To improve our service, for example by learning which services clients book.</li>
+    </ul><p>We do not sell or rent your personal information, and we don't use it for any purpose not listed here without asking you first.</p>` },
+    { id: "consent", h: "Your consent", html: () => `<p>When you send us a booking request, quote request or review, you agree to us using your information for the purposes above. You can withdraw your consent at any time by contacting us, subject to legal or contractual limits. If you do, we may not be able to provide some services.</p>
+      <p>We send you messages about your booking or quote, and occasionally ask for a review after a clean. We won't send you promotional emails or texts without your consent, and every message we send will tell you how to opt out. If you ask us to stop, we'll stop within 10 business days, as Canada's Anti-Spam Legislation (CASL) requires.</p>` },
+    { id: "sharing", h: "Who we share it with", html: () => `<p>We share personal information only with service providers who help us run the business, and only what they need:</p>
+      <ul>
+        <li><strong>GitHub</strong> (GitHub, Inc.) hosts this website and keeps standard server logs, including IP addresses, for security.</li>
+        <li><strong>Google</strong> provides our email service, where booking, quote and review messages are stored.</li>
+        <li><strong>FormSubmit</strong> (formsubmit.co) delivers the website's booking, quote and review forms to our email inbox.</li>
+        <li><strong>Your bank or card payment provider</strong> processes payments you make by Interac e-Transfer or card.</li>
+      </ul>
+      <p>We may also disclose information if the law requires it, for example in response to a valid court order.</p>` },
+    { id: "abroad", h: "Storage outside Canada", html: () => `<p>Some of our service providers store or process information outside Canada, including in the United States. While it is there, it is subject to the laws of that country and may be accessed by its courts, law enforcement and national security authorities. We choose established providers and share only what each one needs.</p>` },
+    { id: "keep", h: "How long we keep it", html: () => `<ul>
+      <li><strong>Access codes and key instructions:</strong> deleted within ${P.accessCodeDeleteDays} days of your last scheduled visit, or sooner if you ask.</li>
+      <li><strong>Client and booking records:</strong> kept while you're a client, then for as long as tax law requires (generally six years for financial records).</li>
+      <li><strong>Quote requests that don't become bookings:</strong> deleted within 12 months.</li>
+      <li><strong>Reviews:</strong> kept while published. Ask us and we'll remove yours.</li>
+    </ul>` },
+    { id: "safeguards", h: "How we protect it", html: () => `<p>Only the people who need your information to serve you can see it. We protect our email and business accounts with strong passwords and two-step verification, keep access codes separate from other records, and delete information we no longer need. No method of transmission or storage is completely secure, but we work to protect your information.</p>
+      <p>If a breach of our safeguards creates a real risk of significant harm to you, we will notify you and the Office of the Privacy Commissioner of Canada as the law requires.</p>` },
+    { id: "access", h: "Door and lockbox codes", html: () => `<p>Codes and keys give access to your home, so we treat them with extra care. We don't ask for them on the website. We ask by text or phone only after your booking is confirmed, keep them separate from your name and address, never write them on keys, and delete them within ${P.accessCodeDeleteDays} days of your last scheduled visit. We recommend changing your code from time to time, and after you stop using our service.</p>` },
+    { id: "cookies", h: "Cookies and your browser", html: () => `<p>We don't use advertising cookies or tracking pixels. When you start a booking, the details you enter are saved in your own browser so you don't lose them if you leave the page. They stay on your device and are sent to us only when you submit the request. You can clear them at any time through your browser settings.</p>
+      <p>If we add website analytics or advertising tools in future, we will update this policy first and explain how to opt out.</p>` },
+    { id: "rights", h: "Your rights", html: () => `<p>You can ask to see the personal information we hold about you, ask how it has been used or shared, and ask us to correct it if it's wrong. Contact us at ${contactLine}. We'll respond within 30 days, and there's no charge.</p>` },
+    { id: "children", h: "Children", html: () => `<p>Our services and website are for adults. We don't knowingly collect personal information from children.</p>` },
+    { id: "complaints", h: "Questions and complaints", html: () => `<p>If you have a concern about how we handle your information, please contact ${esc(B.owner)} first at ${contactLine}. We'll look into it and reply.</p>
+      <p>You can also complain to the Office of the Privacy Commissioner of Canada at <a href="https://www.priv.gc.ca" rel="noopener" target="_blank">priv.gc.ca</a>, by phone at 1-800-282-1376, or by mail at 30 Victoria Street, Gatineau, Quebec K1A 1H3.</p>` },
+    { id: "changes", h: "Changes to this policy", html: () => `<p>We'll update this policy when our practices change and show the new effective date at the top of this page.</p>` }
+  ]
+});
+
+legalPage({
+  slug: "policies", title: "Service Policies", h1: "Service Policies",
+  description: `Booking, pricing, payment, cancellation and satisfaction policies for ${B.name}.`,
+  intro: `Clear terms, so there are no surprises. These apply to every clean we do. If anything here is unclear, call or text ${esc(B.phoneDisplay)}.`,
+  sections: [
+    { id: "area", h: "Where we clean", html: () => `<p>We clean homes and small offices in Scarborough and North York, Toronto. We confirm your postal code before every booking.</p>` },
+    { id: "booking", h: "Booking and confirmation", html: () => `<p>A booking made on the website is a request. It's confirmed once we've contacted you by text, call or email and agreed a day and arrival window. We usually reply ${esc(B.replyPromise)}.</p>` },
+    { id: "pricing", h: "Prices and estimates", html: () => `<p>The price shown on the website is an estimate based on what you tell us: the service, home type, bedrooms, bathrooms and extras. If your home needs much more or less time than expected, we'll tell you and agree the price with you before we start, never after. Prices are in Canadian dollars.</p>
+      ${C.offers.founding.active ? `<p>Founding household offer: ${esc(C.offers.founding.text)} The discount applies to the first visit only and can't be combined with other discounts.</p>` : ""}
+      <p>Recurring plans (weekly, every 2 weeks or every 4 weeks) receive the discount shown when you book. You can pause or change your plan with ${P.cancelNoticeHours} hours' notice.</p>` },
+    { id: "payment", h: "Payment", html: () => `<p>There's no deposit to book. You pay after your clean by Interac e-Transfer, credit or debit card, or cash.</p>` },
+    { id: "changes", h: "Rescheduling and cancellation", html: () => `<p>You can reschedule or cancel at no charge with at least ${P.cancelNoticeHours} hours' notice before your arrival window. With less notice, or if we can't get into your home at the agreed time, a late-cancellation fee of ${esc(P.lateCancelFee)} may apply. We'll always tell you before charging it.</p>
+      <p>If we ever need to reschedule because of illness or severe weather, we'll tell you as early as possible and offer the next available time.</p>` },
+    { id: "guarantee", h: "Our re-clean guarantee", html: () => `<p>If something isn't right, tell us within ${P.recleanWindowHours} hours of your clean, with photos if you can. We'll come back and re-clean those areas at no charge. If a re-clean doesn't put it right, contact ${esc(B.ownerFirstName)} and we'll agree a fair solution together.</p>` },
+    { id: "damage", h: "Breakage and damage", html: () => `<p>We take great care in your home. If something is damaged during a clean, we'll tell you the same day. If you notice something after we leave, please tell us within ${P.damageReportHours} hours, with photos, and we'll work with you on a fair repair or replacement. Please let us know in advance about fragile, valuable or sentimental items you'd rather we didn't handle.</p>` },
+    { id: "access", h: "Keys, codes and access", html: () => `<p>If you won't be home, a lockbox, key code or concierge works best. We never copy keys or write codes on them, and we delete access codes within ${P.accessCodeDeleteDays} days of your last scheduled visit. We recommend changing codes from time to time.</p>` },
+    { id: "pets", h: "Pets", html: () => `<p>Pets are welcome. Please tell us about them when you book, and keep any anxious or protective pets in a separate room while we work.</p>` },
+    { id: "safety", h: "Safety", html: () => `<p>We bring our own supplies and equipment. For everyone's safety, we may decline or stop work in unsafe conditions, such as biohazards, pest infestations, mould, or anything that requires climbing higher than a two-step ladder or moving heavy furniture. We'll always explain why and agree next steps with you.</p>` },
+    { id: "contact", h: "Contact", html: () => `<p>Questions about these policies? Contact ${esc(B.owner)} at ${contactLine}. See also our <a href="${linker(1)("privacy/")}">Privacy Policy</a>.</p>` }
+  ]
+});
 
 /* ---------- 404 ---------- */
 if (!PREVIEW_DIR) {
@@ -834,7 +971,6 @@ if (!PREVIEW_DIR) {
   fs.writeFileSync(path.join(OUT, "404.html"), `<!doctype html>
 <html lang="en-CA"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Page not found | ${esc(B.name)}</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500&family=Montserrat:wght@700;800&display=swap">
 <link rel="stylesheet" href="${L404("css/site.css")}"></head>
 <body data-page="404"><main class="section"><div class="wrap narrow">
 <a class="brand" href="${L404()}"><img src="${L404("assets/logo.png")}" alt="${esc(B.name)}" width="900" height="195" style="height:40px;width:auto"></a>

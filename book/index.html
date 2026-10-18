@@ -16,9 +16,8 @@
 <meta property="og:image" content="https://mannp6903.github.io/nestandrestcleaning/assets/og-image.png">
 <link rel="icon" type="image/png" sizes="48x48" href="../assets/favicon-48.png">
 <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=Montserrat:wght@600;700;800&display=swap">
+<link rel="preload" href="../assets/fonts/montserrat.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="../assets/fonts/dm-sans.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="../css/site.css">
 
 </head>
@@ -40,6 +39,8 @@
 <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s-6.5-6-6.5-11a6.5 6.5 0 0 1 13 0c0 5-6.5 11-6.5 11Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><circle cx="12" cy="10" r="2.3" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
 <symbol id="i-leaf" viewBox="0 0 24 24"><path d="M5 19c0-8 5-13 15-14-1 10-6 15-14 15M5 19l7-7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
 <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.8" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M4.5 20.5c1.2-3.8 4-5.5 7.5-5.5s6.3 1.7 7.5 5.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+<symbol id="i-facebook" viewBox="0 0 24 24"><path d="M13.6 21v-7.6h2.6l.4-3h-3V8.5c0-.9.3-1.5 1.5-1.5h1.6V4.3c-.3 0-1.2-.1-2.3-.1-2.3 0-3.9 1.4-3.9 4v2.2H8v3h2.5V21z"/></symbol>
+<symbol id="i-instagram" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="4.8" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="12" r="3.9" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="17.2" cy="6.8" r="1.1"/></symbol>
 <symbol id="i-menu" viewBox="0 0 24 24"><path d="M3 8h18M3 16h18" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
 <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
 <symbol id="i-chev" viewBox="0 0 24 24"><path d="m7 9.5 5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
@@ -68,6 +69,7 @@
         <form id="booking-form" class="booking-form" novalidate>
           <fieldset class="step" data-step="1">
             <legend>Your home</legend>
+            <div class="field"><label for="f-postal">Postal code of the home</label><input id="f-postal" name="postal" autocomplete="postal-code" autocapitalize="characters" maxlength="7" placeholder="M1B 2K3" required><small class="pc-result" data-pc-booking aria-live="polite"></small></div>
             <div class="field"><span class="field-label" id="svc-label">Service</span>
               <div class="choice-grid" role="radiogroup" aria-labelledby="svc-label">
                 <label class="choice"><input type="radio" name="service" value="regular"><span class="choice-body"><strong>Regular Home Cleaning</strong><span class="choice-from">from <b data-from="regular">$110</b></span><span class="choice-desc">The weekly or fortnightly reset that keeps a lived-in home effortless.</span></span></label><label class="choice"><input type="radio" name="service" value="deep"><span class="choice-body"><strong>Deep Cleaning</strong><span class="choice-from">from <b data-from="deep">$199</b></span><span class="choice-desc">A top-to-bottom reset for build-up, edges and everything in between.</span></span></label><label class="choice"><input type="radio" name="service" value="move"><span class="choice-body"><strong>Move-In / Move-Out Cleaning</strong><span class="choice-from">from <b data-from="move">$249</b></span><span class="choice-desc">An empty-home clean for keys, deposits and fresh starts.</span></span></label><label class="choice"><input type="radio" name="service" value="detail"><span class="choice-body"><strong>Kitchen &amp; Bath Detailing</strong><span class="choice-from">from <b data-from="detail">$139</b></span><span class="choice-desc">Just the hardest-working rooms, restored properly.</span></span></label>
@@ -124,13 +126,13 @@
 
           <fieldset class="step" data-step="3" hidden>
             <legend>Your details</legend>
+            <p class="field-note">All fields are required unless marked optional.</p>
             <div class="form-grid">
               <div class="field"><label for="f-name">Full name</label><input id="f-name" name="name" autocomplete="name" required></div>
               <div class="field"><label for="f-phone">Mobile</label><input id="f-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="647 555 0123" required></div>
               <div class="field span-2"><label for="f-email">Email <span class="opt">for your confirmation</span></label><input id="f-email" name="email" type="email" inputmode="email" autocomplete="email"></div>
               <div class="field span-2"><label for="f-address">Street address and unit</label><input id="f-address" name="address" autocomplete="street-address" required></div>
-              <div class="field"><label for="f-postal">Postal code</label><input id="f-postal" name="postal" autocomplete="postal-code" maxlength="7" placeholder="M1B 2K3" required><small class="pc-result" data-pc-booking aria-live="polite"></small></div>
-              <div class="field"><label for="f-access">Getting in</label><div class="select-wrap"><select id="f-access" name="access"><option>I'll be home</option><option>Concierge or front desk</option><option>Lockbox or key code</option><option>Let's discuss</option></select><svg class="ic" aria-hidden="true"><use href="#i-chev"/></svg></div></div>
+              <div class="field span-2"><label for="f-access">Getting in</label><div class="select-wrap"><select id="f-access" name="access"><option>I'll be home</option><option>Concierge or front desk</option><option>Lockbox or key code</option><option>Let's discuss</option></select><svg class="ic" aria-hidden="true"><use href="#i-chev"/></svg></div></div>
               <div class="field span-2"><span class="field-label" id="pets-label">Pets</span>
                 <div class="seg" role="radiogroup" aria-labelledby="pets-label">
                   <label><input type="radio" name="pets" value="No pets" checked><span>No pets</span></label>
@@ -138,7 +140,7 @@
                   <label><input type="radio" name="pets" value="Cat or other"><span>Cat / other</span></label>
                 </div>
               </div>
-              <div class="field span-2"><label for="f-notes">Notes <span class="opt">optional</span></label><textarea id="f-notes" name="notes" rows="3" placeholder="Parking, buzzer code, rooms to focus on, products to avoid"></textarea></div>
+              <div class="field span-2"><label for="f-notes">Notes <span class="opt">optional</span></label><textarea id="f-notes" name="notes" rows="3" placeholder="Parking, rooms to focus on, products to avoid"></textarea><small class="field-hint">Please don't type door or lockbox codes here. We'll ask for them by text once your booking is confirmed.</small></div>
               <div class="field span-2"><span class="field-label" id="pref-label">Confirm by</span>
                 <div class="seg" role="radiogroup" aria-labelledby="pref-label">
                   <label><input type="radio" name="contactPref" value="Text" checked><span>Text</span></label>
@@ -147,6 +149,8 @@
                 </div>
               </div>
               <label class="check span-2 consent"><input type="checkbox" id="f-consent"> I understand this is a booking request. Nest &amp; Rest Cleaning will confirm the time and final price with me before the clean.</label>
+              <p class="field-note span-2">Free to reschedule or cancel up to 24 hours before your arrival window. Nothing to pay until after your clean.</p>
+              <p class="privacy-note span-2">We use your details only to arrange and deliver your clean. Your request is sent through FormSubmit to our Google email inbox, which may store data outside Canada. See our <a href="../privacy/">Privacy Policy</a> and <a href="../policies/">Service Policies</a>.</p>
               <input type="text" name="_honey" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
             </div>
             <p class="form-error" data-form-error role="alert" hidden></p>
@@ -155,7 +159,7 @@
           <div class="step-nav">
             <button type="button" class="btn btn-ghost" data-prev hidden><svg class="ic" aria-hidden="true"><use href="#i-back"/></svg> Back</button>
             <button type="button" class="btn btn-primary btn-grow" data-next>Continue <svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></button>
-            <button type="submit" class="btn btn-primary btn-grow" data-submit hidden>Request this booking</button>
+            <button type="submit" class="btn btn-primary btn-grow" data-submit hidden>Request booking</button>
           </div>
         </form>
 
@@ -164,6 +168,7 @@
           <h2 data-done-title>Thank you.</h2>
           <p data-done-text></p>
           <p class="ref">Reference <strong data-ref></strong></p>
+          <dl class="done-list" data-done-list></dl>
           <div class="done-actions">
             <button type="button" class="btn btn-primary" data-ics><svg class="ic" aria-hidden="true"><use href="#i-cal"/></svg> Add to calendar</button>
             <a class="btn btn-ghost" data-sms-booking href="#"><svg class="ic" aria-hidden="true"><use href="#i-sms"/></svg> Text us these details</a>
@@ -177,7 +182,7 @@
 
       <aside class="summary" data-summary aria-live="polite">
         <button type="button" class="summary-toggle" data-summary-toggle aria-expanded="false">
-          <span class="sum-label">Your estimate</span>
+          <span class="sum-label" data-sum-label>Your estimate</span>
           <span class="sum-total" data-total>$110</span>
           <svg class="ic" aria-hidden="true"><use href="#i-chev"/></svg>
         </button>

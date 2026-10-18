@@ -16,9 +16,8 @@
 <meta property="og:image" content="https://mannp6903.github.io/nestandrestcleaning/assets/og-image.png">
 <link rel="icon" type="image/png" sizes="48x48" href="../assets/favicon-48.png">
 <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=Montserrat:wght@600;700;800&display=swap">
+<link rel="preload" href="../assets/fonts/montserrat.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="../assets/fonts/dm-sans.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="../css/site.css">
 
 </head>
@@ -40,6 +39,8 @@
 <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s-6.5-6-6.5-11a6.5 6.5 0 0 1 13 0c0 5-6.5 11-6.5 11Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><circle cx="12" cy="10" r="2.3" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
 <symbol id="i-leaf" viewBox="0 0 24 24"><path d="M5 19c0-8 5-13 15-14-1 10-6 15-14 15M5 19l7-7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
 <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.8" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M4.5 20.5c1.2-3.8 4-5.5 7.5-5.5s6.3 1.7 7.5 5.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+<symbol id="i-facebook" viewBox="0 0 24 24"><path d="M13.6 21v-7.6h2.6l.4-3h-3V8.5c0-.9.3-1.5 1.5-1.5h1.6V4.3c-.3 0-1.2-.1-2.3-.1-2.3 0-3.9 1.4-3.9 4v2.2H8v3h2.5V21z"/></symbol>
+<symbol id="i-instagram" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="4.8" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="12" r="3.9" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="17.2" cy="6.8" r="1.1"/></symbol>
 <symbol id="i-menu" viewBox="0 0 24 24"><path d="M3 8h18M3 16h18" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
 <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
 <symbol id="i-chev" viewBox="0 0 24 24"><path d="m7 9.5 5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
@@ -78,6 +79,10 @@
         <a class="btn btn-primary btn-block" href="../book/">Book your clean</a>
         <a class="btn btn-ghost btn-block" data-tel href="tel:+16479786903">Call or text 647 978 6903</a>
       </div>
+      <div class="social social-menu">
+    <a class="social-link" data-social="facebook" aria-label="Nest &amp; Rest Cleaning on Facebook" aria-disabled="true"><svg class="ic" aria-hidden="true"><use href="#i-facebook"/></svg></a>
+    <a class="social-link" data-social="instagram" aria-label="Nest &amp; Rest Cleaning on Instagram" aria-disabled="true"><svg class="ic" aria-hidden="true"><use href="#i-instagram"/></svg></a>
+  </div>
     </div>
   </div>
 
@@ -87,7 +92,7 @@
   <div class="wrap narrow">
     <p class="label">Your review</p>
     <h1 class="h1-sub">How did we do?</h1>
-    <p class="lede">Honest reviews help neighbours choose with confidence. As a thank-you, we'll take $<span data-review-thanks>15</span> off your next clean.</p>
+    <p class="lede">Your honest feedback helps us improve and helps neighbours choose with confidence. It takes about a minute.</p>
     <form class="review-form" data-review-form novalidate>
       <fieldset class="stars-field"><legend>Your rating</legend>
         <div class="stars-input">
@@ -95,8 +100,8 @@
         </div>
       </fieldset>
       <div class="form-grid">
-        <div class="field"><label for="rv-name">First name and last initial</label><input id="rv-name" name="name" autocomplete="name" placeholder="Priya S."></div>
-        <div class="field"><label for="rv-area">Neighbourhood <span class="opt">optional</span></label><input id="rv-area" name="area" placeholder="Agincourt"></div>
+        <div class="field"><label for="rv-name">First name and last initial</label><input id="rv-name" name="name" autocomplete="name" placeholder="e.g. Priya S."></div>
+        <div class="field"><label for="rv-area">Neighbourhood <span class="opt">optional</span></label><input id="rv-area" name="area" placeholder="e.g. Agincourt"></div>
         <div class="field span-2"><label for="rv-service">Service</label><div class="select-wrap"><select id="rv-service" name="service"><option>Regular Home Cleaning</option><option>Deep Cleaning</option><option>Move-In / Move-Out Cleaning</option><option>Kitchen &amp; Bath Detailing</option><option>Residence Care</option><option>Small Office Cleaning</option></select><svg class="ic" aria-hidden="true"><use href="#i-chev"/></svg></div></div>
         <div class="field span-2"><label for="rv-text">Your review</label><textarea id="rv-text" name="text" rows="5" placeholder="What stood out? What could be better?"></textarea></div>
         <div class="field span-2"><label for="rv-contact">Phone or email you booked with <span class="opt">so we can match your visit</span></label><input id="rv-contact" name="contact"></div>
@@ -104,11 +109,11 @@
       </div>
       <p class="form-error" data-review-error role="alert" hidden></p>
       <button type="submit" class="btn btn-primary btn-block">Send review</button>
-      <p class="fine">We publish every rating, not only the good ones, after matching it to a completed visit.</p>
+      <p class="fine">We publish every rating, not only the good ones, after matching it to a completed visit. We show only your first name, last initial and neighbourhood. See our <a href="../privacy/">Privacy Policy</a>.</p>
     </form>
     <div class="quote-done" data-review-done hidden tabindex="-1">
       <p class="label">Thank you</p><h2>Review received.</h2>
-      <p data-review-done-text>We'll publish it once it's matched to your visit, and text you your thank-you discount.</p>
+      <p data-review-done-text>We'll publish it once it's matched to your visit. Thank you for taking the time.</p>
       <a class="btn btn-ghost" data-google-review href="#" target="_blank" rel="noopener" hidden>Also post it on Google</a>
     </div>
   </div>
@@ -118,8 +123,12 @@
   <div class="wrap">
     <div class="footer-top">
       <div class="footer-brand">
-        <img src="../assets/badge-navy.png" alt="Nest &amp; Rest Cleaning" width="1110" height="436">
+        <img src="../assets/badge.png" alt="Nest &amp; Rest Cleaning" width="720" height="201">
         <p class="footer-tag">We clean. You rest.</p>
+        <div class="social ">
+    <a class="social-link" data-social="facebook" aria-label="Nest &amp; Rest Cleaning on Facebook" aria-disabled="true"><svg class="ic" aria-hidden="true"><use href="#i-facebook"/></svg></a>
+    <a class="social-link" data-social="instagram" aria-label="Nest &amp; Rest Cleaning on Instagram" aria-disabled="true"><svg class="ic" aria-hidden="true"><use href="#i-instagram"/></svg></a>
+  </div>
       </div>
       <div class="footer-cols">
         <div>
@@ -128,7 +137,7 @@
         </div>
         <div>
           <p class="label">Areas</p>
-          <ul><li><a href="../areas/scarborough/">Scarborough</a></li><li><a href="../areas/north-york/">North York</a></li><li><a href="../areas/east-york/">East York</a></li><li><a href="../areas/toronto/">Downtown &amp; Midtown Toronto</a></li><li><a href="../areas/markham/">Markham</a></li><li><a href="../areas/pickering/">Pickering</a></li><li><a href="../areas/ajax/">Ajax</a></li></ul>
+          <ul><li><a href="../areas/scarborough/">Scarborough</a></li><li><a href="../areas/north-york/">North York</a></li></ul>
         </div>
         <div>
           <p class="label">Contact</p>
@@ -136,14 +145,18 @@
             <li><a data-tel href="tel:+16479786903" data-phone-text>647 978 6903</a></li>
             <li><a data-mailto href="mailto:nestnrestcleaning@gmail.com" data-email-text>nestnrestcleaning@gmail.com</a></li>
             <li><span data-hours>Monday to Saturday, 8am to 6pm</span></li>
-            <li><span>Scarborough, Toronto</span></li>
+            <li><span>Scarborough &amp; North York</span></li>
           </ul>
         </div>
       </div>
     </div>
     <div class="footer-bottom">
-      <p>© <span data-year>2026</span> Nest &amp; Rest Cleaning. Your details are used only to schedule and deliver your clean.</p>
-      <p><a href="../review/">Leave a review</a> · <a href="../book/">Book a clean</a></p>
+      <p>© <span data-year>2026</span> Nest &amp; Rest Cleaning, Scarborough, Toronto, Ontario.</p>
+      <ul class="legal">
+        <li><a href="../privacy/">Privacy Policy</a></li>
+        <li><a href="../policies/">Service Policies</a></li>
+        <li><a href="../review/">Leave a review</a></li>
+      </ul>
     </div>
   </div>
 </footer>

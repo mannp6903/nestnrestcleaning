@@ -19,6 +19,7 @@ window.NR_CONFIG = {
     region: "ON",
     hours: "Monday to Saturday, 8am to 6pm",
     hoursShort: "Mon–Sat, 8–6",
+    areaLabel: "Scarborough & North York",
     replyPromise: "within 2 hours during business hours",
     // Paste your Google Business Profile review link here once it exists.
     googleReviewUrl: "",
@@ -59,7 +60,6 @@ window.NR_CONFIG = {
       spots: 50,
       text: "Our first 50 households receive 20% off their first visit."
     },
-    reviewThanks: 15,
     referral: 25
   },
 
@@ -198,46 +198,23 @@ window.NR_CONFIG = {
   openDays: [1, 2, 3, 4, 5, 6],   // 0 = Sunday
   daysAhead: 21,
 
-  /* Postal-code coverage (first 3 characters). */
+  /* Where we clean, by postal code (first 3 characters). Requests from anywhere else are declined politely. */
   serviceArea: {
-    home: { prefixes: ["M1"], label: "Scarborough", note: "Home turf. No travel fee." },
-    city: { prefixes: ["M"], label: "Toronto", note: "Covered across the city." },
-    extended: {
-      label: "Greater Toronto Area",
-      travelFee: 15,
-      prefixes: [
-        "L1S", "L1T", "L1Z", "L1V", "L1W", "L1X", "L1Y", "L1M", "L1N", "L1P", "L1R",
-        "L3P", "L3R", "L3S", "L3T", "L6B", "L6C", "L6E", "L6G",
-        "L4B", "L4C", "L4E", "L4S", "L4H", "L4J", "L4K", "L4L", "L6A",
-        "L4T", "L4V", "L4W", "L4X", "L4Y", "L4Z", "L5A", "L5B", "L5C", "L5E", "L5G",
-        "L5H", "L5J", "L5K", "L5L", "L5M", "L5N", "L5R", "L5V", "L5W"
-      ]
-    }
+    label: "Scarborough & North York",
+    districts: [
+      { name: "Scarborough", prefixes: ["M1"] },
+      { name: "North York", prefixes: ["M2H", "M2J", "M2K", "M2L", "M2M", "M2N", "M2P", "M2R", "M3A", "M3B", "M3C", "M3H", "M3J", "M3K", "M3L", "M3M", "M3N", "M4A", "M5M", "M6A", "M6B", "M6L", "M9L", "M9M"] }
+    ]
   },
 
   /* Area pages, one per entry. */
   areas: [
-    { slug: "scarborough", name: "Scarborough", zone: "home",
+    { slug: "scarborough", name: "Scarborough",
       neighbourhoods: ["Agincourt", "Malvern", "Wexford", "Highland Creek", "Guildwood", "Scarborough Village", "Birch Cliff", "Cliffside", "L'Amoreaux", "Morningside", "Woburn", "Bendale", "Clairlea", "Milliken", "Rouge"],
-      intro: "Scarborough is home. We're based here, so Scarborough homes get the most availability and never pay a travel fee." },
-    { slug: "north-york", name: "North York", zone: "city",
-      neighbourhoods: ["Willowdale", "Don Mills", "York Mills", "Bayview Village", "Newtonbrook", "Bathurst Manor", "Downsview", "Parkwoods", "Flemingdon Park", "Hillcrest Village"],
-      intro: "From Willowdale condos to family homes in Don Mills and York Mills, we clean across North York with no travel fee." },
-    { slug: "east-york", name: "East York", zone: "city",
-      neighbourhoods: ["Leaside", "Thorncliffe Park", "Pape Village", "Woodbine Heights", "Topham Park", "O'Connor–Parkview"],
-      intro: "Leaside, Thorncliffe and the streets between: East York is a short drive from our Scarborough base, with no travel fee." },
-    { slug: "toronto", name: "Downtown & Midtown Toronto", zone: "city",
-      neighbourhoods: ["The Beaches", "Leslieville", "Riverdale", "The Annex", "Yorkville", "Rosedale", "Davisville", "Liberty Village", "CityPlace", "St. Lawrence"],
-      intro: "Downtown condos and midtown homes, booked online in two minutes. Tell us about concierge, parking and buzzer codes when you book." },
-    { slug: "markham", name: "Markham", zone: "extended",
-      neighbourhoods: ["Unionville", "Markham Village", "Cornell", "Cathedraltown", "Berczy Village", "Milliken Mills", "Wismer", "Greensborough"],
-      intro: "We cover Markham from Milliken Mills to Cornell. A small travel fee applies, shown in your price before you book." },
-    { slug: "pickering", name: "Pickering", zone: "extended",
-      neighbourhoods: ["Bay Ridges", "Amberlea", "Liverpool", "Rougemount", "Duffin Heights", "Brock Ridge", "Highbush", "Rosebank"],
-      intro: "Just across the Rouge from Scarborough, Pickering homes are an easy visit for us. A small travel fee applies, shown before you book." },
-    { slug: "ajax", name: "Ajax", zone: "extended",
-      neighbourhoods: ["Pickering Village", "Nottingham", "Riverside", "Southwood", "Central East", "Northeast Ajax"],
-      intro: "We clean homes across Ajax, from the lakeshore to the north end. A small travel fee applies, shown before you book." }
+      intro: "Scarborough is home. We're based here, so Scarborough households get our widest choice of days and arrival windows." },
+    { slug: "north-york", name: "North York",
+      neighbourhoods: ["Willowdale", "Don Mills", "York Mills", "Bayview Village", "Newtonbrook", "Bathurst Manor", "Downsview", "Parkwoods", "Flemingdon Park", "Hillcrest Village", "Lawrence Manor", "Bedford Park", "Victoria Village"],
+      intro: "From Willowdale condos to family homes in Don Mills and York Mills, we clean across North York, Monday to Saturday." }
   ],
 
   /* Room-by-room checklist: [task, regular, deep, move] with "yes", "add" (add-on) or "". */
@@ -300,8 +277,18 @@ window.NR_CONFIG = {
     { q: "How long does a residence walkthrough take?", a: "Usually 20 to 30 minutes. We walk each room with you, note surfaces and priorities, and send a written care plan and quote afterwards.", on: ["residence"] },
     { q: "Can you clean outside business hours?", a: "Tell us what suits your business in the quote form. We'll confirm the times we can offer in your quote.", on: ["office"] },
     { q: "Do I need a contract?", a: "No contract is needed to start. Most offices begin with a single visit, then choose a schedule.", on: ["office"] },
-    { q: "Is there a travel fee?", a: "Not in Toronto. Homes in the extended GTA (Markham, Pickering, Ajax and nearby) have a small travel fee, shown in your price before you book.", on: ["area"] }
+    { q: "Which areas do you serve?", a: "Scarborough and North York. Enter your postal code on the site to check. If you're just outside these areas, call or text and we'll tell you honestly whether we can help.", on: ["home", "area", "residence", "office"] }
   ],
+
+  /* Service policies shown on the Service Policies page. Confirm these before launch. */
+  policies: {
+    effectiveDate: "October 18, 2026",
+    cancelNoticeHours: 24,
+    lateCancelFee: "up to 50% of the estimated price",
+    recleanWindowHours: 24,
+    damageReportHours: 48,
+    accessCodeDeleteDays: 7
+  },
 
   /* Real reviews only. Add them as they come in:
      { name: "Priya S.", area: "Agincourt", rating: 5, service: "Deep Cleaning", text: "..." } */

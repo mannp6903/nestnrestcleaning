@@ -83,7 +83,6 @@
     $$("[data-owner]").forEach(function (el) { el.textContent = B.owner; });
     $$("[data-year]").forEach(function (el) { el.textContent = new Date().getFullYear(); });
     $$("[data-referral]").forEach(function (el) { el.textContent = C.offers.referral; });
-    $$("[data-review-thanks]").forEach(function (el) { el.textContent = C.offers.reviewThanks; });
     $$("[data-from]").forEach(function (el) {
       var s = C.services[el.getAttribute("data-from")];
       if (s) el.textContent = money(s.base);
@@ -116,6 +115,11 @@
         if (fr) $("[data-plan-price]", p).textContent = money(ex * (1 - fr.discount / 100));
       });
     }
+
+    $$("[data-social]").forEach(function (el) {
+      var url = B[el.getAttribute("data-social") + "Url"];
+      if (url) { el.href = url; el.target = "_blank"; el.rel = "noopener"; el.removeAttribute("aria-disabled"); }
+    });
 
     var g = $("[data-google-review]");
     if (g && B.googleReviewUrl) { g.href = B.googleReviewUrl; g.hidden = false; }
@@ -159,19 +163,16 @@
   function zoneFor(v) {
     var p = normPostal(v);
     if (!/^[A-Z]\d[A-Z]/.test(p)) return null;
-    var fsa = p.slice(0, 3), A = C.serviceArea;
-    var starts = function (list) { return list.some(function (x) { return fsa.indexOf(x) === 0; }); };
-    if (starts(A.home.prefixes)) return { zone: "home", fsa: fsa, fee: 0 };
-    if (starts(A.city.prefixes)) return { zone: "city", fsa: fsa, fee: 0 };
-    if (A.extended.prefixes.indexOf(fsa) > -1) return { zone: "extended", fsa: fsa, fee: A.extended.travelFee || 0 };
-    return { zone: "outside", fsa: fsa, fee: 0 };
+    var fsa = p.slice(0, 3);
+    var hit = C.serviceArea.districts.filter(function (d) {
+      return d.prefixes.some(function (x) { return fsa.indexOf(x) === 0; });
+    })[0];
+    return { fsa: fsa, area: hit ? hit.name : null };
   }
   function zoneMessage(z) {
     if (!z) return { cls: "no", text: "Enter a postal code like M1B 2K3." };
-    if (z.zone === "home") return { cls: "ok", text: "Yes. " + z.fsa + " is Scarborough, our home turf. No travel fee." };
-    if (z.zone === "city") return { cls: "ok", text: "Yes, we clean in " + z.fsa + ". No travel fee." };
-    if (z.zone === "extended") return { cls: "warn", text: "Yes, " + z.fsa + " is in our extended area" + (z.fee ? ", with a " + money(z.fee) + " travel fee." : ".") };
-    return { cls: "no", text: z.fsa + " is outside our usual area. Send a request anyway and we'll tell you if we can make it work." };
+    if (z.area) return { cls: "ok", text: "Yes, we clean in " + z.fsa + " (" + z.area + ")." };
+    return { cls: "no", text: "Sorry, " + z.fsa + " is outside our area. We clean in Scarborough and North York only. If you're close by, call or text " + B.phoneDisplay + "." };
   }
   function bindPostalChecks() {
     $$("[data-pc-form]").forEach(function (form) {
@@ -181,7 +182,7 @@
         var out = $("[data-pc-result]", form);
         out.className = "pc-result " + m.cls;
         out.textContent = m.text;
-        if (m.cls !== "no") {
+        if (m.cls === "ok") {
           var d = store(DRAFT_KEY) || {};
           d.postal = formatPostal($("input", form).value);
           store(DRAFT_KEY, d);
@@ -277,8 +278,7 @@
       var addons = C.addons.filter(function (a) { return state.addons.indexOf(a.id) > -1 && incl.indexOf(a.id) === -1; });
       var addonTotal = addons.reduce(function (t, a) { return t + a.price; }, 0);
       var z = zoneFor($("#f-postal").value);
-      var travel = z && z.zone === "extended" ? z.fee : 0;
-      var subtotal = base + addonTotal + travel;
+      var subtotal = base + addonTotal;
       var freq = s.recurring ? C.frequencies[state.freq] : C.frequencies.once;
       var rec = freq ? freq.discount : 0;
       var f = C.offers.founding;
@@ -287,7 +287,7 @@
       var firstLabel = fp >= rec && fp > 0 ? f.label : (freq ? freq.label + " plan" : "");
       var tax = C.taxRate || 0;
       return {
-        s: s, ht: ht, beds: beds, base: base, addons: addons, travel: travel, subtotal: subtotal, freq: freq, zone: z,
+        s: s, ht: ht, beds: beds, base: base, addons: addons, subtotal: subtotal, freq: freq, zone: z,
         firstPct: firstPct, firstLabel: firstLabel, firstDisc: subtotal * firstPct / 100,
         first: subtotal * (1 - firstPct / 100) * (1 + tax),
         repeat: rec ? subtotal * (1 - rec / 100) * (1 + tax) : null, tax: tax,
@@ -302,13 +302,13 @@
       var q = quote();
       var html = "<div><dt><strong>" + esc(q.s.name) + "</strong><br>" + esc(homeLine(q)) + "</dt><dd>" + money(q.base) + "</dd></div>";
       q.addons.forEach(function (a) { html += "<div><dt>" + esc(a.name) + "</dt><dd>+" + money(a.price) + "</dd></div>"; });
-      if (q.travel) html += "<div><dt>Travel fee</dt><dd>+" + money(q.travel) + "</dd></div>";
       if (q.firstDisc > 0) html += '<div class="disc"><dt>' + esc(q.firstLabel) + " · " + q.firstPct + "%</dt><dd>−" + money(q.firstDisc) + "</dd></div>";
       html += '<div class="total"><dt>' + (q.repeat ? "First visit" : "Estimated total") + "</dt><dd>" + money(q.first) + "</dd></div>";
       if (q.repeat) html += '<div class="then"><dt>Then ' + esc(q.freq.label.toLowerCase()) + "</dt><dd>" + money(q.repeat) + "</dd></div>";
       html += '<div class="then"><dt>Time on site</dt><dd>about ' + q.hours + " hrs</dd></div>";
       $("[data-lines]").innerHTML = html;
       $("[data-total]").textContent = money(q.first);
+      $("[data-sum-label]").textContent = q.firstDisc > 0 ? "First visit · " + q.firstPct + "% off" : "Your estimate";
       $("[data-fine]").textContent = "Estimate in " + C.currency + (q.tax ? ", HST included" : "") + ". No payment now. We confirm the final price before we start.";
     }
     function sync() {
@@ -362,29 +362,41 @@
       }
       save();
     }
-    function setInvalid(el, bad) { el.classList.toggle("invalid", bad); if (bad) el.setAttribute("aria-invalid", "true"); else el.removeAttribute("aria-invalid"); }
+    var checks = {
+      "f-name": [function (v) { return v.trim().length >= 2; }, "Add your name."],
+      "f-phone": [phoneOk, "Enter a 10-digit mobile number, like 647 555 0123."],
+      "f-email": [emailOk, "Check your email address, or leave it blank."],
+      "f-address": [function (v) { return v.trim().length >= 5; }, "Add your street address and unit."],
+      "f-postal": [function (v) { return fullPostalOk(v) && !!(zoneFor(v) || {}).area; }, null]
+    };
+    function checkField(el) {
+      var c = checks[el.id];
+      if (!c) return true;
+      var ok = c[0](el.value), msg = "";
+      if (!ok) {
+        if (el.id === "f-postal") msg = fullPostalOk(el.value) ? "We clean in Scarborough and North York only. If you're close by, call or text " + B.phoneDisplay + "." : "Enter a full postal code, like M1B 2K3.";
+        else msg = c[1];
+      }
+      fieldError(el, msg);
+      return ok;
+    }
     function validate(n) {
       var msg = "";
+      if (n === 1 && !checkField($("#f-postal"))) { msg = $("#err-f-postal").textContent; $("#f-postal").focus(); }
       if (n === 2) {
         if (!state.date && !state.flex) msg = "Choose a day, or tick “I'm flexible”.";
         else if (!state.slot) msg = "Choose an arrival window.";
       }
       if (n === 3) {
-        var checks = [
-          ["#f-name", function (v) { return v.trim().length >= 2; }, "Add your name."],
-          ["#f-phone", phoneOk, "Add a 10-digit mobile number so we can confirm by text."],
-          ["#f-email", emailOk, "Check your email address, or leave it blank."],
-          ["#f-address", function (v) { return v.trim().length >= 5; }, "Add your street address."],
-          ["#f-postal", fullPostalOk, "Add a full postal code, like M1B 2K3."]
-        ];
         var first = null;
-        checks.forEach(function (c) { var el = $(c[0]), bad = !c[1](el.value); setInvalid(el, bad); if (bad && !first) { first = el; msg = c[2]; } });
-        if (first) first.focus();
+        ["f-name", "f-phone", "f-email", "f-address"].forEach(function (id) { var el = $("#" + id); if (!checkField(el) && !first) first = el; });
+        if (first) { msg = "Please fix the highlighted fields."; first.focus(); }
         else if (!$("#f-consent").checked) msg = "Tick the box to confirm you've read how booking works.";
       }
       if (msg) {
         var err = $("[data-form-error]");
         if (n === 3) { err.textContent = msg; err.hidden = false; }
+        if (n === 1) return false;
         toast(msg);
         return false;
       }
@@ -417,8 +429,9 @@
     }
     function onPostal() {
       var el = $("#f-postal"), out = $("[data-pc-booking]");
-      if (normPostal(el.value).length >= 3) { var m = zoneMessage(zoneFor(el.value)); out.className = "pc-result " + m.cls; out.textContent = m.text; }
-      else out.textContent = "";
+      var m = normPostal(el.value).length === 6 ? zoneMessage(zoneFor(el.value)) : null;
+      out.className = "pc-result ok";
+      out.textContent = m && m.cls === "ok" ? m.text : "";
       renderSummary();
     }
 
@@ -435,8 +448,11 @@
       renderSummary();
       save();
     });
+    form.addEventListener("focusout", function (e) {
+      if (checks[e.target.id] && e.target.value.trim()) checkField(e.target);
+    });
     form.addEventListener("input", function (e) {
-      if (e.target.classList.contains("invalid")) setInvalid(e.target, false);
+      if (e.target.classList.contains("invalid")) checkField(e.target);
       if (e.target.id === "f-postal") onPostal();
       clearTimeout(form.t);
       form.t = setTimeout(save, 400);
@@ -461,6 +477,12 @@
       if (e.key === "Enter" && e.target.tagName === "INPUT" && state.step < 3) { e.preventDefault(); $("[data-next]").click(); }
     });
     var sum = $("[data-summary]");
+    // Keep a focused field clear of the sticky Continue and price bars on phones.
+    form.addEventListener("focusin", function (e) {
+      if (window.innerWidth < 960 && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) && e.target.getBoundingClientRect().bottom > window.innerHeight - 150) {
+        e.target.scrollIntoView({ block: "center", behavior: "instant" });
+      }
+    });
     $("[data-summary-toggle]").addEventListener("click", function () {
       var open = !sum.classList.contains("open");
       sum.classList.toggle("open", open);
@@ -498,7 +520,7 @@
         "Estimate, first visit": money(q.first), "Estimate, repeat visits": q.repeat ? money(q.repeat) : "n/a",
         "Estimated time": "about " + q.hours + " hours",
         "Name": $("#f-name").value.trim(), "Phone": $("#f-phone").value.trim(), "Email": $("#f-email").value.trim() || "not given",
-        "Address": $("#f-address").value.trim(), "Postal code": formatPostal($("#f-postal").value) + (z ? " (" + z.zone + " zone)" : ""),
+        "Address": $("#f-address").value.trim(), "Postal code": formatPostal($("#f-postal").value) + (z && z.area ? " (" + z.area + ")" : ""),
         "Getting in": $("#f-access").value, "Pets": ($('input[name="pets"]:checked', form) || {}).value,
         "Notes": $("#f-notes").value.trim() || "None", "Confirm by": ($('input[name="contactPref"]:checked', form) || {}).value
       }).then(function (res) {
@@ -508,8 +530,18 @@
         var how = { Text: "text", Call: "call", Email: "email" }[($('input[name="contactPref"]:checked', form) || {}).value] || "text";
         form.hidden = true;
         $("[data-progress]").hidden = true;
+        $("[data-summary]").hidden = true;
+        $(".book-head h1").textContent = "Request sent";
         var done = $("[data-done]");
         $("[data-ref]").textContent = r;
+        var rows = [
+          ["When", (state.flex ? "Earliest opening (we'll confirm)" : longDate(state.date)) + (slot ? ", arrival " + slot.time : "")],
+          ["Where", $("#f-address").value.trim() + ", " + formatPostal($("#f-postal").value)],
+          ["Service", q.s.name + " · " + homeLine(q)],
+          ["Estimate", money(q.first) + (q.firstDisc > 0 ? " (" + q.firstPct + "% off: " + q.firstLabel.toLowerCase() + ")" : "") + (q.repeat ? ", then " + money(q.repeat) + " " + q.freq.label.toLowerCase() : "") + ". Paid after the clean."],
+          ["Changes", "Free up to " + C.policies.cancelNoticeHours + " hours before your arrival window."]
+        ];
+        $("[data-done-list]").innerHTML = rows.map(function (x) { return "<div><dt>" + esc(x[0]) + "</dt><dd>" + esc(x[1]) + "</dd></div>"; }).join("");
         if (res && res.skipped) {
           $("[data-done-title]").textContent = "Preview only.";
           $("[data-done-text]").textContent = "This preview doesn't send bookings. On the live site, " + B.ownerFirstName + " receives this request by email.";
@@ -529,7 +561,7 @@
         err.innerHTML = "We couldn't send your request online. Please <a href=\"sms:" + B.phone + "?&body=" + encodeURIComponent(text(r)) + "\">text it to us</a> or <a href=\"mailto:" + B.email +
           "?subject=" + encodeURIComponent("Booking request " + r) + "&body=" + encodeURIComponent(text(r)) + "\">email it</a>. Your details are filled in.";
         err.hidden = false;
-      }).then(function () { btn.disabled = false; btn.textContent = "Request this booking"; });
+      }).then(function () { btn.disabled = false; btn.textContent = "Request booking"; });
     });
 
     $("[data-ics]").addEventListener("click", function () {
@@ -556,6 +588,25 @@
     showStep(state.step, false);
   }
 
+  /* ---------- Inline field errors ---------- */
+  function fieldError(el, msg) {
+    var id = "err-" + el.id;
+    var box = document.getElementById(id);
+    if (!box) {
+      box = document.createElement("small");
+      box.className = "field-error";
+      box.id = id;
+      box.setAttribute("aria-live", "polite");
+      var anchor = el.closest(".select-wrap") || el;
+      anchor.insertAdjacentElement("afterend", box);
+    }
+    box.textContent = msg || "";
+    box.hidden = !msg;
+    el.classList.toggle("invalid", !!msg);
+    if (msg) { el.setAttribute("aria-invalid", "true"); el.setAttribute("aria-describedby", id); }
+    else { el.removeAttribute("aria-invalid"); el.removeAttribute("aria-describedby"); }
+  }
+
   /* ---------- Delivery ---------- */
   function phoneOk(v) { var d = String(v).replace(/\D/g, ""); return d.length === 10 || (d.length === 11 && d[0] === "1"); }
   function emailOk(v) { return !v || /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v); }
@@ -576,21 +627,26 @@
     var form = $("[data-quote-form]");
     if (!form) return;
     var name = form.getAttribute("data-quote-name");
-    form.addEventListener("input", function (e) { e.target.classList.remove("invalid"); });
+    function qCheck(el) {
+      var v = el.value.trim(), m = "";
+      if (el.hasAttribute("data-required") && v.length < 2) m = "Add your " + el.name.toLowerCase() + ".";
+      if (el.hasAttribute("data-phone") && !phoneOk(v)) m = "Enter a 10-digit phone number, like 647 555 0123.";
+      if (el.hasAttribute("data-email") && !emailOk(v)) m = "Check your email address, or leave it blank.";
+      if (el.hasAttribute("data-postal")) {
+        if (!fullPostalOk(v)) m = "Enter a full postal code, like M1B 2K3.";
+        else if (!(zoneFor(v) || {}).area) m = "We clean in Scarborough and North York only. If you're close by, call or text " + B.phoneDisplay + ".";
+      }
+      fieldError(el, m);
+      return !m;
+    }
+    var checked = "[data-required], [data-phone], [data-email], [data-postal]";
+    form.addEventListener("focusout", function (e) { if (e.target.matches(checked) && e.target.value.trim()) qCheck(e.target); });
+    form.addEventListener("input", function (e) { if (e.target.classList.contains("invalid")) qCheck(e.target); });
     form.addEventListener("submit", function (e) {
       e.preventDefault();
-      var err = $("[data-q-error]"), first = null, msg = "";
-      $$("input, select, textarea", form).forEach(function (el) {
-        if (el.type === "hidden" || el.name === "_honey") return;
-        var v = el.value.trim(), bad = false, m = "";
-        if (el.hasAttribute("data-required") && v.length < 2) { bad = true; m = "Add your " + el.name.toLowerCase() + "."; }
-        if (el.hasAttribute("data-phone") && !phoneOk(v)) { bad = true; m = "Add a 10-digit phone number."; }
-        if (el.hasAttribute("data-email") && !emailOk(v)) { bad = true; m = "Check your email address, or leave it blank."; }
-        if (el.hasAttribute("data-postal") && !fullPostalOk(v)) { bad = true; m = "Add a full postal code, like M1B 2K3."; }
-        el.classList.toggle("invalid", bad);
-        if (bad && !first) { first = el; msg = m; }
-      });
-      if (first) { err.textContent = msg; err.hidden = false; first.focus(); return; }
+      var err = $("[data-q-error]"), first = null;
+      $$(checked, form).forEach(function (el) { if (!qCheck(el) && !first) first = el; });
+      if (first) { err.textContent = "Please fix the highlighted fields."; err.hidden = false; first.focus(); return; }
       err.hidden = true;
       var data = { _subject: "New quote request: " + name, _template: "table", _captcha: "false", "Service": name };
       $$("input, select, textarea", form).forEach(function (el) {
