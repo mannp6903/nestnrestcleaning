@@ -4,7 +4,7 @@
 //   node social/motion/render.mjs --fast v1       quick preview (no motion blur, JPEG frames)
 //   node social/motion/render.mjs --stills v1:0.5,2.2 v3:1.9 --out DIR   still frames for review
 //
-// Quality: maximum-quality JPEG frames (q100), 4-sample motion blur (180° shutter), BT.709 colour, H.264 High
+// Quality: maximum-quality JPEG frames (q100), 12-sample motion blur (180° shutter), BT.709 colour, H.264 High
 // at CRF 14 (about 10–20 Mbps), 30 fps, 1080×1920. Audio: original soundtrack from audio.py,
 // -14 LUFS, AAC 320 kbps, 48 kHz stereo.
 // Needs Playwright (Chromium), ffmpeg with libx264, and python3 with numpy + scipy.
@@ -22,7 +22,7 @@ try { ({ chromium } = require("playwright")); }
 catch { ({ chromium } = require("/opt/node-tools/node_modules/playwright")); }
 
 const FPS = 30;
-const SUB = 4;                 // motion-blur samples per frame
+const SUB = 12;                // motion-blur samples per frame (fewer shows as stepped ghosts on fast moves)
 const SHUTTER = 0.5;           // 180° shutter: samples span half a frame
 const PARALLEL = 3;
 const names = {
