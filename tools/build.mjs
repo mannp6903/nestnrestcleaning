@@ -276,7 +276,7 @@ function businessSchema() {
     "@context": "https://schema.org", "@type": "LocalBusiness", "@id": SITE + "/#business",
     name: B.name, slogan: B.tagline, url: SITE + "/", logo: SITE + "/assets/logo.png", image: SITE + "/assets/icon-512.png",
     telephone: B.phone, email: B.email, priceRange: "$$",
-    founder: { "@type": "Person", name: B.owner },
+    founder: { "@type": "Person", name: B.owner, jobTitle: "Founder & Owner", image: SITE + "/assets/founder-mann-patel.jpg" },
     address: { "@type": "PostalAddress", addressLocality: "Toronto", addressRegion: B.region, addressCountry: "CA" },
     areaServed: C.areas.map((a) => ({ "@type": "Place", name: a.name + ", Toronto, ON" })),
     openingHoursSpecification: [{ "@type": "OpeningHoursSpecification", dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"], opens: "08:00", closes: "18:00" }],
@@ -447,9 +447,19 @@ urls.push(page({
 
 <section class="section founder" id="founder">
   <div class="wrap founder-grid">
+    <div class="founder-photo">
+      <picture>
+        <source type="image/webp" srcset="${L("assets/founder-mann-patel-600.webp")} 600w, ${L("assets/founder-mann-patel.webp")} 848w" sizes="(min-width: 960px) 440px, 82vw">
+        <img src="${L("assets/founder-mann-patel.jpg")}" srcset="${L("assets/founder-mann-patel-600.jpg")} 600w, ${L("assets/founder-mann-patel.jpg")} 848w" sizes="(min-width: 960px) 440px, 82vw" alt="${esc(B.owner)}, founder of ${esc(B.name)}" width="848" height="1060" loading="lazy" decoding="async">
+      </picture>
+    </div>
+    <div class="founder-body">
     <figure class="founder-quote">
-      <p class="label">New in Scarborough &amp; North York</p>
-      <blockquote><p>“Every clean carries my name. If anything isn't right, tell me, and I'll come back and make it right.”</p></blockquote>
+      <p class="label">From our founder</p>
+      <blockquote>
+        <p>“Home should be where you rest, not where the chores wait. I'm building Nest &amp; Rest to give that time back to families across Scarborough and North York, one home at a time.</p>
+        <p class="founder-promise">Every clean carries my name. If anything isn't right, tell me, and I'll come back and make it right.”</p>
+      </blockquote>
       <figcaption><strong data-owner>${esc(B.owner)}</strong><span>Founder &amp; Owner</span></figcaption>
     </figure>
     <div class="founding" data-founding hidden>
@@ -457,6 +467,7 @@ urls.push(page({
       <p class="founding-big"><span data-founding-pct>20</span>% off</p>
       <p data-founding-text>${esc(C.offers.founding.text)}</p>
       <a class="btn btn-primary" href="${L("book/")}" data-track="book_click">Claim your first visit</a>
+    </div>
     </div>
   </div>
 </section>
