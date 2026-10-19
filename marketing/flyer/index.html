@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Nest & Rest Flyer</title>
+<!--
+  Nest & Rest Cleaning: two-sided flyer, US Letter (8.5 x 11 in).
+  Units are CSS px at 96 per inch: trim 816 x 1056, bleed 12px (0.125 in) on every side, safe margin 56px.
+  Render the print files with: node tools/render-flyer.mjs
+-->
+<style>
+@font-face { font-family: "Montserrat"; font-style: normal; font-weight: 100 900; src: url("../../assets/fonts/montserrat.woff2") format("woff2"); }
+@font-face { font-family: "DM Sans"; font-style: normal; font-weight: 100 1000; src: url("../../assets/fonts/dm-sans.woff2") format("woff2"); }
+
+:root {
+  --ink: #0B2C4D; --ink-2: #133A60; --ink-3: #071E35;
+  --ivory: #F7F4EE; --stone: #E6DFD3; --stone-2: #EFEAE1; --stone-3: #CFC5B5;
+  --sky: #1DA1E8; --leaf: #7DC243; --leaf-ink: #2E6F1C;
+  --muted: #55677A; --on-ink-2: #A9BACB;
+  --line: rgba(11, 44, 77, 0.14); --line-ink: rgba(247, 244, 238, 0.16);
+  --display: "Montserrat", "Avenir Next", Arial, sans-serif;
+  --body: "DM Sans", "Segoe UI", Helvetica, Arial, sans-serif;
+  --bleed: 12px; --m: 56px;
+}
+html.trim { --bleed: 0px; }
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: #CFCAC2; font-family: var(--body); color: var(--ink); -webkit-font-smoothing: antialiased; }
+p, h1, h2, h3, ol, ul { margin: 0; padding: 0; }
+p, li { text-wrap: pretty; }
+h1, h2, h3 { text-wrap: balance; }
+ol, ul { list-style: none; }
+img { display: block; }
+
+/* Sheet = trim + bleed. Backgrounds run into the bleed; type stays inside .trim at the safe margin. */
+.sheet {
+  position: relative; overflow: hidden;
+  width: calc(816px + 2 * var(--bleed)); height: calc(1056px + 2 * var(--bleed));
+  margin: 48px auto; box-shadow: 0 30px 80px -30px rgba(7, 30, 53, 0.55);
+  break-after: page;
+}
+html.export body { background: none; }
+html.export .sheet { margin: 0; box-shadow: none; }
+.trim { position: absolute; inset: var(--bleed); }
+
+.label {
+  font-family: var(--display); font-weight: 700; font-size: 9.5px; line-height: 1;
+  letter-spacing: 0.26em; text-transform: uppercase; color: var(--leaf-ink);
+}
+.label-light { color: var(--leaf); }
+.spark { fill: currentColor; }
+
+/* ---------- FRONT ---------- */
+.front { background: var(--ink); color: var(--ivory); }
+.front::before {
+  content: ""; position: absolute; inset: 0;
+  background:
+    radial-gradient(120% 70% at 92% 8%, rgba(29, 161, 232, 0.16), transparent 60%),
+    radial-gradient(90% 60% at 0% 100%, rgba(7, 30, 53, 0.9), transparent 70%);
+}
+.front-star { position: absolute; color: var(--ivory); }
+.front-star.big, .front-star.ring { width: 720px; height: 720px; left: calc(var(--bleed) + 376px); top: calc(var(--bleed) + 30px); }
+.front-star.big { opacity: 0.045; }
+.front-star.ring { fill: none; stroke: var(--ivory); stroke-width: 0.0028; opacity: 0.24; }
+.front-star.small { width: 58px; height: 58px; left: calc(var(--bleed) + 588px); top: calc(var(--bleed) + 178px); opacity: 0.92; color: var(--ivory); }
+
+.f-top { position: absolute; left: var(--m); right: var(--m); top: var(--m); display: flex; justify-content: space-between; align-items: flex-start; }
+.badge {
+  position: relative; background: var(--ivory); border-radius: 7px; padding: 15px 22px 14px;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset, 0 18px 40px -18px rgba(0, 0, 0, 0.55);
+}
+.badge::after { content: ""; position: absolute; inset: 5px; border: 1.25px dashed var(--stone-3); border-radius: 4px; }
+.badge img { width: 212px; height: auto; }
+
+.f-hero { position: absolute; left: var(--m); right: var(--m); top: 232px; }
+.f-hero .label { margin-bottom: 30px; }
+.f-hero .label span { color: var(--on-ink-2); }
+h1 {
+  font-family: var(--display); font-weight: 800; font-size: 136px; line-height: 0.9;
+  letter-spacing: -0.05em; margin-left: -6px;
+}
+h1 .l2 { display: block; color: #9FC3E4; }
+h1 i { font-style: normal; color: var(--leaf); }
+.f-lede {
+  margin-top: 34px; max-width: 30ch;
+  font-size: 20px; line-height: 1.5; color: #C9D5E1; font-weight: 400;
+}
+.f-lede b { color: var(--ivory); font-weight: 500; }
+
+.f-proof {
+  position: absolute; left: var(--m); right: var(--m); top: 664px;
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  border-top: 1px solid var(--line-ink);
+}
+.f-proof li { padding: 18px 18px 0 0; font-family: var(--display); font-weight: 600; font-size: 13px; line-height: 1.35; letter-spacing: -0.005em; color: var(--ivory); }
+.f-proof li + li { padding-left: 20px; border-left: 1px solid var(--line-ink); }
+.f-proof b { display: block; font-weight: 700; font-size: 9.5px; letter-spacing: 0.26em; color: var(--leaf); margin-bottom: 10px; }
+
+.invite {
+  position: absolute; left: var(--m); right: var(--m); top: 772px; height: 196px;
+  background: var(--ivory); color: var(--ink); border-radius: 8px;
+  display: grid; grid-template-columns: 1fr 296px;
+  box-shadow: 0 30px 60px -24px rgba(0, 0, 0, 0.6);
+}
+.invite::after { content: ""; position: absolute; inset: 7px; border: 1.25px dashed var(--stone-3); border-radius: 5px; pointer-events: none; }
+.inv-offer { padding: 32px 28px 0 34px; position: relative; }
+.inv-deal { display: flex; align-items: center; gap: 18px; margin-top: 18px; }
+.inv-big { font-family: var(--display); font-weight: 800; font-size: 92px; line-height: 0.8; letter-spacing: -0.055em; white-space: nowrap; }
+.inv-big sup { font-size: 0.48em; vertical-align: 0.66em; letter-spacing: -0.02em; margin-left: 3px; }
+.inv-what { font-family: var(--display); font-weight: 700; font-size: 19px; line-height: 1.12; letter-spacing: -0.02em; padding-left: 18px; border-left: 1px solid var(--line); }
+.inv-fine { font-size: 12.5px; line-height: 1.45; color: var(--muted); margin-top: 20px; max-width: 40ch; }
+.inv-book { position: relative; padding: 28px 30px 0 28px; }
+.inv-book::before { content: ""; position: absolute; left: 0; top: 24px; bottom: 24px; border-left: 1.25px dashed var(--stone-3); }
+.inv-scan { display: grid; grid-template-columns: 88px 1fr; gap: 16px; align-items: center; }
+.qr-tile img { width: 88px; height: 88px; }
+.inv-cta { font-family: var(--display); font-weight: 700; font-size: 14.5px; line-height: 1.22; letter-spacing: -0.01em; }
+.inv-sub { font-size: 11.5px; line-height: 1.4; color: var(--muted); margin-top: 6px; }
+.inv-phone { margin-top: 16px; padding-top: 13px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; align-items: baseline; }
+.inv-phone span { font-family: var(--display); font-weight: 700; font-size: 8px; letter-spacing: 0.24em; text-transform: uppercase; color: var(--muted); }
+.inv-phone b { font-family: var(--display); font-weight: 800; font-size: 18px; letter-spacing: -0.01em; }
+
+.f-foot {
+  position: absolute; left: var(--m); right: var(--m); bottom: 40px;
+  display: flex; justify-content: space-between; align-items: center;
+  font-family: var(--display); font-weight: 600; font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--on-ink-2);
+}
+.f-foot .dot { width: 9px; height: 9px; color: var(--leaf); display: inline-block; vertical-align: -1px; margin: 0 12px; }
+
+/* ---------- BACK ---------- */
+.back { background: var(--ivory); color: var(--ink); }
+.b-top { position: absolute; left: var(--m); right: var(--m); top: 50px; display: flex; justify-content: space-between; align-items: center; padding-bottom: 20px; border-bottom: 1px solid var(--line); }
+.b-top img { width: 176px; height: auto; }
+.b-top p { text-align: right; font-family: var(--display); font-weight: 800; font-size: 15px; letter-spacing: -0.02em; }
+.b-top p span { color: var(--muted); }
+.b-top .label { display: block; margin-top: 8px; font-size: 8.5px; }
+
+h2 { font-family: var(--display); font-weight: 800; font-size: 30px; line-height: 1.02; letter-spacing: -0.035em; margin-top: 14px; }
+
+.menu { position: absolute; left: var(--m); top: 134px; width: 404px; }
+.menu-list { margin-top: 18px; border-top: 1px solid var(--ink); }
+.menu-list li { display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: baseline; padding: 10px 0 9px; border-bottom: 1px solid var(--line); }
+.menu-list h3 { font-family: var(--display); font-weight: 700; font-size: 14px; line-height: 1.2; letter-spacing: -0.01em; }
+.menu-list h3 em { font-style: normal; font-weight: 700; font-size: 7.5px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--leaf-ink); margin-left: 8px; vertical-align: 2px; }
+.menu-list p { font-size: 11px; line-height: 1.4; color: var(--muted); margin-top: 3px; white-space: nowrap; }
+.price { font-family: var(--display); font-weight: 800; font-size: 21px; letter-spacing: -0.03em; white-space: nowrap; text-align: right; }
+.price small { font-weight: 600; font-size: 8px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); margin-right: 6px; vertical-align: 3px; }
+.price.quote { font-size: 10px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink); }
+.menu-fine { font-size: 10.5px; line-height: 1.45; color: var(--muted); margin-top: 10px; }
+
+.plans { margin-top: 12px; display: grid; grid-template-columns: repeat(3, 1fr); background: var(--stone-2); border-radius: 6px; padding: 14px 0; }
+.plans li { text-align: center; }
+.plans li + li { border-left: 1px solid var(--line); }
+.plans b { display: block; font-family: var(--display); font-weight: 800; font-size: 22px; letter-spacing: -0.03em; }
+.plans b small { font-size: 0.55em; font-weight: 700; letter-spacing: 0; margin-left: 1px; }
+.plans span { display: block; margin-top: 4px; font-size: 10.5px; color: var(--muted); }
+.plans-head { margin-top: 20px; display: flex; justify-content: space-between; align-items: baseline; }
+.plans-head p:last-child { font-size: 10.5px; color: var(--muted); }
+
+.standard {
+  position: absolute; right: var(--m); top: 134px; width: 270px; height: 581px;
+  background: var(--stone); border-radius: 8px; padding: 26px 24px 0; overflow: hidden;
+}
+.standard h2 { font-size: 21px; line-height: 1.08; letter-spacing: -0.025em; }
+.steps { margin-top: 18px; }
+.steps li { display: grid; grid-template-columns: 28px 1fr; padding: 11px 0; border-top: 1px solid rgba(11, 44, 77, 0.16); }
+.steps span { font-family: var(--display); font-weight: 700; font-size: 9.5px; letter-spacing: 0.1em; color: var(--leaf-ink); padding-top: 2px; }
+.steps h3 { font-family: var(--display); font-weight: 700; font-size: 12.5px; line-height: 1.25; letter-spacing: -0.01em; }
+.steps p { font-size: 11px; line-height: 1.4; color: var(--muted); margin-top: 3px; }
+.standard .shoe { position: absolute; right: -30px; bottom: 14px; width: 184px; height: auto; }
+
+.band { position: absolute; left: 0; right: 0; bottom: 0; height: calc(300px + var(--bleed)); background: var(--ink); color: var(--ivory); }
+.band::before { content: ""; position: absolute; inset: 0; background: radial-gradient(80% 120% at 100% 0%, rgba(29, 161, 232, 0.14), transparent 60%); }
+.band-in { position: absolute; left: calc(var(--bleed) + var(--m)); right: calc(var(--bleed) + var(--m)); top: 44px; }
+.band-row { display: grid; grid-template-columns: 1fr 300px; gap: 40px; }
+blockquote { margin: 0; }
+.quote-mark { width: 22px; height: 22px; color: var(--leaf); }
+.quote p { margin-top: 14px; font-family: var(--display); font-weight: 600; font-size: 20px; line-height: 1.3; letter-spacing: -0.02em; }
+.quote cite { display: block; margin-top: 16px; font-style: normal; font-size: 12px; color: var(--on-ink-2); }
+.quote cite b { color: var(--ivory); font-weight: 600; }
+
+.book { display: grid; grid-template-columns: 116px 1fr; gap: 18px; align-items: start; }
+.book .qr-tile { width: 116px; background: var(--ivory); border-radius: 6px; padding: 10px; }
+.book .qr-tile img { width: 96px; height: 96px; }
+.book h3 { font-family: var(--display); font-weight: 700; font-size: 15px; line-height: 1.25; letter-spacing: -0.01em; }
+.book ol { margin-top: 10px; counter-reset: s; }
+.book li { counter-increment: s; font-size: 11.5px; line-height: 1.35; color: #C9D5E1; padding-left: 20px; position: relative; margin-top: 5px; }
+.book li::before { content: counter(s); position: absolute; left: 0; top: 0; font-family: var(--display); font-weight: 700; font-size: 9.5px; color: var(--leaf); padding-top: 1px; }
+
+.contact { margin-top: 32px; padding-top: 20px; border-top: 1px solid var(--line-ink); display: grid; grid-template-columns: 1.05fr 1.25fr 1.5fr 1.05fr; gap: 20px; }
+.contact span { display: block; font-family: var(--display); font-weight: 700; font-size: 8px; letter-spacing: 0.24em; text-transform: uppercase; color: var(--on-ink-2); }
+.contact b { display: block; margin-top: 7px; font-family: var(--display); font-weight: 700; font-size: 13px; letter-spacing: -0.005em; white-space: nowrap; }
+.contact .big b { font-size: 17px; font-weight: 800; margin-top: 4px; }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <!-- The four-point sparkle from the logo, on a -1..1 box -->
+    <path id="sparkle" d="M0 -1 C0.06 -0.2 0.2 -0.06 1 0 C0.2 0.06 0.06 0.2 0 1 C-0.06 0.2 -0.2 0.06 -1 0 C-0.2 -0.06 -0.06 -0.2 0 -1Z"/>
+  </defs>
+</svg>
+
+<!-- FRONT -->
+<section class="sheet front" aria-label="Flyer front">
+  <svg class="front-star big" viewBox="-1 -1 2 2" aria-hidden="true"><use href="#sparkle" class="spark"/></svg>
+  <svg class="front-star ring" viewBox="-1 -1 2 2" aria-hidden="true"><use href="#sparkle"/></svg>
+  <svg class="front-star small" viewBox="-1 -1 2 2" aria-hidden="true"><use href="#sparkle" class="spark"/></svg>
+  <div class="trim">
+    <header class="f-top">
+      <div class="badge"><img src="../../assets/logo.png" alt="Nest & Rest Cleaning"></div>
+    </header>
+
+    <div class="f-hero">
+      <p class="label label-light">Home cleaning <span>·</span> Scarborough &amp; North York</p>
+      <h1>We clean<i>.</i><span class="l2">You rest<i>.</i></span></h1>
+      <p class="f-lede">Meticulous home cleaning by a uniformed team that <b>changes into house shoes at your door.</b></p>
+    </div>
+
+    <ul class="f-proof">
+      <li><b>01</b>House shoes on,<br>street shoes off</li>
+      <li><b>02</b>Free re-clean<br>within 24 hours</li>
+      <li><b>03</b>Pay after your clean.<br>No deposit.</li>
+    </ul>
+
+    <div class="invite">
+      <div class="inv-offer">
+        <p class="label">Founding households</p>
+        <div class="inv-deal"><p class="inv-big">20<sup>%</sup></p><p class="inv-what">off your<br>first visit</p></div>
+        <p class="inv-fine">Reserved for our first 50 households.</p>
+      </div>
+      <div class="inv-book">
+        <div class="inv-scan">
+          <div class="qr-tile"><img src="qr-book.svg" alt="QR code to book at nestnrestcleaning.com"></div>
+          <div><p class="inv-cta">Scan for your exact price.</p><p class="inv-sub">Choose a time online. No payment to book.</p></div>
+        </div>
+        <p class="inv-phone"><span>Call or text</span><b>647 978 6903</b></p>
+      </div>
+    </div>
+
+    <footer class="f-foot">
+      <span>nestnrestcleaning.com</span>
+      <span>Monday to Saturday<svg class="dot" viewBox="-1 -1 2 2" aria-hidden="true"><use href="#sparkle" class="spark"/></svg>8am to 6pm</span>
+    </footer>
+  </div>
+</section>
+
+<!-- BACK -->
+<section class="sheet back" aria-label="Flyer back">
+  <div class="trim">
+    <header class="b-top">
+      <img src="../../assets/logo.png" alt="Nest & Rest Cleaning">
+      <p>We clean. <span>You rest.</span><span class="label">Scarborough &amp; North York</span></p>
+    </header>
+
+    <div class="menu">
+      <p class="label">Services &amp; prices</p>
+      <h2>Choose the care<br>your home needs.</h2>
+      <ol class="menu-list">
+        <li><div><h3>Regular Home Cleaning</h3><p>The weekly or fortnightly reset for a lived-in home.</p></div><p class="price"><small>from</small>$110</p></li>
+        <li><div><h3>Deep Cleaning<em>Best first visit</em></h3><p>Top to bottom: baseboards, grout, vents, behind and under.</p></div><p class="price"><small>from</small>$199</p></li>
+        <li><div><h3>Move-In / Move-Out</h3><p>Empty-home clean. Inside fridge, oven and cabinets included.</p></div><p class="price"><small>from</small>$249</p></li>
+        <li><div><h3>Kitchen &amp; Bath Detailing</h3><p>The hardest-working rooms, degreased and descaled.</p></div><p class="price"><small>from</small>$139</p></li>
+        <li><div><h3>Residence Care</h3><p>Larger homes and fine finishes. Walkthrough and care plan.</p></div><p class="price quote">By quote</p></li>
+        <li><div><h3>Small Office Cleaning</h3><p>Offices, clinics, studios and shops, around your hours.</p></div><p class="price quote">By quote</p></li>
+      </ol>
+      <p class="menu-fine">From-prices are for a 1-bedroom, 1-bathroom condo. Supplies included.</p>
+
+      <div class="plans-head"><p class="label">Regular care costs less</p><p>Pause or change anytime</p></div>
+      <ul class="plans">
+        <li><b>15<small>%</small></b><span>off weekly</span></li>
+        <li><b>10<small>%</small></b><span>off every 2 weeks</span></li>
+        <li><b>5<small>%</small></b><span>off every 4 weeks</span></li>
+      </ul>
+    </div>
+
+    <aside class="standard">
+      <p class="label">The Nest &amp; Rest standard</p>
+      <h2>Five things happen<br>at your door.<br>Every visit.</h2>
+      <ol class="steps">
+        <li><span>01</span><div><h3>Ring once, introduce by name</h3><p>You’ll know who is coming before we arrive.</p></div></li>
+        <li><span>02</span><div><h3>Coat onto our own hanger</h3><p>It hangs on our kit, never in your closet.</p></div></li>
+        <li><span>03</span><div><h3>House shoes on</h3><p>Street shoes stay at the door. Your floors only meet clean soles.</p></div></li>
+        <li><span>04</span><div><h3>Apron tied, gloves on</h3><p>One apron for kitchens, one for baths. Never both in one room.</p></div></li>
+        <li><span>05</span><div><h3>Leave in reverse</h3><p>Gloves off, apron folded, shoes bagged.</p></div></li>
+      </ol>
+      <img class="shoe" src="shoe.png" alt="">
+    </aside>
+  </div>
+
+  <div class="band">
+    <div class="band-in">
+      <div class="band-row">
+        <blockquote class="quote">
+          <svg class="quote-mark" viewBox="-1 -1 2 2" aria-hidden="true"><use href="#sparkle" class="spark"/></svg>
+          <p>“Every clean carries my name. If anything isn’t right, tell me, and I’ll come back and make it right.”</p>
+          <cite><b>Mann Patel</b>, Founder &amp; Owner</cite>
+        </blockquote>
+        <div class="book">
+          <div class="qr-tile"><img src="qr-book.svg" alt="QR code to book at nestnrestcleaning.com"></div>
+          <div>
+            <h3>Booked in two minutes.</h3>
+            <ol>
+              <li>Scan for your exact price</li>
+              <li>Choose a day and an arrival window</li>
+              <li>We confirm by text within 2 hours. You pay after.</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+      <div class="contact">
+        <p class="big"><span>Call or text</span><b>647 978 6903</b></p>
+        <p><span>Book online</span><b>nestnrestcleaning.com</b></p>
+        <p><span>Email</span><b>nestnrestcleaning@gmail.com</b></p>
+        <p><span>Hours</span><b>Mon–Sat, 8–6</b></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+</body>
+</html>

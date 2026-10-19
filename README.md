@@ -51,5 +51,7 @@ css/site.css       design system (fonts self-hosted in assets/fonts, SIL Open Fo
 js/config.js       business settings (edit this)
 js/site.js         pricing, booking, forms, tracking
 tools/build.mjs    page generator
+tools/render-flyer.mjs  renders the print flyer (PDF and PNG)
+marketing/flyer/   two-sided print flyer: source, print PDFs, previews (see its README)
 assets/            logo, brand illustrations from the uniform guide, icons
 ```
