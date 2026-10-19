@@ -4,7 +4,7 @@
 //   node social/motion/render.mjs --fast v1       quick preview (no motion blur, JPEG frames)
 //   node social/motion/render.mjs --stills v1:0.5,2.2 v3:1.9 --out DIR   still frames for review
 //
-// Quality: lossless PNG frames, 4-sample motion blur (180° shutter), BT.709 colour, H.264 High
+// Quality: maximum-quality JPEG frames (q100), 4-sample motion blur (180° shutter), BT.709 colour, H.264 High
 // at CRF 14 (about 10–20 Mbps), 30 fps, 1080×1920. Audio: original soundtrack from audio.py,
 // -14 LUFS, AAC 320 kbps, 48 kHz stereo.
 // Needs Playwright (Chromium), ffmpeg with libx264, and python3 with numpy + scipy.
@@ -49,9 +49,12 @@ const run = (cmd, argv, opts = {}) => new Promise((res, rej) => {
   p.on("close", c => c === 0 ? res() : rej(new Error(`${cmd} exited ${c}`)));
 });
 
-const browser = await chromium.launch();
+// One browser per worker: a single headless browser renders every page on one core.
+const browsers = [];
 const clip = { x: 0, y: 0, width: 1080, height: 1920 };
 async function openPage() {
+  const browser = await chromium.launch();
+  browsers.push(browser);
   const page = await browser.newPage({ viewport: { width: 1080, height: 1920 }, deviceScaleFactor: 1 });
   await page.goto("file://" + join(here, "motion.html"));
   await page.evaluate(() => window.ready);
@@ -90,7 +93,7 @@ if (ids.length) {
       "format=yuv420p"
     ].join(",");
     const ff = spawn("ffmpeg", ["-y", "-loglevel", "error",
-      "-f", "image2pipe", "-framerate", String(FPS * sub), "-c:v", fast ? "mjpeg" : "png", "-i", "-",
+      "-f", "image2pipe", "-framerate", String(FPS * sub), "-c:v", "mjpeg", "-i", "-",
       "-vf", vf, "-r", String(FPS),
       "-c:v", "libx264", "-preset", fast ? "medium" : "slower", "-crf", fast ? "20" : "14",
       "-profile:v", "high", "-level:v", "4.2", "-g", String(FPS * 2), "-bf", "3",
@@ -101,7 +104,7 @@ if (ids.length) {
       for (let s = 0; s < sub; s++) {
         const t = (f + (sub > 1 ? SHUTTER * s / sub : 0)) / FPS;
         await page.evaluate(([id, t, f]) => window.seek(id, t, f), [id, t, f]);
-        const buf = await page.screenshot(fast ? { clip, type: "jpeg", quality: 92 } : { clip, type: "png" });
+        const buf = await page.screenshot({ clip, type: "jpeg", quality: fast ? 92 : 100 });
         if (!ff.stdin.write(buf)) await new Promise(r => ff.stdin.once("drain", r));
       }
     }
@@ -119,5 +122,5 @@ if (ids.length) {
   const pages = [first, ...await Promise.all(Array.from({ length: Math.min(PARALLEL, ids.length) - 1 }, openPage))];
   await Promise.all(pages.map(async page => { while (queue.length) await renderVideo(page, queue.shift()); }));
 }
-await browser.close();
+await Promise.all(browsers.map(b => b.close()));
 rmSync(work, { recursive: true, force: true });

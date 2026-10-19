@@ -167,7 +167,7 @@ Optional, for replies: on story 03 add a poll sticker, "Shoes off at home?" with
 
 The music ducks under the effects so every hit reads, and each track is mastered to -14 LUFS, the loudness Instagram and Facebook play at, so they won't turn it down. If you'd rather ride a trending sound, add it in the app and turn the original audio down; the effects still carry the edit.
 
-**Quality.** Rendered from lossless frames with real motion blur (4 samples per frame, 180° shutter), encoded as H.264 High at about 10–20 Mbps with BT.709 colour (so the brand blues and greens stay exact), 30 fps, AAC 320 kbps at 48 kHz. That's well above what Instagram and Facebook keep, so their compression has a clean source to work from. Upload the files as they are; don't re-export them through another app.
+**Quality.** Rendered from maximum-quality frames with real motion blur (4 samples per frame, 180° shutter), encoded as H.264 High at about 10–20 Mbps with BT.709 colour (so the brand blues and greens stay exact), 30 fps, AAC 320 kbps at 48 kHz. That's well above what Instagram and Facebook keep, so their compression has a clean source to work from. Upload the files as they are; don't re-export them through another app.
 
 | Video | The hook | Ends on |
 |---|---|---|
