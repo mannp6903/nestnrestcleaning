@@ -158,9 +158,16 @@ Optional, for replies: on story 03 add a poll sticker, "Shoes off at home?" with
 
 ## Motion: Reels and Stories (the scroll-stoppers)
 
-`motion/` has five animated 1080 × 1920 videos (10 to 11 seconds, 30 fps, MP4), plus a cover image for each. Every video opens on a hook in the first second and ends on the same call-to-action card: website, call or text, no deposit. Post them as Reels on Instagram and Facebook, and reuse them as Stories.
+`motion/` has five animated 1080 × 1920 videos (10 to 11 seconds), plus a cover image for each. Every video opens on a hook in the first second and ends on the same call-to-action card: website, call or text, no deposit. Post them as Reels on Instagram and Facebook, and reuse them as Stories.
 
-The videos have no sound. When you post, add a trending track from the in-app music library at low volume: Reels with audio get shown to more people.
+**Sound.** Each video has its own original soundtrack, made for it, so there's nothing to license and no copyright claims:
+- A bright 116–122 bpm music bed in the same key across all five, so they sound like one brand. Four of the tracks drop at the video's turning point: the screen wiped clean, the split into You vs Us, the floor swept, the jackpot. The price demo runs at full energy from the first frame.
+- Sound effects on every on-screen beat: squeegee squeaks, muddy boot stomps, slot-machine ticks and dings, rising pops for the 50 houses, a calculator click and coin chime for the price, and sparkle chimes.
+- A three-note sparkle chime (the sound logo) when the logo appears on the end card. It's the same in every video, so people learn it.
+
+The music ducks under the effects so every hit reads, and each track is mastered to -14 LUFS, the loudness Instagram and Facebook play at, so they won't turn it down. If you'd rather ride a trending sound, add it in the app and turn the original audio down; the effects still carry the edit.
+
+**Quality.** Rendered from lossless frames with real motion blur (4 samples per frame, 180° shutter), encoded as H.264 High at about 10–20 Mbps with BT.709 colour (so the brand blues and greens stay exact), 30 fps, AAC 320 kbps at 48 kHz. That's well above what Instagram and Facebook keep, so their compression has a clean source to work from. Upload the files as they are; don't re-export them through another app.
 
 | Video | The hook | Ends on |
 |---|---|---|
@@ -170,7 +177,7 @@ The videos have no sound. When you post, add a trending track from the in-app mu
 | `04-only-50.mp4` | Slot machine spins to 20%, then 50 houses fill the screen | "Be one of the first 50" |
 | `05-price-in-seconds.mp4` | A live demo of the site's price calculator: 2 bed, 2 bath condo deep clean, $275, $220 first visit | "Try it now" |
 
-All prices are the site's own numbers from `js/config.js` and the calculator in `js/site.js`. If prices change, edit `motion/motion.html` and re-render with `node social/motion/render.mjs`.
+All prices are the site's own numbers from `js/config.js` and the calculator in `js/site.js`. If prices change, edit `motion/motion.html` and re-render with `node social/motion/render.mjs`. Each scene's sound cues sit next to its animation in that file; `motion/audio.py` synthesises the soundtrack. Rendering needs Node with Playwright, ffmpeg, and Python with numpy and scipy (`pip install numpy scipy`). Add `--fast` for a quick preview.
 
 ### Captions
 

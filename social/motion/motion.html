@@ -26,7 +26,7 @@ body { background: #111; -webkit-font-smoothing: antialiased; }
 .line { overflow: hidden; padding: 0.08em 0; margin: -0.08em 0; }
 .line > span { display: inline-block; }
 .sp { position: absolute; width: 100px; height: 100px; margin: -50px 0 0 -50px; }
-.grain { position: absolute; inset: 0; pointer-events: none; mix-blend-mode: overlay; opacity: 0.12; }
+.grain { position: absolute; inset: 0; pointer-events: none; mix-blend-mode: overlay; opacity: 0.08; }
 
 /* Pills */
 .pill { display: inline-flex; align-items: center; gap: 22px; background: #fff; border-radius: 999px; padding: 24px 40px 24px 24px; font: 600 38px/1.1 "DM Sans"; color: var(--ink); box-shadow: 0 20px 50px -20px rgba(11,44,77,.35); white-space: nowrap; }
@@ -384,6 +384,12 @@ const scenes = {};
 /* V1 · Is your screen dirty? */
 scenes.v1 = {
   dur: 10.5, endAt: 7.6,
+  music: { bpm: 120, drop: 2.7, intro: 'muffled' },
+  cues: [[.1, 'impact', {}], [.55, 'swish', { g: .45 }], [.69, 'swish', { g: .45 }],
+    [1.5, 'whoosh', { d: 1.25, g: .9 }], [1.62, 'squeak', {}], [2.25, 'squeak', { p: 1.15 }],
+    [2.97, 'hit', {}], [3.09, 'hit', { p: 1.12 }], [3.21, 'hit', { p: 1.26, big: 1 }],
+    [4.95, 'swish', {}], [5.25, 'swish', { g: .5 }],
+    [5.9, 'pop', { p: 1 }], [6.2, 'pop', { p: 1.26 }], [6.5, 'pop', { p: 1.5 }]],
   init() {
     $$('#v1 .fitme').forEach(e => fit(e));
     buildEnd($('#v1-end'), { head: 'Book your<br>clean.', cta: 'SEE YOUR PRICE →' });
@@ -417,6 +423,11 @@ scenes.v1 = {
 /* V2 · You vs Us */
 scenes.v2 = {
   dur: 11, endAt: 8.3,
+  // 116.13 bpm puts each You/Us pair on a beat after the 1.4 s drop
+  music: { bpm: 116.13, drop: 1.4, intro: 'tick' },
+  cues: [[.15, 'impact', {}], [.5, 'ding', { f: 1568 }], [1.4, 'whoosh', { d: .5, g: .9 }],
+    ...[1.9, 3.45, 5.0, 6.55].flatMap((s, i) => [[s - .06, 'swish', { g: .3 }], [s, 'hit', {}], [s + .12, 'hit', { p: .8 }], ...(i < 3 ? [[s + 1.3, 'swish', { g: .3 }]] : [])]),
+    [7.0, 'impact', { big: 1 }], [7.0, 'sparkle', { seed: 9 }]],
   you: ['Brunch.', 'The Bluffs.', 'A long nap.', 'Nothing.'],
   us: ['Baseboards.', 'The grout.', 'The glass.', 'Everything.'],
   init() {
@@ -457,6 +468,12 @@ scenes.v2 = {
 /* V3 · Shoes off */
 scenes.v3 = {
   dur: 10.5, endAt: 7.7,
+  music: { bpm: 120, drop: 3.75, intro: 'stomp' },
+  cues: [[.2, 'stomp', {}], [.55, 'stomp', { p: .94 }], [.9, 'stomp', {}], [1.25, 'stomp', { p: .9 }],
+    [1.7, 'impact', { big: 1 }], [1.82, 'hit', {}], [1.95, 'hit', { p: .85 }],
+    [2.9, 'whoosh', { d: .85, g: 1 }], [3.0, 'squeak', {}], [3.4, 'squeak', { p: 1.2 }],
+    [4.3, 'swish', { d: .7, g: .45 }], [4.85, 'tap', { low: 1 }],
+    [5.2, 'hit', { g: .5 }], [5.33, 'hit', { g: .6, p: 1.1 }], [5.46, 'hit', { g: .5 }]],
   prints: [[250, 1420, -8, 'Salt.', 560, 1520, .2], [640, 1100, 7, 'Slush.', 120, 1200, .55], [260, 780, -6, 'Grit.', 560, 880, .9], [650, 460, 8, 'Mud.', 150, 560, 1.25]],
   init() {
     const host = $('#v3-prints'); host.innerHTML = '';
@@ -517,6 +534,13 @@ scenes.v3 = {
 /* V4 · Only 50 */
 scenes.v4 = {
   dur: 10.5, endAt: 7.7,
+  music: { bpm: 120, drop: 1.55, intro: 'riser' },
+  cues: [[.1, 'slot', { until: 1.55 }], [.95, 'ding', { f: 1047 }], [1.25, 'ding', { f: 1319 }], [1.55, 'jackpot', {}],
+    [1.75, 'swish', {}], [2.6, 'whoosh', { d: .5, g: .6 }],
+    // one rising pop per house, up a pentatonic scale
+    ...[...Array(50)].map((_, i) => [2.9 + i * .03, 'pop', { p: Math.pow(2, ([0, 2, 4, 7, 9][Math.floor(i / 4) % 5] + 12 * Math.floor(i / 20)) / 12), g: .2 }]),
+    [3.7, 'hit', {}], [4.2, 'tick', {}], [4.7, 'bell', { f: 1568 }],
+    [5.8, 'whoosh', { d: .45, g: .7 }], [6.1, 'hit', {}], [6.24, 'hit', { p: 1.1 }], [6.38, 'hit', { p: 1.2, big: 1 }]],
   init() {
     const reels = [['7', '3', '9', '5', '1', '8', '4', '6', '3', '2'], ['5', '8', '2', '6', '3', '9', '1', '7', '4', '0'], ['4', '9', '1', '6', '8', '3', '5', '2', '7', '%']];
     reels.forEach((r, i) => { $('#r' + i).innerHTML = r.map(c => `<div>${c}</div>`).join(''); });
@@ -579,6 +603,12 @@ scenes.v4 = {
 /* V5 · Price in seconds */
 scenes.v5 = {
   dur: 11, endAt: 8.1,
+  music: { bpm: 122, drop: 0, intro: 'none' },
+  cues: [[.1, 'hit', {}], [.25, 'hit', { p: 1.1 }], [.4, 'impact', {}], [.55, 'boing', {}],
+    [1.7, 'swish', {}], [1.85, 'whoosh', { d: .6, g: .8 }],
+    [3.05, 'tap', {}], [3.08, 'counter', { d: .4 }], [3.9, 'tap', {}], [3.93, 'counter', { d: .4 }],
+    [4.5, 'cash', {}],
+    [6.0, 'whoosh', { d: .45, g: .7 }], [6.35, 'hit', {}], [6.48, 'hit', { p: 1.08 }], [6.61, 'hit', { p: 1.16 }], [6.74, 'hit', { p: 1.3, big: 1 }]],
   init() {
     $$('#v5 .fitme').forEach(e => fit(e));
     const ph = $('#v5-phone'); ph.style.transform = 'none';
@@ -634,6 +664,13 @@ window.ready = Promise.all(['900 100px Montserrat', '800 100px Montserrat', '700
   for (const [id, s] of Object.entries(scenes)) { $('#' + id).classList.add('on'); s.init(); $('#' + id).classList.remove('on'); }
 });
 window.durations = () => Object.fromEntries(Object.entries(scenes).map(([k, s]) => [k, s.dur]));
+// Sound plan for audio.py: each scene's cues, plus its sparkle bursts and the shared end-card sounds.
+window.audioPlan = () => Object.fromEntries(Object.entries(scenes).map(([id, s]) => {
+  const cues = s.cues.map(c => [...c]);
+  (s.sps || []).forEach((p, i) => cues.push([p.at, 'sparkle', { seed: i, g: .3 }]));
+  cues.push([s.endAt, 'reveal', {}], [s.endAt + .35, 'chime', {}], [s.endAt + .71, 'pop', { p: 1.6, g: .5 }]);
+  return [id, { dur: s.dur, music: s.music, cues: cues.sort((a, b) => a[0] - b[0]) }];
+}));
 window.seek = (id, t, frame = 0) => {
   if (current !== id) { $$('.scene').forEach(s => s.classList.remove('on')); $('#' + id).classList.add('on'); current = id; }
   scenes[id].seek(t);
