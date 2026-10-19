@@ -1,9 +1,10 @@
 # Social posts: October 2026
 
-Five feed posts for Instagram and Facebook. Each is 1080 × 1350 (4:5), the tallest size both feeds show uncropped.
+Five feed posts for Instagram and Facebook, each 1080 × 1350 (4:5, the tallest size both feeds show uncropped), plus a 1080 × 1920 story version of each.
 
-- **Figma (editable source):** https://www.figma.com/design/3HedZL7VFYwob3ZS1qcalp
-- **Images to upload:** `posts/`
+- **Figma (editable source for the feed posts):** https://www.figma.com/design/3HedZL7VFYwob3ZS1qcalp
+- **Feed images to upload:** `posts/`
+- **Story images to upload:** `stories/` (see "Stories" below)
 - **Prompt used to brief the work:** `PROMPT.md`
 
 Every claim below comes from `js/config.js`. Nothing says insured, eco-certified or background-checked, and there are no star ratings, because none of those are switched on yet. When the founding offer ends, retire post 04 (set `offers.founding.active` to `false` on the site too).
@@ -136,6 +137,24 @@ Suggested order: post 01 first, then one post every two or three days. On Instag
 **Alt text:** Ivory graphic. Headline: "Three promises, kept." Three numbered lines: "Your exact price, before you book." "No deposit. You pay after the clean." "Missed a detail? Tell us within 24 hours and we re-clean it, free."
 
 ---
+
+## Stories (Instagram and Facebook)
+
+`stories/` has a 1080 × 1920 version of each post, with the same numbers and names. All text sits inside the story safe area: 250 px from the top and 340 px from the bottom, where the app's own buttons go.
+
+The story images aren't in Figma. Figma's Starter plan ran out of design-tool calls, so they're built in `stories/stories.html` (same colours, fonts and layout) and rendered with `node social/stories/render.mjs`. Edit the HTML and re-run to change them.
+
+When you post each one, add a **link sticker** in the clear space just above the footer line:
+
+| Story | Link sticker | Sticker text |
+|---|---|---|
+| 01 We clean. You rest. | https://nestnrestcleaning.com | See your price |
+| 02 Residence Care | https://nestnrestcleaning.com/services/residence-care/ | Request a walkthrough |
+| 03 Street shoes | https://nestnrestcleaning.com/book/ | Book your clean |
+| 04 Founding households | https://nestnrestcleaning.com/book/ | Book your first visit |
+| 05 Three promises | https://nestnrestcleaning.com | See your price |
+
+Optional, for replies: on story 03 add a poll sticker, "Shoes off at home?" with options "Always" and "Depends". Remove story 04 when the founding offer ends.
 
 ## Editing in Figma
 

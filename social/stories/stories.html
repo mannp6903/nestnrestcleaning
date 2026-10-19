@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Nest &amp; Rest Stories</title>
+<!-- Source for the five 1080×1920 story images. Same system as the Figma feed posts.
+     Text stays inside the story safe area: 250 px from the top, 340 px from the bottom.
+     Render: node social/stories/render.mjs -->
+<style>
+@font-face { font-family: "Montserrat"; font-weight: 100 900; src: url("../../assets/fonts/montserrat.woff2") format("woff2"); }
+@font-face { font-family: "DM Sans"; font-weight: 100 1000; src: url("../../assets/fonts/dm-sans.woff2") format("woff2"); }
+:root {
+  --ink: #0B2C4D; --ink-deep: #071E35; --ink-2: #133A60; --ivory: #F7F4EE;
+  --stone: #E6DFD3; --stone-2: #EFEAE1; --leaf: #7DC243; --leaf-ink: #2E6F1C;
+  --muted: #55677A; --on-ink-2: #A9BACB;
+}
+* { box-sizing: border-box; margin: 0; }
+body { background: #888; display: flex; flex-wrap: wrap; gap: 40px; padding: 40px; -webkit-font-smoothing: antialiased; }
+.story { position: relative; width: 1080px; height: 1920px; overflow: hidden; flex: none; color: var(--ink); }
+.motif { position: absolute; }
+.content { position: absolute; left: 96px; top: 250px; width: 888px; height: 1330px; display: flex; flex-direction: column; justify-content: space-between; }
+.col { display: flex; flex-direction: column; }
+.top { display: flex; justify-content: space-between; align-items: center; }
+
+/* Text styles (match the Figma text styles) */
+.d-xl { font: 800 156px/0.9 "Montserrat"; letter-spacing: -0.04em; }
+.d-l { font: 800 108px/0.94 "Montserrat"; letter-spacing: -0.035em; }
+.d-m { font: 800 80px/0.98 "Montserrat"; letter-spacing: -0.03em; }
+.numeral { font: 800 400px/0.82 "Montserrat"; letter-spacing: -0.06em; }
+.label { font: 700 20px/1.2 "Montserrat"; letter-spacing: 0.24em; text-transform: uppercase; }
+.cta { font: 700 18px/1.2 "Montserrat"; letter-spacing: 0.16em; text-transform: uppercase; }
+.index { font: 700 22px/1.2 "Montserrat"; letter-spacing: 0.06em; }
+.body-l { font: 400 32px/1.4 "DM Sans"; }
+.body-m { font: 500 30px/1.35 "DM Sans"; letter-spacing: -0.005em; }
+.url { font: 500 26px/1.2 "DM Sans"; }
+
+/* Footer */
+.footer { display: flex; flex-direction: column; gap: 40px; }
+.footer .rule { height: 1.5px; background: rgba(11, 44, 77, 0.18); }
+.footer .row { display: flex; justify-content: space-between; align-items: center; }
+.footer .contact { display: flex; flex-direction: column; gap: 10px; text-align: right; }
+.footer.light .cta { color: var(--leaf-ink); }
+.footer.dark .rule { background: rgba(247, 244, 238, 0.22); }
+.footer.dark .cta { color: var(--leaf); }
+.footer.dark .url { color: var(--ivory); }
+
+.steps { display: flex; gap: 40px; }
+.steps > div { flex: 1; display: flex; flex-direction: column; gap: 18px; }
+.steps .rule { height: 2px; background: rgba(11, 44, 77, 0.3); }
+.promises .rule { height: 1.5px; background: rgba(11, 44, 77, 0.2); }
+.promises .item { display: flex; gap: 32px; align-items: baseline; padding: 36px 0; }
+.promises .index { width: 64px; flex: none; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+  <symbol id="spark" viewBox="0 0 400 400"><path d="M200 0 C222 82 288 178 400 200 C288 222 222 318 200 400 C178 318 112 222 0 200 C112 178 178 82 200 0 Z"/></symbol>
+</svg>
+
+<!-- S01: We clean. You rest. -->
+<section class="story" id="s01" style="background: linear-gradient(var(--ink), var(--ink-deep))">
+  <svg class="motif" style="left:10px; top:70px" width="1500" height="1500" fill="#133A60" fill-opacity="0.6"><use href="#spark"/></svg>
+  <div class="content">
+    <div class="top">
+      <span class="label" style="color:var(--leaf)">Home cleaning · Scarborough &amp; North York</span>
+      <svg width="40" height="40" fill="#7DC243"><use href="#spark"/></svg>
+    </div>
+    <div class="col" style="gap:200px">
+      <div class="col" style="gap:40px">
+        <h1 class="d-xl" style="color:var(--ivory)">We clean.<br><span style="color:var(--on-ink-2)">You rest.</span></h1>
+        <p class="body-l" style="width:700px; color:rgba(247,244,238,0.86)">Meticulous home cleaning, done the same careful way every visit.</p>
+      </div>
+      <div class="footer dark"><div class="rule"></div><div class="row"><img src="../../assets/badge.png" width="280" alt="Nest &amp; Rest Cleaning"><div class="contact"><span class="cta">Book your clean</span><span class="url">nestnrestcleaning.com</span></div></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- S02: Residence Care -->
+<section class="story" id="s02" style="background:var(--ivory)">
+  <div style="position:absolute; inset:0 0 auto; height:1040px; background:var(--ink)"></div>
+  <svg class="motif" style="left:460px; top:-290px" width="1100" height="1100" fill="#133A60" fill-opacity="0.75"><use href="#spark"/></svg>
+  <div class="content" style="height:718px">
+    <span class="label" style="color:var(--leaf)">Residence care</span>
+    <div class="col" style="gap:32px">
+      <h1 class="d-l" style="color:var(--ivory)">Fine homes<br>deserve a<br>care plan.</h1>
+      <p class="body-l" style="width:700px; color:var(--on-ink-2)">For larger homes with stone, marble, hardwood and glass.</p>
+    </div>
+  </div>
+  <div class="content" style="top:1112px; height:468px">
+    <div class="steps">
+      <div><div class="rule"></div><span class="index" style="color:var(--leaf-ink)">01</span><p class="body-m">A private walkthrough</p></div>
+      <div><div class="rule"></div><span class="index" style="color:var(--leaf-ink)">02</span><p class="body-m">A written care plan</p></div>
+      <div><div class="rule"></div><span class="index" style="color:var(--leaf-ink)">03</span><p class="body-m">The same team, whenever possible</p></div>
+    </div>
+    <div class="footer light"><div class="rule"></div><div class="row"><img src="../../assets/logo.png" width="307" alt="Nest &amp; Rest Cleaning"><div class="contact"><span class="cta">Request a walkthrough</span><span class="url">nestnrestcleaning.com</span></div></div></div>
+  </div>
+</section>
+
+<!-- S03: Street shoes stay at the door -->
+<section class="story" id="s03" style="background:var(--stone-2)">
+  <div class="content">
+    <span class="label" style="color:var(--leaf-ink)">The Nest &amp; Rest standard</span>
+    <svg width="888" height="560" viewBox="0 0 888 560" aria-label="A pair of house shoes inside an arched doorway">
+      <path d="M224 559 V230 A220 220 0 0 1 664 230 V559" fill="none" stroke="#0B2C4D" stroke-opacity="0.35" stroke-width="2"/>
+      <line x1="0" y1="559" x2="888" y2="559" stroke="#0B2C4D" stroke-opacity="0.35" stroke-width="2"/>
+      <g transform="translate(264 410) scale(0.82)">
+        <g transform="translate(-34 -40)">
+          <path d="M20 150 C20 95 55 70 110 66 C170 62 230 52 290 60 C350 68 400 100 440 125 C465 140 470 150 470 160 L20 160 Z" fill="#133A60"/>
+          <rect x="10" y="158" width="464" height="24" rx="12" fill="#071E35"/>
+        </g>
+        <path d="M20 150 C20 95 55 70 110 66 C170 62 230 52 290 60 C350 68 400 100 440 125 C465 140 470 150 470 160 L20 160 Z" fill="#0B2C4D"/>
+        <path d="M70 80 C130 100 210 96 280 62" fill="none" stroke="#F7F4EE" stroke-opacity="0.28" stroke-width="5" stroke-linecap="round"/>
+        <rect x="10" y="158" width="464" height="24" rx="12" fill="#071E35"/>
+        <line x1="44" y1="170" x2="440" y2="170" stroke="#CFC5B5" stroke-width="3" stroke-dasharray="14 12"/>
+        <path d="M6 74 L28 62 L40 84 L18 96 Z" fill="#7DC243"/>
+      </g>
+    </svg>
+    <div class="col" style="gap:28px">
+      <h1 class="d-m">Street shoes stay<br>at the door.</h1>
+      <p class="body-l" style="width:760px; color:var(--muted)">We change into indoor-only shoes at your door, so your floors only meet clean soles.</p>
+    </div>
+    <div class="footer light"><div class="rule"></div><div class="row"><img src="../../assets/logo.png" width="307" alt="Nest &amp; Rest Cleaning"><div class="contact"><span class="cta">Book your clean</span><span class="url">nestnrestcleaning.com</span></div></div></div>
+  </div>
+</section>
+
+<!-- S04: Founding households -->
+<section class="story" id="s04" style="background: linear-gradient(var(--ink-deep), var(--ink))">
+  <svg class="motif" style="left:185px; top:305px" width="1150" height="1150" fill="#133A60" fill-opacity="0.55"><use href="#spark"/></svg>
+  <svg class="motif" style="left:40px; top:40px" width="1000" height="1840"><rect x="1" y="1" width="998" height="1838" rx="28" fill="none" stroke="#F7F4EE" stroke-opacity="0.22" stroke-width="2" stroke-dasharray="10 8"/></svg>
+  <div class="content">
+    <div class="top">
+      <span class="label" style="color:var(--leaf)">Founding households</span>
+      <span class="index" style="color:var(--on-ink-2)">Nº 01 — 50</span>
+    </div>
+    <div class="col">
+      <span class="numeral" style="color:var(--ivory)">20%</span>
+      <span class="d-m" style="color:var(--on-ink-2)">off your first visit.</span>
+      <p class="body-l" style="width:780px; margin-top:40px; color:rgba(247,244,238,0.86)">Reserved for our first 50 households in Scarborough and North York. No deposit. You pay after the clean.</p>
+    </div>
+    <div class="footer dark"><div class="rule"></div><div class="row"><img src="../../assets/badge.png" width="280" alt="Nest &amp; Rest Cleaning"><div class="contact"><span class="cta">Book your first visit</span><span class="url">nestnrestcleaning.com</span></div></div></div>
+  </div>
+</section>
+
+<!-- S05: Three promises, kept -->
+<section class="story" id="s05" style="background:var(--ivory)">
+  <svg class="motif" style="left:480px; top:-30px" width="900" height="900" fill="#E6DFD3"><use href="#spark"/></svg>
+  <div class="content">
+    <span class="label" style="color:var(--leaf-ink)">Our promise</span>
+    <h1 class="d-l">Three promises,<br>kept.</h1>
+    <div class="promises">
+      <div class="rule"></div>
+      <div class="item"><span class="index" style="color:var(--leaf-ink)">01</span><p class="body-m">Your exact price, before you book.</p></div>
+      <div class="rule"></div>
+      <div class="item"><span class="index" style="color:var(--leaf-ink)">02</span><p class="body-m">No deposit. You pay after the clean.</p></div>
+      <div class="rule"></div>
+      <div class="item"><span class="index" style="color:var(--leaf-ink)">03</span><p class="body-m">Missed a detail? Tell us within 24 hours<br>and we re-clean it, free.</p></div>
+      <div class="rule"></div>
+    </div>
+    <div class="footer light"><div class="rule"></div><div class="row"><img src="../../assets/logo.png" width="307" alt="Nest &amp; Rest Cleaning"><div class="contact"><span class="cta">See your price in seconds</span><span class="url">nestnrestcleaning.com</span></div></div></div>
+  </div>
+</section>
+</body>
+</html>
