@@ -156,6 +156,61 @@ When you post each one, add a **link sticker** in the clear space just above the
 
 Optional, for replies: on story 03 add a poll sticker, "Shoes off at home?" with options "Always" and "Depends". Remove story 04 when the founding offer ends.
 
+## Motion: Reels and Stories (the scroll-stoppers)
+
+`motion/` has five animated 1080 × 1920 videos (10 to 11 seconds, 30 fps, MP4), plus a cover image for each. Every video opens on a hook in the first second and ends on the same call-to-action card: website, call or text, no deposit. Post them as Reels on Instagram and Facebook, and reuse them as Stories.
+
+The videos have no sound. When you post, add a trending track from the in-app music library at low volume: Reels with audio get shown to more people.
+
+| Video | The hook | Ends on |
+|---|---|---|
+| `01-is-your-screen-dirty.mp4` | The phone screen looks grimy, then a squeegee wipes it clean | "Book your clean" |
+| `02-you-vs-us.mp4` | Your Saturday (brunch, the Bluffs, a nap) against our list (baseboards, grout, glass) | "We clean. You rest." · Regular cleaning from $110 |
+| `03-shoes-off.mp4` | Muddy boot prints stamp in: salt, slush, grit, mud | House shoes at the door |
+| `04-only-50.mp4` | Slot machine spins to 20%, then 50 houses fill the screen | "Be one of the first 50" |
+| `05-price-in-seconds.mp4` | A live demo of the site's price calculator: 2 bed, 2 bath condo deep clean, $275, $220 first visit | "Try it now" |
+
+All prices are the site's own numbers from `js/config.js` and the calculator in `js/site.js`. If prices change, edit `motion/motion.html` and re-render with `node social/motion/render.mjs`.
+
+### Captions
+
+**01 · Is your screen dirty?**
+> That was satisfying. Now imagine your whole home. ✨
+> Meticulous home cleaning in Scarborough and North York. Exact price before you book, no deposit, pay after the clean.
+> Text us at 647 978 6903 or see your price at the link in bio.
+> #Scarborough #NorthYork #Toronto #CleanTok #SatisfyingClean #HomeCleaning #CleaningService #TorontoHomes
+
+**02 · You vs Us**
+> Your Saturday: brunch, the Bluffs, a long nap.
+> Ours: baseboards, grout, glass.
+> Fair trade? Regular cleaning from $110. Link in bio, or text 647 978 6903.
+> #WeCleanYouRest #Scarborough #NorthYork #ScarboroughBluffs #Toronto #HomeCleaning #WeekendVibes #CleaningService
+
+**03 · Shoes off**
+> Salt. Slush. Grit. Mud. Not on your floors.
+> Our team changes into indoor-only house shoes at your door, every visit.
+> Book your clean: link in bio, or text 647 978 6903.
+> #TorontoWinter #Scarborough #NorthYork #HardwoodFloors #HomeCleaning #CleanFloors #CleaningService #Toronto
+
+**04 · Only 50**
+> 20% off your first visit, for our first 50 households only.
+> No deposit. You pay after the clean.
+> Claim yours: link in bio, or text "FOUNDING" to 647 978 6903.
+> #FoundingHousehold #Scarborough #NorthYork #Toronto #HomeCleaning #DeepCleaning #CleaningService #TorontoDeals
+
+**05 · Price in seconds**
+> What does a deep clean cost? Tap, tap: $275 for a 2 bed, 2 bath condo, or $220 as a founding household.
+> Your exact price before you book. No deposit. Try it at the link in bio.
+> #DeepCleaning #Scarborough #NorthYork #Toronto #CondoLife #HomeCleaning #CleaningService #TorontoCondos
+
+### Turning views into bookings
+
+- **Bio link:** point it at https://nestnrestcleaning.com. Every video sends people there or to your phone.
+- **Text keyword:** caption 04 asks people to text "FOUNDING". Reply to those texts fast; the site promises a reply within 2 hours during business hours.
+- **Boost as ads:** in Meta Ads Manager, use 01 and 05 as Reels and Stories ads, with the audience set to the Scarborough and North York postal areas (homeowners and renters, 25+), and "Leads" or "Website traffic" as the objective. Add your Meta Pixel ID to `analytics.metaPixelId` in `js/config.js` first, so bookings are tracked back to the ad.
+- **Order:** 01 first (widest appeal), then 05, 03, 02, and 04 last. Space them two or three days apart, and put each one in your Story on the day it posts, with a link sticker.
+- **Pin** 01 and 04 to the top of your Instagram grid.
+
 ## Editing in Figma
 
 - Colours are variables in the **Nest & Rest** collection, and type uses the text styles (Display, Label, Body, CTA). Change one and every post updates.

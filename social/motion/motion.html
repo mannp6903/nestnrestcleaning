@@ -1,0 +1,646 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Nest &amp; Rest Motion</title>
+<!-- Five 1080×1920 animated Reels/Stories. Every frame is a pure function of time (seek), so
+     render.mjs can step through it frame by frame and encode MP4s. Open in a browser and add
+     ?play=v1 (v1 to v5) to watch one play live. -->
+<style>
+@font-face { font-family: "Montserrat"; font-weight: 100 900; src: url("../../assets/fonts/montserrat.woff2") format("woff2"); }
+@font-face { font-family: "DM Sans"; font-weight: 100 1000; src: url("../../assets/fonts/dm-sans.woff2") format("woff2"); }
+:root {
+  --ink: #0B2C4D; --deep: #071E35; --ink-2: #133A60; --ivory: #F7F4EE; --stone: #E6DFD3; --stone-3: #CFC5B5;
+  --blue: #0E5C9E; --sky: #1DA1E8; --leaf: #7DC243; --leaf-ink: #2E6F1C; --muted: #55677A; --mist: #A9BACB; --cyan: #54D8E8;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #111; -webkit-font-smoothing: antialiased; }
+.scene { position: relative; width: 1080px; height: 1920px; overflow: hidden; display: none; font-family: "DM Sans"; color: var(--ink); }
+.scene.on { display: block; }
+.abs { position: absolute; }
+.fill { position: absolute; inset: 0; }
+.row { position: absolute; left: 96px; width: 888px; }
+.center { text-align: center; }
+.blk { font-family: "Montserrat"; font-weight: 900; letter-spacing: -0.045em; line-height: 0.88; text-transform: uppercase; white-space: nowrap; }
+.lbl { font-family: "Montserrat"; font-weight: 700; font-size: 24px; letter-spacing: 0.24em; text-transform: uppercase; white-space: nowrap; }
+.line { overflow: hidden; padding: 0.08em 0; margin: -0.08em 0; }
+.line > span { display: inline-block; }
+.sp { position: absolute; width: 100px; height: 100px; margin: -50px 0 0 -50px; }
+.grain { position: absolute; inset: 0; pointer-events: none; mix-blend-mode: overlay; opacity: 0.12; }
+
+/* Pills */
+.pill { display: inline-flex; align-items: center; gap: 22px; background: #fff; border-radius: 999px; padding: 24px 40px 24px 24px; font: 600 38px/1.1 "DM Sans"; color: var(--ink); box-shadow: 0 20px 50px -20px rgba(11,44,77,.35); white-space: nowrap; }
+.pill i { flex: none; width: 52px; height: 52px; border-radius: 50%; background: var(--leaf); display: grid; place-items: center; }
+
+/* End card */
+.end { position: absolute; inset: 0; display: none; }
+.end-bg { position: absolute; inset: 0; background: radial-gradient(900px 900px at 50% 42%, #12406B 0%, var(--deep) 70%); }
+.end-spark { position: absolute; left: -160px; top: 160px; width: 1400px; height: 1400px; }
+.end-stack { position: absolute; top: 380px; left: 96px; width: 888px; display: flex; flex-direction: column; align-items: center; gap: 40px; }
+.end-badge { width: 400px; }
+.end-head { font-size: 124px; color: var(--ivory); text-align: center; }
+.end-chip { font: 700 34px/1 "DM Sans"; color: var(--deep); background: var(--cyan); padding: 18px 30px; border-radius: 999px; }
+.end-cta { font: 900 46px/1 "Montserrat"; letter-spacing: 0.02em; color: var(--deep); background: var(--leaf); padding: 40px 64px; border-radius: 999px; box-shadow: 0 0 0 0 rgba(125,194,67,.5); white-space: nowrap; }
+.end-contact { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.end-url { font: 700 46px/1.1 "DM Sans"; color: var(--ivory); }
+.end-phone { font: 500 38px/1.1 "DM Sans"; color: var(--mist); }
+.end-note { color: var(--leaf); }
+
+/* v1 dirty screen */
+#v1 .clean { background: var(--ivory); }
+#v1 .dirty { background: radial-gradient(1200px 1400px at 40% 35%, #C2B8A6, #A79C88); }
+.fprint { width: 170px; height: 220px; border-radius: 50%; background: repeating-radial-gradient(ellipse 50% 62% at 50% 55%, rgba(58,48,36,.55) 0 2.5px, transparent 2.5px 7px); -webkit-mask-image: radial-gradient(ellipse 50% 50% at 50% 50%, #000 55%, transparent 72%); opacity: .55; filter: blur(.6px); }
+#v1 .dirty .smear { position: absolute; border-radius: 50%; background: #6F6352; filter: blur(60px); opacity: .45; }
+#v1-sq { position: absolute; top: 0; left: 0; width: 70px; height: 1920px; }
+.pitch-h { font-size: 112px; color: var(--ink); }
+
+/* v2 you vs us */
+.mq { position: absolute; left: 0; font-size: 250px; color: transparent; -webkit-text-stroke: 2px rgba(247,244,238,.22); }
+.word { position: absolute; left: 0; right: 0; text-align: center; }
+
+/* v4 slot */
+.win { position: absolute; top: 0; width: 250px; height: 340px; border-radius: 28px; background: rgba(247,244,238,.06); border: 2px solid rgba(247,244,238,.16); overflow: hidden; }
+.strip { position: absolute; left: 0; top: 0; width: 100%; }
+.strip div { height: 340px; display: grid; place-items: center; font: 900 290px/1 "Montserrat"; letter-spacing: -0.06em; color: var(--ivory); }
+.house { position: absolute; width: 72px; height: 58px; }
+
+/* v5 phone */
+.phone { position: absolute; left: 190px; top: 330px; width: 700px; height: 1190px; border-radius: 86px; background: var(--deep); padding: 20px; box-shadow: 0 60px 120px -30px rgba(7,30,53,.6); }
+.screen { position: relative; width: 100%; height: 100%; border-radius: 68px; background: var(--ivory); padding: 72px 52px 0; overflow: hidden; }
+.f-lbl { font: 700 20px/1 "Montserrat"; letter-spacing: .2em; text-transform: uppercase; color: var(--muted); margin: 30px 0 14px; }
+.f-box { height: 88px; border: 2px solid var(--stone-3); background: #fff; border-radius: 16px; display: flex; align-items: center; justify-content: space-between; padding: 0 28px; font: 600 34px/1 "DM Sans"; }
+.steps2 { display: flex; gap: 28px; }
+.steps2 > div { flex: 1; }
+.stepper { display: flex; align-items: center; justify-content: space-between; height: 88px; }
+.stepper b { width: 76px; height: 76px; border-radius: 50%; border: 2px solid var(--ink); display: grid; place-items: center; font: 500 44px/1 "DM Sans"; }
+.stepper output { font: 800 48px/1 "Montserrat"; }
+.price { font: 900 156px/1 "Montserrat"; letter-spacing: -0.05em; margin-top: 34px; }
+.meta { font: 500 28px/1.3 "DM Sans"; color: var(--muted); margin-top: 8px; }
+.book-btn { margin-top: 30px; height: 100px; border-radius: 16px; background: var(--ink); color: var(--ivory); display: grid; place-items: center; font: 800 30px/1 "Montserrat"; letter-spacing: .14em; text-transform: uppercase; }
+.finger { position: absolute; width: 96px; height: 96px; margin: -48px 0 0 -48px; border-radius: 50%; background: rgba(255,255,255,.92); box-shadow: 0 12px 30px rgba(7,30,53,.35), inset 0 0 0 3px rgba(11,44,77,.15); }
+.ripple { position: absolute; width: 96px; height: 96px; margin: -48px 0 0 -48px; border-radius: 50%; border: 4px solid var(--leaf); }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+  <symbol id="spark" viewBox="0 0 400 400"><path d="M200 0 C222 82 288 178 400 200 C288 222 222 318 200 400 C178 318 112 222 0 200 C112 178 178 82 200 0 Z"/></symbol>
+  <symbol id="house" viewBox="0 0 205 160"><path d="M93 13 Q102 6 111 13 L180 72 Q186 77 186 86 L186 146 Q186 158 174 158 L31 158 Q19 158 19 146 L19 86 Q19 77 25 72 Z" fill="#1DA1E8"/><path d="M102 61 C106 82 118 93 139 97 C118 101 106 112 102 133 C98 112 86 101 65 97 C86 93 98 82 102 61 Z" fill="#fff"/></symbol>
+  <symbol id="boot" viewBox="0 0 120 300"><path d="M60 8 C96 8 113 44 113 96 C113 140 101 166 92 186 L28 186 C19 166 7 140 7 96 C7 44 24 8 60 8 Z M26 204 L94 204 C101 204 105 211 105 221 L101 280 C100 292 91 298 80 298 L40 298 C29 298 20 292 19 280 L15 221 C15 211 19 204 26 204 Z" fill="currentColor"/><g stroke="#F3EEE5" stroke-width="9" stroke-linecap="round"><path d="M22 44 H98 M14 70 H106 M12 96 H108 M14 122 H106 M20 148 H100 M26 172 H94 M24 228 H96 M24 254 H96 M28 278 H92"/></g></symbol>
+  <symbol id="check" viewBox="0 0 24 24"><path d="M5 12.5l4.2 4.2L19 7" fill="none" stroke="#071E35" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <filter id="grainf" x="0" y="0" width="100%" height="100%"><feTurbulence id="grainturb" type="fractalNoise" baseFrequency="0.85" numOctaves="2" seed="1"/><feColorMatrix type="saturate" values="0"/></filter>
+  <filter id="grime" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="0.006 0.009" numOctaves="5" seed="7"/><feColorMatrix values="0 0 0 0 0.30  0 0 0 0 0.26  0 0 0 0 0.20  0 0 0 -1.6 1.05"/></filter>
+  <filter id="dust" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="0.5" numOctaves="1" seed="4"/><feColorMatrix values="0 0 0 0 0.20  0 0 0 0 0.17  0 0 0 0 0.13  0 0 0 16 -9.4"/></filter>
+  <filter id="crumbs" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="0.35" numOctaves="1" seed="11"/><feColorMatrix values="0 0 0 0 0.93  0 0 0 0 0.90  0 0 0 0 0.84  0 0 0 18 -11.2"/></filter>
+</svg>
+
+<!-- ============ V1 · IS YOUR SCREEN DIRTY? ============ -->
+<section class="scene" id="v1">
+  <div class="fill clean">
+    <svg class="abs" style="left:-300px;top:1250px;opacity:.5" width="900" height="900" fill="#E6DFD3"><use href="#spark"/></svg>
+    <div class="row lbl" id="v1-sat" style="top:330px;color:var(--leaf-ink)">Satisfying, right?</div>
+    <div class="row" id="v1-big" style="top:520px">
+      <div class="line"><span class="blk" style="font-size:72px;color:var(--muted);letter-spacing:-0.02em">Now imagine</span></div>
+      <div style="height:30px"></div>
+      <div class="line"><span class="blk fitme" style="font-size:250px">YOUR</span></div>
+      <div class="line"><span class="blk fitme" style="font-size:250px">WHOLE</span></div>
+      <div class="line"><span class="blk fitme" style="font-size:250px;color:var(--blue)">HOME.</span></div>
+    </div>
+    <div id="v1-pitch">
+      <div class="row lbl" id="v1-pl" style="top:330px;color:var(--leaf-ink)">Scarborough &amp; North York</div>
+      <div class="row" style="top:420px">
+        <div class="line"><span class="blk pitch-h">Meticulous</span></div>
+        <div class="line"><span class="blk pitch-h">home</span></div>
+        <div class="line"><span class="blk pitch-h" style="color:var(--blue)">cleaning.</span></div>
+      </div>
+      <div class="row" style="top:850px;display:flex;flex-direction:column;align-items:flex-start;gap:30px">
+        <div class="pill v1p"><i><svg width="30" height="30"><use href="#check"/></svg></i>Your exact price before you book</div>
+        <div class="pill v1p"><i><svg width="30" height="30"><use href="#check"/></svg></i>No deposit. Pay after the clean.</div>
+        <div class="pill v1p"><i><svg width="30" height="30"><use href="#check"/></svg></i>Missed a spot? We come back free.</div>
+      </div>
+    </div>
+    <div id="v1-sps"></div>
+  </div>
+  <div class="fill dirty" id="v1-dirty">
+    <div class="smear" style="left:-120px;top:180px;width:700px;height:420px"></div>
+    <div class="smear" style="left:520px;top:900px;width:640px;height:520px"></div>
+    <div class="smear" style="left:120px;top:1420px;width:820px;height:380px"></div>
+    <svg class="fill" width="1080" height="1920"><rect width="1080" height="1920" filter="url(#grime)"/></svg>
+    <div class="abs" style="left:-200px;top:330px;width:1500px;height:110px;transform:rotate(-24deg);background:linear-gradient(90deg,transparent,#4E4335 30%,#4E4335 70%,transparent);filter:blur(22px);opacity:.38"></div>
+    <div class="abs" style="left:-260px;top:1180px;width:1600px;height:80px;transform:rotate(-31deg);background:linear-gradient(90deg,transparent,#4E4335 25%,#4E4335 75%,transparent);filter:blur(18px);opacity:.3"></div>
+    <div class="abs" style="left:-100px;top:1600px;width:1400px;height:140px;transform:rotate(12deg);background:linear-gradient(90deg,transparent,#E9E1D2 30%,#E9E1D2 70%,transparent);filter:blur(30px);opacity:.35"></div>
+    <div class="abs fprint" style="left:690px;top:300px;transform:rotate(18deg)"></div>
+    <div class="abs fprint" style="left:150px;top:1150px;transform:rotate(-26deg) scale(1.15)"></div>
+    <div class="abs fprint" style="left:760px;top:1420px;transform:rotate(40deg) scale(.9)"></div>
+    <svg class="fill" width="1080" height="1920"><rect width="1080" height="1920" filter="url(#dust)"/></svg>
+    <svg class="fill" width="1080" height="1920" style="opacity:.7"><rect width="1080" height="1920" filter="url(#crumbs)"/></svg>
+    <div class="row center" style="top:560px">
+      <div class="line"><span class="blk fitme" id="v1-hold" style="font-size:200px;color:#2B241B">Hold on.</span></div>
+    </div>
+    <div class="row center" style="top:820px">
+      <div class="line"><span class="blk v1q" style="font-size:92px;color:#2B241B">Is your</span></div>
+      <div class="line"><span class="blk v1q fitme" style="font-size:92px;color:#2B241B">screen dirty?</span></div>
+    </div>
+  </div>
+  <svg id="v1-sq" width="420" height="1920" viewBox="-340 0 420 1920" style="width:420px;margin-left:-340px">
+    <defs><linearGradient id="sheen" x1="0" x2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#fff" stop-opacity=".55"/></linearGradient></defs>
+    <rect x="-340" y="0" width="340" height="1920" fill="url(#sheen)"/>
+    <rect x="-300" y="928" width="300" height="64" rx="32" fill="#0B2C4D"/>
+    <rect x="-330" y="918" width="120" height="84" rx="42" fill="#F7F4EE"/>
+    <rect x="0" y="0" width="52" height="1920" fill="#0B2C4D"/>
+    <rect x="10" y="0" width="8" height="1920" fill="#1F4D7A"/>
+    <rect x="52" y="0" width="18" height="1920" fill="#7DC243"/>
+  </svg>
+  <div class="end" id="v1-end"></div>
+  <svg class="grain" width="1080" height="1920"><rect width="1080" height="1920" filter="url(#grainf)"/></svg>
+</section>
+
+<!-- ============ V2 · YOU vs US ============ -->
+<section class="scene" id="v2" style="background:var(--ink)">
+  <div class="blk mq" id="v2-mq1" style="top:180px">Saturday • Saturday • Saturday • Saturday •</div>
+  <div class="blk mq" id="v2-mq2" style="top:1420px">Saturday • Saturday • Saturday • Saturday •</div>
+  <div id="v2-hook">
+    <div class="row center lbl" style="top:700px;color:var(--leaf)" id="v2-plans">Plans for</div>
+    <div class="row center" style="top:760px"><div class="line"><span class="blk fitme" id="v2-sat" style="font-size:190px;color:var(--ivory)">Saturday?</span></div></div>
+    <div class="row center blk" id="v2-time" style="top:960px;font-size:64px;color:var(--sky);letter-spacing:0">10:00 AM</div>
+  </div>
+  <div class="fill" id="v2-bot" style="background:var(--deep);top:960px">
+    <div class="row center lbl" style="top:90px;color:var(--leaf)">Us</div>
+    <div class="abs" style="left:96px;width:888px;top:160px;height:200px" id="v2-us"></div>
+  </div>
+  <div class="fill" id="v2-top" style="background:var(--ivory);height:960px">
+    <div class="row center lbl" style="top:420px;color:var(--leaf-ink)">You</div>
+    <div class="abs" style="left:96px;width:888px;top:490px;height:200px" id="v2-you"></div>
+  </div>
+  <div class="abs" id="v2-div" style="left:0;top:958px;width:1080px;height:4px;background:var(--leaf);transform-origin:50% 50%"></div>
+  <div class="abs" id="v2-vs" style="left:490px;top:910px;width:100px;height:100px;border-radius:50%;background:var(--leaf);display:grid;place-items:center"><svg width="52" height="52" fill="#071E35"><use href="#spark"/></svg></div>
+  <div class="end" id="v2-end"></div>
+  <svg class="grain" width="1080" height="1920"><rect width="1080" height="1920" filter="url(#grainf)"/></svg>
+</section>
+
+<!-- ============ V3 · SHOES OFF ============ -->
+<section class="scene" id="v3" style="background:#F3EEE5">
+  <div class="fill" id="v3-floor" style="background:repeating-linear-gradient(90deg, transparent 0 179px, rgba(11,44,77,.07) 179px 180px)"></div>
+  <div class="fill" id="v3-shake">
+    <div class="fill" id="v3-mess">
+      <div id="v3-prints"></div>
+      <div class="fill" id="v3-band-wrap">
+        <div class="abs" id="v3-band" style="left:0;top:770px;width:1080px;height:380px;background:var(--ink);transform-origin:0 50%"></div>
+        <div class="row center" style="top:810px">
+          <div class="line"><span class="blk fitme" id="v3-not" style="font-size:110px;color:var(--ivory)">Not on your</span></div>
+          <div class="line"><span class="blk fitme" id="v3-fl" style="font-size:200px;color:var(--leaf)">floors.</span></div>
+        </div>
+      </div>
+    </div>
+    <div id="v3-clean">
+      <div class="row lbl" id="v3-lbl" style="top:300px;color:var(--leaf-ink)">The Nest &amp; Rest standard</div>
+      <svg class="abs" id="v3-art" style="left:96px;top:370px" width="888" height="620" viewBox="0 0 888 620">
+        <path id="v3-arch" d="M224 619 V240 A220 220 0 0 1 664 240 V619" fill="none" stroke="#0B2C4D" stroke-opacity=".45" stroke-width="3"/>
+        <path id="v3-sill" d="M0 619 H888" fill="none" stroke="#0B2C4D" stroke-opacity=".45" stroke-width="3"/>
+        <g id="v3-slip" transform="translate(264 470) scale(0.82)">
+          <g transform="translate(-34 -40)"><path d="M20 150 C20 95 55 70 110 66 C170 62 230 52 290 60 C350 68 400 100 440 125 C465 140 470 150 470 160 L20 160 Z" fill="#133A60"/><rect x="10" y="158" width="464" height="24" rx="12" fill="#071E35"/></g>
+          <path d="M20 150 C20 95 55 70 110 66 C170 62 230 52 290 60 C350 68 400 100 440 125 C465 140 470 150 470 160 L20 160 Z" fill="#0B2C4D"/>
+          <path d="M70 80 C130 100 210 96 280 62" fill="none" stroke="#F7F4EE" stroke-opacity=".28" stroke-width="5" stroke-linecap="round"/>
+          <rect x="10" y="158" width="464" height="24" rx="12" fill="#071E35"/>
+          <line x1="44" y1="170" x2="440" y2="170" stroke="#CFC5B5" stroke-width="3" stroke-dasharray="14 12"/>
+          <path d="M6 74 L28 62 L40 84 L18 96 Z" fill="#7DC243"/>
+        </g>
+      </svg>
+      <div class="row" style="top:1040px">
+        <div class="line"><span class="blk v3h" style="font-size:76px">We change into</span></div>
+        <div class="line"><span class="blk v3h fitme" style="font-size:160px;color:var(--blue)">house shoes</span></div>
+        <div class="line"><span class="blk v3h" style="font-size:76px">at your door.</span></div>
+      </div>
+      <div class="row" id="v3-body" style="top:1370px;font:500 40px/1.3 'DM Sans';color:var(--muted)">So your floors only meet clean soles.</div>
+    </div>
+    <div id="v3-sps"></div>
+  </div>
+  <svg class="abs" id="v3-blade" width="1080" height="470" style="left:0;top:0">
+    <rect x="0" y="0" width="1080" height="420" fill="url(#v3sheen)"/>
+    <defs><linearGradient id="v3sheen" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#fff" stop-opacity=".6"/></linearGradient></defs>
+    <rect x="510" y="60" width="60" height="370" rx="30" fill="#0B2C4D"/>
+    <rect x="0" y="400" width="1080" height="52" fill="#0B2C4D"/>
+    <rect x="0" y="452" width="1080" height="18" fill="#7DC243"/>
+  </svg>
+  <div class="end" id="v3-end"></div>
+  <svg class="grain" width="1080" height="1920"><rect width="1080" height="1920" filter="url(#grainf)"/></svg>
+</section>
+
+<!-- ============ V4 · ONLY 50 ============ -->
+<section class="scene" id="v4" style="background:radial-gradient(1000px 900px at 50% 40%, #12406B 0%, var(--deep) 75%)">
+  <svg class="abs" id="v4-bgspark" style="left:40px;top:260px" width="1000" height="1000" fill="#133A60"><use href="#spark"/></svg>
+  <div id="v4-top">
+    <div class="row center lbl" id="v4-lbl" style="top:420px;color:var(--leaf)">Founding households</div>
+    <div class="abs" id="v4-reels" style="left:140px;top:500px;width:800px;height:340px">
+      <div class="win" style="left:0"><div class="strip" id="r0"></div></div>
+      <div class="win" style="left:275px"><div class="strip" id="r1"></div></div>
+      <div class="win" style="left:550px"><div class="strip" id="r2"></div></div>
+    </div>
+    <div class="row center" style="top:890px"><div class="line"><span class="blk fitme" id="v4-off" style="font-size:96px;color:var(--mist)">Off your first visit.</span></div></div>
+  </div>
+  <div id="v4-grid" class="abs" style="left:126px;top:640px;width:828px;height:408px"></div>
+  <div class="row center" style="top:1110px"><div class="line"><span class="blk fitme" id="v4-only" style="font-size:96px;color:var(--ivory)">Only 50 households.</span></div></div>
+  <div class="row center lbl" id="v4-gone" style="top:1230px;color:var(--leaf);font-size:30px">Then it's gone.</div>
+  <div class="abs" id="v4-yours" style="left:0;top:0;font:900 34px/1 'Montserrat';color:var(--deep);background:var(--leaf);padding:16px 24px;border-radius:14px;white-space:nowrap">YOURS?</div>
+  <div class="row center" id="v4-pay" style="top:640px">
+    <div class="line"><span class="blk fitme v4k" style="font-size:150px;color:var(--ivory)">No deposit.</span></div>
+    <div class="line"><span class="blk fitme v4k" style="font-size:150px;color:var(--leaf)">Pay after</span></div>
+    <div class="line"><span class="blk fitme v4k" style="font-size:150px;color:var(--ivory)">the clean.</span></div>
+  </div>
+  <div id="v4-sps"></div>
+  <div class="end" id="v4-end"></div>
+  <svg class="grain" width="1080" height="1920"><rect width="1080" height="1920" filter="url(#grainf)"/></svg>
+</section>
+
+<!-- ============ V5 · PRICE IN SECONDS ============ -->
+<section class="scene" id="v5" style="background:linear-gradient(170deg, #1DA1E8 0%, #0E5C9E 100%)">
+  <svg class="abs" style="left:380px;top:-260px;opacity:.18" width="1100" height="1100" fill="#F7F4EE"><use href="#spark"/></svg>
+  <div class="row" id="v5-hook" style="top:560px">
+    <div class="line"><span class="blk v5h" style="font-size:96px;color:var(--ivory)">What does a</span></div>
+    <div class="line"><span class="blk v5h fitme" style="font-size:190px;color:var(--deep)">deep clean</span></div>
+    <div class="line"><span class="blk v5h" style="font-size:250px;color:var(--ivory)">cost<span id="v5-q" style="display:inline-block;color:var(--leaf)">?</span></span></div>
+  </div>
+  <div class="phone" id="v5-phone">
+    <div class="screen">
+      <div style="display:flex;align-items:center;gap:16px"><img src="../../assets/logo-mark.png" width="58" alt=""><span style="font:500 26px/1 'DM Sans';color:var(--muted)">nestnrestcleaning.com</span></div>
+      <div style="font:800 48px/1.05 'Montserrat';letter-spacing:-0.02em;margin-top:30px">Your price, in seconds</div>
+      <div class="f-lbl">Service</div><div class="f-box">Deep Cleaning <span style="color:var(--muted)">▾</span></div>
+      <div class="f-lbl">Type of home</div><div class="f-box">Condo or apartment <span style="color:var(--muted)">▾</span></div>
+      <div class="steps2">
+        <div><div class="f-lbl">Bedrooms</div><div class="stepper"><b>−</b><output id="v5-beds">1</output><b id="v5-bplus">+</b></div></div>
+        <div><div class="f-lbl">Bathrooms</div><div class="stepper"><b>−</b><output id="v5-baths">1</output><b id="v5-aplus">+</b></div></div>
+      </div>
+      <div class="price" id="v5-price">$200</div>
+      <div class="meta" id="v5-meta">Estimate · about 4 hours · $160 first visit</div>
+      <div class="book-btn">Book this clean</div>
+    </div>
+  </div>
+  <div class="abs" id="v5-pill" style="left:650px;top:985px;background:var(--leaf);color:var(--deep);border-radius:22px;padding:22px 30px;box-shadow:0 24px 50px -16px rgba(7,30,53,.55)">
+    <div style="font:900 64px/1 'Montserrat';letter-spacing:-0.03em">$220</div>
+    <div style="font:800 22px/1.2 'Montserrat';letter-spacing:.12em;text-transform:uppercase;margin-top:6px">Founding price<br>first visit</div>
+  </div>
+  <div class="ripple" id="v5-rip"></div>
+  <div class="finger" id="v5-finger"></div>
+  <div class="row" id="v5-out" style="top:640px">
+    <div class="line"><span class="blk fitme v5o" style="font-size:150px;color:var(--ivory)">Exact price.</span></div>
+    <div class="line"><span class="blk fitme v5o" style="font-size:150px;color:var(--deep)">Before you</span></div>
+    <div class="line"><span class="blk fitme v5o" style="font-size:150px;color:var(--deep)">book.</span></div>
+    <div class="line"><span class="blk fitme v5o" style="font-size:150px;color:var(--leaf)">No deposit.</span></div>
+  </div>
+  <div id="v5-sps"></div>
+  <div class="end" id="v5-end"></div>
+  <svg class="grain" width="1080" height="1920"><rect width="1080" height="1920" filter="url(#grainf)"/></svg>
+</section>
+
+<script>
+/* ---------- helpers ---------- */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const lerp = (a, b, k) => a + (b - a) * k;
+const E = {
+  lin: t => t,
+  oc: t => 1 - Math.pow(1 - t, 3),
+  ic: t => t * t * t,
+  ioc: t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2,
+  oe: t => t === 1 ? 1 : 1 - Math.pow(2, -10 * t),
+  ob: t => { const c1 = 1.9, c3 = c1 + 1; return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2); }
+};
+const k = (t, start, dur, ease = E.oc) => ease(clamp((t - start) / dur));
+const tf = (el, x = 0, y = 0, s = 1, r = 0) => { el.style.transform = `translate(${x}px,${y}px) scale(${s}) rotate(${r}deg)`; };
+const op = (el, o) => { el.style.opacity = o; };
+const show = (el, on) => { el.style.visibility = on ? 'visible' : 'hidden'; };
+// A masked line that rises in, then (optionally) leaves upward.
+function lineIO(span, t, inAt, inDur = .5, outAt = 1e9, outDur = .35) {
+  const y = t < outAt ? lerp(115, 0, k(t, inAt, inDur, E.oe)) : lerp(0, -115, k(t, outAt, outDur, E.ic));
+  span.style.transform = `translateY(${y}%)`;
+}
+// Scale-slam: big to normal, fading in.
+function slam(el, t, at, dur = .35, from = 1.5) {
+  const p = k(t, at, dur, E.oe);
+  el.style.transform = `scale(${lerp(from, 1, p)})`;
+  el.style.opacity = k(t, at, dur * .3, E.lin);
+}
+function fit(el, max = 888) {
+  const w = el.getBoundingClientRect().width;
+  if (w > max) el.style.fontSize = (parseFloat(getComputedStyle(el).fontSize) * max / w) + 'px';
+}
+// Sparkle bursts: [x, y, size, color, at]
+function makeSparks(host, list) {
+  host.innerHTML = '';
+  return list.map(([x, y, s, c, at]) => {
+    const el = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    el.setAttribute('class', 'sp'); el.setAttribute('width', s); el.setAttribute('height', s);
+    el.style.cssText = `left:${x}px;top:${y}px;width:${s}px;height:${s}px;margin:${-s / 2}px 0 0 ${-s / 2}px;fill:${c};filter:drop-shadow(0 0 ${s / 5}px ${c})`;
+    el.innerHTML = '<use href="#spark"/>';
+    host.appendChild(el);
+    return { el, at };
+  });
+}
+function seekSparks(sps, t, life = 1.1) {
+  for (const { el, at } of sps) {
+    const u = t - at;
+    if (u < 0 || u > life) { el.style.opacity = 0; continue; }
+    const s = u < .28 ? E.ob(u / .28) : 1 - .25 * k(u, .28, life - .28);
+    el.style.opacity = 1 - k(u, life * .55, life * .45, E.lin);
+    el.style.transform = `scale(${s}) rotate(${u * 70}deg)`;
+  }
+}
+/* ---------- end card ---------- */
+function buildEnd(el, { head, cta, chip }) {
+  el.innerHTML = `<div class="end-bg"></div>
+    <svg class="end-spark" fill="#1DA1E8"><use href="#spark"/></svg>
+    <div class="end-stack">
+      <img class="end-badge" src="../../assets/badge.png" alt="Nest &amp; Rest Cleaning">
+      <div class="blk end-head">${head}</div>
+      ${chip ? `<div class="end-chip">${chip}</div>` : ''}
+      <div class="end-cta">${cta}</div>
+      <div class="end-contact"><div class="end-url">nestnrestcleaning.com</div><div class="end-phone">Call or text 647 978 6903</div></div>
+      <div class="lbl end-note">No deposit · Pay after the clean</div>
+    </div>`;
+}
+function seekEnd(el, t) {
+  el.style.display = t < 0 ? 'none' : 'block';
+  if (t < 0) return;
+  $('.end-bg', el).style.clipPath = `circle(${lerp(0, 1250, k(t, 0, .6, E.ioc))}px at 50% 46%)`;
+  const sp = $('.end-spark', el);
+  sp.style.opacity = .22 * k(t, .2, .6);
+  sp.style.transform = `rotate(${t * 14}deg) scale(${lerp(.6, 1, k(t, .2, 1.2))})`;
+  const kids = [...$('.end-stack', el).children];
+  kids.forEach((c, i) => {
+    const at = .35 + i * .12, p = k(t, at, .55, E.oe);
+    c.style.opacity = k(t, at, .2, E.lin);
+    c.style.transform = `translateY(${lerp(80, 0, p)}px)`;
+  });
+  const cta = $('.end-cta', el);
+  const pulse = t > 1.3 ? Math.sin((t - 1.3) * Math.PI * 2 / 1.1) : 0;
+  const ctaIn = k(t, .35 + 3 * .12, .5, E.ob);
+  cta.style.transform = `translateY(${lerp(80, 0, k(t, .35 + 3 * .12, .55, E.oe))}px) scale(${lerp(.7, 1, ctaIn) * (1 + .035 * Math.max(0, pulse))})`;
+  cta.style.boxShadow = `0 0 0 ${t > 1.3 ? ((t - 1.3) % 1.1) / 1.1 * 40 : 0}px rgba(125,194,67,${t > 1.3 ? .45 * (1 - ((t - 1.3) % 1.1) / 1.1) : 0})`;
+}
+
+/* ---------- scenes ---------- */
+const scenes = {};
+
+/* V1 · Is your screen dirty? */
+scenes.v1 = {
+  dur: 10.5, endAt: 7.6,
+  init() {
+    $$('#v1 .fitme').forEach(e => fit(e));
+    buildEnd($('#v1-end'), { head: 'Book your<br>clean.', cta: 'SEE YOUR PRICE →' });
+    // sparkles fire as the blade passes them
+    const bx = t => lerp(-260, 1300, k(t, 1.5, 1.2, E.ioc));
+    const when = x => { for (let t = 1.5; t < 3; t += 1 / 120) if (bx(t) + 60 >= x) return t; return 3; };
+    const pts = [[160, 420, 120, '#1DA1E8'], [300, 1180, 80, '#7DC243'], [420, 640, 150, '#54D8E8'], [560, 1500, 110, '#1DA1E8'], [690, 300, 90, '#7DC243'], [780, 980, 140, '#1DA1E8'], [900, 1300, 90, '#54D8E8'], [960, 560, 120, '#7DC243']];
+    this.sps = makeSparks($('#v1-sps'), pts.map(p => [...p, when(p[0])]));
+    this.twinkle = makeSparks(document.createElement('div'), []);
+  },
+  seek(t) {
+    // hook on the dirty screen
+    slam($('#v1-hold'), t, .1, .4, 1.6);
+    $$('.v1q').forEach((s, i) => lineIO(s, t, .55 + i * .14));
+    // squeegee wipe
+    const bx = lerp(-260, 1300, k(t, 1.5, 1.2, E.ioc));
+    $('#v1-sq').style.transform = `translateX(${bx}px)`;
+    $('#v1-dirty').style.clipPath = `inset(0 0 0 ${Math.max(0, bx + 70)}px)`;
+    seekSparks(this.sps, t);
+    // "now imagine your whole home"
+    op($('#v1-sat'), k(t, 2.55, .3, E.lin) * (1 - k(t, 4.9, .3, E.lin)));
+    $$('#v1-big .line > span').forEach((s, i) => lineIO(s, t, 2.85 + i * .12, .55, 4.95 + i * .05, .3));
+    // pitch
+    op($('#v1-pl'), k(t, 5.2, .3, E.lin));
+    $$('#v1-pitch .pitch-h').forEach((s, i) => lineIO(s, t, 5.25 + i * .1, .55));
+    $$('.v1p').forEach((p, i) => { const at = 5.9 + i * .3; p.style.opacity = k(t, at, .15, E.lin); p.style.transform = `translateX(${lerp(-120, 0, k(t, at, .5, E.oe))}px) scale(${lerp(.7, 1, k(t, at, .5, E.ob))})`; });
+    seekEnd($('#v1-end'), t - this.endAt);
+  }
+};
+
+/* V2 · You vs Us */
+scenes.v2 = {
+  dur: 11, endAt: 8.3,
+  you: ['Brunch.', 'The Bluffs.', 'A long nap.', 'Nothing.'],
+  us: ['Baseboards.', 'The grout.', 'The glass.', 'Everything.'],
+  init() {
+    const mk = (host, words, color) => words.map(w => { const d = document.createElement('div'); d.className = 'word line'; d.innerHTML = `<span class="blk" style="font-size:150px;color:${color}">${w}</span>`; host.appendChild(d); fit(d.firstChild, 800); return d.firstChild; });
+    this.yw = mk($('#v2-you'), this.you, 'var(--ink)');
+    this.uw = mk($('#v2-us'), this.us, 'var(--ivory)');
+    $$('#v2 .fitme').forEach(e => fit(e));
+    buildEnd($('#v2-end'), { head: 'We clean.<br>You rest.', chip: 'Regular cleaning from $110', cta: 'SEE YOUR PRICE →' });
+  },
+  seek(t) {
+    $('#v2-mq1').style.transform = `translateX(${-t * 420}px)`;
+    $('#v2-mq2').style.transform = `translateX(${-1600 + t * 420}px)`;
+    op($('#v2-plans'), k(t, .05, .25, E.lin));
+    lineIO($('#v2-sat'), t, .15, .5, 1.3, .3);
+    slam($('#v2-time'), t, .5, .35, 1.8);
+    op($('#v2-hook'), 1 - k(t, 1.4, .2, E.lin));
+    // split screen
+    const sp = k(t, 1.4, .45, E.ioc);
+    $('#v2-top').style.clipPath = `inset(0 0 ${100 - sp * 100}% 0)`;
+    $('#v2-bot').style.clipPath = `inset(${100 - sp * 100}% 0 0 0)`;
+    $('#v2-div').style.transform = `scaleX(${k(t, 1.7, .4, E.oe)})`;
+    const vs = k(t, 1.85, .45, E.ob);
+    $('#v2-vs').style.transform = `scale(${vs}) rotate(${(1 - vs) * -90 + t * 20}deg)`;
+    const starts = [1.9, 3.45, 5.0, 6.55];
+    starts.forEach((s, i) => {
+      const out = i < 3 ? s + 1.3 : 1e9;
+      lineIO(this.yw[i], t, s, .45, out, .25);
+      lineIO(this.uw[i], t, s + .12, .45, out + .05, .25);
+    });
+    // punchline: EVERYTHING. flashes green
+    const hit = k(t, 7.0, .25, E.lin);
+    this.uw[3].style.color = hit > 0 ? 'var(--leaf)' : 'var(--ivory)';
+    this.uw[3].style.transform += ` scale(${1 + .08 * Math.sin(Math.PI * k(t, 7.0, .4, E.lin))})`;
+    seekEnd($('#v2-end'), t - this.endAt);
+  }
+};
+
+/* V3 · Shoes off */
+scenes.v3 = {
+  dur: 10.5, endAt: 7.7,
+  prints: [[250, 1420, -8, 'Salt.', 560, 1520, .2], [640, 1100, 7, 'Slush.', 120, 1200, .55], [260, 780, -6, 'Grit.', 560, 880, .9], [650, 460, 8, 'Mud.', 150, 560, 1.25]],
+  init() {
+    const host = $('#v3-prints'); host.innerHTML = '';
+    this.p = this.prints.map(([x, y, r, w, wx, wy, at]) => {
+      const pr = document.createElement('div'); pr.className = 'abs';
+      pr.style.cssText = `left:${x}px;top:${y}px;width:150px;height:375px;color:#6B5844;transform-origin:50% 50%`;
+      pr.innerHTML = '<svg width="150" height="375" viewBox="0 0 120 300" style="filter:blur(.6px);opacity:.92"><use href="#boot"/></svg>';
+      const dust = [...Array(9)].map((_, i) => { const d = document.createElement('div'); d.className = 'abs'; d.style.cssText = `left:75px;top:190px;width:14px;height:14px;margin:-7px;border-radius:50%;background:#8B7760`; pr.appendChild(d); return [d, i / 9 * Math.PI * 2]; });
+      const wd = document.createElement('div'); wd.className = 'abs blk'; wd.textContent = w;
+      wd.style.cssText = `left:${wx}px;top:${wy}px;font-size:120px;color:var(--ink);transform-origin:0 50%`;
+      host.appendChild(pr); host.appendChild(wd);
+      return { pr, wd, dust, r, at };
+    });
+    $$('#v3 .fitme').forEach(e => fit(e));
+    const arch = $('#v3-arch'), sill = $('#v3-sill');
+    this.al = arch.getTotalLength(); this.sl = sill.getTotalLength();
+    arch.style.strokeDasharray = this.al; sill.style.strokeDasharray = this.sl;
+    this.sps = makeSparks($('#v3-sps'), [[860, 900, 120, '#7DC243', 5.05], [230, 860, 80, '#1DA1E8', 5.15], [760, 600, 70, '#54D8E8', 5.25]]);
+    buildEnd($('#v3-end'), { head: 'Clean soles.<br>Clean floors.', cta: 'BOOK YOUR CLEAN →' });
+  },
+  seek(t) {
+    for (const { pr, wd, dust, r, at } of this.p) {
+      const p = k(t, at, .22, E.oe);
+      pr.style.opacity = t < at ? 0 : 1;
+      pr.style.transform = `rotate(${r}deg) scale(${lerp(1.5, 1, p)})`;
+      const u = k(t, at + .05, .5, E.oc);
+      dust.forEach(([d, a]) => { d.style.transform = `translate(${Math.cos(a) * 130 * u}px,${Math.sin(a) * 160 * u}px) scale(${1 - u})`; d.style.opacity = t < at ? 0 : 1 - u; });
+      wd.style.opacity = t < at + .05 ? 0 : 1;
+      wd.style.transform = `rotate(${r * .6}deg) scale(${lerp(1.7, 1, k(t, at + .05, .25, E.oe))})`;
+    }
+    // band slam
+    $('#v3-band').style.transform = `scaleX(${k(t, 1.7, .3, E.oe)})`;
+    lineIO($('#v3-not'), t, 1.82, .4);
+    lineIO($('#v3-fl'), t, 1.95, .4);
+    const sh = t > 2.0 ? Math.exp(-(t - 2.0) * 7) * 22 : 0;
+    $('#v3-shake').style.transform = `translate(${Math.sin(t * 95) * sh}px,${Math.cos(t * 80) * sh}px)`;
+    // sweep
+    const by = lerp(-480, 2000, k(t, 2.9, .85, E.ioc));
+    $('#v3-blade').style.transform = `translateY(${by}px)`;
+    $('#v3-mess').style.clipPath = `inset(${Math.max(0, by + 470)}px 0 0 0)`;
+    // clean state
+    const clean = t > 3.3;
+    show($('#v3-clean'), clean);
+    op($('#v3-lbl'), k(t, 3.7, .3, E.lin));
+    $('#v3-arch').style.strokeDashoffset = this.al * (1 - k(t, 3.75, .8, E.ioc));
+    $('#v3-sill').style.strokeDashoffset = this.sl * (1 - k(t, 3.75, .6, E.ioc));
+    const sx = lerp(820, 0, k(t, 4.3, .75, E.ob));
+    $('#v3-slip').setAttribute('transform', `translate(${264 + sx} 470) scale(0.82)`);
+    $('#v3-slip').style.opacity = k(t, 4.3, .15, E.lin);
+    seekSparks(this.sps, t);
+    $$('.v3h').forEach((s, i) => lineIO(s, t, 5.2 + i * .13, .55));
+    op($('#v3-body'), k(t, 5.9, .4, E.lin));
+    $('#v3-body').style.transform = `translateY(${lerp(30, 0, k(t, 5.9, .5))}px)`;
+    seekEnd($('#v3-end'), t - this.endAt);
+  }
+};
+
+/* V4 · Only 50 */
+scenes.v4 = {
+  dur: 10.5, endAt: 7.7,
+  init() {
+    const reels = [['7', '3', '9', '5', '1', '8', '4', '6', '3', '2'], ['5', '8', '2', '6', '3', '9', '1', '7', '4', '0'], ['4', '9', '1', '6', '8', '3', '5', '2', '7', '%']];
+    reels.forEach((r, i) => { $('#r' + i).innerHTML = r.map(c => `<div>${c}</div>`).join(''); });
+    const g = $('#v4-grid'); g.innerHTML = '';
+    this.h = [];
+    for (let i = 0; i < 50; i++) {
+      const c = i % 10, r = Math.floor(i / 10);
+      const d = document.createElement('div'); d.className = 'house';
+      d.style.left = c * 84 + 'px'; d.style.top = r * 88 + 'px';
+      d.innerHTML = '<svg width="72" height="58" viewBox="0 0 205 160"><use href="#house"/></svg>';
+      g.appendChild(d); this.h.push(d);
+    }
+    const last = this.h[49];
+    this.lastXY = [126 + 9 * 84 + 36, 640 + 4 * 88];
+    $$('#v4 .fitme').forEach(e => fit(e));
+    this.sps = makeSparks($('#v4-sps'), [[200, 520, 110, '#7DC243', .95], [540, 470, 90, '#1DA1E8', 1.25], [900, 560, 140, '#54D8E8', 1.55], [880, 830, 90, '#7DC243', 1.6], [this.lastXY[0], this.lastXY[1] + 20, 120, '#7DC243', 4.75]]);
+    buildEnd($('#v4-end'), { head: 'Be one of<br>the first 50.', chip: '20% off your first visit', cta: 'CLAIM YOUR SPOT →' });
+  },
+  seek(t) {
+    $('#v4-bgspark').style.transform = `rotate(${t * 10}deg) scale(${1 + .04 * Math.sin(t * 2)})`;
+    $('#v4-bgspark').style.opacity = .55;
+    op($('#v4-lbl'), k(t, .05, .3, E.lin));
+    const lands = [.95, 1.25, 1.55];
+    lands.forEach((L, i) => {
+      const p = k(t, .1, L - .1, E.oc);
+      $('#r' + i).style.transform = `translateY(${-p * 9 * 340}px)`;
+      $('#r' + i).style.filter = `blur(${(1 - p) * 10}px)`;
+      const win = $('#r' + i).parentElement;
+      const g = t > L ? Math.exp(-(t - L) * 3) : 0;
+      win.style.borderColor = `rgba(125,194,67,${.16 + .84 * g})`;
+      win.style.boxShadow = `0 0 ${60 * g}px rgba(125,194,67,${.6 * g})`;
+    });
+    lineIO($('#v4-off'), t, 1.75, .5);
+    // reels move up, grid fills
+    const up = k(t, 2.6, .5, E.ioc);
+    $('#v4-top').style.transform = `translateY(${-55 * up}px) scale(${lerp(1, .75, up)})`;
+    $('#v4-top').style.transformOrigin = '50% 0';
+    op($('#v4-top'), 1 - k(t, 5.8, .3, E.lin));
+    $('#v4-off').parentElement.parentElement.style.opacity = 1 - up;
+    this.h.forEach((d, i) => {
+      const at = 2.9 + i * .03, p = k(t, at, .35, E.ob);
+      d.style.opacity = k(t, at, .1, E.lin) * (1 - k(t, 5.8, .3, E.lin));
+      d.style.transform = `scale(${p})`;
+    });
+    lineIO($('#v4-only'), t, 3.7, .5, 5.8, .3);
+    op($('#v4-gone'), k(t, 4.2, .3, E.lin) * (1 - k(t, 5.8, .2, E.lin)));
+    // the 50th house
+    const y = $('#v4-yours');
+    const yp = k(t, 4.7, .45, E.ob);
+    y.style.opacity = k(t, 4.7, .1, E.lin) * (1 - k(t, 5.8, .2, E.lin));
+    y.style.left = (this.lastXY[0] - 70) + 'px'; y.style.top = (this.lastXY[1] - 100) + 'px';
+    y.style.transform = `scale(${yp}) rotate(-6deg)`;
+    this.h[49].style.filter = t > 4.7 ? `drop-shadow(0 0 ${14 + 8 * Math.sin(t * 9)}px #7DC243)` : 'none';
+    seekSparks(this.sps, t);
+    $$('.v4k').forEach((s, i) => lineIO(s, t, 6.1 + i * .14, .5));
+    seekEnd($('#v4-end'), t - this.endAt);
+  }
+};
+
+/* V5 · Price in seconds */
+scenes.v5 = {
+  dur: 11, endAt: 8.1,
+  init() {
+    $$('#v5 .fitme').forEach(e => fit(e));
+    const ph = $('#v5-phone'); ph.style.transform = 'none';
+    const c = el => { const r = el.getBoundingClientRect(), s = $('#v5').getBoundingClientRect(); return [r.left - s.left + r.width / 2, r.top - s.top + r.height / 2]; };
+    this.bp = c($('#v5-bplus')); this.ap = c($('#v5-aplus'));
+    this.sps = makeSparks($('#v5-sps'), [[930, 1000, 110, '#7DC243', 4.55], [560, 960, 80, '#F7F4EE', 4.65], [960, 1230, 70, '#54D8E8', 4.75]]);
+    buildEnd($('#v5-end'), { head: 'Your price.<br>In seconds.', chip: 'Deep clean · 2 bed, 2 bath condo · $275', cta: 'TRY IT NOW →' });
+  },
+  seek(t) {
+    $$('.v5h').forEach((s, i) => lineIO(s, t, .1 + i * .15, .5, 1.7 + i * .05, .3));
+    const q = $('#v5-q');
+    q.style.transform = `rotate(${Math.sin(t * 7) * 12 * (1 - k(t, 1.2, .4))}deg) translateY(${-Math.abs(Math.sin(t * 7)) * 20 * (1 - k(t, 1.2, .4))}px)`;
+    // phone in / out
+    const pin = k(t, 1.85, .6, E.oc), pout = k(t, 6.0, .45, E.ic);
+    $('#v5-phone').style.transform = `translateY(${lerp(1800, 0, pin) + 1800 * pout}px) rotate(${lerp(8, 0, pin) - 6 * pout}deg)`;
+    // finger
+    const f = $('#v5-finger'), rip = $('#v5-rip');
+    const start = [980, 1750];
+    let x, y;
+    if (t < 3.0) { const p = k(t, 2.4, .6, E.ioc); x = lerp(start[0], this.bp[0], p); y = lerp(start[1], this.bp[1], p); }
+    else if (t < 3.9) { const p = k(t, 3.35, .5, E.ioc); x = lerp(this.bp[0], this.ap[0], p); y = lerp(this.bp[1], this.ap[1], p); }
+    else { const p = k(t, 4.3, .6, E.ic); x = lerp(this.ap[0], 1200, p); y = lerp(this.ap[1], 1900, p); }
+    const press = Math.max(1 - Math.abs(t - 3.05) / .12, 1 - Math.abs(t - 3.9) / .12, 0);
+    f.style.left = x + 'px'; f.style.top = y + 'px';
+    f.style.transform = `scale(${1 - .18 * press})`;
+    f.style.opacity = k(t, 2.4, .2, E.lin) * (1 - pout);
+    const tap = t >= 3.9 ? [t - 3.9, this.ap] : t >= 3.05 ? [t - 3.05, this.bp] : [-1, this.bp];
+    rip.style.left = tap[1][0] + 'px'; rip.style.top = tap[1][1] + 'px';
+    rip.style.opacity = tap[0] < 0 ? 0 : 1 - k(tap[0], 0, .5, E.lin);
+    rip.style.transform = `scale(${1 + 1.6 * k(tap[0], 0, .5, E.oc)})`;
+    // values (match the site's calculator: Deep Cleaning, condo)
+    const beds = t >= 3.05 ? 2 : 1, baths = t >= 3.9 ? 2 : 1;
+    $('#v5-beds').textContent = beds; $('#v5-baths').textContent = baths;
+    const roll = (a, b, at) => Math.round(lerp(a, b, k(t, at, .4, E.oc)));
+    const price = t < 3.9 ? roll(200, 240, 3.08) : roll(240, 275, 3.93);
+    $('#v5-price').textContent = '$' + price;
+    $('#v5-price').style.color = (t > 3.08 && t < 3.6) || (t > 3.93 && t < 4.45) ? 'var(--blue)' : 'var(--ink)';
+    const meta = baths === 2 ? 'about 5 hours · $220' : beds === 2 ? 'about 4.5 hours · $192' : 'about 4 hours · $160';
+    $('#v5-meta').textContent = `Estimate · ${meta} first visit`;
+    // founding pill
+    const pl = $('#v5-pill');
+    pl.style.opacity = k(t, 4.5, .1, E.lin) * (1 - pout);
+    pl.style.transform = `translateY(${1500 * pout}px) scale(${k(t, 4.5, .45, E.ob)}) rotate(-5deg)`;
+    seekSparks(this.sps, t);
+    $$('.v5o').forEach((s, i) => lineIO(s, t, 6.35 + i * .13, .5));
+    seekEnd($('#v5-end'), t - this.endAt);
+  }
+};
+
+/* ---------- driver ---------- */
+let current = null;
+window.ready = Promise.all(['900 100px Montserrat', '800 100px Montserrat', '700 100px Montserrat', '400 40px "DM Sans"', '500 40px "DM Sans"', '600 40px "DM Sans"', '700 40px "DM Sans"'].map(f => document.fonts.load(f))).then(() => document.fonts.ready).then(() => Promise.all([...document.images].map(i => i.decode().catch(() => {})))).then(() => {
+  for (const [id, s] of Object.entries(scenes)) { $('#' + id).classList.add('on'); s.init(); $('#' + id).classList.remove('on'); }
+});
+window.durations = () => Object.fromEntries(Object.entries(scenes).map(([k, s]) => [k, s.dur]));
+window.seek = (id, t, frame = 0) => {
+  if (current !== id) { $$('.scene').forEach(s => s.classList.remove('on')); $('#' + id).classList.add('on'); current = id; }
+  scenes[id].seek(t);
+  $$('#grainturb').forEach(g => g.setAttribute('seed', 1 + (frame % 12)));
+};
+const play = new URLSearchParams(location.search).get('play');
+if (play) window.ready.then(() => { const t0 = performance.now(); const tick = () => { const t = ((performance.now() - t0) / 1000) % scenes[play].dur; seek(play, t, Math.floor(t * 30)); requestAnimationFrame(tick); }; tick(); });
+</script>
+</body>
+</html>
