@@ -21,6 +21,9 @@ const YEAR = new Date().getFullYear();
 /* ---------- helpers ---------- */
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const money = (n) => "$" + Math.round(n).toLocaleString("en-CA");
+// Joins sentences for a meta description, dropping trailing ones that would push it past what Google shows.
+const metaDesc = (...parts) => parts.reduce((acc, p) => (acc ? acc + " " + p : p).length <= 160 ? (acc ? acc + " " + p : p) : acc, "");
+const listJoin = (a) => a.length > 1 ? a.slice(0, -1).join(", ") + " and " + a[a.length - 1] : a.join("");
 const roundTo = (n, s) => Math.round(n / s) * s;
 const svcKeys = Object.keys(C.services);
 const quoteKeys = Object.keys(C.quoteServices);
@@ -79,20 +82,20 @@ function header(L, opts = {}) {
   if (opts.minimal) {
     return `<header class="site-header minimal">
   <div class="wrap header-row">
-    <a class="brand" href="${L("")}" aria-label="${esc(B.name)}, home"><img src="${L("assets/logo.png")}" alt="${esc(B.name)}" width="900" height="195"></a>
+    <a class="brand" href="${L("")}" aria-label="${esc(B.name)}, home"><img src="${L("assets/logo-480.png")}" srcset="${L("assets/logo-480.png")} 480w, ${L("assets/logo.png")} 900w" sizes="240px" alt="${esc(B.name)}" width="900" height="195"></a>
     <a class="header-help" data-tel href="tel:${B.phone}"><span>Questions?</span> <strong data-phone-text>${esc(B.phoneDisplay)}</strong></a>
   </div>
 </header>`;
   }
   return `<header class="site-header">
   <div class="wrap header-row">
-    <a class="brand" href="${L("")}" aria-label="${esc(B.name)}, home"><img src="${L("assets/logo.png")}" alt="${esc(B.name)}" width="900" height="195"></a>
+    <a class="brand" href="${L("")}" aria-label="${esc(B.name)}, home"><img src="${L("assets/logo-480.png")}" srcset="${L("assets/logo-480.png")} 480w, ${L("assets/logo.png")} 900w" sizes="240px" alt="${esc(B.name)}" width="900" height="195"></a>
     <nav class="nav-desktop" aria-label="Main">
       <a href="${L("#services")}">Services</a>
+      <a href="${L("pricing/")}">Pricing</a>
       <a href="${L("#standard")}">Our standard</a>
-      <a href="${L("vision/")}">Our vision</a>
       <a href="${L("#areas")}">Areas</a>
-      <a href="${L("#faq")}">FAQ</a>
+      <a href="${L("vision/")}">Our vision</a>
     </nav>
     <div class="header-actions">
       <a class="header-phone" data-tel href="tel:${B.phone}"><svg class="ic" aria-hidden="true"><use href="#i-phone"/></svg><span data-phone-text>${esc(B.phoneDisplay)}</span></a>
@@ -108,6 +111,7 @@ function header(L, opts = {}) {
       </ul>
       <p class="label">More</p>
       <ul class="menu-list menu-list-sm">
+        <li><a href="${L("pricing/")}">Pricing</a></li>
         <li><a href="${L("vision/")}">Our vision</a></li>
         <li><a href="${L("#standard")}">Our standard</a></li>
         <li><a href="${L("#areas")}">Areas we serve</a></li>
@@ -136,7 +140,7 @@ function footer(L) {
   <div class="wrap">
     <div class="footer-top">
       <div class="footer-brand">
-        <img src="${L("assets/badge.png")}" alt="${esc(B.name)}" width="720" height="201">
+        <img src="${L("assets/badge.png")}" alt="${esc(B.name)}" width="720" height="201" loading="lazy" decoding="async">
         <p class="footer-tag">${esc(B.tagline)}</p>
         ${socialLinks()}
       </div>
@@ -148,8 +152,9 @@ function footer(L) {
         <div>
           <p class="label">Areas</p>
           <ul>${C.areas.map((a) => `<li><a href="${L("areas/" + a.slug + "/")}">${esc(a.name)}</a></li>`).join("")}</ul>
-          <p class="label label-sm">About</p>
+          <p class="label label-sm">Company</p>
           <ul>
+            <li><a href="${L("pricing/")}">Pricing</a></li>
             <li><a href="${L("vision/")}">Our vision</a></li>
             <li><a href="${L("vision/#join")}">Work with us</a></li>
           </ul>
@@ -252,10 +257,38 @@ function impactCaption(im) {
   return "hours given back" + (im.households > 0 ? " to " + im.households.toLocaleString("en-CA") + " household" + (im.households > 1 ? "s" : "") : "") + " so far";
 }
 
-function faqBlock(tag, title = "Questions, answered.") {
+// Price grid for one instant-price service: common home sizes down, home types across.
+// Cells carry data-price so site.js refreshes them when prices in config.js change.
+const PRICE_SIZES = [[1, 1], [2, 1], [2, 2], [3, 2], [3, 3], [4, 3], [5, 4]];
+const DETAIL_BATHS = [1, 2, 3, 4];
+function priceTable(key) {
+  const s = C.services[key];
+  const homes = Object.keys(C.homeTypes);
+  const rows = key === "detail"
+    ? DETAIL_BATHS.map((ba) => [`${ba} bath${ba > 1 ? "s" : ""}`, 1, ba])
+    : PRICE_SIZES.map(([bd, ba]) => [`${bd} bed, ${ba} bath`, bd, ba]);
+  return `<div class="table-scroll"><table class="price-table">
+      <caption class="sr-only">${esc(s.name)} prices by home size and type</caption>
+      <thead><tr><th scope="col">${key === "detail" ? "Kitchen +" : "Home size"}</th>${homes.map((h) => `<th scope="col">${esc(C.homeTypes[h].short || C.homeTypes[h].label)}</th>`).join("")}</tr></thead>
+      <tbody>${rows.map(([label, bd, ba]) => `<tr><th scope="row">${label}</th>${homes.map((h) => `<td data-price="${key}:${bd}:${ba}:${h}">${money(price(key, bd, ba, h))}</td>`).join("")}</tr>`).join("")}</tbody>
+    </table></div>`;
+}
+
+// Room-by-room comparison of the three whole-home services, from the checklist in config.js.
+function compareTable() {
+  const cols = svcKeys.filter((k) => C.services[k].checklistColumn && !C.services[k].rooms);
+  const mark = { yes: '<svg class="ic" aria-hidden="true"><use href="#i-check"/></svg><span class="sr-only">Included</span>', add: '<span class="add-tag">Extra</span>', "": '<span class="cmp-no" aria-hidden="true">–</span><span class="sr-only">Not included</span>' };
+  return `<div class="table-scroll"><table class="compare">
+      <caption class="sr-only">What each cleaning service includes, room by room</caption>
+      <thead><tr><th scope="col"><span class="sr-only">Task</span></th>${cols.map((k) => { const s = C.services[k]; return `<th scope="col">${s.shortName ? `<span class="cmp-short" aria-hidden="true">${esc(s.shortName)}</span><span class="cmp-long">${esc(s.menuName)}</span>` : esc(s.menuName)}</th>`; }).join("")}</tr></thead>
+      ${C.checklist.map((r) => `<tbody><tr class="cmp-room"><th scope="colgroup" colspan="${cols.length + 1}">${esc(r.room)}</th></tr>${r.tasks.map((t) => `<tr><th scope="row">${esc(t[0])}</th>${cols.map((k) => `<td>${mark[t[C.services[k].checklistColumn]] ?? mark[""]}</td>`).join("")}</tr>`).join("")}</tbody>`).join("")}
+    </table></div>`;
+}
+
+function faqBlock(tag, title = "Questions, answered.", cls = "") {
   const list = C.faqs.filter((f) => f.on.includes(tag));
   if (!list.length) return { html: "", schema: null };
-  const html = `<section class="section faq-section" id="faq">
+  const html = `<section class="section faq-section${cls ? " " + cls : ""}" id="faq">
   <div class="wrap split">
     <div class="split-head">
       <p class="label">Questions</p>
@@ -291,36 +324,50 @@ function crumbSchema(trail) {
   return { "@context": "https://schema.org", "@type": "BreadcrumbList", itemListElement: trail.map((t, i) => ({ "@type": "ListItem", position: i + 1, name: t[0], item: SITE + "/" + t[1].replace(/#.*/, "") })) };
 }
 
+const placeSchema = (a) => ({ "@type": "Place", name: a.name + ", Toronto, ON", ...(a.wiki ? { sameAs: a.wiki } : {}) });
+
 function businessSchema() {
   return {
     "@context": "https://schema.org", "@type": "LocalBusiness", "@id": SITE + "/#business",
-    name: B.name, slogan: B.tagline, url: SITE + "/", logo: SITE + "/assets/logo.png", image: SITE + "/assets/icon-512.png",
-    telephone: B.phone, email: B.email, priceRange: "$$",
+    name: B.name, slogan: B.tagline, description: "Home cleaning in Scarborough and North York, Toronto: regular, deep, move-in and move-out cleaning with an exact price before you book and payment after the clean.",
+    url: SITE + "/", logo: SITE + "/assets/logo.png", image: [SITE + "/assets/og-image.png", SITE + "/assets/icon-512.png"],
+    telephone: B.phone, email: B.email, priceRange: "$$", currenciesAccepted: C.currency, paymentAccepted: "Cash, Credit Card, Debit Card, Interac e-Transfer",
     founder: { "@type": "Person", name: B.owner, jobTitle: "Founder & Owner", image: SITE + "/assets/founder-mann-patel.jpg" },
     address: { "@type": "PostalAddress", addressLocality: "Toronto", addressRegion: B.region, addressCountry: "CA" },
-    areaServed: C.areas.map((a) => ({ "@type": "Place", name: a.name + ", Toronto, ON" })),
+    areaServed: C.areas.map(placeSchema),
     openingHoursSpecification: [{ "@type": "OpeningHoursSpecification", dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"], opens: "08:00", closes: "18:00" }],
     ...([B.facebookUrl, B.instagramUrl].filter(Boolean).length ? { sameAs: [B.facebookUrl, B.instagramUrl].filter(Boolean) } : {}),
-    makesOffer: allServices.map((s) => ({ "@type": "Offer", itemOffered: { "@type": "Service", name: s.name, url: SITE + "/services/" + s.slug + "/" } }))
+    makesOffer: allServices.map((s) => ({
+      "@type": "Offer", itemOffered: { "@type": "Service", name: s.name, url: SITE + "/services/" + s.slug + "/" },
+      ...(s.quote ? {} : { priceSpecification: { "@type": "PriceSpecification", minPrice: s.base, priceCurrency: C.currency } })
+    }))
   };
+}
+function websiteSchema() {
+  return { "@context": "https://schema.org", "@type": "WebSite", "@id": SITE + "/#website", name: B.name, alternateName: "Nest and Rest Cleaning", url: SITE + "/", publisher: { "@id": SITE + "/#business" }, inLanguage: "en-CA" };
 }
 
 /* ---------- page shell ---------- */
-function page({ depth, pathOut, title, description, body, schemas = [], pageType, minimal = false, noBar = false }) {
+function page({ depth, pathOut, title, description, body, schemas = [], pageType, minimal = false, noBar = false, noindex = false }) {
   const L = linker(depth);
   const canonical = SITE + "/" + pathOut.replace(/index\.html$/, "");
   const ld = schemas.filter(Boolean).map((s) => `<script type="application/ld+json">${JSON.stringify(s)}</script>`).join("\n");
   const headInner = `<title>${esc(title)}</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <meta name="description" content="${esc(description)}">
-<meta name="theme-color" content="#F7F4EE">
+${noindex ? '<meta name="robots" content="noindex">\n' : ""}<meta name="theme-color" content="#F7F4EE">
 <link rel="canonical" href="${canonical}">
 <meta property="og:type" content="website">
+<meta property="og:locale" content="en_CA">
 <meta property="og:site_name" content="${esc(B.name)}">
 <meta property="og:title" content="${esc(title)}">
 <meta property="og:description" content="${esc(description)}">
 <meta property="og:url" content="${canonical}">
 <meta property="og:image" content="${SITE}/assets/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="${esc(B.name)} logo">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="icon" type="image/png" sizes="48x48" href="${L("assets/favicon-48.png")}">
 <link rel="apple-touch-icon" href="${L("assets/apple-touch-icon.png")}">
 <link rel="preload" href="${L("assets/fonts/montserrat.woff2")}" as="font" type="font/woff2" crossorigin>
@@ -370,7 +417,7 @@ urls.push(page({
   depth: 0, pathOut: "index.html", pageType: "home",
   title: `Home Cleaning in Scarborough & North York from ${money(C.services.regular.base)} | ${B.name}`,
   description: "Meticulous home cleaning in Scarborough and North York, Toronto. See your exact price in seconds, book online in two minutes, pay after your clean.",
-  schemas: [businessSchema(), homeFaq.schema],
+  schemas: [businessSchema(), websiteSchema(), homeFaq.schema],
   body: (L) => `
 <section class="hero">
   <div class="wrap hero-grid">
@@ -400,6 +447,7 @@ urls.push(page({
         </a>
       </li>`).join("")}
     </ul>
+    <div class="center-cta"><a class="text-link" href="${L("pricing/")}">See every price <svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></a></div>
   </div>
 </section>
 
@@ -407,23 +455,28 @@ urls.push(page({
   <div class="wrap">
     <div class="standard-head">
       <p class="label label-light">The Nest &amp; Rest standard</p>
-      <h2>Five things happen at your door. Every visit.</h2>
-      <p>You should never wonder who is in your home, or what they carried in with them. So every visit begins and ends the same way.</p>
+      <h2>Five things happen at every visit.</h2>
+      <p>You should never wonder who is in your home, or how it's being cleaned. So every visit follows the same five steps, start to finish.</p>
     </div>
     <div class="standard-grid">
       <ol class="ritual">
-        <li><h3>Ring once, introduce by name</h3><p>You'll know who is coming before we arrive.</p></li>
-        <li><h3>Coat onto our own hanger</h3><p>It hangs on our kit, never in your closet.</p></li>
+        <li><h3>Introduced by name</h3><p>You'll know who is coming before we arrive. We ring once and introduce ourselves at your door.</p></li>
         <li><h3>Street shoes off, house shoes on</h3><p>Your floors only ever meet clean soles.</p></li>
-        <li><h3>Apron tied, gloves on</h3><p>One apron for kitchens, one for baths. Never both in one room.</p></li>
-        <li><h3>Leave in reverse</h3><p>Gloves off, apron folded, shoes bagged. Nothing left behind.</p></li>
+        <li><h3>Your priorities first</h3><p>A quick word on what matters most today, so the time goes where you want it.</p></li>
+        <li><h3>Separate cloths for kitchen and bath</h3><p>What cleans a bathroom never touches your kitchen.</p></li>
+        <li><h3>A final check before we leave</h3><p>Every room checked against the checklist. Nothing left behind.</p></li>
       </ol>
-      <div class="wardrobe">
-        <figure><img src="${L("assets/ill-coat.png")}" alt="Navy arrival coat with logo badge" width="520" height="520" loading="lazy"><figcaption>The arrival coat</figcaption></figure>
-        <figure><img src="${L("assets/ill-shoe.png")}" alt="Black indoor-only house shoe" width="520" height="520" loading="lazy"><figcaption>Indoor-only house shoes</figcaption></figure>
-        <figure><img src="${L("assets/ill-apron.png")}" alt="Stone canvas utility apron" width="520" height="520" loading="lazy"><figcaption>Kitchen and bath aprons</figcaption></figure>
-        <figure><img src="${L("assets/ill-kit.png")}" alt="Threshold kit: shoe bag, hanger and glove case" width="520" height="520" loading="lazy"><figcaption>The threshold kit</figcaption></figure>
-      </div>
+      <aside class="guarantee" aria-labelledby="guarantee-title">
+        <p class="label label-light">Our guarantee</p>
+        <p class="guarantee-title" id="guarantee-title">Not quite right? We come back and fix it, free.</p>
+        <p>Tell us within ${C.policies.recleanWindowHours} hours of your clean and we'll re-clean those areas at no charge.</p>
+        <ul class="ticks">
+          <li><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg>No deposit to book</li>
+          <li><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg>Your price agreed before we start</li>
+          <li><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg>Pay after the clean</li>
+        </ul>
+        <a class="text-link" href="${L("policies/#guarantee")}">Read our service policies <svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+      </aside>
     </div>
   </div>
 </section>
@@ -668,15 +721,15 @@ function checklistFor(s) {
 for (const k of svcKeys) {
   const s = C.services[k];
   const trail = [["Home", ""], [s.name, "services/" + s.slug + "/"]];
-  const fq = faqBlock(k);
+  const fq = faqBlock(k, undefined, "section-stone");
   const others = allServices.filter((o) => o.key !== k);
   const included = (C.includedAddons[k] || []);
   urls.push(page({
     depth: 2, pathOut: `services/${s.slug}/index.html`, pageType: "service",
     title: `${s.name} in Scarborough & North York | ${B.name}`,
-    description: `${s.name} from ${money(s.base)} in Scarborough and North York, Toronto. ${s.short} See your exact price and book online in two minutes.`,
+    description: metaDesc(`${s.name} in Scarborough and North York from ${money(s.base)}.`, s.short, "Exact price online, pay after the clean."),
     schemas: [
-      { "@context": "https://schema.org", "@type": "Service", name: s.name, serviceType: s.name, description: s.intro, provider: { "@id": SITE + "/#business" }, areaServed: C.areas.map((a) => ({ "@type": "Place", name: a.name + ", Toronto, ON" })), offers: { "@type": "Offer", priceCurrency: C.currency, price: s.base, description: "Starting price for a 1-bedroom, 1-bathroom home" } },
+      { "@context": "https://schema.org", "@type": "Service", name: s.name, serviceType: s.name, description: s.intro, provider: { "@id": SITE + "/#business" }, areaServed: C.areas.map(placeSchema), offers: { "@type": "Offer", priceCurrency: C.currency, price: s.base, description: "Starting price for a 1-bedroom, 1-bathroom home" } },
       crumbSchema(trail), fq.schema
     ],
     body: (L) => `
@@ -704,7 +757,19 @@ for (const k of svcKeys) {
   </div>
 </section>
 
-<section class="section section-stone">
+<section class="section section-stone" id="prices">
+  <div class="wrap split">
+    <div class="split-head">
+      <p class="label">Prices</p>
+      <h2>${esc(s.menuName)} prices.</h2>
+      <p class="muted">${k === "detail" ? "Priced by the number of bathrooms, with the kitchen always included." : "Studios are priced as 1 bedroom."} Products and equipment are included, and extras are added on top. For other sizes, use the price box above.</p>
+      <a class="text-link" href="${L("pricing/")}">Compare every price <svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+    </div>
+    ${priceTable(k)}
+  </div>
+</section>
+
+<section class="section">
   <div class="wrap split">
     <div class="split-head">
       <p class="label">Ideal for</p>
@@ -745,9 +810,9 @@ for (const k of quoteKeys) {
   urls.push(page({
     depth: 2, pathOut: `services/${q.slug}/index.html`, pageType: "quote",
     title: `${q.name} in Scarborough & North York | ${B.name}`,
-    description: `${q.name} in Scarborough and North York, Toronto. ${q.short} Request a free quote online.`,
+    description: metaDesc(`${q.name} in Scarborough and North York, Toronto.`, q.short, "Request a free quote online."),
     schemas: [
-      { "@context": "https://schema.org", "@type": "Service", name: q.name, serviceType: q.name, description: q.intro, provider: { "@id": SITE + "/#business" }, areaServed: C.areas.map((a) => ({ "@type": "Place", name: a.name + ", Toronto, ON" })) },
+      { "@context": "https://schema.org", "@type": "Service", name: q.name, serviceType: q.name, description: q.intro, provider: { "@id": SITE + "/#business" }, areaServed: C.areas.map(placeSchema) },
       crumbSchema(trail), fq.schema
     ],
     body: (L) => `
@@ -787,15 +852,146 @@ ${finalCta(L, "Prefer to talk it through?", "Call or text and we'll answer your 
   }));
 }
 
+/* ---------- pricing ---------- */
+{
+  const trail = [["Home", ""], ["Pricing", "pricing/"]];
+  const fq = faqBlock("pricing", "Pricing questions.", "section-stone");
+  const quotes = allServices.filter((s) => s.quote);
+  const moveIncl = (C.includedAddons.move || []).map((id) => C.addons.find((a) => a.id === id).name.toLowerCase());
+  const factors = Object.keys(C.homeTypes).filter((h) => C.homeTypes[h].factor > 1);
+  const pct = (h) => Math.round((C.homeTypes[h].factor - 1) * 100) + "%";
+  urls.push(page({
+    depth: 1, pathOut: "pricing/index.html", pageType: "pricing",
+    title: `House Cleaning Prices in Scarborough & North York | ${B.name}`,
+    description: metaDesc(`House cleaning prices in Scarborough and North York: regular from ${money(C.services.regular.base)}, deep from ${money(C.services.deep.base)}, move-out from ${money(C.services.move.base)}.`, "No deposit.", "Pay after the clean."),
+    schemas: [crumbSchema(trail), fq.schema],
+    body: (L) => `
+<section class="hero hero-sub">
+  <div class="wrap">${breadcrumbs(L, trail)}</div>
+  <div class="wrap hero-grid">
+    <div class="hero-copy">
+      <p class="label">Pricing</p>
+      <h1 class="h1-sub">House cleaning prices, up front.</h1>
+      <p class="lede">Your price is set by the service, the size and type of your home, and any extras you choose. You see it before you book, there's no deposit, and you pay after the clean.</p>
+      <dl class="facts">
+        <div><dt>Regular</dt><dd>From <span data-from="regular">${money(C.services.regular.base)}</span></dd></div>
+        <div><dt>Deep</dt><dd>From <span data-from="deep">${money(C.services.deep.base)}</span></dd></div>
+        <div><dt>Move-out</dt><dd>From <span data-from="move">${money(C.services.move.base)}</span></dd></div>
+      </dl>
+    </div>
+    <div class="hero-pricer">${pricer(L, "regular", "Price your home exactly")}</div>
+  </div>
+</section>
+
+<section class="section" id="by-size">
+  <div class="wrap">
+    <div class="section-head">
+      <p class="label">By home size</p>
+      <h2>Find your home. See your price.</h2>
+      <p class="muted">Prices for the whole visit in ${C.currency}, with products and equipment included. Studios are priced as 1 bedroom. ${factors.map((h, i) => `${i ? C.homeTypes[h].label.toLowerCase() : C.homeTypes[h].label}s add <span data-factor="${h}">${pct(h)}</span>`).join(" and ")}, for the stairs and extra floor space.</p>
+      <p class="pricer-offer" data-offer-note hidden></p>
+    </div>
+    <div class="price-cards">
+      ${svcKeys.map((k) => { const s = C.services[k]; return `<article class="price-card">
+        <div class="price-card-head">
+          <h3><a href="${L("services/" + s.slug + "/")}">${esc(s.name)}</a></h3>
+          <p class="price-card-from">From <b data-from="${k}">${money(s.base)}</b></p>
+        </div>
+        <p class="muted">${esc(s.short)}</p>
+        ${priceTable(k)}
+        <div class="price-card-foot">
+          <a class="text-link" href="${L("services/" + s.slug + "/")}">What's included <svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+          <a class="btn btn-ghost btn-sm" href="${L("book/")}?s=${k}" data-track="book_click">Book</a>
+        </div>
+      </article>`; }).join("\n      ")}
+    </div>
+  </div>
+</section>
+
+<section class="section plans" id="plans">
+  <div class="wrap">
+    <div class="section-head">
+      <p class="label">Regular plans</p>
+      <h2>Book regular visits. Pay less for each one.</h2>
+      <p class="muted">Plans apply to regular cleaning. Pause or change your plan anytime with ${C.policies.cancelNoticeHours} hours' notice.</p>
+    </div>
+    <div class="plan-grid" data-plans data-beds="${example.beds}" data-baths="${example.baths}">
+      ${Object.keys(C.frequencies).map((k) => {
+        const f = C.frequencies[k];
+        return `<div class="plan${f.recommended ? " plan-rec" : ""}" data-plan="${k}">
+          ${f.recommended ? '<p class="plan-flag">Recommended</p>' : ""}
+          <p class="plan-name">${esc(f.label)}</p>
+          <p class="plan-price"><b data-plan-price>${money(examplePrice * (1 - f.discount / 100))}</b><span>per visit</span></p>
+          <p class="plan-save">${f.discount ? `Save ${f.discount}%` : "No commitment"}</p>
+        </div>`;
+      }).join("")}
+    </div>
+    <p class="fine">Example prices for a ${example.beds}-bedroom, ${example.baths}-bathroom condo, regular clean.</p>
+  </div>
+</section>
+
+<section class="section" id="extras">
+  <div class="wrap split">
+    <div class="split-head">
+      <p class="label">Extras</p>
+      <h2>Add only what you need.</h2>
+      <p class="muted">Choose extras when you book.${moveIncl.length ? ` These are already included in a move-in or move-out clean: ${listJoin(moveIncl)}.` : ""}</p>
+      <p class="label label-sm">Included in every price</p>
+      <ul class="ticks">
+        <li><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg>Products and equipment</li>
+        <li><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg>A free re-clean within ${C.policies.recleanWindowHours} hours if anything isn't right</li>
+        <li><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg>No deposit, and payment after the clean</li>
+      </ul>
+    </div>
+    <ul class="price-list">${C.addons.map((a) => `<li><span>${esc(a.name)}</span><b>+${money(a.price)}</b></li>`).join("")}</ul>
+  </div>
+</section>
+
+<section class="section section-stone" id="compare">
+  <div class="wrap">
+    <div class="section-head">
+      <p class="label">Compare</p>
+      <h2>Regular, deep or move-out: what's the difference?</h2>
+      <p class="muted">A regular clean keeps a home right. A deep clean adds the detail work that builds up over months. A move-in or move-out clean covers an empty home inside every cabinet, drawer and closet.</p>
+    </div>
+    ${compareTable()}
+  </div>
+</section>
+
+<section class="section" id="quotes">
+  <div class="wrap">
+    <div class="section-head"><p class="label">By quote</p><h2>Larger homes and offices.</h2><p class="muted">These are priced after a conversation or a walkthrough, so the quote fits the space. Quotes are free.</p></div>
+    <ul class="svc-list svc-list-compact">
+      ${quotes.map((o) => `<li><a class="svc-row" href="${L("services/" + o.slug + "/")}"><span class="svc-name">${esc(o.name)}</span><span class="svc-desc">${esc(o.short)}</span><span class="svc-price">Free quote</span><svg class="ic svc-arrow" aria-hidden="true"><use href="#i-arrow"/></svg></a></li>`).join("")}
+    </ul>
+  </div>
+</section>
+${fq.html}
+${finalCta(L, "See your exact price.", "Book in two minutes. No payment until it's done.")}`
+  }));
+}
+
 /* ---------- area pages ---------- */
+// Postal codes an area page lists, read from serviceArea so the page and the postal-code check always agree.
+function postalCodes(a) {
+  const d = C.serviceArea.districts.find((x) => x.name === a.name);
+  if (!d) return "";
+  const whole = d.prefixes.filter((p) => p.length < 3), fsas = d.prefixes.filter((p) => p.length >= 3);
+  return `<div class="fsa">
+        <p class="label">Postal codes we serve</p>
+        ${whole.length ? `<p class="muted">Every postal code starting with ${whole.map(esc).join(" or ")}.</p>` : ""}
+        ${fsas.length ? `<ul class="fsa-list">${fsas.map((p) => `<li>${esc(p)}</li>`).join("")}</ul>` : ""}
+      </div>`;
+}
+
 for (const a of C.areas) {
   const trail = [["Home", ""], [a.name, "areas/" + a.slug + "/"]];
   const fq = faqBlock("area", `Cleaning in ${a.name}: questions.`);
   urls.push(page({
     depth: 2, pathOut: `areas/${a.slug}/index.html`, pageType: "area",
     title: `House Cleaning in ${a.name}, Toronto | ${B.name}`,
-    description: `House cleaning in ${a.name}: ${a.neighbourhoods.slice(0, 4).join(", ")} and more. See your exact price in seconds, book online in two minutes, pay after your clean.`,
-    schemas: [crumbSchema(trail), fq.schema, { "@context": "https://schema.org", "@type": "Service", name: `House cleaning in ${a.name}`, serviceType: "House cleaning", provider: { "@id": SITE + "/#business" }, areaServed: { "@type": "Place", name: a.name + ", Toronto, ON" } }],
+    description: metaDesc(`House cleaning in ${a.name}: ${a.neighbourhoods.slice(0, 4).join(", ")} and more.`, "See your exact price in seconds, book online in two minutes, pay after your clean.", "Book online, pay after your clean."),
+    schemas: [crumbSchema(trail), fq.schema, { "@context": "https://schema.org", "@type": "Service", name: `House cleaning in ${a.name}`, serviceType: "House cleaning", provider: { "@id": SITE + "/#business" }, areaServed: placeSchema(a) }],
     body: (L) => `
 <section class="hero hero-sub">
   <div class="wrap">${breadcrumbs(L, trail)}</div>
@@ -820,7 +1016,10 @@ for (const a of C.areas) {
         <p class="pc-result" data-pc-result aria-live="polite"></p>
       </form>
     </div>
-    <ul class="hood-list">${a.neighbourhoods.map((n) => `<li>${esc(n)}</li>`).join("")}</ul>
+    <div class="hoods">
+      <ul class="hood-list">${a.neighbourhoods.map((n) => `<li>${esc(n)}</li>`).join("")}</ul>
+      ${postalCodes(a)}
+    </div>
   </div>
 </section>
 
@@ -830,6 +1029,7 @@ for (const a of C.areas) {
     <ul class="svc-list">
       ${allServices.map((s) => `<li><a class="svc-row" href="${L("services/" + s.slug + "/")}"><span class="svc-name">${esc(s.name)}</span><span class="svc-desc">${esc(s.short)}</span><span class="svc-price">${s.quote ? "By quote" : `From <b data-from="${s.key}">${money(s.base)}</b>`}</span><svg class="ic svc-arrow" aria-hidden="true"><use href="#i-arrow"/></svg></a></li>`).join("")}
     </ul>
+    <div class="center-cta"><a class="text-link" href="${L("pricing/")}">See every price <svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></a></div>
   </div>
 </section>
 
@@ -838,7 +1038,7 @@ for (const a of C.areas) {
     <div class="split-head">
       <p class="label">The standard</p>
       <h2>The same careful visit, in every home.</h2>
-      <p class="muted">Uniformed, introduced by name, house shoes on at your door. Every visit starts and ends the same way.</p>
+      <p class="muted">Introduced by name, house shoes on at the door, and the same room-by-room checklist every time. Every visit starts and ends the same way.</p>
       <a class="text-link" href="${L("#standard")}">See our standard <svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></a>
     </div>
     <ul class="area-list">
@@ -896,7 +1096,7 @@ ${finalCta(L, `Book your ${a.name} clean.`)}`
     <ol class="steps-3 beliefs">
       ${V.beliefs.map((b) => `<li><h3>${esc(b.title)}</h3><p>${esc(b.text)}</p></li>`).join("\n      ")}
     </ol>
-    <div class="center-cta"><a class="text-link" href="${L("#standard")}">See the five steps at your door <svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></a></div>
+    <div class="center-cta"><a class="text-link" href="${L("#standard")}">See the five steps of every visit <svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></a></div>
   </div>
 </section>
 
@@ -966,8 +1166,9 @@ ${f.active
 }
 
 /* ---------- review page ---------- */
-urls.push(page({
-  depth: 1, pathOut: "review/index.html", pageType: "review",
+// Sent to clients after a clean, so it stays out of search results and the sitemap.
+page({
+  depth: 1, pathOut: "review/index.html", pageType: "review", noindex: true,
   title: `Leave a Review | ${B.name}`,
   description: `Tell us how your clean with ${B.name} went.`,
   body: (L) => `
@@ -1001,7 +1202,7 @@ urls.push(page({
     </div>
   </div>
 </section>`
-}));
+});
 
 /* ---------- legal pages ---------- */
 const P = C.policies;
@@ -1113,6 +1314,7 @@ if (!PREVIEW_DIR) {
   const L404 = (p = "") => basePath + p;
   fs.writeFileSync(path.join(OUT, "404.html"), `<!doctype html>
 <html lang="en-CA"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
 <title>Page not found | ${esc(B.name)}</title>
 <link rel="stylesheet" href="${L404("css/site.css")}"></head>
 <body data-page="404"><main class="section"><div class="wrap narrow">
