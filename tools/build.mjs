@@ -96,7 +96,6 @@ function header(L, opts = {}) {
     </nav>
     <div class="header-actions">
       <a class="header-phone" data-tel href="tel:${B.phone}"><svg class="ic" aria-hidden="true"><use href="#i-phone"/></svg><span data-phone-text>${esc(B.phoneDisplay)}</span></a>
-      <a class="btn btn-primary btn-sm" href="${L("book/")}" data-track="book_click">Book</a>
       <button class="menu-btn" type="button" aria-controls="menu" aria-expanded="false" aria-label="Open menu"><svg class="ic"><use href="#i-menu"/></svg></button>
     </div>
   </div>

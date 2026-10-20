@@ -732,16 +732,6 @@
       document.addEventListener("keydown", function (e) { if (e.key === "Escape") setMenu(false); });
     }
 
-    var bar = $("[data-action-bar]");
-    if (bar && "IntersectionObserver" in window) {
-      var seen = new Set();
-      var io = new IntersectionObserver(function (entries) {
-        entries.forEach(function (en) { if (en.isIntersecting) seen.add(en.target); else seen.delete(en.target); });
-        bar.classList.toggle("is-hidden", seen.size > 0);
-      });
-      $$("[data-pricer] [data-p-go], [data-quote-form], [data-review-form], .final-cta, .site-footer").forEach(function (el) { io.observe(el); });
-    }
-
     document.addEventListener("click", function (e) {
       var t = e.target.closest("[data-track]");
       if (t) track(t.getAttribute("data-track"), { page: PAGE });
