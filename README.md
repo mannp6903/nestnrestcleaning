@@ -47,6 +47,7 @@ The site then reports: book clicks, call and text taps, instant-price use, booki
 
 Live at https://nestnrestcleaning.com (GitHub Pages, custom domain set by the `CNAME` file).
 When you connect a custom domain, update `siteUrl` in `js/config.js` and run `node tools/build.mjs`.
+Every push to `main` publishes the site automatically. Watch the "pages build and deployment" run under the repository's Actions tab; the change is live a minute or two after it turns green.
 
 ## Files
 
