@@ -377,7 +377,7 @@ urls.push(page({
   <div class="wrap hero-grid">
     <div class="hero-copy">
       <h1><span class="h1-kicker">Home cleaning in Scarborough &amp; North York</span>We clean.<br><span class="h1-line2">You rest.</span></h1>
-      <p class="lede">Meticulous home cleaning by a uniformed cleaner who changes into house shoes at your door. See your exact price in seconds, choose a time, and come home to it done.</p>
+      <p class="lede">Thorough, careful home cleaning, done the same way every visit. See your price in seconds, pick a time that suits you, and come home to a clean, quiet place to rest.</p>
       <p class="hero-talk">Prefer to talk? <a data-tel href="tel:${B.phone}">Call or text <span data-phone-text>${esc(B.phoneDisplay)}</span></a></p>
     </div>
     <div class="hero-pricer">${pricer(L)}</div>
