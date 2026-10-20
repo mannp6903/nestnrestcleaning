@@ -211,10 +211,10 @@ window.NR_CONFIG = {
   areas: [
     { slug: "scarborough", name: "Scarborough",
       neighbourhoods: ["Agincourt", "Malvern", "Wexford", "Highland Creek", "Guildwood", "Scarborough Village", "Birch Cliff", "Cliffside", "L'Amoreaux", "Morningside", "Woburn", "Bendale", "Clairlea", "Milliken", "Rouge"],
-      intro: "Life in Scarborough moves fast. Between the commute, long workdays and full family calendars, cleaning is the job that always slides to the weekend. We're based right here, so our house cleaning in Scarborough comes with our widest choice of days and arrival windows, and a properly cared-for home without giving up your Saturday." },
+      intro: "Scarborough is home. We're based here, so Scarborough households get our widest choice of days and arrival windows." },
     { slug: "north-york", name: "North York",
       neighbourhoods: ["Willowdale", "Don Mills", "York Mills", "Bayview Village", "Newtonbrook", "Bathurst Manor", "Downsview", "Parkwoods", "Flemingdon Park", "Hillcrest Village", "Lawrence Manor", "Bedford Park", "Victoria Village"],
-      intro: "North York never really slows down. Whether you're in a Willowdale condo, working from home in Don Mills or juggling a full house in York Mills, free time is hard to come by. Our house cleaning in North York runs Monday to Saturday, so your evenings and weekends go back to the things that matter to you." }
+      intro: "From Willowdale condos to family homes in Don Mills and York Mills, we clean across North York, Monday to Saturday." }
   ],
 
   /* Room-by-room checklist: [task, regular, deep, move] with "yes", "add" (add-on) or "". */

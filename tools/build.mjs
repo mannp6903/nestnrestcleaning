@@ -377,7 +377,7 @@ urls.push(page({
   <div class="wrap hero-grid">
     <div class="hero-copy">
       <h1><span class="h1-kicker">Home cleaning in Scarborough &amp; North York</span>We clean.<br><span class="h1-line2">You rest.</span></h1>
-      <p class="lede">Thorough, careful home cleaning, done the same way every visit. See your price in seconds, pick a time that suits you, and come home to a clean, quiet place to rest.</p>
+      <p class="lede">Life in Scarborough and North York doesn't slow down. Between long workdays, school pickups and a home that's lived in every day, cleaning always ends up on your weekend. Nest &amp; Rest takes it off your list with careful, thorough cleaning, done the same way every visit, so you come home to a place where you can actually rest.</p>
       <p class="hero-talk">Prefer to talk? <a data-tel href="tel:${B.phone}">Call or text <span data-phone-text>${esc(B.phoneDisplay)}</span></a></p>
     </div>
     <div class="hero-pricer">${pricer(L)}</div>
