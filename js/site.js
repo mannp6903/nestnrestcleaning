@@ -87,6 +87,15 @@
       var s = C.services[el.getAttribute("data-from")];
       if (s) el.textContent = money(s.base);
     });
+    // Price tables: data-price="service:beds:baths:homeType"
+    $$("[data-price]").forEach(function (el) {
+      var p = el.getAttribute("data-price").split(":");
+      if (C.services[p[0]] && C.homeTypes[p[3]]) el.textContent = money(price(p[0], +p[1], +p[2], p[3]));
+    });
+    $$("[data-factor]").forEach(function (el) {
+      var h = C.homeTypes[el.getAttribute("data-factor")];
+      if (h) el.textContent = Math.round((h.factor - 1) * 100) + "%";
+    });
 
     var f = C.offers.founding;
     var founding = $("[data-founding]");

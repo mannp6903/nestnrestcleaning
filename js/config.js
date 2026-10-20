@@ -64,9 +64,9 @@ window.NR_CONFIG = {
   },
 
   homeTypes: {
-    condo: { label: "Condo or apartment", factor: 1 },
-    town: { label: "Townhouse", factor: 1.1 },
-    house: { label: "House", factor: 1.2 }
+    condo: { label: "Condo or apartment", short: "Condo", factor: 1 },
+    town: { label: "Townhouse", short: "Townhouse", factor: 1.1 },
+    house: { label: "House", short: "House", factor: 1.2 }
   },
 
   /* Instant-price services. Price = base + per extra bedroom + per extra bathroom, × home type.
@@ -76,6 +76,7 @@ window.NR_CONFIG = {
       slug: "regular-home-cleaning",
       name: "Regular Home Cleaning",
       menuName: "Regular Cleaning",
+      shortName: "Regular",
       short: "The weekly or fortnightly reset that keeps a lived-in home effortless.",
       base: 110, perBed: 25, perBath: 20, hours: 2,
       recurring: true,
@@ -87,6 +88,7 @@ window.NR_CONFIG = {
       slug: "deep-cleaning",
       name: "Deep Cleaning",
       menuName: "Deep Cleaning",
+      shortName: "Deep",
       short: "A top-to-bottom reset for build-up, edges and everything in between.",
       base: 199, perBed: 40, perBath: 35, hours: 4,
       recurring: false,
@@ -99,6 +101,7 @@ window.NR_CONFIG = {
       slug: "move-in-move-out-cleaning",
       name: "Move-In / Move-Out Cleaning",
       menuName: "Move-In / Move-Out",
+      shortName: "Move-out",
       short: "An empty-home clean for keys, deposits and fresh starts.",
       base: 249, perBed: 50, perBath: 40, hours: 5,
       recurring: false,
@@ -135,7 +138,7 @@ window.NR_CONFIG = {
         "Surface-appropriate products for stone, marble, wood and glass",
         "The same cleaner each visit whenever possible",
         "Flexible scheduling around your household",
-        "Discreet, uniformed, house-shoes-only service"
+        "Discreet, house-shoes-only service"
       ],
       fields: [
         { id: "size", label: "Home size", type: "select", options: ["3,000 to 5,000 sq ft", "5,000 to 8,000 sq ft", "Over 8,000 sq ft", "Not sure"] },
@@ -207,12 +210,12 @@ window.NR_CONFIG = {
     ]
   },
 
-  /* Area pages, one per entry. */
+  /* Area pages, one per entry. "wiki" tells Google exactly which place we mean. */
   areas: [
-    { slug: "scarborough", name: "Scarborough",
+    { slug: "scarborough", name: "Scarborough", wiki: "https://en.wikipedia.org/wiki/Scarborough,_Toronto",
       neighbourhoods: ["Agincourt", "Malvern", "Wexford", "Highland Creek", "Guildwood", "Scarborough Village", "Birch Cliff", "Cliffside", "L'Amoreaux", "Morningside", "Woburn", "Bendale", "Clairlea", "Milliken", "Rouge"],
       intro: "Scarborough is home. We're based here, so Scarborough households get our widest choice of days and arrival windows." },
-    { slug: "north-york", name: "North York",
+    { slug: "north-york", name: "North York", wiki: "https://en.wikipedia.org/wiki/North_York",
       neighbourhoods: ["Willowdale", "Don Mills", "York Mills", "Bayview Village", "Newtonbrook", "Bathurst Manor", "Downsview", "Parkwoods", "Flemingdon Park", "Hillcrest Village", "Lawrence Manor", "Bedford Park", "Victoria Village"],
       intro: "From Willowdale condos to family homes in Don Mills and York Mills, we clean across North York, Monday to Saturday." }
   ],
@@ -261,17 +264,20 @@ window.NR_CONFIG = {
     ] }
   ],
 
-  /* FAQs. "on" lists where each appears: home, regular, deep, move, detail, residence, office, area. */
+  /* FAQs. "on" lists where each appears: home, regular, deep, move, detail, residence, office, area, pricing. */
   faqs: [
-    { q: "How is my price calculated?", a: "Your price is based on the service, the number of bedrooms and bathrooms, the type of home and any extras you add. You see it before you book. If your home needs much more or less time than expected, we tell you before we start, never after.", on: ["home", "regular", "deep", "move", "detail", "area"] },
-    { q: "Do I pay when I book?", a: "No. There's no deposit. You pay after the clean by Interac e-Transfer, credit or debit card, or cash.", on: ["home", "regular", "deep", "move", "detail", "area"] },
+    { q: "How is my price calculated?", a: "Your price is based on the service, the number of bedrooms and bathrooms, the type of home and any extras you add. You see it before you book. If your home needs much more or less time than expected, we tell you before we start, never after.", on: ["home", "regular", "deep", "move", "detail", "area", "pricing"] },
+    { q: "Do I pay when I book?", a: "No. There's no deposit. You pay after the clean by Interac e-Transfer, credit or debit card, or cash.", on: ["home", "regular", "deep", "move", "detail", "area", "pricing"] },
     { q: "What if something is missed?", a: "Tell us within 24 hours and we'll come back and re-clean those areas, free of charge.", on: ["home", "regular", "deep", "move", "detail", "residence", "area"] },
     { q: "Do you bring supplies and equipment?", a: "Yes. We bring cloths, mops, a vacuum and our products. If you'd like us to use your own products, or need fragrance-free, add it to your booking notes.", on: ["home", "regular", "deep", "detail", "office"] },
     { q: "Do I need to be home?", a: "No. Many clients leave access with a concierge, lockbox or key code. Choose how we get in when you book and we'll confirm the details by text.", on: ["home", "regular", "deep", "area"] },
     { q: "Can I reschedule or cancel?", a: "Yes. Text us at least 24 hours before your arrival window and there's no charge.", on: ["home", "regular", "deep", "move", "detail", "office", "area"] },
     { q: "Are pets OK?", a: "Absolutely. Tell us about them when you book. For heavy shedding, add the pet hair extra so we schedule enough time.", on: ["home", "regular", "deep"] },
     { q: "Why do you wear house shoes?", a: "Street shoes carry grit and salt, especially in a Toronto winter. We change into indoor-only shoes at your door, so your floors only meet clean soles.", on: ["home", "residence"] },
-    { q: "Should I book a deep clean first?", a: "If your home hasn't had a professional clean in the last few months, yes. A deep clean resets the build-up so every regular visit after it stays quick and consistent.", on: ["regular", "deep"] },
+    { q: "Should I book a deep clean first?", a: "If your home hasn't had a professional clean in the last few months, yes. A deep clean resets the build-up so every regular visit after it stays quick and consistent.", on: ["regular", "deep", "pricing"] },
+    { q: "Are supplies included in the price?", a: "Yes. Every price includes our products and equipment: cloths, mops, a vacuum and cleaning products. There's nothing extra to buy.", on: ["pricing"] },
+    { q: "Why do townhouses and houses cost more?", a: "A townhouse or house usually has stairs, more floor area and more entrances than a condo with the same number of bedrooms, so it takes longer to clean. The price box adjusts for this automatically.", on: ["pricing"] },
+    { q: "Do regular plans cost less?", a: "Yes. Visits every week, every 2 weeks or every 4 weeks cost less than a one-time clean, and you can pause or change your plan with 24 hours' notice.", on: ["pricing", "regular"] },
     { q: "Is the oven and fridge included in a move-out clean?", a: "Yes. Inside the fridge, oven, cabinets, drawers and closets are all included in a move-in or move-out clean.", on: ["move"] },
     { q: "Does the home need to be empty?", a: "For a move-in or move-out clean, it's best if furniture and boxes are out so we can reach every surface. If some items remain, mention it in your notes.", on: ["move"] },
     { q: "How long does a residence walkthrough take?", a: "Usually 20 to 30 minutes. We walk each room with you, note surfaces and priorities, and send a written care plan and quote afterwards.", on: ["residence"] },

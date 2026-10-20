@@ -212,10 +212,12 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--i
 .ritual li::before { content: counter(rit, decimal-leading-zero); grid-row: span 2; font-family: var(--display); font-weight: 700; font-size: 0.8rem; letter-spacing: 0.12em; color: var(--leaf); padding-top: 4px; }
 .ritual h3 { font-size: 1.15rem; }
 .ritual p { color: var(--on-ink-2); font-size: 0.98rem; }
-.wardrobe { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-content: start; }
-.wardrobe figure { margin: 0; display: grid; gap: 10px; }
-.wardrobe img { width: 100%; aspect-ratio: 1; object-fit: contain; background: var(--stone); padding: 10%; border-radius: 2px; }
-.wardrobe figcaption { font-size: 0.78rem; color: var(--on-ink-2); letter-spacing: 0.04em; }
+.guarantee { background: var(--ink-2); border: 1px solid var(--line-ink); border-radius: var(--r); padding: clamp(26px, 4vw, 44px); display: grid; gap: 20px; align-content: start; justify-items: start; }
+.guarantee-title { font-family: var(--display); font-weight: 800; font-size: clamp(1.7rem, 4.6vw, 2.4rem); line-height: 1.1; letter-spacing: -0.03em; text-wrap: balance; }
+.guarantee > p:not(.label):not(.guarantee-title) { color: var(--on-ink-2); max-width: 40ch; }
+.guarantee .ticks { width: 100%; padding-top: 20px; border-top: 1px solid var(--line-ink); }
+.guarantee .ticks .ic { color: var(--leaf); }
+.guarantee .text-link { color: var(--on-ink); border-color: var(--on-ink-2); }
 
 /* Three steps */
 .steps-3 { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; counter-reset: st; }
@@ -285,6 +287,40 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--i
 .pc-result.no { color: var(--danger); font-weight: 600; }
 .hood-list { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; align-content: start; }
 .hood-list li { font-size: 0.92rem; padding: 8px 14px; background: var(--paper); border: 1px solid var(--line); border-radius: var(--r); }
+.hoods { display: grid; gap: 40px; align-content: start; min-width: 0; }
+.fsa { display: grid; gap: 12px; padding-top: 28px; border-top: 1px solid var(--line-2); }
+.fsa-list { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.fsa-list li { font-family: var(--display); font-weight: 700; font-size: 0.78rem; letter-spacing: 0.08em; padding: 5px 9px; border: 1px solid var(--line-2); border-radius: 2px; }
+
+/* Price tables */
+.price-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.price-table th, .price-table td { padding: 13px 0 13px 8px; text-align: right; border-bottom: 1px solid var(--line-2); white-space: nowrap; }
+.price-table tr > :first-child { padding-left: 0; text-align: left; }
+.price-table thead th { padding-top: 0; font-family: var(--display); font-weight: 700; font-size: 0.6rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); border-bottom-color: var(--ink); }
+.price-table tbody th { font-weight: 500; font-size: 0.86rem; }
+.price-table td { font-family: var(--display); font-weight: 700; }
+.price-cards { display: grid; gap: 16px; }
+.price-card { background: var(--paper); border: 1px solid var(--line); border-radius: var(--r); padding: clamp(16px, 4vw, 34px); display: grid; gap: 18px; align-content: start; min-width: 0; }
+.price-card-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 16px; }
+.price-card h3 { font-size: clamp(1.3rem, 3.6vw, 1.6rem); font-weight: 800; letter-spacing: -0.02em; }
+.price-card h3 a { text-decoration: none; }
+.price-card h3 a:hover { color: var(--blue); }
+.price-card-from { font-size: 0.92rem; color: var(--muted); }
+.price-card-from b { color: var(--ink); font-family: var(--display); font-variant-numeric: tabular-nums; }
+.price-card-foot { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; margin-top: 4px; }
+
+/* Service comparison */
+.compare { width: 100%; min-width: 300px; border-collapse: collapse; background: var(--paper); border: 1px solid var(--line); border-radius: var(--r); }
+.compare th, .compare td { padding: 12px clamp(6px, 2vw, 14px); border-bottom: 1px solid var(--line); text-align: center; vertical-align: middle; }
+.compare tr > :first-child { text-align: left; font-weight: 400; }
+.compare thead th { font-family: var(--display); font-weight: 700; font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase; line-height: 1.35; padding-block: 18px; border-bottom: 1px solid var(--ink); width: 18%; }
+.compare tbody th { font-size: 0.9rem; line-height: 1.4; }
+.cmp-long { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; } /* phones show the short name; screen readers still hear this one */
+.compare .add-tag { font-size: 0.5rem; padding: 2px 3px; letter-spacing: 0.1em; }
+.compare thead th:first-child { width: auto; }
+.compare .cmp-room th { text-align: left; padding-top: 22px; font-family: var(--display); font-weight: 800; font-size: 1.05rem; letter-spacing: -0.01em; background: var(--ivory); }
+.compare td .ic { color: var(--leaf-ink); vertical-align: middle; }
+.cmp-no { color: var(--stone-3); }
 
 /* FAQ */
 .faq { border-top: 1px solid var(--line-2); }
@@ -502,7 +538,7 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--i
 .legal-body table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
 .legal-body th, .legal-body td { text-align: left; vertical-align: top; padding: 10px 12px 10px 0; border-bottom: 1px solid var(--line); }
 .legal-body th { font-family: var(--display); font-weight: 700; font-size: 0.66rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
-.table-scroll { overflow-x: auto; }
+.table-scroll { overflow-x: auto; position: relative; } /* positioned so screen-reader-only text inside is clipped too */
 
 /* Review page */
 .review-page .wrap { display: grid; gap: 22px; }
@@ -527,6 +563,13 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--i
   .footer-cols { grid-template-columns: repeat(3, 1fr); }
   .footer-cols > div:last-child { grid-column: auto; }
   .incl-grid { grid-template-columns: 1fr 1fr; }
+  .price-table th, .price-table td { padding-left: 12px; }
+  .price-table tbody th { font-size: 0.95rem; }
+  .cmp-short { display: none; }
+  .cmp-long { position: static; width: auto; height: auto; overflow: visible; clip: auto; white-space: normal; }
+  .compare thead th { font-size: 0.66rem; letter-spacing: 0.14em; width: 21%; }
+  .compare tbody th { font-size: 1rem; }
+  .compare .add-tag { font-size: 0.56rem; padding: 2px 5px; letter-spacing: 0.16em; }
   .review-grid { grid-template-columns: repeat(2, 1fr); }
   .footer-bottom { grid-template-columns: 1fr auto; }
   .header-help { display: inline; }
@@ -559,7 +602,9 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--i
   .hero-grid { grid-template-columns: minmax(0, 1.25fr) minmax(360px, 0.75fr); align-items: center; }
   .hero-sub .hero-grid { align-items: start; }
   .hero-pricer { position: relative; }
-  .standard-grid { grid-template-columns: 1fr 1fr; align-items: start; }
+  .standard-grid { grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr); align-items: start; }
+  .guarantee { position: sticky; top: calc(var(--header-h) + 32px); }
+  .price-cards { grid-template-columns: 1fr 1fr; }
   .split { grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); align-items: start; }
   .faq-section .split-head { position: sticky; top: calc(var(--header-h) + 32px); }
   .founder-grid { grid-template-columns: minmax(320px, 0.8fr) minmax(0, 1.2fr); align-items: start; }
