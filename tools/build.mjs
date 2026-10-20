@@ -377,7 +377,7 @@ urls.push(page({
   <div class="wrap hero-grid">
     <div class="hero-copy">
       <h1><span class="h1-kicker">Home cleaning in Scarborough &amp; North York</span>We clean.<br><span class="h1-line2">You rest.</span></h1>
-      <p class="lede">Meticulous home cleaning by a uniformed team that changes into house shoes at your door. See your exact price in seconds, choose a time, and come home to it done.</p>
+      <p class="lede">Meticulous home cleaning by a uniformed cleaner who changes into house shoes at your door. See your exact price in seconds, choose a time, and come home to it done.</p>
       <p class="hero-talk">Prefer to talk? <a data-tel href="tel:${B.phone}">Call or text <span data-phone-text>${esc(B.phoneDisplay)}</span></a></p>
     </div>
     <div class="hero-pricer">${pricer(L)}</div>
@@ -949,7 +949,7 @@ ${finalCta(L, `Book your ${a.name} clean.`)}`
   <div class="wrap split">
     <div class="split-head">
       <p class="label">Work with us</p>
-      <h2>Build it with us.</h2>
+      <h2>Build it with me.</h2>
     </div>
     <div class="join-body">
       <p class="lede">${esc(V.join)}</p>

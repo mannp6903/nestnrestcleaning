@@ -127,13 +127,13 @@ window.NR_CONFIG = {
       slug: "residence-care",
       name: "Residence Care",
       menuName: "Residence Care",
-      short: "For larger homes and fine finishes: a walkthrough, a written care plan, the same team each visit.",
-      intro: "For homes over about 3,000 square feet, or homes with natural stone, marble, hardwood and glass that need the right product on the right surface. We start with a walkthrough, write a room-by-room care plan, and keep the same team on your home whenever possible.",
+      short: "For larger homes and fine finishes: a walkthrough, a written care plan, the same cleaner each visit.",
+      intro: "For homes over about 3,000 square feet, or homes with natural stone, marble, hardwood and glass that need the right product on the right surface. We start with a walkthrough, write a room-by-room care plan, and keep the same cleaner on your home whenever possible.",
       includes: [
         "In-person walkthrough before the first visit",
         "Written room-by-room care plan",
         "Surface-appropriate products for stone, marble, wood and glass",
-        "The same team each visit whenever possible",
+        "The same cleaner each visit whenever possible",
         "Flexible scheduling around your household",
         "Discreet, uniformed, house-shoes-only service"
       ],
@@ -302,8 +302,8 @@ window.NR_CONFIG = {
     letter: [
       "For most families, a clean home is something you earn on the weekend. Saturday goes to the bathrooms and the floors, and rest waits until the list is done. Often, it never is.",
       "I started Nest & Rest because I think that trade is backwards. Your home should give you rest, not take it away. Every hour spent scrubbing is an hour not spent with your kids, your parents, your friends or yourself.",
-      "So we take the list. We do it the same careful way every visit, so you never have to check our work, and we hold ourselves to promises you can read on this page. I would rather grow slowly and keep them than grow quickly and break them.",
-      "Every clean carries my name. That will still be true when there are a hundred of us."
+      "So I take the list off your hands. I do it the same careful way every visit, so you never have to check, and I hold Nest & Rest to the promises on this page. I would rather grow slowly and keep them than grow quickly and break them.",
+      "Today, I clean every home myself. When there are a hundred of us, every clean will still carry my name."
     ],
     beliefs: [
       { title: "Rest is the real product.", text: "Cleaning is how we deliver it. We measure ourselves by the hours a family gets back, not the rooms we finish." },
@@ -326,11 +326,11 @@ window.NR_CONFIG = {
       "A paid, filtered or hidden review"
     ],
     chapters: [
-      { when: "Now", title: "Our founding households", text: "The first families in Scarborough and North York to trust us with their homes. Their feedback shapes everything: the checklist, the timing, the standard itself." },
-      { when: "Next", title: "A team that carries the standard", text: "A small local team, trained in the standard, with the same familiar faces in your home whenever possible." },
+      { when: "Now", title: "Our founding households", text: "I clean every home myself, for the first families in Scarborough and North York to trust Nest & Rest. Their feedback shapes everything: the checklist, the timing, the standard itself." },
+      { when: "Next", title: "A team that carries the standard", text: "When I hire, every person will be trained in the standard by me, and you'll see the same familiar face in your home whenever possible." },
       { when: "Then", title: "Toronto's standard for home care", text: "The name families across Toronto trust with their keys. We'll grow one neighbourhood at a time, and only as fast as we can keep every promise on this page." }
     ],
-    join: "We're building a small team in Scarborough and North York, slowly and on purpose. If you take pride in careful work and want to help build something that lasts, we'd like to hear from you."
+    join: "Right now, I clean every home myself. When Nest & Rest grows, the first people I hire will be people who take pride in careful work. If that's you, introduce yourself now and I'll be in touch when the time comes."
   },
 
   /* The one number we measure ourselves by. Shown on /vision/ once it's above 0.
