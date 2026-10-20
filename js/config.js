@@ -69,8 +69,10 @@ window.NR_CONFIG = {
     house: { label: "House", short: "House", factor: 1.2 }
   },
 
-  /* Instant-price services. Price = base + per extra bedroom + per extra bathroom, × home type.
-     The base covers a 1-bedroom (or studio), 1-bathroom home. */
+  /* Instant-price services. Price = base + per extra bedroom + per extra bathroom, × home type, rounded to $5.
+     The base covers a 1-bedroom (or studio), 1-bathroom home. Keep bases at multiples of 5 so "from" prices match the price box.
+     Set October 2026 against published Toronto, Scarborough and North York competitor prices (most quote before 13% HST):
+     regular about 10-15% below the market median, deep about 5-10% below, move-in/out at the median. */
   services: {
     regular: {
       slug: "regular-home-cleaning",
@@ -78,7 +80,7 @@ window.NR_CONFIG = {
       menuName: "Regular Cleaning",
       shortName: "Regular",
       short: "The weekly or fortnightly reset that keeps a lived-in home effortless.",
-      base: 110, perBed: 25, perBath: 20, hours: 2,
+      base: 145, perBed: 30, perBath: 25, hours: 2,
       recurring: true,
       intro: "A thorough, consistent clean of every room you live in: kitchen, bathrooms, bedrooms and living areas, done the same careful way every visit. Most clients book every two weeks and stop thinking about it.",
       idealFor: ["Busy professionals and families", "Keeping a home guest-ready", "Anyone who would rather spend Saturday elsewhere"],
@@ -90,7 +92,7 @@ window.NR_CONFIG = {
       menuName: "Deep Cleaning",
       shortName: "Deep",
       short: "A top-to-bottom reset for build-up, edges and everything in between.",
-      base: 199, perBed: 40, perBath: 35, hours: 4,
+      base: 235, perBed: 50, perBath: 40, hours: 4,
       recurring: false,
       tag: "Recommended first visit",
       intro: "Everything in a regular clean, plus the detail work that builds up over months: baseboards, door frames, grout, fixtures, vents, and behind and under what can be moved. It is the visit we recommend before starting a regular plan.",
@@ -103,7 +105,7 @@ window.NR_CONFIG = {
       menuName: "Move-In / Move-Out",
       shortName: "Move-out",
       short: "An empty-home clean for keys, deposits and fresh starts.",
-      base: 249, perBed: 50, perBath: 40, hours: 5,
+      base: 250, perBed: 50, perBath: 40, hours: 5,
       recurring: false,
       tag: "Fridge and oven included",
       intro: "A complete clean of an empty home, inside every cabinet, drawer and closet, with the fridge and oven included. Built for landlord walk-throughs, new owners and the first night in a new place.",
@@ -115,7 +117,7 @@ window.NR_CONFIG = {
       name: "Kitchen & Bath Detailing",
       menuName: "Kitchen & Bath Detailing",
       short: "Just the hardest-working rooms, restored properly.",
-      base: 139, perBed: 0, perBath: 55, hours: 2.5,
+      base: 165, perBed: 0, perBath: 60, hours: 2.5,
       recurring: false,
       intro: "A focused deep clean of the kitchen and bathrooms only: degreasing, descaling, grout and fixtures. Ideal between regular cleans, or before hosting.",
       idealFor: ["Between regular cleans", "Before hosting family or guests", "Kitchens and baths that need more than a wipe-down"],
@@ -175,10 +177,10 @@ window.NR_CONFIG = {
   },
 
   addons: [
-    { id: "oven", name: "Inside oven", price: 35, hours: 0.5 },
-    { id: "fridge", name: "Inside fridge", price: 35, hours: 0.5 },
+    { id: "oven", name: "Inside oven", price: 40, hours: 0.5 },
+    { id: "fridge", name: "Inside fridge", price: 40, hours: 0.5 },
     { id: "cabinets", name: "Inside kitchen cabinets", price: 45, hours: 0.75 },
-    { id: "windows", name: "Interior windows", price: 40, hours: 0.75 },
+    { id: "windows", name: "Interior windows", price: 50, hours: 0.75 },
     { id: "walls", name: "Wall spot cleaning", price: 25, hours: 0.5 },
     { id: "laundry", name: "Laundry, wash and fold", price: 25, hours: 0.5 },
     { id: "balcony", name: "Balcony or patio", price: 30, hours: 0.5 },
@@ -188,9 +190,9 @@ window.NR_CONFIG = {
 
   frequencies: {
     once: { label: "One time", discount: 0 },
-    biweekly: { label: "Every 2 weeks", discount: 10, recommended: true },
-    weekly: { label: "Weekly", discount: 15 },
-    monthly: { label: "Every 4 weeks", discount: 5 }
+    biweekly: { label: "Every 2 weeks", discount: 15, recommended: true },
+    weekly: { label: "Weekly", discount: 20 },
+    monthly: { label: "Every 4 weeks", discount: 10 }
   },
 
   timeSlots: [
