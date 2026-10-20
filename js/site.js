@@ -99,6 +99,15 @@
       if (f && f.active) { el.textContent = f.label + "s: " + f.percent + "% off your first visit"; el.hidden = false; }
     });
 
+    var im = C.impact || {};
+    var impact = $("[data-impact]");
+    if (impact && im.hoursGivenBack > 0) {
+      $("[data-impact-hours]").textContent = Math.round(im.hoursGivenBack).toLocaleString("en-CA");
+      $("[data-impact-cap]").textContent = "hours given back" + (im.households > 0 ? " to " + im.households.toLocaleString("en-CA") + " household" + (im.households > 1 ? "s" : "") : "") + " so far";
+      impact.hidden = false;
+      $("[data-impact-empty]").hidden = true;
+    }
+
     var assure = $("[data-assure]");
     var bd = C.badges || {};
     if (assure) {

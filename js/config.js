@@ -292,5 +292,51 @@ window.NR_CONFIG = {
 
   /* Real reviews only. Add them as they come in:
      { name: "Priya S.", area: "Agincourt", rating: 5, service: "Deep Cleaning", text: "..." } */
-  reviews: []
+  reviews: [],
+
+  /* The vision page (/vision/), written in Mann's voice. Edit freely, then run `node tools/build.mjs`.
+     Keep every "always" and "never" true: each one is a public promise. */
+  vision: {
+    headline: "Home is for rest.",
+    intro: "Nest & Rest exists to give families in Scarborough and North York their time back, and to set a new standard for the care that comes into your home. Here is what we believe, what we promise, and where we're going.",
+    letter: [
+      "For most families, a clean home is something you earn on the weekend. Saturday goes to the bathrooms and the floors, and rest waits until the list is done. Often, it never is.",
+      "I started Nest & Rest because I think that trade is backwards. Your home should give you rest, not take it away. Every hour spent scrubbing is an hour not spent with your kids, your parents, your friends or yourself.",
+      "So we take the list. We do it the same careful way every visit, so you never have to check our work, and we hold ourselves to promises you can read on this page. I would rather grow slowly and keep them than grow quickly and break them.",
+      "Every clean carries my name. That will still be true when there are a hundred of us."
+    ],
+    beliefs: [
+      { title: "Rest is the real product.", text: "Cleaning is how we deliver it. We measure ourselves by the hours a family gets back, not the rooms we finish." },
+      { title: "Trust is earned at the door.", text: "Who walks into your home matters as much as what they do there. So every visit begins and ends the same way, and we publish exactly how." },
+      { title: "Care is a craft.", text: "Cleaning well is skilled work. The people who do it deserve proper training, the right tools, and to be introduced by name." },
+      { title: "Small promises, kept, become a reputation.", text: "Your price before you book. Payment after it's done. Every rating published. Kept every visit, these are worth more than any advertisement." }
+    ],
+    always: [
+      "Your exact price before you book",
+      "Nothing to pay until the clean is done",
+      "You'll know who is coming, by name",
+      "A free re-clean if anything isn't right",
+      "Every rating published, not only the good ones"
+    ],
+    never: [
+      "A deposit to hold your booking",
+      "A price change after we start",
+      "Street shoes on your floors",
+      "Keys copied, or codes written on them",
+      "A paid, filtered or hidden review"
+    ],
+    chapters: [
+      { when: "Now", title: "Our founding households", text: "The first families in Scarborough and North York to trust us with their homes. Their feedback shapes everything: the checklist, the timing, the standard itself." },
+      { when: "Next", title: "A team that carries the standard", text: "A small local team, trained in the standard, with the same familiar faces in your home whenever possible." },
+      { when: "Then", title: "Toronto's standard for home care", text: "The name families across Toronto trust with their keys. We'll grow one neighbourhood at a time, and only as fast as we can keep every promise on this page." }
+    ],
+    join: "We're building a small team in Scarborough and North York, slowly and on purpose. If you take pride in careful work and want to help build something that lasts, we'd like to hear from you."
+  },
+
+  /* The one number we measure ourselves by. Shown on /vision/ once it's above 0.
+     hoursGivenBack: total hours on site across completed cleans. households: homes cleaned so far. */
+  impact: {
+    hoursGivenBack: 0,
+    households: 0
+  }
 };

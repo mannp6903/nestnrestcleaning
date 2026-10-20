@@ -109,6 +109,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 /* Header */
 .site-header { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 50; background: rgba(247, 244, 238, 0.96); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); border-bottom: 1px solid var(--line); }
 .header-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; height: var(--header-h); }
+.brand { flex: none; }
 .brand img { height: 30px; width: auto; }
 .nav-desktop { display: none; }
 .header-actions { display: flex; align-items: center; gap: 10px; }
@@ -241,6 +242,7 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--i
 .founder-photo::before { content: ""; position: absolute; inset: 18px -18px -18px 18px; background: var(--stone); border-radius: var(--r); }
 .founder-photo img { position: relative; width: 100%; aspect-ratio: 4 / 5; object-fit: cover; border-radius: var(--r); box-shadow: var(--shadow); }
 .founder-body { display: grid; gap: clamp(36px, 5vw, 56px); }
+.founder-words { display: grid; gap: 30px; }
 .founder-quote { margin: 0; display: grid; gap: 26px; }
 .founder-quote blockquote { margin: 0; display: grid; gap: 20px; }
 .founder-quote blockquote p { font-family: var(--display); font-weight: 700; font-size: clamp(1.4rem, 3.8vw, 2.05rem); line-height: 1.2; letter-spacing: -0.02em; text-wrap: balance; }
@@ -354,6 +356,40 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--i
 .quote-done { justify-items: start; }
 .quote-done h2 { font-size: clamp(1.8rem, 6vw, 2.4rem); }
 .quote-done p:not(.label) { color: var(--muted); }
+
+/* Vision page */
+.vision-head { max-width: 900px; }
+.letter { display: grid; gap: 22px; align-content: start; max-width: 62ch; }
+.letter p:not(.label) { font-size: clamp(1.1rem, 2.2vw, 1.25rem); line-height: 1.65; }
+.letter p.letter-close { font-family: var(--display); font-weight: 700; font-size: clamp(1.35rem, 3.4vw, 1.75rem); line-height: 1.25; letter-spacing: -0.02em; text-wrap: balance; padding-left: 18px; border-left: 2px solid var(--leaf-ink); }
+.letter p.letter-sign { display: grid; gap: 2px; font-size: 0.95rem; line-height: 1.5; }
+.letter-sign span { color: var(--muted); }
+.beliefs li { align-content: start; }
+.beliefs h3 { font-size: clamp(1.3rem, 3vw, 1.6rem); }
+.beliefs p { max-width: 44ch; }
+.vows .text-link { color: var(--on-ink); border-color: var(--on-ink-2); }
+.vow-grid { display: grid; gap: 48px; }
+.vow-title { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.24em; text-transform: uppercase; color: var(--leaf); margin-bottom: 10px; }
+.vow-title-never { color: var(--on-ink-2); }
+.vow-list { list-style: none; margin: 0; padding: 0; }
+.vow-list li { display: flex; gap: 14px; align-items: baseline; padding: 18px 0; border-top: 1px solid var(--line-ink); font-family: var(--display); font-weight: 700; font-size: clamp(1.05rem, 2.6vw, 1.25rem); line-height: 1.3; letter-spacing: -0.01em; }
+.vow-list li:last-child { border-bottom: 1px solid var(--line-ink); }
+.vow-list .ic { color: var(--leaf); position: relative; top: 3px; }
+.vow-never .ic { color: var(--on-ink-2); }
+.chapters { list-style: none; margin: 0; padding: 0; display: grid; }
+.chapters li { display: grid; gap: 10px; align-content: start; padding: 26px 0 32px; border-top: 2px solid var(--line-2); }
+.chapters li.is-now { border-top-color: var(--ink); }
+.chapter-when { font-family: var(--display); font-weight: 700; font-size: 0.7rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); }
+.chapters .is-now .chapter-when { color: var(--leaf-ink); }
+.chapters h3 { font-size: clamp(1.35rem, 3vw, 1.6rem); font-weight: 800; letter-spacing: -0.02em; }
+.chapters p:not(.chapter-when) { color: var(--muted); max-width: 40ch; }
+.measure { margin-top: clamp(48px, 7vw, 88px); padding: clamp(26px, 5vw, 48px); background: var(--paper); border: 1px solid var(--line); border-radius: var(--r); box-shadow: var(--shadow); display: grid; gap: 22px; }
+.measure-head { display: grid; gap: 14px; }
+.measure-title { font-size: clamp(1.5rem, 4vw, 2.2rem); font-weight: 800; line-height: 1.15; letter-spacing: -0.02em; max-width: 22ch; }
+.impact { display: grid; gap: 4px; }
+.impact-big { font-family: var(--display); font-weight: 800; font-size: clamp(3.4rem, 12vw, 6rem); line-height: 1; letter-spacing: -0.04em; color: var(--blue); font-variant-numeric: tabular-nums; }
+.impact-cap, .impact-empty { color: var(--muted); max-width: 46ch; }
+.join-body { display: grid; gap: 28px; align-content: start; }
 
 /* Booking page */
 .book { padding-block: 32px 80px; }
@@ -499,6 +535,9 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--i
 /* ≥ 760px */
 @media (min-width: 760px) {
   .steps-3 { grid-template-columns: repeat(3, 1fr); gap: 32px; }
+  .beliefs { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 56px; }
+  .vow-grid { grid-template-columns: 1fr 1fr; gap: 56px; }
+  .chapters { grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 32px; }
   .svc-row { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.5fr) 150px 30px; align-items: center; gap: 24px; padding: 34px 0; }
   .svc-desc { grid-column: auto; }
   .svc-price { grid-column: auto; text-align: right; }
@@ -514,7 +553,7 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--i
   .menu-btn { display: none; }
   .menu { display: none !important; }
   .nav-desktop { display: flex; gap: 34px; }
-  .nav-desktop a { text-decoration: none; font-family: var(--display); font-weight: 600; font-size: 0.72rem; letter-spacing: 0.16em; text-transform: uppercase; padding: 8px 0; border-bottom: 1px solid transparent; }
+  .nav-desktop a { white-space: nowrap; text-decoration: none; font-family: var(--display); font-weight: 600; font-size: 0.72rem; letter-spacing: 0.16em; text-transform: uppercase; padding: 8px 0; border-bottom: 1px solid transparent; }
   .nav-desktop a:hover { border-color: var(--ink); }
   .header-phone { display: inline-flex; align-items: center; gap: 8px; text-decoration: none; font-weight: 600; font-size: 0.92rem; margin-right: 10px; }
   .hero-grid { grid-template-columns: minmax(0, 1.25fr) minmax(360px, 0.75fr); align-items: center; }
@@ -525,6 +564,7 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--i
   .faq-section .split-head { position: sticky; top: calc(var(--header-h) + 32px); }
   .founder-grid { grid-template-columns: minmax(320px, 0.8fr) minmax(0, 1.2fr); align-items: start; }
   .founder-body .founding { justify-self: start; max-width: 460px; }
+  .measure { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: end; gap: 48px; }
   .footer-top { grid-template-columns: 1fr 2fr; }
   .booker { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 28px; align-items: start; }
   .booker-main { border-bottom: 1px solid var(--line); border-radius: var(--r); }
@@ -535,6 +575,13 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--i
   .summary-body { display: block; padding: 0 26px 26px; }
   .book-head { grid-template-columns: 1fr minmax(0, 460px); align-items: end; }
   .toast { bottom: 32px; }
+}
+
+/* 960 to 1149px: five nav links, phone and Book share a narrow row */
+@media (min-width: 960px) and (max-width: 1149px) {
+  .nav-desktop { gap: 18px; }
+  .nav-desktop a { letter-spacing: 0.1em; }
+  .header-phone { margin-right: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {

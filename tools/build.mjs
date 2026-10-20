@@ -90,6 +90,7 @@ function header(L, opts = {}) {
     <nav class="nav-desktop" aria-label="Main">
       <a href="${L("#services")}">Services</a>
       <a href="${L("#standard")}">Our standard</a>
+      <a href="${L("vision/")}">Our vision</a>
       <a href="${L("#areas")}">Areas</a>
       <a href="${L("#faq")}">FAQ</a>
     </nav>
@@ -108,6 +109,7 @@ function header(L, opts = {}) {
       </ul>
       <p class="label">More</p>
       <ul class="menu-list menu-list-sm">
+        <li><a href="${L("vision/")}">Our vision</a></li>
         <li><a href="${L("#standard")}">Our standard</a></li>
         <li><a href="${L("#areas")}">Areas we serve</a></li>
         <li><a href="${L("#faq")}">Questions</a></li>
@@ -147,6 +149,11 @@ function footer(L) {
         <div>
           <p class="label">Areas</p>
           <ul>${C.areas.map((a) => `<li><a href="${L("areas/" + a.slug + "/")}">${esc(a.name)}</a></li>`).join("")}</ul>
+          <p class="label label-sm">About</p>
+          <ul>
+            <li><a href="${L("vision/")}">Our vision</a></li>
+            <li><a href="${L("vision/#join")}">Work with us</a></li>
+          </ul>
         </div>
         <div>
           <p class="label">Contact</p>
@@ -230,6 +237,20 @@ function assurances() {
     ["i-pin", "Scarborough & North York"]
   ];
   return `<ul class="assure" data-assure>${items.map(([i, t]) => `<li><svg class="ic" aria-hidden="true"><use href="#${i}"/></svg>${esc(t)}</li>`).join("")}</ul>`;
+}
+
+function founderPhoto(L) {
+  return `<div class="founder-photo">
+      <picture>
+        <source type="image/webp" srcset="${L("assets/founder-mann-patel-600.webp")} 600w, ${L("assets/founder-mann-patel.webp")} 848w" sizes="(min-width: 960px) 440px, 82vw">
+        <img src="${L("assets/founder-mann-patel.jpg")}" srcset="${L("assets/founder-mann-patel-600.jpg")} 600w, ${L("assets/founder-mann-patel.jpg")} 848w" sizes="(min-width: 960px) 440px, 82vw" alt="${esc(B.owner)}, founder of ${esc(B.name)}" width="848" height="1060" loading="lazy" decoding="async">
+      </picture>
+    </div>`;
+}
+
+// Same wording as site.js, which refreshes it when config.impact changes.
+function impactCaption(im) {
+  return "hours given back" + (im.households > 0 ? " to " + im.households.toLocaleString("en-CA") + " household" + (im.households > 1 ? "s" : "") : "") + " so far";
 }
 
 function faqBlock(tag, title = "Questions, answered.") {
@@ -447,13 +468,9 @@ urls.push(page({
 
 <section class="section founder" id="founder">
   <div class="wrap founder-grid">
-    <div class="founder-photo">
-      <picture>
-        <source type="image/webp" srcset="${L("assets/founder-mann-patel-600.webp")} 600w, ${L("assets/founder-mann-patel.webp")} 848w" sizes="(min-width: 960px) 440px, 82vw">
-        <img src="${L("assets/founder-mann-patel.jpg")}" srcset="${L("assets/founder-mann-patel-600.jpg")} 600w, ${L("assets/founder-mann-patel.jpg")} 848w" sizes="(min-width: 960px) 440px, 82vw" alt="${esc(B.owner)}, founder of ${esc(B.name)}" width="848" height="1060" loading="lazy" decoding="async">
-      </picture>
-    </div>
+    ${founderPhoto(L)}
     <div class="founder-body">
+    <div class="founder-words">
     <figure class="founder-quote">
       <p class="label">From our founder</p>
       <blockquote>
@@ -462,6 +479,8 @@ urls.push(page({
       </blockquote>
       <figcaption><strong data-owner>${esc(B.owner)}</strong><span>Founder &amp; Owner</span></figcaption>
     </figure>
+    <a class="text-link" href="${L("vision/")}">Read ${esc(B.ownerFirstName)}'s vision <svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+    </div>
     <div class="founding" data-founding hidden>
       <p class="label">Founding households</p>
       <p class="founding-big"><span data-founding-pct>20</span>% off</p>
@@ -830,6 +849,120 @@ for (const a of C.areas) {
 </section>
 ${fq.html}
 ${finalCta(L, `Book your ${a.name} clean.`)}`
+  }));
+}
+
+/* ---------- vision ---------- */
+{
+  const V = C.vision;
+  const im = C.impact || {};
+  const hasImpact = im.hoursGivenBack > 0;
+  const f = C.offers.founding;
+  const nth = ["one", "two", "three", "four", "five", "six"];
+  const trail = [["Home", ""], ["Our vision", "vision/"]];
+  urls.push(page({
+    depth: 1, pathOut: "vision/index.html", pageType: "vision",
+    title: `Our Vision | ${B.name}`,
+    description: `Why ${B.name} exists, what we believe, the promises we keep every visit, and where we're going. A note from founder ${B.owner}.`,
+    schemas: [
+      { "@context": "https://schema.org", "@type": "AboutPage", name: `Our vision | ${B.name}`, url: SITE + "/vision/", description: V.intro, about: { "@id": SITE + "/#business" } },
+      crumbSchema(trail)
+    ],
+    body: (L) => `
+<section class="hero hero-sub">
+  <div class="wrap">${breadcrumbs(L, trail)}</div>
+  <div class="wrap">
+    <div class="hero-copy vision-head">
+      <p class="label">Our vision</p>
+      <h1 class="h1-sub">${esc(V.headline)}</h1>
+      <p class="lede">${esc(V.intro)}</p>
+    </div>
+  </div>
+</section>
+
+<section class="section section-stone" id="letter">
+  <div class="wrap founder-grid">
+    ${founderPhoto(L)}
+    <div class="letter">
+      <p class="label">A note from ${esc(B.ownerFirstName)}</p>
+      ${V.letter.map((p, i) => `<p${i === V.letter.length - 1 ? ' class="letter-close"' : ""}>${esc(p)}</p>`).join("\n      ")}
+      <p class="letter-sign"><strong data-owner>${esc(B.owner)}</strong><span>Founder &amp; Owner</span></p>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="beliefs">
+  <div class="wrap">
+    <div class="section-head"><p class="label">What we believe</p><h2>The ideas behind every visit.</h2></div>
+    <ol class="steps-3 beliefs">
+      ${V.beliefs.map((b) => `<li><h3>${esc(b.title)}</h3><p>${esc(b.text)}</p></li>`).join("\n      ")}
+    </ol>
+    <div class="center-cta"><a class="text-link" href="${L("#standard")}">See the five steps at your door <svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></a></div>
+  </div>
+</section>
+
+<section class="section standard vows" id="promises">
+  <div class="wrap">
+    <div class="standard-head">
+      <p class="label label-light">Our promises</p>
+      <h2>What you can count on. What we'll never do.</h2>
+      <p>A promise only counts if it's kept every time. Hold us to each of these. If we ever fall short, tell ${esc(B.ownerFirstName)} directly.</p>
+    </div>
+    <div class="vow-grid">
+      <div>
+        <h3 class="vow-title">Always</h3>
+        <ul class="vow-list">${V.always.map((t) => `<li><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg>${esc(t)}</li>`).join("")}</ul>
+      </div>
+      <div>
+        <h3 class="vow-title vow-title-never">Never</h3>
+        <ul class="vow-list vow-never">${V.never.map((t) => `<li><svg class="ic" aria-hidden="true"><use href="#i-close"/></svg>${esc(t)}</li>`).join("")}</ul>
+      </div>
+    </div>
+    <div class="center-cta"><a class="text-link" href="${L("policies/")}">Read our Service Policies <svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></a></div>
+  </div>
+</section>
+
+<section class="section" id="road">
+  <div class="wrap">
+    <div class="section-head">
+      <p class="label">The road ahead</p>
+      <h2>Built one home at a time.</h2>
+    </div>
+    <ol class="chapters">
+      ${V.chapters.map((c, i) => `<li${i === 0 ? ' class="is-now"' : ""}><p class="chapter-when">Chapter ${nth[i] || i + 1} · ${esc(c.when)}</p><h3>${esc(c.title)}</h3><p>${esc(c.text)}</p></li>`).join("\n      ")}
+    </ol>
+    <div class="measure">
+      <div class="measure-head">
+        <p class="label">How we'll measure it</p>
+        <h3 class="measure-title">One number matters most: hours given back.</h3>
+      </div>
+      <div class="impact" data-impact${hasImpact ? "" : " hidden"}>
+        <p class="impact-big" data-impact-hours>${hasImpact ? Math.round(im.hoursGivenBack).toLocaleString("en-CA") : "0"}</p>
+        <p class="impact-cap" data-impact-cap>${esc(impactCaption(im))}</p>
+      </div>
+      <p class="impact-empty" data-impact-empty${hasImpact ? " hidden" : ""}>Every hour we spend cleaning is an hour a family gets back. We're counting from our very first clean, and the running total will appear right here.</p>
+    </div>
+  </div>
+</section>
+
+<section class="section section-stone" id="join">
+  <div class="wrap split">
+    <div class="split-head">
+      <p class="label">Work with us</p>
+      <h2>Build it with us.</h2>
+    </div>
+    <div class="join-body">
+      <p class="lede">${esc(V.join)}</p>
+      <div class="cta-row">
+        <a class="btn btn-primary" href="mailto:${B.email}?subject=${encodeURIComponent("Working with " + B.name)}" data-track="join_click">Email ${esc(B.ownerFirstName)}</a>
+        <a class="btn btn-ghost" data-tel href="tel:${B.phone}">Call or text <span data-phone-text>${esc(B.phoneDisplay)}</span></a>
+      </div>
+    </div>
+  </div>
+</section>
+${f.active
+  ? finalCta(L, "Be a founding household.", `${f.text} Book in two minutes and pay after it's done.`)
+  : finalCta(L)}`
   }));
 }
 

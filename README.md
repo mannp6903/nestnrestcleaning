@@ -11,6 +11,7 @@ It's built to turn visitors into booked clients and to rank on Google for local 
 | `/book/` | Focused 3-step booking: your home → plan & time → your details |
 | `/services/<service>/` | One page per service (regular, deep, move-in/out, kitchen & bath, residence care, office) |
 | `/areas/<area>/` | Scarborough and North York, the only two areas served |
+| `/vision/` | Our vision: Mann's note, what we believe, always/never promises, the road ahead, hours given back, work with us |
 | `/review/` | Review form to text clients after each clean (no rewards for reviews: Google and the Competition Bureau forbid undisclosed incentives) |
 | `/privacy/` | Privacy Policy (PIPEDA) |
 | `/policies/` | Service Policies: booking, cancellation, payment, re-clean, damage, keys, pets, safety |
@@ -26,6 +27,8 @@ Each page has its own title, description, structured data (LocalBusiness, Servic
 - **Social icons:** paste your Facebook and Instagram profile URLs into `business.facebookUrl` / `business.instagramUrl` and run the build; the icons become links and are added to Google's business data.
 - **Policies:** cancellation notice, late fee, re-clean and damage windows are in `policies`. Have a lawyer review the Privacy Policy and Service Policies.
 - **Reviews:** add real reviews to `reviews` in `js/config.js`; a reviews section then appears on the home page.
+- **Vision page:** all its wording is in `vision` in `js/config.js`; run the build after editing. Every "always" and "never" is a public promise, so keep each one true.
+- **Hours given back:** the vision page's one mission number. Update `impact.hoursGivenBack` (total hours on site across completed cleans) and `impact.households` in `js/config.js`. It stays hidden while it's 0.
 
 ## Bookings, quotes and reviews
 
