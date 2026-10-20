@@ -127,11 +127,11 @@ button, input, select, textarea { font: inherit; color: inherit; }
 body.menu-open { overflow: hidden; }
 
 /* Hero */
-.hero { padding-block: clamp(40px, 7vw, 96px) clamp(48px, 6vw, 72px); position: relative; }
+.hero { padding-block: clamp(24px, 7vw, 96px) clamp(48px, 6vw, 72px); position: relative; }
 .hero-grid { display: grid; gap: clamp(40px, 6vw, 72px); }
-.hero-copy { display: grid; gap: 24px; align-content: start; min-width: 0; }
+.hero-copy { display: grid; gap: clamp(18px, 3vw, 24px); align-content: start; min-width: 0; }
 .hero h1 .h1-line2 { color: var(--blue); }
-.h1-kicker { display: block; margin-bottom: 24px; font-size: 0.7rem; line-height: 1.5; letter-spacing: 0.24em; text-transform: uppercase; color: var(--leaf-ink); font-weight: 700; }
+.h1-kicker { display: block; margin-bottom: clamp(16px, 3vw, 24px); font-size: 0.7rem; line-height: 1.5; letter-spacing: 0.24em; text-transform: uppercase; color: var(--leaf-ink); font-weight: 700; }
 .hero-talk { font-size: 0.95rem; color: var(--muted); }
 .hero-talk a { color: var(--ink); font-weight: 600; text-underline-offset: 4px; }
 .hero-sub { padding-top: 24px; }
