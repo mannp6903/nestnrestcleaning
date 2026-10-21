@@ -150,12 +150,12 @@ Colour only ever comes from the logo, the same rule as the website.
 | Use | Typeface | Setting |
 |---|---|---|
 | Headlines | **Montserrat ExtraBold 800** | 92–150px, line height 1.0, tracking −3.5% |
-| Accent words (*screen?, next., Saturdays, before you book, Every visit, myself, Mon to Sat, first visit, You rest*) | **Montserrat Light 300**, in logo blue | 112–200px |
+| Accent words (*screen?, next., Saturdays, before you book, Every visit, myself, Mon to Sat, first visit, You rest*) | **Montserrat ExtraBold 800**, in logo blue | 90–200px |
 | Big numbers ($0, $145, 20%, 24h) | **Montserrat Black 900** | 250–640px, tracking −5 to −6% |
 | UI: calendar, chips, booking, messages, toast | **DM Sans** 500–700 | 26–40px, like a real app |
 | Chapter labels | Montserrat Bold 700, uppercase | 26px, +0.24em tracking, matching the website's labels |
 
-**The weight morph.** Both fonts on your site are variable (Montserrat 100–900, DM Sans 100–1000). Each accent word rises in at ExtraBold 800, then smoothly relaxes to Light 300. Every headline gets one heavy-to-light word: the type literally exhales, which is "Nest & Rest" in motion. It needs no extra font files, and it's an effect only a variable font can do.
+**Bold all the way through.** Headlines stay ExtraBold from start to finish, like the website. Each headline's key word is picked out in the logo's blue (sky on navy, wordmark blue on ivory) and often sized up, so it reads first without changing weight. Every bold line was measured to stay inside the safe zone.
 
 ### Brand motifs, used as motion
 
@@ -170,7 +170,7 @@ Colour only ever comes from the logo, the same rule as the website.
 
 - **The dirt holds still while the room drifts.** That's what sells the illusion: the background moves like video, but the hair, prints and dust don't, as if they were on the glass. The fingerprints are drawn procedurally (oily haze plus broken ridges, masked to a finger-pad shape), and the same seed is used every render, so they never flicker.
 - **Easing:** exponential ease-out for anything arriving, cubic in-out for wipes, damped springs with one overshoot for UI pops, exponential decay for camera punches.
-- **Word reveals:** each word rises out of its own line mask with a 50–90ms stagger and a 7° tilt that settles to zero; accent words then do the weight morph.
+- **Word reveals:** each word rises out of its own line mask with a 50–90ms stagger and a 7° tilt that settles to zero.
 - **Transitions:** squeegee wipe ×5 (the first one is the hook), vertical push with motion blur ×2, house iris ×2, crash zoom with flash ×1, a hard cut after half a beat of silence ×1, and the dissolve that closes the loop.
 - **Camera:** a slow drift on every scene plus punches of +4.5% scale and a 0.5° shake on the three big hits (2.0s, 10.5s, 23.0s).
 - **Micro-interactions:** the hair dragged by the blade, a glint across the clean glass, a "Screen cleaned" notification, swipe-to-delete with a live counter, chip taps, odometers that spin a full turn before landing, ticks on the beat, a day strip that cascades in, a tap ripple on Tuesday, a text bubble, a CTA that pulses on the beat.

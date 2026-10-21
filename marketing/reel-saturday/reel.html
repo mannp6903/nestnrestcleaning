@@ -9,8 +9,8 @@
   Nest & Rest Cleaning: "Your Saturday, back." 1080x1920, 30fps, 30s, seamless loop.
   Every frame is a pure function of time: seek(t) sets the whole picture, so render.mjs can
   step through it frame by frame. Open this file in a browser to preview it with sound.
-  Type is the website's own: Montserrat and DM Sans (both variable). Accent words land heavy,
-  then relax to a light weight.
+  Type is the website's own: Montserrat and DM Sans. Headlines are bold throughout; accent words
+  are picked out in the logo's blue.
   Safe zone for words: x 80-850, y 230-1440 (clear of Instagram's header, right rail and caption).
 -->
 <style>
@@ -52,8 +52,8 @@ body { -webkit-font-smoothing: antialiased; text-rendering: geometricPrecision; 
 .line { position: relative; display: block; overflow: hidden; white-space: nowrap; padding: .08em .16em .2em; margin: -.08em -.16em -.2em; }
 .wd { display: inline-block; transform-origin: 0 100%; }
 .sans { font: 800 112px/1 var(--display); letter-spacing: -.035em; }
-/* accent words: same family, light weight. They arrive at 800 and settle here (see rise()). */
-.acc { font-family: var(--display); font-weight: 300; letter-spacing: -.035em; line-height: 1; }
+/* accent words: the same bold Montserrat as the headline, in the logo's blue */
+.acc { font-family: var(--display); font-weight: 800; letter-spacing: -.035em; line-height: 1; }
 .c-sky { color: var(--sky); } .c-blue { color: var(--blue); } .c-leaf { color: var(--leaf); }
 
 /* Cards */
@@ -324,7 +324,7 @@ body { -webkit-font-smoothing: antialiased; text-rendering: geometricPrecision; 
       <div class="eyebrow"><span>01</span><i></i><span>Price</span></div>
       <div class="hl">
         <span class="line sans">Your price,</span>
-        <span class="line acc c-sky" style="font-size:112px">before you book.</span>
+        <span class="line acc c-sky" style="font-size:90px">before you book.</span>
       </div>
       <div class="card light calc" id="calc">
         <div class="calc-row"><span class="label">Home</span>
@@ -379,7 +379,7 @@ body { -webkit-font-smoothing: antialiased; text-rendering: geometricPrecision; 
       <div class="hl">
         <span class="line sans" style="font-size:124px">Missed</span>
         <span class="line sans" style="font-size:124px">a spot?</span>
-        <span class="line acc c-blue" style="font-size:118px">Free re-clean.</span>
+        <span class="line acc c-blue" style="font-size:112px">Free re-clean.</span>
       </div>
       <div class="card guar" id="guar">
         <div class="h24 out">24h</div>
@@ -523,8 +523,6 @@ body { -webkit-font-smoothing: antialiased; text-rendering: geometricPrecision; 
       } else { n.classList.add('wd'); line.append(n); }
     });
   });
-  // Accent words remember the light weight they settle at.
-  $$('.wd').forEach(w => { const a = w.closest('.acc'); if (a) w.dataset.wt = getComputedStyle(a).fontWeight; });
   // Odometers: each digit is a strip of 0-9 twice, so it spins a full turn before landing.
   $$('.odo').forEach(o => {
     o.dataset.digits.split('').forEach(d => {
@@ -625,12 +623,11 @@ body { -webkit-font-smoothing: antialiased; text-rendering: geometricPrecision; 
   });
 
   /* ---------- helpers ---------- */
-  // Words rise out of their line masks; accent words land at 800 and relax to their light weight.
+  // Words rise out of their line masks.
   const rise = (root, t, start, stagger = 0.05, dur = 0.7) => {
     $$('.wd', root).forEach((w, i) => {
-      const s = start + i * stagger, u = P(t, s, dur, E.outExpo);
+      const u = P(t, start + i * stagger, dur, E.outExpo);
       w.style.transform = u >= 1 ? 'none' : `translateY(${(1 - u) * 118}%) rotate(${(1 - u) * 7}deg)`;
-      if (w.dataset.wt) w.style.fontWeight = Math.round(lerp(800, +w.dataset.wt, P(t, s + 0.3, 0.8, E.inOutCubic)));
     });
   };
   const eyebrow = (scene, t, start) => {
