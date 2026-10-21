@@ -291,8 +291,10 @@ VOICE = {  # (bass midi, chord voicing)
     "Bbmaj7": (46, [57, 62, 65, 69]),
     "Dm7": (38, [57, 60, 65, 69]),
 }
-BARS = ["Csus", "Fmaj7", "Am7", "Bbmaj7", "Fmaj7", "Am7", "Dm7", "Bbmaj7", "Fmaj7", "Dm7", "Bbmaj7", "C"]
-BREAK = {7}  # bar index with the founder: drums drop out, warmer
+BARS = ["Csus", "Fmaj7", "Am7", "Bbmaj7", "Fmaj7", "Am7", "Dm7", "Bbmaj7",
+        "Fmaj7", "Bbmaj7", "Fmaj7", "Dm7", "Bbmaj7", "Fmaj7", "C"]
+LAST = len(BARS) - 1
+BREAK = {9}  # bar index with the founder: drums drop out, warmer
 
 drums, music, keys, arp_bus, sfx, verb_send = bus(), bus(), bus(), bus(), bus(), bus()
 K, CL, HC, HO, SH = kick(), clap(), hat(), hat(True), shaker()
@@ -301,22 +303,23 @@ kick_times = []
 for bi, name in enumerate(BARS):
     b0 = bi * BAR
     root, chord = VOICE[name]
+    full = 0 < bi < LAST  # the first and last bars stay muffled and sparse, so the loop joins cleanly
     # drums
     if bi not in BREAK:
         for beat in range(4):
             tk = b0 + beat * BEAT
             place(drums, K, tk, 0.95)
             kick_times.append(tk)
-            if beat in (1, 3) and 0 < bi < 11:
+            if beat in (1, 3) and full:
                 place(drums, CL, tk, 0.32, 0.05)
                 place(verb_send, CL, tk, 0.18)
         for s in range(16):
             ts = b0 + s * S16
             accent = 1.0 if s % 4 == 2 else (0.55 if s % 2 else 0.35)
             place(drums, HC, ts, 0.11 * accent, 0.25 if s % 2 else -0.15)
-            if s % 4 == 2 and 0 < bi < 11:
+            if s % 4 == 2 and full:
                 place(drums, HO, ts, 0.075, 0.3)
-            if bi >= 8 and bi < 11:
+            if 10 <= bi <= 13:
                 place(drums, SH, ts + 0.006, 0.05 * (1.0 if s % 2 else 0.6), -0.4)
     # bass: off-beat eighths, octave lift on the third
     for k, off in enumerate([0.25, 0.75, 1.25, 1.75]):
@@ -328,8 +331,8 @@ for bi, name in enumerate(BARS):
     for s, d, g in [(0, 0.7, 1.0), (6, 0.25, 0.7), (10, 0.5, 0.85)]:
         for m in chord:
             place(keys, epiano(m, d), b0 + s * S16, 0.055 * g, rng.uniform(-0.3, 0.3))
-    # plucked arpeggio from bar 3 to the end card
-    if 2 <= bi <= 10:
+    # plucked arpeggio from the calendar to the offer; the end card breathes without it
+    if 2 <= bi <= 12:
         pattern = [0, None, 2, 1, None, 3, 2, None, 0, None, 2, 1, 3, None, 1, 2]
         for s, p in enumerate(pattern):
             if p is None:
@@ -337,8 +340,9 @@ for bi, name in enumerate(BARS):
             g = 0.09 if bi not in BREAK else 0.06
             place(arp_bus, pluck(chord[p] + 12), b0 + s * S16, g * (1.1 if s % 4 == 0 else 0.9))
 
-# build-up into the offer: clap roll 18.5 -> 19.0
-for k, tr in enumerate(np.linspace(18.5, 19.0, 12, endpoint=False)):
+# build-up into the offer: clap roll in the half bar before the zoom
+offer = next(tr["t"] for tr in TL["transitions"] if tr["type"] == "zoom")
+for k, tr in enumerate(np.linspace(offer - 0.5, offer, 12, endpoint=False)):
     place(drums, CL, tr, 0.08 + 0.02 * k, 0.0)
 
 # sidechain pump from the kick
@@ -366,11 +370,12 @@ cut = np.full(N, 18000.0)
 cut[tsec < 1.0] = 650
 m = (tsec >= 1.0) & (tsec < 2.0)
 cut[m] = 650 * (4200 / 650) ** ((tsec[m] - 1.0) / 1.0)
-m = (tsec >= 14.0) & (tsec < 16.0)
-cut[m] = 2600
-m = (tsec >= 22.5) & (tsec < 23.75)
-cut[m] = 18000 * (650 / 18000) ** ((tsec[m] - 22.5) / 1.25)
-cut[tsec >= 23.75] = 650
+b9 = min(BREAK) * BAR
+cut[(tsec >= b9) & (tsec < b9 + BAR)] = 2600
+c0, c1 = DUR - 1.5, DUR - 0.25
+m = (tsec >= c0) & (tsec < c1)
+cut[m] = 18000 * (650 / 18000) ** ((tsec[m] - c0) / (c1 - c0))
+cut[tsec >= c1] = 650
 music_dry = tv_filter(music_dry, cut, "lp", q=0.8)
 
 # the half-beat drop-out before "$0"
@@ -384,23 +389,31 @@ gate[i1:i1 + r] = np.linspace(0, 1, r)
 music_dry *= gate
 
 # ---------- sound design cues ----------
+first = TL["transitions"][0]
+place(sfx, riser(1.0), first["t"] + first["d"] - 1.0, 0.22)
+place(sfx, reverse_crash(0.5), first["t"], 0.16)
+for k, m in enumerate([89, 93, 96, 101]):  # glint across the clean glass
+    place(sfx, bell(m, 0.7, 2.0, 1.4), C["glint"] + k * 0.03, 0.06, -0.6 + 0.4 * k)
+place(sfx, pop(420, 1200), C["toast"], 0.18, 0.0)  # "Screen cleaned" notification
+place(sfx, bell(88, 0.7, 2.0, 1.0), C["toast"] + 0.03, 0.08, 0.0)
+place(sfx, bell(93, 0.7, 2.0, 1.0), C["toast"] + 0.12, 0.06, 0.0)
 for k, ts in enumerate(C["strikes"]):  # chores deleted: swipe + a blip that climbs
     place(sfx, swipe(), ts, 0.32, -0.3)
     place(sfx, blip([79, 81, 84, 86][k]), ts + 0.02, 0.16, 0.2)
-place(sfx, riser(1.0), 1.0, 0.22)
-place(sfx, reverse_crash(0.5), 1.5, 0.16)
 for hit in C["punches"]:
     place(sfx, impact(), hit, 0.62)
     place(verb_send, impact(), hit, 0.25)
 for tr in TL["transitions"]:
-    if tr["type"] == "squeegee":
-        place(sfx, squeegee(tr["d"], tr.get("dir", 1)), tr["t"], 0.34)
+    if tr["type"] == "squeegee":  # the first wipe drags the hair off the glass: give its squeak more presence
+        place(sfx, squeegee(tr["d"], tr.get("dir", 1)), tr["t"], 0.5 if tr is first else 0.34)
     elif tr["type"] == "house":
         place(sfx, whoosh(0.55, 200, 2400, 0.7), tr["t"] - 0.05, 0.32, 0.0)
     elif tr["type"] == "push":
         place(sfx, whoosh(0.45, 400, 6000, 0.6), tr["t"], 0.3, 0.0)
     elif tr["type"] == "zoom":
         place(sfx, whoosh(0.5, 300, 7000, 0.85), tr["t"] - 0.4, 0.34, 0.0)
+    elif tr["type"] == "fade":
+        place(sfx, whoosh(0.6, 2500, 400, 0.3), tr["t"], 0.14, 0.0)
 for k, ts in enumerate(C["chips"]):  # calculator taps
     place(sfx, click(2000 + 200 * k), ts, 0.22, 0.25)
 for ts in ticker(C["odometer"], 0.62, 13):  # odometer
@@ -414,20 +427,22 @@ for k, ts in enumerate(C["ticks"]):  # standard checklist: climbing checks
 place(sfx, squeegee(0.5, 1) * 0.9, C["spotWipe"], 0.3)
 for k, m in enumerate([77, 81, 84, 89]):  # sparkle on the clean "24h"
     place(sfx, bell(m + 12, 0.9), C["spotWipe"] + 0.5 + k * 0.045, 0.06, -0.4 + 0.27 * k)
-place(sfx, pop(380, 1100), C["bubbleOut"], 0.2, 0.35)
-for k in range(5):
-    place(sfx, click(1400), C["typing"] + 0.09 * k, 0.025, -0.3)
-place(sfx, bell(86, 0.8, 2.0, 1.0), C["bubbleIn"], 0.11, -0.3)
+for k in range(7):  # the Mon-Sun strip lands
+    place(sfx, click(2600 + 120 * k), C["days"] + k * 0.045, 0.05, -0.6 + 0.2 * k)
+place(sfx, click(1800), C["dayTap"], 0.24, -0.2)  # tap Tuesday
+place(sfx, pop(360, 980), C["dayTap"] + 0.01, 0.12, -0.2)
+place(sfx, click(2100), C["slot"], 0.2, 0.0)
+place(sfx, pop(300, 900), C["access"], 0.14, 0.1)
+place(sfx, bell(86, 0.8, 2.0, 1.0), C["bubbleIn"], 0.11, -0.3)  # text received
 place(sfx, bell(93, 0.8, 2.0, 1.0), C["bubbleIn"] + 0.09, 0.08, -0.3)
-for k, m in enumerate([77, 81, 84]):
-    place(sfx, bell(m + 12, 0.8, 2.0, 1.0), C["confirmed"] + k * 0.06, 0.07, -0.2 + 0.2 * k)
-place(sfx, riser(1.0), 18.0, 0.2)
-place(sfx, reverse_crash(0.45), 18.55, 0.15)
+place(sfx, riser(1.0), offer - 1.0, 0.2)
+place(sfx, reverse_crash(0.45), offer - 0.45, 0.15)
 for ts in ticker(C["offerCount"], 0.5, 9):
     place(sfx, click(3000), ts, 0.06, -0.1)
 for k, m in enumerate([77, 81, 84, 88, 89]):  # end card shimmer as the logo builds
     place(sfx, bell(m + 12, 1.1), C["logo"] + 0.15 + k * 0.05, 0.07, -0.5 + 0.25 * k)
 place(sfx, pop(300, 900), C["cta"], 0.18, 0.0)
+place(sfx, click(2400), C["hours"], 0.06, 0.2)
 
 # ---------- mix ----------
 ir_t = tt(2.2)
