@@ -16,6 +16,9 @@ vm.runInNewContext(fs.readFileSync(path.join(ROOT, "js/config.js"), "utf8"), san
 const C = sandbox.window.NR_CONFIG;
 const B = C.business;
 const SITE = C.siteUrl.replace(/\/$/, "");
+const BRAND_SHORT = "Nest & Rest";
+// Scripts are deferred on the live site so they never block the first paint. The preview inlines a flag between them, so it loads them in order instead.
+const DEFER = PREVIEW_DIR ? "" : " defer";
 const YEAR = new Date().getFullYear();
 
 /* ---------- helpers ---------- */
@@ -128,10 +131,12 @@ function header(L, opts = {}) {
 `;
 }
 
+// Only profiles that exist are shown: an icon that goes nowhere looks broken.
 function socialLinks(cls = "") {
+  const links = [["facebook", B.facebookUrl, "Facebook"], ["instagram", B.instagramUrl, "Instagram"]].filter((x) => x[1]);
+  if (!links.length) return "";
   return `<div class="social ${cls}">
-    <a class="social-link" data-social="facebook" aria-label="${esc(B.name)} on Facebook" aria-disabled="true"><svg class="ic" aria-hidden="true"><use href="#i-facebook"/></svg></a>
-    <a class="social-link" data-social="instagram" aria-label="${esc(B.name)} on Instagram" aria-disabled="true"><svg class="ic" aria-hidden="true"><use href="#i-instagram"/></svg></a>
+    ${links.map(([k, url, label]) => `<a class="social-link" href="${esc(url)}" target="_blank" rel="noopener" aria-label="${esc(B.name)} on ${label}"><svg class="ic" aria-hidden="true"><use href="#i-${k}"/></svg></a>`).join("\n    ")}
   </div>`;
 }
 
@@ -227,7 +232,7 @@ function stepper(id, label, value, attr) {
       <span class="stepper-label" id="${id}-label">${label}</span>
       <div class="stepper-ctl">
         <button type="button" data-dec aria-label="Fewer ${label.toLowerCase()}"><svg class="ic"><use href="#i-minus"/></svg></button>
-        <output id="${id}" aria-labelledby="${id}-label" aria-live="polite">${value}</output>
+        <output id="${id}" aria-labelledby="${id}-label">${value}</output>
         <button type="button" data-inc aria-label="More ${label.toLowerCase()}"><svg class="ic"><use href="#i-plus"/></svg></button>
       </div>
     </div>`;
@@ -237,7 +242,7 @@ function assurances() {
   const items = [
     ["i-shield", "Free re-clean within 24 hours"],
     ["i-card", "Pay after your clean"],
-    ["i-cal", "Saturday appointments"],
+    ["i-cal", "Open 7 days, evenings too"],
     ["i-pin", "Scarborough & North York"]
   ];
   return `<ul class="assure" data-assure>${items.map(([i, t]) => `<li><svg class="ic" aria-hidden="true"><use href="#${i}"/></svg>${esc(t)}</li>`).join("")}</ul>`;
@@ -329,13 +334,13 @@ const placeSchema = (a) => ({ "@type": "Place", name: a.name + ", Toronto, ON", 
 function businessSchema() {
   return {
     "@context": "https://schema.org", "@type": "LocalBusiness", "@id": SITE + "/#business",
-    name: B.name, slogan: B.tagline, description: "Home cleaning in Scarborough and North York, Toronto: regular, deep, move-in and move-out cleaning with an exact price before you book and payment after the clean.",
+    name: B.name, slogan: B.tagline, description: "Home cleaning in Scarborough and North York, Toronto: regular, deep, move-in and move-out cleaning with a clear price before you book and payment after the clean.",
     url: SITE + "/", logo: SITE + "/assets/logo.png", image: [SITE + "/assets/og-image.png", SITE + "/assets/icon-512.png"],
     telephone: B.phone, email: B.email, priceRange: "$$", currenciesAccepted: C.currency, paymentAccepted: "Cash, Credit Card, Debit Card, Interac e-Transfer",
     founder: { "@type": "Person", name: B.owner, jobTitle: "Founder & Owner", image: SITE + "/assets/founder-mann-patel.jpg" },
     address: { "@type": "PostalAddress", addressLocality: "Toronto", addressRegion: B.region, addressCountry: "CA" },
     areaServed: C.areas.map(placeSchema),
-    openingHoursSpecification: [{ "@type": "OpeningHoursSpecification", dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"], opens: "08:00", closes: "18:00" }],
+    openingHoursSpecification: [{ "@type": "OpeningHoursSpecification", dayOfWeek: C.openDays.map((d) => ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][d]), opens: C.opens, closes: C.closes }],
     ...([B.facebookUrl, B.instagramUrl].filter(Boolean).length ? { sameAs: [B.facebookUrl, B.instagramUrl].filter(Boolean) } : {}),
     makesOffer: allServices.map((s) => ({
       "@type": "Offer", itemOffered: { "@type": "Service", name: s.name, url: SITE + "/services/" + s.slug + "/" },
@@ -351,23 +356,28 @@ function websiteSchema() {
 function page({ depth, pathOut, title, description, body, schemas = [], pageType, minimal = false, noBar = false, noindex = false }) {
   const L = linker(depth);
   const canonical = SITE + "/" + pathOut.replace(/index\.html$/, "");
+  // Titles end in the short brand name so Google doesn't cut them off.
+  const shortTitle = title.replace(" | " + B.name, " | " + BRAND_SHORT);
   const ld = schemas.filter(Boolean).map((s) => `<script type="application/ld+json">${JSON.stringify(s)}</script>`).join("\n");
-  const headInner = `<title>${esc(title)}</title>
-<meta name="claude:viewport-fit-sides" content="cover">
+  const headInner = `<title>${esc(shortTitle)}</title>
 <meta name="description" content="${esc(description)}">
 ${noindex ? '<meta name="robots" content="noindex">\n' : ""}<meta name="theme-color" content="#F7F4EE">
 <link rel="canonical" href="${canonical}">
 <meta property="og:type" content="website">
 <meta property="og:locale" content="en_CA">
 <meta property="og:site_name" content="${esc(B.name)}">
-<meta property="og:title" content="${esc(title)}">
+<meta property="og:title" content="${esc(shortTitle)}">
 <meta property="og:description" content="${esc(description)}">
 <meta property="og:url" content="${canonical}">
 <meta property="og:image" content="${SITE}/assets/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="${esc(B.name)} logo">
+<meta property="og:image:alt" content="${esc(B.name)}: ${esc(B.tagline)} Home cleaning in Scarborough and North York.">
 <meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="${esc(shortTitle)}">
+<meta name="twitter:description" content="${esc(description)}">
+<meta name="twitter:image" content="${SITE}/assets/og-image.png">
+<link rel="manifest" href="${L("site.webmanifest")}">
 <link rel="icon" type="image/png" sizes="48x48" href="${L("assets/favicon-48.png")}">
 <link rel="apple-touch-icon" href="${L("assets/apple-touch-icon.png")}">
 <link rel="preload" href="${L("assets/fonts/montserrat.woff2")}" as="font" type="font/woff2" crossorigin>
@@ -383,9 +393,9 @@ ${body(L)}
 ${minimal ? "" : footer(L)}
 ${noBar ? "" : actionBar(L)}
 <div class="toast" data-toast role="status" aria-live="polite" hidden></div>
-<script src="${L("js/config.js")}"></script>
+<script${DEFER} src="${L("js/config.js")}"></script>
 ${PREVIEW_DIR ? "<script>window.NR_CONFIG.preview = true;</script>" : ""}
-<script src="${L("js/site.js")}"></script>`;
+<script${DEFER} src="${L("js/site.js")}"></script>`;
   const isPreviewRoot = PREVIEW_DIR && pathOut === "index.html";
   const html = isPreviewRoot
     ? `${headInner}\n<div class="page" data-page="${pageType}" data-root="${L("")}">${bodyInner}</div>\n`
@@ -415,15 +425,19 @@ const examplePrice = price("regular", example.beds, example.baths);
 
 urls.push(page({
   depth: 0, pathOut: "index.html", pageType: "home",
-  title: `Home Cleaning in Scarborough & North York from ${money(C.services.regular.base)} | ${B.name}`,
-  description: "Meticulous home cleaning in Scarborough and North York, Toronto. See your exact price in seconds, book online in two minutes, pay after your clean.",
+  title: `Home Cleaning in Scarborough & North York | ${B.name}`,
+  description: `Careful home cleaning in Scarborough and North York, Toronto, from ${money(C.services.regular.base)}. See your price in seconds, book in two minutes, pay after your clean.`,
   schemas: [businessSchema(), websiteSchema(), homeFaq.schema],
   body: (L) => `
 <section class="hero">
   <div class="wrap hero-grid">
     <div class="hero-copy">
       <h1><span class="h1-kicker">Home cleaning in Scarborough &amp; North York</span>We clean.<br><span class="h1-line2">You rest.</span></h1>
-      <p class="lede">Life in Scarborough and North York doesn't slow down. Between long workdays, school pickups and a home that's lived in every day, cleaning always ends up on your weekend. Nest &amp; Rest takes it off your list with careful, thorough cleaning, done the same way every visit, so you come home to a place where you can actually rest.</p>
+      <p class="lede">Careful, thorough cleaning for busy households in Scarborough and North York, done the same way every visit. See your price, book in two minutes, and pay after the clean.</p>
+      <a class="hero-owner" href="${L("#founder")}">
+        <picture><source type="image/webp" srcset="${L("assets/founder-mann-patel-600.webp")}"><img src="${L("assets/founder-mann-patel-600.jpg")}" alt="" width="56" height="56" decoding="async"></picture>
+        <span><strong>Cleaned by ${esc(B.owner)}, owner.</strong> Every clean carries my name.</span>
+      </a>
       <p class="hero-talk">Prefer to talk? <a data-tel href="tel:${B.phone}">Call or text <span data-phone-text>${esc(B.phoneDisplay)}</span></a></p>
     </div>
     <div class="hero-pricer">${pricer(L)}</div>
@@ -488,8 +502,8 @@ urls.push(page({
       <h2>Booked in two minutes. Confirmed by text.</h2>
     </div>
     <ol class="steps-3">
-      <li><h3>See your price</h3><p>Your exact price from your home size and the extras you choose. No estimate visit needed.</p></li>
-      <li><h3>Choose a time</h3><p>Pick a day and an arrival window, Monday to Saturday.</p></li>
+      <li><h3>See your price</h3><p>Your price from your home size and the extras you choose. No estimate visit needed.</p></li>
+      <li><h3>Choose a time</h3><p>Pick a day and an arrival window, any day of the week, evenings included.</p></li>
       <li><h3>We confirm</h3><p>${esc(B.ownerFirstName)} confirms by text <span data-reply>${esc(B.replyPromise)}</span>. You pay after the clean.</p></li>
     </ol>
     <div class="center-cta"><a class="btn btn-primary" href="${L("book/")}" data-track="book_click">Book your clean</a></div>
@@ -577,9 +591,10 @@ ${finalCta(L)}
 urls.push(page({
   depth: 1, pathOut: "book/index.html", pageType: "book", minimal: true, noBar: true,
   title: `Book a Clean | ${B.name}`,
-  description: "Book your home cleaning online in about two minutes. See your exact price, choose a day and arrival window, and pay after the clean.",
+  description: "Book your home cleaning online in about two minutes. See your price, choose a day and arrival window, and pay after the clean.",
   body: (L) => `
 <section class="book">
+  <noscript><div class="wrap"><p class="form-error">Booking needs JavaScript. Please call or text <a href="tel:${B.phone}">${esc(B.phoneDisplay)}</a> and we'll book you in.</p></div></noscript>
   <div class="wrap">
     <div class="book-head">
       <h1>Book your clean</h1>
@@ -629,7 +644,7 @@ urls.push(page({
               <label class="check"><input type="checkbox" id="flex-date" data-flex> I'm flexible: offer me the earliest opening</label>
             </div>
             <div class="field"><span class="field-label" id="slot-label">Arrival window</span>
-              <div class="seg" role="radiogroup" aria-labelledby="slot-label">
+              <div class="seg seg-slots" role="radiogroup" aria-labelledby="slot-label">
                 ${C.timeSlots.map((t) => `<label><input type="radio" name="slot" value="${t.id}"><span>${esc(t.label)}<small>${esc(t.time)}</small></span></label>`).join("")}
               </div>
             </div>
@@ -727,7 +742,7 @@ for (const k of svcKeys) {
   urls.push(page({
     depth: 2, pathOut: `services/${s.slug}/index.html`, pageType: "service",
     title: `${s.name} in Scarborough & North York | ${B.name}`,
-    description: metaDesc(`${s.name} in Scarborough and North York from ${money(s.base)}.`, s.short, "Exact price online, pay after the clean."),
+    description: metaDesc(`${s.name} in Scarborough and North York from ${money(s.base)}.`, s.short, "Price online, pay after the clean."),
     schemas: [
       { "@context": "https://schema.org", "@type": "Service", name: s.name, serviceType: s.name, description: s.intro, provider: { "@id": SITE + "/#business" }, areaServed: C.areas.map(placeSchema), offers: { "@type": "Offer", priceCurrency: C.currency, price: s.base, description: "Starting price for a 1-bedroom, 1-bathroom home" } },
       crumbSchema(trail), fq.schema
@@ -879,7 +894,7 @@ ${finalCta(L, "Prefer to talk it through?", "Call or text and we'll answer your 
         <div><dt>Move-out</dt><dd>From <span data-from="move">${money(C.services.move.base)}</span></dd></div>
       </dl>
     </div>
-    <div class="hero-pricer">${pricer(L, "regular", "Price your home exactly")}</div>
+    <div class="hero-pricer">${pricer(L, "regular", "Price your home")}</div>
   </div>
 </section>
 
@@ -967,7 +982,7 @@ ${finalCta(L, "Prefer to talk it through?", "Call or text and we'll answer your 
   </div>
 </section>
 ${fq.html}
-${finalCta(L, "See your exact price.", "Book in two minutes. No payment until it's done.")}`
+${finalCta(L, "See your price.", "Book in two minutes. No payment until it's done.")}`
   }));
 }
 
@@ -990,7 +1005,7 @@ for (const a of C.areas) {
   urls.push(page({
     depth: 2, pathOut: `areas/${a.slug}/index.html`, pageType: "area",
     title: `House Cleaning in ${a.name}, Toronto | ${B.name}`,
-    description: metaDesc(`House cleaning in ${a.name}: ${a.neighbourhoods.slice(0, 4).join(", ")} and more.`, "See your exact price in seconds, book online in two minutes, pay after your clean.", "Book online, pay after your clean."),
+    description: metaDesc(`House cleaning in ${a.name}: ${a.neighbourhoods.slice(0, 4).join(", ")} and more.`, "See your price in seconds, book in two minutes, pay after your clean.", "Book online, pay after your clean."),
     schemas: [crumbSchema(trail), fq.schema, { "@context": "https://schema.org", "@type": "Service", name: `House cleaning in ${a.name}`, serviceType: "House cleaning", provider: { "@id": SITE + "/#business" }, areaServed: placeSchema(a) }],
     body: (L) => `
 <section class="hero hero-sub">
@@ -1316,6 +1331,7 @@ if (!PREVIEW_DIR) {
 <html lang="en-CA"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
 <title>Page not found | ${esc(B.name)}</title>
+<link rel="icon" type="image/png" sizes="48x48" href="${L404("assets/favicon-48.png")}">
 <link rel="stylesheet" href="${L404("css/site.css")}"></head>
 <body data-page="404"><main class="section"><div class="wrap narrow">
 <a class="brand" href="${L404()}"><img src="${L404("assets/logo.png")}" alt="${esc(B.name)}" width="900" height="195" style="height:40px;width:auto"></a>

@@ -17,8 +17,8 @@ window.NR_CONFIG = {
     email: "nestnrestcleaning@gmail.com",
     base: "Scarborough, Toronto",
     region: "ON",
-    hours: "Monday to Saturday, 8am to 6pm",
-    hoursShort: "Mon–Sat, 8–6",
+    hours: "Every day, 9am to 11pm",
+    hoursShort: "Daily, 9am–11pm",
     areaLabel: "Scarborough & North York",
     replyPromise: "within 2 hours during business hours",
     // Paste your Google Business Profile review link here once it exists.
@@ -146,7 +146,7 @@ window.NR_CONFIG = {
         { id: "size", label: "Home size", type: "select", options: ["3,000 to 5,000 sq ft", "5,000 to 8,000 sq ft", "Over 8,000 sq ft", "Not sure"] },
         { id: "frequency", label: "How often", type: "select", options: ["Weekly", "Every 2 weeks", "Monthly", "One time to start"] },
         { id: "surfaces", label: "Special surfaces", type: "select", options: ["Natural stone or marble", "Hardwood throughout", "Lots of glass", "A mix of the above", "None in particular"] },
-        { id: "walkthrough", label: "Best time for a walkthrough", type: "select", options: ["Weekday morning", "Weekday afternoon", "Saturday", "Flexible"] }
+        { id: "walkthrough", label: "Best time for a walkthrough", type: "select", options: ["Weekday morning", "Weekday afternoon", "Weekday evening", "Weekend", "Flexible"] }
       ],
       replyPromise: "within one business day"
     },
@@ -170,7 +170,7 @@ window.NR_CONFIG = {
         { id: "size", label: "Approximate size", type: "select", options: ["Under 1,000 sq ft", "1,000 to 2,500 sq ft", "2,500 to 5,000 sq ft", "Over 5,000 sq ft"] },
         { id: "washrooms", label: "Washrooms", type: "select", options: ["1", "2", "3", "4 or more"] },
         { id: "frequency", label: "How often", type: "select", options: ["One time", "Weekly", "2 to 3 times a week", "Every weekday", "Every 2 weeks"] },
-        { id: "when", label: "Best time to clean", type: "select", options: ["Before we open", "During business hours", "After we close", "Saturdays"] }
+        { id: "when", label: "Best time to clean", type: "select", options: ["Before we open", "During business hours", "After we close", "Weekends"] }
       ],
       replyPromise: "within one business day"
     }
@@ -196,11 +196,13 @@ window.NR_CONFIG = {
   },
 
   timeSlots: [
-    { id: "morning", label: "Morning", time: "8 to 11am", start: 8 },
-    { id: "midday", label: "Midday", time: "11am to 2pm", start: 11 },
-    { id: "afternoon", label: "Afternoon", time: "2 to 5pm", start: 14 }
+    { id: "morning", label: "Morning", time: "9am to 12pm", start: 9 },
+    { id: "midday", label: "Midday", time: "12 to 3pm", start: 12 },
+    { id: "afternoon", label: "Afternoon", time: "3 to 6pm", start: 15 },
+    { id: "evening", label: "Evening", time: "6 to 8pm", start: 18 }
   ],
-  openDays: [1, 2, 3, 4, 5, 6],   // 0 = Sunday
+  opens: "09:00", closes: "23:00",
+  openDays: [0, 1, 2, 3, 4, 5, 6],   // 0 = Sunday
   daysAhead: 21,
 
   /* Where we clean, by postal code (first 3 characters). Requests from anywhere else are declined politely. */
@@ -219,7 +221,7 @@ window.NR_CONFIG = {
       intro: "Scarborough is home. We're based here, so Scarborough households get our widest choice of days and arrival windows." },
     { slug: "north-york", name: "North York", wiki: "https://en.wikipedia.org/wiki/North_York",
       neighbourhoods: ["Willowdale", "Don Mills", "York Mills", "Bayview Village", "Newtonbrook", "Bathurst Manor", "Downsview", "Parkwoods", "Flemingdon Park", "Hillcrest Village", "Lawrence Manor", "Bedford Park", "Victoria Village"],
-      intro: "From Willowdale condos to family homes in Don Mills and York Mills, we clean across North York, Monday to Saturday." }
+      intro: "From Willowdale condos to family homes in Don Mills and York Mills, we clean across North York, seven days a week." }
   ],
 
   /* Room-by-room checklist: [task, regular, deep, move] with "yes", "add" (add-on) or "". */
@@ -320,7 +322,7 @@ window.NR_CONFIG = {
       { title: "Small promises, kept, become a reputation.", text: "Your price before you book. Payment after it's done. Every rating published. Kept every visit, these are worth more than any advertisement." }
     ],
     always: [
-      "Your exact price before you book",
+      "Your price before you book, confirmed before we start",
       "Nothing to pay until the clean is done",
       "You'll know who is coming, by name",
       "A free re-clean if anything isn't right",
