@@ -127,7 +127,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 body.menu-open { overflow: hidden; }
 
 /* Hero */
-.hero { padding-block: clamp(24px, 7vw, 96px) clamp(48px, 6vw, 72px); position: relative; }
+.hero { padding-block: clamp(24px, 3.4vw, 48px) clamp(48px, 6vw, 72px); position: relative; }
 .hero-grid { display: grid; gap: clamp(40px, 6vw, 72px); }
 .hero-copy { display: grid; gap: clamp(18px, 3vw, 24px); align-content: start; min-width: 0; }
 .hero h1 .h1-line2 { color: var(--blue); }
@@ -144,7 +144,7 @@ body.menu-open { overflow: hidden; }
 .pricer, .quote-form, .quote-done { background: var(--paper); border: 1px solid var(--line); border-radius: var(--r); box-shadow: var(--shadow); padding: clamp(22px, 4vw, 34px); display: grid; gap: 18px; min-width: 0; }
 .pricer-head { display: grid; gap: 4px; }
 .pricer-title { font-family: var(--display); font-weight: 800; font-size: 1.15rem; letter-spacing: -0.01em; }
-.pricer-offer { font-size: 0.86rem; color: var(--leaf-ink); font-weight: 600; }
+.pricer-offer { justify-self: start; font-size: 0.84rem; color: var(--leaf-ink); font-weight: 700; background: rgba(125, 194, 67, 0.16); border-radius: 10px; padding: 5px 12px; line-height: 1.35; }
 .pricer-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .pricer-result { display: grid; gap: 2px; padding-top: 18px; border-top: 1px solid var(--line); }
 .pricer-amount { font-family: var(--display); font-weight: 800; font-size: clamp(2.6rem, 9vw, 3.4rem); line-height: 1; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
@@ -639,4 +639,29 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--i
   [data-page="home"] .hero .lede, .page[data-page="home"] .hero .lede { animation: rise .9s .12s cubic-bezier(.2, .7, .2, 1) both; }
   [data-page="home"] .hero-pricer, .page[data-page="home"] .hero-pricer { animation: rise .9s .24s cubic-bezier(.2, .7, .2, 1) both; }
   @keyframes rise { from { transform: translateY(14px); opacity: .35; } to { transform: none; opacity: 1; } }
+}
+
+/* Owner chip in the hero: a real face and name next to the first price */
+.hero-owner { display: flex; align-items: center; gap: 14px; max-width: 44ch; text-decoration: none; font-size: 0.95rem; line-height: 1.4; color: var(--muted); }
+.hero-owner picture { width: 56px; height: 56px; border-radius: 50%; overflow: hidden; flex: none; box-shadow: 0 0 0 2px var(--paper), 0 0 0 3px var(--line-2); }
+.hero-owner img { display: block; width: 120px; max-width: none; height: auto; margin: -11px 0 0 -32px; }
+.hero-owner strong { color: var(--ink); font-weight: 700; }
+.hero-owner:hover span { text-decoration: underline; text-underline-offset: 4px; }
+
+/* Four arrival windows: two by two on phones, a single row from 560px */
+.seg-slots { grid-template-columns: repeat(2, 1fr); }
+.seg-slots label:nth-child(odd) { border-left: 0; }
+.seg-slots label:nth-child(n+3) { border-top: 1px solid var(--field); }
+@media (min-width: 560px) {
+  .seg-slots { grid-template-columns: repeat(4, 1fr); }
+  .seg-slots label:nth-child(odd) { border-left: 1px solid var(--field); }
+  .seg-slots label:first-child { border-left: 0; }
+  .seg-slots label:nth-child(n+3) { border-top: 0; }
+}
+
+/* Touch targets: give text links on phones at least a 44px tap area without changing how they look */
+@media (pointer: coarse) {
+  .text-link, .hero-talk a, .site-footer li a, .legal a, .field-note a, .privacy-note a, .legal-body a, .legal-toc a { position: relative; }
+  .text-link::after, .hero-talk a::after, .site-footer li a::after, .legal a::after, .field-note a::after, .privacy-note a::after, .legal-body a::after, .legal-toc a::after { content: ""; position: absolute; inset: -12px -4px; }
+  .site-footer li, .legal li { margin-block: 4px; }
 }

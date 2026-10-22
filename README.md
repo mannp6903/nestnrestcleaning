@@ -25,7 +25,8 @@ Each page has its own title, description, social-share card and structured data 
 - **Adding a service or area, or changing page wording:** edit `js/config.js` or `tools/build.mjs`, then run `node tools/build.mjs` to regenerate the pages.
 - **Trust badges** (insured, eco-friendly, police-checked) are off. Switch each on in `badges` only once it's true and documented.
 - **Service area:** postal-code prefixes for Scarborough and North York are in `serviceArea`. Requests from anywhere else are declined politely.
-- **Social icons:** paste your Facebook and Instagram profile URLs into `business.facebookUrl` / `business.instagramUrl` and run the build; the icons become links and are added to Google's business data.
+- **Social icons:** hidden until you paste your Facebook and Instagram profile URLs into `business.facebookUrl` / `business.instagramUrl`. Run the build and the icons appear as links and are added to Google's business data.
+- **Hours and arrival windows:** open every day, 9am to 11pm. Change `business.hours`, `openDays`, `opens`/`closes` and `timeSlots` in `js/config.js`, then run the build (the structured data for Google comes from the same settings).
 - **Policies:** cancellation notice, late fee, re-clean and damage windows are in `policies`. Have a lawyer review the Privacy Policy and Service Policies.
 - **Reviews:** add real reviews to `reviews` in `js/config.js`; a reviews section then appears on the home page.
 - **Vision page:** all its wording is in `vision` in `js/config.js`; run the build after editing. Every "always" and "never" is a public promise, so keep each one true.

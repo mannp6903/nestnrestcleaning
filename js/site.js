@@ -589,7 +589,7 @@
       var ics = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Nest & Rest Cleaning//Booking//EN", "BEGIN:VEVENT",
         "UID:" + last.ref + "@nestandrestcleaning", "DTSTAMP:" + new Date().toISOString().replace(/[-:]/g, "").split(".")[0] + "Z",
         "DTSTART;TZID=America/Toronto:" + d + "T" + pad(start) + "0000",
-        "DTEND;TZID=America/Toronto:" + d + "T" + pad(Math.min(21, start + Math.ceil(last.hours + 3))) + "0000",
+        "DTEND;TZID=America/Toronto:" + d + "T" + pad(Math.min(23, start + Math.ceil(last.hours + 3))) + "0000",
         "SUMMARY:Nest & Rest: " + last.service + " (requested)", "LOCATION:" + last.address.replace(/[,;]/g, "\\$&"),
         "DESCRIPTION:Booking request " + last.ref + ". We'll confirm by text. " + B.phoneDisplay, "STATUS:TENTATIVE", "END:VEVENT", "END:VCALENDAR"].join("\r\n");
       var a = document.createElement("a");

@@ -3,22 +3,25 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Book a Clean | Nest &amp; Rest Cleaning</title>
-<meta name="claude:viewport-fit-sides" content="cover">
-<meta name="description" content="Book your home cleaning online in about two minutes. See your exact price, choose a day and arrival window, and pay after the clean.">
+<title>Book a Clean | Nest &amp; Rest</title>
+<meta name="description" content="Book your home cleaning online in about two minutes. See your price, choose a day and arrival window, and pay after the clean.">
 <meta name="theme-color" content="#F7F4EE">
 <link rel="canonical" href="https://nestnrestcleaning.com/book/">
 <meta property="og:type" content="website">
 <meta property="og:locale" content="en_CA">
 <meta property="og:site_name" content="Nest &amp; Rest Cleaning">
-<meta property="og:title" content="Book a Clean | Nest &amp; Rest Cleaning">
-<meta property="og:description" content="Book your home cleaning online in about two minutes. See your exact price, choose a day and arrival window, and pay after the clean.">
+<meta property="og:title" content="Book a Clean | Nest &amp; Rest">
+<meta property="og:description" content="Book your home cleaning online in about two minutes. See your price, choose a day and arrival window, and pay after the clean.">
 <meta property="og:url" content="https://nestnrestcleaning.com/book/">
 <meta property="og:image" content="https://nestnrestcleaning.com/assets/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="Nest &amp; Rest Cleaning logo">
+<meta property="og:image:alt" content="Nest &amp; Rest Cleaning: We clean. You rest. Home cleaning in Scarborough and North York.">
 <meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Book a Clean | Nest &amp; Rest">
+<meta name="twitter:description" content="Book your home cleaning online in about two minutes. See your price, choose a day and arrival window, and pay after the clean.">
+<meta name="twitter:image" content="https://nestnrestcleaning.com/assets/og-image.png">
+<link rel="manifest" href="../site.webmanifest">
 <link rel="icon" type="image/png" sizes="48x48" href="../assets/favicon-48.png">
 <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
 <link rel="preload" href="../assets/fonts/montserrat.woff2" as="font" type="font/woff2" crossorigin>
@@ -60,6 +63,7 @@
 <main id="main">
 
 <section class="book">
+  <noscript><div class="wrap"><p class="form-error">Booking needs JavaScript. Please call or text <a href="tel:+16479786903">647 978 6903</a> and we'll book you in.</p></div></noscript>
   <div class="wrap">
     <div class="book-head">
       <h1>Book your clean</h1>
@@ -91,7 +95,7 @@
       <span class="stepper-label" id="b-beds-label">Bedrooms</span>
       <div class="stepper-ctl">
         <button type="button" data-dec aria-label="Fewer bedrooms"><svg class="ic"><use href="#i-minus"/></svg></button>
-        <output id="b-beds" aria-labelledby="b-beds-label" aria-live="polite">1</output>
+        <output id="b-beds" aria-labelledby="b-beds-label">1</output>
         <button type="button" data-inc aria-label="More bedrooms"><svg class="ic"><use href="#i-plus"/></svg></button>
       </div>
     </div>
@@ -99,7 +103,7 @@
       <span class="stepper-label" id="b-baths-label">Bathrooms</span>
       <div class="stepper-ctl">
         <button type="button" data-dec aria-label="Fewer bathrooms"><svg class="ic"><use href="#i-minus"/></svg></button>
-        <output id="b-baths" aria-labelledby="b-baths-label" aria-live="polite">1</output>
+        <output id="b-baths" aria-labelledby="b-baths-label">1</output>
         <button type="button" data-inc aria-label="More bathrooms"><svg class="ic"><use href="#i-plus"/></svg></button>
       </div>
     </div>
@@ -123,8 +127,8 @@
               <label class="check"><input type="checkbox" id="flex-date" data-flex> I'm flexible: offer me the earliest opening</label>
             </div>
             <div class="field"><span class="field-label" id="slot-label">Arrival window</span>
-              <div class="seg" role="radiogroup" aria-labelledby="slot-label">
-                <label><input type="radio" name="slot" value="morning"><span>Morning<small>8 to 11am</small></span></label><label><input type="radio" name="slot" value="midday"><span>Midday<small>11am to 2pm</small></span></label><label><input type="radio" name="slot" value="afternoon"><span>Afternoon<small>2 to 5pm</small></span></label>
+              <div class="seg seg-slots" role="radiogroup" aria-labelledby="slot-label">
+                <label><input type="radio" name="slot" value="morning"><span>Morning<small>9am to 12pm</small></span></label><label><input type="radio" name="slot" value="midday"><span>Midday<small>12 to 3pm</small></span></label><label><input type="radio" name="slot" value="afternoon"><span>Afternoon<small>3 to 6pm</small></span></label><label><input type="radio" name="slot" value="evening"><span>Evening<small>6 to 8pm</small></span></label>
               </div>
             </div>
           </fieldset>
@@ -203,8 +207,8 @@
 
 
 <div class="toast" data-toast role="status" aria-live="polite" hidden></div>
-<script src="../js/config.js"></script>
+<script defer src="../js/config.js"></script>
 
-<script src="../js/site.js"></script>
+<script defer src="../js/site.js"></script>
 </body>
 </html>
