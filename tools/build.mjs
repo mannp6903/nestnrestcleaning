@@ -948,6 +948,7 @@ urls.push(page({
                   <label><input type="radio" name="pets" value="Cat or other"><span>Cat / other</span></label>
                 </div>
               </div>
+              <div class="field span-2"><label for="f-referrer">Referred by a client? <span class="opt">optional, their first and last name</span></label><input id="f-referrer" name="referrer" autocomplete="off" autocapitalize="words" placeholder="First and last name"><small class="field-hint">We'll give them $${C.offers.referral} off their next clean once yours is done and paid.</small></div>
               <div class="field span-2"><label for="f-notes">Notes <span class="opt">optional</span></label><textarea id="f-notes" name="notes" rows="3" placeholder="Parking, rooms to focus on, products to avoid"></textarea><small class="field-hint">Please don't type door or lockbox codes here. We'll ask for them by text once your booking is confirmed.</small></div>
               <div class="field span-2"><span class="field-label" id="pref-label">Confirm by</span>
                 <div class="seg${B.whatsapp ? " seg-slots" : ""}" role="radiogroup" aria-labelledby="pref-label">
@@ -995,7 +996,7 @@ urls.push(page({
             <a class="btn btn-ghost" data-sms-booking href="#">${ic("i-sms")} Text us these details</a>
           </div>
           <div class="done-refer">
-            <p><strong>Know someone who'd love this?</strong> When a friend books their first clean, you both get $<span data-referral>${C.offers.referral}</span> off. <a href="${L("policies/#referral")}">Terms</a></p>
+            <p><strong>Know someone who'd love this?</strong> When a friend books their first clean, you both get $<span data-referral>${C.offers.referral}</span> off. Ask them to give us your first and last name when they book. <a href="${L("policies/#referral")}">Terms</a></p>
             <button type="button" class="btn btn-ghost btn-sm" data-share>Share ${esc(B.name)}</button>
           </div>
         </div>
@@ -1886,7 +1887,7 @@ legalPage({
     { id: "gift", h: "Gift cards", html: () => `<p>Gift cards are issued once paid. They never expire, can be used toward any service in our service area, and any balance left after a clean stays on the card.</p>` },
     { id: "referral", h: "Referral credit", html: () => { const r = money(C.offers.referral); return `<p>When someone you refer books their first clean with us, you each get ${r} off:</p>
       <ul>
-        <li>Your friend gets ${r} off their first clean. Ask them to put your name in their booking notes.</li>
+        <li>Your friend gets ${r} off their first clean. When they book, they give us your first and last name in the "Referred by" box on the booking form, or by phone, text or WhatsApp.</li>
         <li>You get ${r} off your next clean, once their first clean is done and paid.</li>
         <li>Their home must be new to ${esc(B.name)} and in our service area. There's one credit for each household you refer.</li>
         ${founding && founding.active ? `<li>Discounts on a first visit aren't combined, so a founding household gets whichever is larger: ${founding.percent}% off or ${r} off. You still get your ${r}.</li>` : ""}
