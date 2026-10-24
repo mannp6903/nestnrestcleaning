@@ -245,7 +245,7 @@ function actionBar(L) {
   <a class="ab-link ab-phone" data-sms href="sms:${B.phone}" data-track="text_click">${ic("i-sms")}<span>Text</span></a>
   ${B.whatsapp ? `<a class="ab-link ab-wa" data-wa href="${esc(waLink(WA_HELLO))}" target="_blank" rel="noopener" data-track="whatsapp_click">${ic("i-wa")}<span>WhatsApp</span></a>` : ""}
   <a class="ab-link ab-desk" data-mailto href="mailto:${B.email}" data-track="email_click">${ic("i-mail")}<span>Email</span></a>
-  <a class="btn btn-primary ab-book" href="${L("book/")}" data-track="book_click">Book your clean</a>
+  <a class="btn btn-primary ab-book" href="${L("book/")}" data-track="book_click"><span class="ab-long">Book your clean</span><span class="ab-short">Book now</span></a>
 </div>`;
 }
 
@@ -532,8 +532,7 @@ function serviceCards(L, list, cls = "") {
   return `<ul class="svc-grid${cls ? " " + cls : ""}">
       ${list.map((s) => `<li>
         <a class="svc-card" href="${L("services/" + s.slug + "/")}">
-          <span class="svc-ico">${ic(SVC_ICON[s.key] || "i-sparkle")}</span>
-          ${s.tag ? `<small class="svc-tag">${esc(s.tag)}</small>` : ""}
+          <span class="svc-top"><span class="svc-ico">${ic(SVC_ICON[s.key] || "i-sparkle")}</span>${s.tag ? `<small class="svc-tag">${esc(s.tag)}</small>` : ""}</span>
           <h3>${esc(s.name)}</h3>
           <p>${esc(s.short)}</p>
           <span class="svc-foot"><span class="svc-price">${s.quote ? "Free quote" : `From <b data-from="${s.key}">${money(s.base)}</b>`}</span>${ic("i-arrow", "ic svc-arrow")}</span>
@@ -837,7 +836,7 @@ urls.push(page({
               </div>
               <div class="field span-2"><label for="f-notes">Notes <span class="opt">optional</span></label><textarea id="f-notes" name="notes" rows="3" placeholder="Parking, rooms to focus on, products to avoid"></textarea><small class="field-hint">Please don't type door or lockbox codes here. We'll ask for them by text once your booking is confirmed.</small></div>
               <div class="field span-2"><span class="field-label" id="pref-label">Confirm by</span>
-                <div class="seg" role="radiogroup" aria-labelledby="pref-label">
+                <div class="seg${B.whatsapp ? " seg-slots" : ""}" role="radiogroup" aria-labelledby="pref-label">
                   <label><input type="radio" name="contactPref" value="Text" checked><span>Text</span></label>
                   ${B.whatsapp ? '<label><input type="radio" name="contactPref" value="WhatsApp"><span>WhatsApp</span></label>' : ""}
                   <label><input type="radio" name="contactPref" value="Call"><span>Call</span></label>
@@ -1330,7 +1329,7 @@ ${finalCta(L, `Book your ${h.name} clean.`)}`
   <div class="wrap">
     <div class="section-head"><p class="label">What we do</p><h2>Four jobs, done properly.</h2></div>
     <ul class="svc-grid svc-grid-4">
-      ${jobs.map(([i, t, d, p]) => `<li><div class="svc-card svc-card-static"><span class="svc-ico">${ic(i)}</span><h3>${esc(t)}</h3><p>${esc(d)}</p><span class="svc-foot"><span class="svc-price">${esc(p)}</span></span></div></li>`).join("")}
+      ${jobs.map(([i, t, d, p]) => `<li><div class="svc-card svc-card-static"><span class="svc-top"><span class="svc-ico">${ic(i)}</span></span><h3>${esc(t)}</h3><p>${esc(d)}</p><span class="svc-foot"><span class="svc-price">${esc(p)}</span></span></div></li>`).join("")}
     </ul>
   </div>
 </section>

@@ -282,16 +282,20 @@
       });
       var tmPhone = $("[data-textme-phone]", tmBox), tmSend = $("[data-textme-send]", tmBox), tmNote = $("[data-textme-note]", tmBox);
       var sendTm = function () {
-        if (!phoneOk(tmPhone.value)) { fieldError(tmPhone, "Enter a 10-digit mobile number, like 647 555 0123."); tmPhone.focus(); return; }
+        if (!phoneOk(tmPhone.value)) { fieldError(tmPhone, "Enter a 10-digit mobile number, like 647 555 0123."); tmPhone.focus(); tmBox.scrollIntoView({ block: "center" }); return; }
         fieldError(tmPhone, "");
         var p = price(st.service, st.beds, st.baths, st.home);
         tmSend.disabled = true; tmSend.textContent = "Sending…";
         send({ _subject: "Text this price: " + money(p) + " to " + tmPhone.value.trim(), _template: "table", _captcha: "false", _honey: ($("[data-textme-honey]", tmBox) || {}).value || "",
           "Text this price to": tmPhone.value.trim(), "Quote": summary() + ", " + money(p), "Estimated time": "about " + hoursFor(st.service, st.beds, st.baths, st.home) + " hours", "Page": location.pathname
-        }).then(function () {
-          track("generate_lead", { form: "text_me_price", service: st.service, value: p, currency: C.currency }, true);
+        }).then(function (res) {
           tmBox.classList.add("is-sent");
-          tmBox.innerHTML = '<p class="field-note"><strong>Done.</strong> ' + esc(B.ownerFirstName) + " will text " + esc(money(p)) + " to " + esc(tmPhone.value.trim()) + " " + esc(B.replyPromise) + ".</p>";
+          if (res && res.skipped) {
+            tmBox.innerHTML = '<p class="field-note"><strong>Preview only.</strong> On the live site, ' + esc(B.ownerFirstName) + " gets this request and texts " + esc(money(p)) + " to " + esc(tmPhone.value.trim()) + ".</p>";
+            return;
+          }
+          track("generate_lead", { form: "text_me_price", service: st.service, value: p, currency: C.currency }, true);
+          tmBox.innerHTML = '<p class="field-note"><strong>Sent.</strong> ' + esc(B.ownerFirstName) + " will text " + esc(money(p)) + " to " + esc(tmPhone.value.trim()) + " " + esc(B.replyPromise) + ".</p>";
         }).catch(function () {
           tmNote.innerHTML = 'That didn\'t send. Please <a href="sms:' + B.phone + "?&body=" + encodeURIComponent("Hi, please text me a price for " + summary() + " (" + money(p) + ").") + '">text us</a> instead.';
           tmSend.disabled = false; tmSend.textContent = "Send";
@@ -465,7 +469,8 @@
       }
       if (msg) {
         var err = $("[data-form-error]");
-        if (n === 3) { err.textContent = msg; err.hidden = false; }
+        // Step 3 shows its message inline and focuses the first field to fix, so it needs no toast.
+        if (n === 3) { err.textContent = msg; err.hidden = false; return false; }
         if (n === 1) return false;
         toast(msg);
         return false;
