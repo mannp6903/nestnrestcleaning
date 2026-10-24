@@ -33,6 +33,26 @@
     clearTimeout(toast.t);
     toast.t = setTimeout(function () { t.hidden = true; }, 3000);
   }
+  function waHref(msg) { return B.whatsapp ? "https://wa.me/" + B.whatsapp + "?text=" + encodeURIComponent(msg) : ""; }
+  function fillTpl(t, vals) { return String(t || "").replace(/\{(\w+)\}/g, function (m, k) { return vals[k] != null ? vals[k] : m; }); }
+  function isoDay(d) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
+  // Days a booking can be made for: from booking.leadDays out, on open days, skipping booking.blockedDates.
+  function openDates(n) {
+    var bk = C.booking || {}, blocked = bk.blockedDates || [], out = [], d = new Date();
+    d.setHours(12, 0, 0, 0);
+    for (var i = Math.max(0, bk.leadDays == null ? 1 : bk.leadDays); i <= C.daysAhead + 14 && out.length < n; i++) {
+      var x = new Date(d.getTime() + i * 86400000);
+      if (C.openDays.indexOf(x.getDay()) > -1 && blocked.indexOf(isoDay(x)) === -1) out.push(x);
+    }
+    return out;
+  }
+  function nextOpenText() {
+    var d = openDates(1)[0];
+    if (!d) return "call or text us";
+    var days = Math.round((new Date(d).setHours(0, 0, 0, 0) - new Date().setHours(0, 0, 0, 0)) / 86400000);
+    var label = new Intl.DateTimeFormat("en-CA", { weekday: "short", month: "short", day: "numeric" }).format(d);
+    return days === 0 ? "today, " + label : days === 1 ? "tomorrow, " + label : label;
+  }
   function link(p) {
     var href = ROOT + p;
     if (PREVIEW && (p === "" || /\/$/.test(p))) href += "index.html";
@@ -78,6 +98,8 @@
     $$("[data-tel]").forEach(function (el) { el.href = "tel:" + B.phone; });
     $$("[data-sms]").forEach(function (el) { el.href = "sms:" + B.phone; });
     $$("[data-mailto]").forEach(function (el) { el.href = "mailto:" + B.email; });
+    $$("[data-wa]").forEach(function (el) { if (B.whatsapp) { if (!/wa\.me/.test(el.href)) el.href = waHref("Hi " + B.ownerFirstName + ", I'd like to ask about a clean."); } else el.hidden = true; });
+    $$("[data-next-open]").forEach(function (el) { el.textContent = nextOpenText(); });
     $$("[data-hours]").forEach(function (el) { el.textContent = B.hours; });
     $$("[data-reply]").forEach(function (el) { el.textContent = B.replyPromise; });
     $$("[data-owner]").forEach(function (el) { el.textContent = B.owner; });
@@ -99,14 +121,19 @@
 
     var f = C.offers.founding;
     var founding = $("[data-founding]");
+    var left = f ? Math.max(0, f.spots - (f.claimed || 0)) : 0;
+    var spotsText = left > 0 ? left + " of " + f.spots + " founding spots left" : "Last founding spots";
     if (founding && f && f.active) {
       $("[data-founding-pct]").textContent = f.percent;
       $("[data-founding-text]").textContent = f.text;
       founding.hidden = false;
     }
-    $$("[data-offer-note]").forEach(function (el) {
-      if (f && f.active) { el.textContent = f.label + "s: " + f.percent + "% off your first visit"; el.hidden = false; }
-    });
+    $$("[data-spots]").forEach(function (el) { el.textContent = spotsText; });
+    $$("[data-spots-fill]").forEach(function (el) { el.style.width = (f && f.spots ? Math.round(left / f.spots * 100) : 0) + "%"; });
+    $$("[data-offer-note]").forEach(function (el) { el.hidden = !(f && f.active); });
+
+    var g = C.offers.gift, band = $("[data-gift-banner]");
+    if (band && g && g.active && (g.bannerMonths || []).indexOf(new Date().getMonth() + 1) > -1) band.hidden = false;
 
     var im = C.impact || {};
     var impact = $("[data-impact]");
@@ -139,8 +166,8 @@
       if (url) { el.href = url; el.target = "_blank"; el.rel = "noopener"; el.removeAttribute("aria-disabled"); }
     });
 
-    var g = $("[data-google-review]");
-    if (g && B.googleReviewUrl) { g.href = B.googleReviewUrl; g.hidden = false; }
+    var gr = $("[data-google-review]");
+    if (gr && B.googleReviewUrl) { gr.href = B.googleReviewUrl; gr.hidden = false; }
   }
 
   function renderReviews() {
@@ -238,6 +265,40 @@
       $("[data-p-meta]", form).textContent = "Estimate · about " + hoursFor(st.service, st.beds, st.baths, st.home) + " hours" + first;
       var go = $("[data-p-go]", form);
       go.href = link("book/") + "?s=" + st.service + "&h=" + st.home + "&bd=" + st.beds + "&ba=" + st.baths;
+      var wa = $("[data-p-wa]", form);
+      if (wa) wa.href = waHref("Hi " + B.ownerFirstName + ", I'd like " + summary() + " (" + money(p) + "). When's your next opening?");
+    }
+    function summary() {
+      var s = C.services[st.service], h = C.homeTypes[st.home];
+      return s.name + " for a " + (st.service === "detail" ? h.short.toLowerCase() + " with " + st.baths + " bath" + (st.baths > 1 ? "s" : "") : st.beds + "-bed, " + st.baths + "-bath " + h.short.toLowerCase());
+    }
+    var tmBox = $("[data-textme]", form), tmOpen = $("[data-textme-open]", form);
+    if (tmBox && tmOpen) {
+      tmOpen.addEventListener("click", function () {
+        var open = tmBox.hidden;
+        tmBox.hidden = !open;
+        tmOpen.setAttribute("aria-expanded", String(open));
+        if (open) $("[data-textme-phone]", tmBox).focus();
+      });
+      var tmPhone = $("[data-textme-phone]", tmBox), tmSend = $("[data-textme-send]", tmBox), tmNote = $("[data-textme-note]", tmBox);
+      var sendTm = function () {
+        if (!phoneOk(tmPhone.value)) { fieldError(tmPhone, "Enter a 10-digit mobile number, like 647 555 0123."); tmPhone.focus(); return; }
+        fieldError(tmPhone, "");
+        var p = price(st.service, st.beds, st.baths, st.home);
+        tmSend.disabled = true; tmSend.textContent = "Sending…";
+        send({ _subject: "Text this price: " + money(p) + " to " + tmPhone.value.trim(), _template: "table", _captcha: "false", _honey: ($("[data-textme-honey]", tmBox) || {}).value || "",
+          "Text this price to": tmPhone.value.trim(), "Quote": summary() + ", " + money(p), "Estimated time": "about " + hoursFor(st.service, st.beds, st.baths, st.home) + " hours", "Page": location.pathname
+        }).then(function () {
+          track("generate_lead", { form: "text_me_price", service: st.service, value: p, currency: C.currency }, true);
+          tmBox.classList.add("is-sent");
+          tmBox.innerHTML = '<p class="field-note"><strong>Done.</strong> ' + esc(B.ownerFirstName) + " will text " + esc(money(p)) + " to " + esc(tmPhone.value.trim()) + " " + esc(B.replyPromise) + ".</p>";
+        }).catch(function () {
+          tmNote.innerHTML = 'That didn\'t send. Please <a href="sms:' + B.phone + "?&body=" + encodeURIComponent("Hi, please text me a price for " + summary() + " (" + money(p) + ").") + '">text us</a> instead.';
+          tmSend.disabled = false; tmSend.textContent = "Send";
+        });
+      };
+      tmSend.addEventListener("click", sendTm);
+      tmPhone.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); sendTm(); } });
     }
     sel.addEventListener("change", function () { st.service = sel.value; render(); });
     homeSel.addEventListener("change", function () { st.home = homeSel.value; render(); });
@@ -267,16 +328,8 @@
     var state = { step: 1, service: "regular", homeType: "condo", beds: 1, baths: 1, addons: [], freq: "once", date: null, flex: false, slot: null };
     var fieldIds = ["f-name", "f-phone", "f-email", "f-address", "f-postal", "f-access", "f-notes"];
 
-    function availableDates() {
-      var out = [], d = new Date();
-      d.setHours(12, 0, 0, 0);
-      for (var i = 1; i <= C.daysAhead; i++) {
-        var x = new Date(d.getTime() + i * 86400000);
-        if (C.openDays.indexOf(x.getDay()) > -1) out.push(x);
-      }
-      return out;
-    }
-    function iso(d) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
+    function availableDates() { return openDates(C.daysAhead); }
+    var iso = isoDay;
     function parseIso(s) { var p = s.split("-"); return new Date(+p[0], +p[1] - 1, +p[2]); }
     function longDate(s) { return new Intl.DateTimeFormat("en-CA", { weekday: "long", month: "long", day: "numeric" }).format(parseIso(s)); }
     function slotById(id) { return C.timeSlots.filter(function (t) { return t.id === id; })[0]; }
@@ -409,7 +462,6 @@
         var first = null;
         ["f-name", "f-phone", "f-email", "f-address"].forEach(function (id) { var el = $("#" + id); if (!checkField(el) && !first) first = el; });
         if (first) { msg = "Please fix the highlighted fields."; first.focus(); }
-        else if (!$("#f-consent").checked) msg = "Tick the box to confirm you've read how booking works.";
       }
       if (msg) {
         var err = $("[data-form-error]");
@@ -462,7 +514,6 @@
       if (t.name === "date") { state.date = t.value; state.flex = false; sync(); }
       if (t.hasAttribute("data-flex")) { state.flex = t.checked; if (state.flex) state.date = null; sync(); }
       if (t.name === "addon") state.addons = $$('input[name="addon"]:checked:not(:disabled)', form).map(function (i) { return i.value; });
-      if (t.id === "f-consent" && t.checked) $("[data-form-error]").hidden = true;
       renderSummary();
       save();
     });
@@ -527,9 +578,12 @@
       var when = state.flex ? "Flexible: earliest opening" : longDate(state.date);
       var btn = $("[data-submit]");
       btn.disabled = true; btn.textContent = "Sending…";
+      var email = $("#f-email").value.trim(), firstName = $("#f-name").value.trim().split(/\s+/)[0];
+      var plain = q.s.name + ", " + homeLine(q) + "; " + when + (slot ? ", arrival " + slot.time : "") + "; estimate " + money(q.first) + (q.repeat ? ", then " + money(q.repeat) + " " + q.freq.label.toLowerCase() : "");
       send({
         _subject: "New booking " + r + ": " + q.s.name + ", " + when,
-        _template: "table", _captcha: "false", _replyto: $("#f-email").value || undefined,
+        _template: "table", _captcha: "false", _replyto: email || undefined,
+        _autoresponse: email ? fillTpl((C.emails || {}).booking, { name: firstName, ref: r, summary: plain, reply: B.replyPromise, phone: B.phoneDisplay }) : undefined,
         _honey: $('[name="_honey"]', form).value,
         "Reference": r, "Service": q.s.name, "Home": homeLine(q),
         "Extras": q.addons.map(function (a) { return a.name; }).join(", ") || "None",
@@ -537,15 +591,14 @@
         "Arrival window": slot ? slot.label + " (" + slot.time + ")" : "",
         "Estimate, first visit": money(q.first), "Estimate, repeat visits": q.repeat ? money(q.repeat) : "n/a",
         "Estimated time": "about " + q.hours + " hours",
-        "Name": $("#f-name").value.trim(), "Phone": $("#f-phone").value.trim(), "Email": $("#f-email").value.trim() || "not given",
+        "Name": $("#f-name").value.trim(), "Phone": $("#f-phone").value.trim(), email: email || "not given",
         "Address": $("#f-address").value.trim(), "Postal code": formatPostal($("#f-postal").value) + (z && z.area ? " (" + z.area + ")" : ""),
         "Getting in": $("#f-access").value, "Pets": ($('input[name="pets"]:checked', form) || {}).value,
         "Notes": $("#f-notes").value.trim() || "None", "Confirm by": ($('input[name="contactPref"]:checked', form) || {}).value
       }).then(function (res) {
         track("generate_lead", { form: "booking", service: state.service, value: Math.round(q.first), currency: C.currency }, true);
         last = { ref: r, date: state.flex ? null : state.date, slot: slot, hours: q.hours, service: q.s.name, address: $("#f-address").value };
-        var firstName = $("#f-name").value.trim().split(/\s+/)[0];
-        var how = { Text: "text", Call: "call", Email: "email" }[($('input[name="contactPref"]:checked', form) || {}).value] || "text";
+        var how = { Text: "text", WhatsApp: "message", Call: "call", Email: "email" }[($('input[name="contactPref"]:checked', form) || {}).value] || "text";
         form.hidden = true;
         $("[data-progress]").hidden = true;
         $("[data-summary]").hidden = true;
@@ -566,9 +619,11 @@
         } else {
           $("[data-done-title]").textContent = "Thank you, " + firstName + ".";
           $("[data-done-text]").textContent = B.ownerFirstName + " will " + how + " you " + B.replyPromise + " to confirm " +
-            (state.flex ? "the earliest opening" : longDate(state.date) + (slot ? ", " + slot.label.toLowerCase() : "")) + ". Nothing to pay until after your clean.";
+            (state.flex ? "the earliest opening" : longDate(state.date) + (slot ? ", " + slot.label.toLowerCase() : "")) + "." + (email ? " A confirmation is on its way to " + email + "." : "") + " Nothing to pay until after your clean.";
         }
         $("[data-sms-booking]").href = "sms:" + B.phone + "?&body=" + encodeURIComponent(text(r));
+        var wab = $("[data-wa-booking]");
+        if (wab) wab.href = waHref(text(r));
         $("[data-ics]").hidden = PREVIEW || !last.date;
         done.hidden = false;
         done.focus();
@@ -615,7 +670,7 @@
       box.className = "field-error";
       box.id = id;
       box.setAttribute("aria-live", "polite");
-      var anchor = el.closest(".select-wrap") || el;
+      var anchor = el.closest(".select-wrap, .pc-row") || el;
       anchor.insertAdjacentElement("afterend", box);
     }
     box.textContent = msg || "";
@@ -671,7 +726,11 @@
         if (el.name === "_honey") data._honey = el.value;
         else if (el.name) data[el.name] = el.value.trim() || "—";
       });
-      if (data.Email && data.Email !== "—") data._replyto = data.Email;
+      if (data.Email && data.Email !== "—") {
+        data._replyto = data.email = data.Email;
+        data._autoresponse = fillTpl((C.emails || {}).quote, { name: String(data.Name).split(/\s+/)[0], reply: form.getAttribute("data-reply-time"), phone: B.phoneDisplay });
+      }
+      delete data.Email;
       var btn = $('button[type="submit"]', form);
       btn.disabled = true; btn.textContent = "Sending…";
       send(data).then(function (res) {
@@ -693,6 +752,69 @@
           "&body=" + encodeURIComponent(body) + "\">email it to us</a> or call " + esc(B.phoneDisplay) + ".";
         err.hidden = false;
       }).then(function () { btn.disabled = false; btn.textContent = "Request a free quote"; });
+    });
+  }
+
+  /* ---------- Gift a clean ---------- */
+  function bindGift() {
+    var form = $("[data-gift-form]");
+    if (!form) return;
+    var them = $("[data-gift-them]");
+    form.addEventListener("change", function (e) {
+      if (e.target.name === "send") them.hidden = e.target.value.indexOf("them") === -1;
+    });
+    function gCheck(el) {
+      var v = el.value.trim(), m = "";
+      if (el.hasAttribute("data-required") && v.length < 2) m = el.id === "g-to" ? "Add who the gift is for." : "Add your name.";
+      if (el.hasAttribute("data-phone") && !phoneOk(v)) m = "Enter a 10-digit mobile number, like 647 555 0123.";
+      if (el.hasAttribute("data-email-required") && !(v && emailOk(v))) m = "Add your email, so we can send your gift card.";
+      if (el.id === "g-their-email" && !them.hidden && !(v && emailOk(v))) m = "Add their email, or send the gift card to yourself.";
+      if (el.hasAttribute("data-postal-optional") && v) {
+        if (!fullPostalOk(v)) m = "Enter a full postal code, like M2N 5W9, or leave it blank.";
+        else if (!(zoneFor(v) || {}).area) m = "That postal code is outside Scarborough and North York, where the clean has to be.";
+      }
+      fieldError(el, m);
+      return !m;
+    }
+    var checked = "[data-required], [data-phone], [data-email-required], [data-postal-optional], #g-their-email";
+    form.addEventListener("focusout", function (e) { if (e.target.matches(checked) && e.target.value.trim()) gCheck(e.target); });
+    form.addEventListener("input", function (e) { if (e.target.classList.contains("invalid")) gCheck(e.target); });
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var err = $("[data-gift-error]"), first = null;
+      $$(checked, form).forEach(function (el) { if (!gCheck(el) && !first) first = el; });
+      if (first) { err.textContent = "Please fix the highlighted fields."; err.hidden = false; first.focus(); return; }
+      err.hidden = true;
+      var r = "GIFT-" + Math.random().toString(36).slice(2, 6).toUpperCase();
+      var amount = ($('input[name="amount"]:checked', form) || {}).value;
+      var mine = $("#g-email").value.trim(), name = $("#g-name").value.trim();
+      var data = { _subject: "New gift card request " + r + ": " + money(+amount), _template: "table", _captcha: "false", _replyto: mine, email: mine,
+        _autoresponse: fillTpl((C.emails || {}).gift, { name: name.split(/\s+/)[0], ref: r, reply: B.replyPromise, phone: B.phoneDisplay }),
+        "Reference": r, "Amount": money(+amount), "Send": ($('input[name="send"]:checked', form) || {}).value };
+      $$("input, textarea", form).forEach(function (el) {
+        if (el.name === "_honey") data._honey = el.value;
+        else if (el.name && el.type !== "radio" && el.id !== "g-email" && (el.id !== "g-their-email" || !them.hidden)) data[el.name] = el.value.trim() || "—";
+      });
+      var btn = $('button[type="submit"]', form);
+      btn.disabled = true; btn.textContent = "Sending…";
+      send(data).then(function (res) {
+        track("generate_lead", { form: "gift", value: +amount, currency: C.currency }, true);
+        form.hidden = true;
+        var done = $("[data-gift-done]");
+        $("[data-gd-ref]").textContent = r;
+        if (res && res.skipped) {
+          $("[data-gd-title]").textContent = "Preview only.";
+          $("[data-gd-text]").textContent = "On the live site, " + B.ownerFirstName + " receives this gift request by email.";
+        } else {
+          $("[data-gd-title]").textContent = "Thank you, " + name.split(/\s+/)[0] + ".";
+          $("[data-gd-text]").textContent = B.ownerFirstName + " will text you " + B.replyPromise + " to confirm and send an Interac e-Transfer request for " + money(+amount) + ". A confirmation is on its way to " + mine + ".";
+        }
+        done.hidden = false;
+        done.focus();
+      }).catch(function () {
+        err.innerHTML = "We couldn't send that online. Please <a href=\"mailto:" + B.email + "?subject=" + encodeURIComponent("Gift card request " + r) + "&body=" + encodeURIComponent("Gift amount: " + money(+amount) + "\nFor: " + $("#g-to").value) + "\">email us</a> or call " + esc(B.phoneDisplay) + ".";
+        err.hidden = false;
+      }).then(function () { btn.disabled = false; btn.textContent = "Request gift card"; });
     });
   }
 
@@ -765,5 +887,6 @@
   bindBooking();
   bindQuote();
   bindReview();
+  bindGift();
   bindChrome();
 })();

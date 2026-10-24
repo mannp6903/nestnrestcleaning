@@ -1,48 +1,68 @@
 # Nest & Rest Cleaning website
 
-A premium, mobile-first website for Nest & Rest Cleaning (Scarborough, serving the GTA).
+A mobile-first website for Nest & Rest Cleaning (Scarborough and North York, Toronto), built around the new nest-and-house logo.
 It's built to turn visitors into booked clients and to rank on Google for local searches.
 
 ## Pages
 
 | Page | Purpose |
 |---|---|
-| `/` | Home: instant price, services, the Nest & Rest standard and guarantee, plans, founder, areas, FAQ |
+| `/` | Home: instant price (visible on the first phone screen), services, how booking works, the Nest & Rest standard and guarantee, plans, founder and founding offer, areas, guides, FAQ |
 | `/pricing/` | Every price by home size and type, plan discounts, extras, a room-by-room comparison of regular, deep and move-out cleaning, pricing FAQ |
 | `/book/` | Focused 3-step booking: your home → plan & time → your details |
 | `/services/<service>/` | One page per service (regular, deep, move-in/out, kitchen & bath, residence care, office), each with its own price table |
-| `/areas/<area>/` | Scarborough and North York, the only two areas served, with their neighbourhoods and postal codes |
+| `/areas/<district>/` | Scarborough and North York, with their neighbourhoods and postal codes |
+| `/areas/<district>/<neighbourhood>/` | 12 neighbourhood pages (Agincourt, Malvern, Guildwood, Birch Cliff, Highland Creek, Wexford, Willowdale, Don Mills, York Mills, Bayview Village, Bathurst Manor, Lawrence Manor) |
+| `/realtors/` | Listing-prep, move-out and between-tenant cleaning for realtors, landlords and property managers, with a quote form |
+| `/gift/` | Gift a clean: gift card request form (pay by e-Transfer, never expires) |
+| `/guides/` | Five helpful articles: Toronto cleaning prices, move-out checklist, deep vs regular, preparing for a cleaner, how often to clean |
 | `/vision/` | Our vision: Mann's note, what we believe, always/never promises, the road ahead, hours given back, work with us |
 | `/review/` | Review form to text clients after each clean (no rewards for reviews: Google and the Competition Bureau forbid undisclosed incentives). Hidden from search engines. |
 | `/privacy/` | Privacy Policy (PIPEDA) |
-| `/policies/` | Service Policies: booking, cancellation, payment, re-clean, damage, keys, pets, safety |
+| `/policies/` | Service Policies: booking, cancellation, payment, re-clean, gift cards, damage, keys, pets, safety |
 
-Each page has its own title, description, social-share card and structured data (LocalBusiness, WebSite, Service, FAQ, breadcrumbs) and is listed in `sitemap.xml`. The review page and the 404 page are marked `noindex`.
+Each page has its own title, description, social-share card and structured data (HouseCleaningService, WebSite, Service, FAQ, Article, breadcrumbs) and is listed in `sitemap.xml`. The review page and the 404 page are marked `noindex`.
 
 ## Changing things
 
-- **Prices, offers, contact details, hours, FAQs, reviews:** edit `js/config.js`. Prices and contact details update on every page right away, including the price tables. Run the build afterwards anyway so search engines see the new prices too.
+All settings are in `js/config.js`. Prices and contact details update on every page right away. Run `node tools/build.mjs` afterwards so search engines see the changes too.
+
+- **Prices, offers, contact details, hours, FAQs, reviews:** edit `js/config.js`.
+- **Founding spots left:** after each new founding household books, add 1 to `offers.founding.claimed`. The site shows "X of 50 founding spots left". Set `offers.founding.active` to `false` when they're all taken.
+- **Next opening:** the site shows the next day you can be booked. `booking.leadDays` is how many days' notice you need (1 = tomorrow). Add any day you're full or away to `booking.blockedDates` as `"YYYY-MM-DD"`; the booking calendar and "Next opening" both skip it.
+- **WhatsApp:** `business.whatsapp` is the WhatsApp number (digits only, with the 1). Leave it `""` to hide every WhatsApp button.
+- **Confirmation emails:** customers who give an email get an automatic confirmation from FormSubmit. The wording is in `emails` (booking, quote, gift).
+- **Gift a clean:** amounts and wording are in `offers.gift`. The home-page banner only shows in `bannerMonths` (November and December).
+- **Neighbourhood pages:** each one is an entry in `neighbourhoods`. Keep every fact true and local. Run the build to add or change one.
+- **Guides:** the articles are in `tools/guides.mjs`. Prices inside them come from `js/config.js`.
 - **Adding a service or area, or changing page wording:** edit `js/config.js` or `tools/build.mjs`, then run `node tools/build.mjs` to regenerate the pages.
 - **Trust badges** (insured, eco-friendly, police-checked) are off. Switch each on in `badges` only once it's true and documented.
 - **Service area:** postal-code prefixes for Scarborough and North York are in `serviceArea`. Requests from anywhere else are declined politely.
 - **Social icons:** hidden until you paste your Facebook and Instagram profile URLs into `business.facebookUrl` / `business.instagramUrl`. Run the build and the icons appear as links and are added to Google's business data.
-- **Hours and arrival windows:** open every day, 9am to 11pm. Change `business.hours`, `openDays`, `opens`/`closes` and `timeSlots` in `js/config.js`, then run the build (the structured data for Google comes from the same settings).
+- **Hours and arrival windows:** open every day, 9am to 11pm. Change `business.hours`, `openDays`, `opens`/`closes` and `timeSlots` in `js/config.js`, then run the build.
 - **Policies:** cancellation notice, late fee, re-clean and damage windows are in `policies`. Have a lawyer review the Privacy Policy and Service Policies.
 - **Reviews:** add real reviews to `reviews` in `js/config.js`; a reviews section then appears on the home page.
-- **Vision page:** all its wording is in `vision` in `js/config.js`; run the build after editing. Every "always" and "never" is a public promise, so keep each one true.
-- **The five steps of every visit** (home page, "Our standard") are in `tools/build.mjs`. They are public promises too: keep each one true.
-- **Hours given back:** the vision page's one mission number. Update `impact.hoursGivenBack` (total hours on site across completed cleans) and `impact.households` in `js/config.js`. It stays hidden while it's 0.
+- **Vision page:** all its wording is in `vision` in `js/config.js`. Every "always" and "never" is a public promise, so keep each one true.
+- **The five steps of every visit** (home page, "Our standard") are in `tools/build.mjs`. They are public promises too.
+- **Hours given back:** the vision page's one mission number. Update `impact.hoursGivenBack` and `impact.households`. It stays hidden while it's 0.
 
-## Bookings, quotes and reviews
+## Bookings, quotes, gift cards and reviews
 
-Everything is emailed to `nestnrestcleaning@gmail.com` through [FormSubmit](https://formsubmit.co).
+Everything is emailed to `nestnrestcleaning@gmail.com` through [FormSubmit](https://formsubmit.co), including "Text me this price" requests from the price box.
 After any change of email address, send one test booking and click **Activate** in the FormSubmit email.
-If sending fails, the customer gets text and email buttons with their details filled in.
+If sending fails, the customer gets text, WhatsApp and email buttons with their details filled in.
 
 ## Growth tracking (for ads)
 
-Paste a Google Analytics 4 ID (`G-…`) and/or a Meta Pixel ID into `analytics` in `js/config.js`.
-The site then reports: book clicks, call and text taps, instant-price use, booking started, and leads (bookings and quote requests).
+Paste a Google Analytics 4 ID (`G-…`) and/or a Meta Pixel ID into `analytics` in `js/config.js`, and update the Privacy Policy's cookies section at the same time.
+The site then reports: book clicks, call, text, WhatsApp and email taps, instant-price use, booking started, and leads (bookings, quotes, gift cards and price requests).
+
+## Brand
+
+- **Logo:** `assets/logo.svg` (horizontal), `logo-stacked.svg`, `logo-mark.svg` and their `-white` versions for dark backgrounds. Traced from the founder reel; the wordmark is Barlow Condensed.
+- **Colours:** navy `#0A2D5C`, teal `#2FA4A6`, sky `#6FC3E0`, sand `#EFD9AE` on ivory `#F7F3EA`. All tokens are at the top of `css/site.css`.
+- **Fonts:** Barlow Condensed (headlines) and DM Sans (text), self-hosted in `assets/fonts` under the SIL Open Font License.
+- **Room photos** in `assets/photos` are AI-generated illustrations, and the footer says so. Replace them with real photos from your own jobs (with the client's permission) as soon as you have them: same file names, 928 × 1152 px.
 
 ## Hosting
 
@@ -53,10 +73,11 @@ Every push to `main` publishes the site automatically. Watch the "pages build an
 ## Files
 
 ```
-index.html, book/, services/, areas/, review/, 404.html   generated pages
-css/site.css       design system (fonts self-hosted in assets/fonts, SIL Open Font License)
+index.html, book/, services/, areas/, realtors/, gift/, guides/, review/, 404.html   generated pages
+css/site.css       design system
 js/config.js       business settings (edit this)
-js/site.js         pricing, booking, forms, tracking
+js/site.js         pricing, booking, forms, WhatsApp, tracking
 tools/build.mjs    page generator
-assets/            logo, founder photo, social-share image, icons
+tools/guides.mjs   the guide articles
+assets/            logo, icons, founder photo, room photos, social-share image, fonts
 ```

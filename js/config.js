@@ -14,6 +14,8 @@ window.NR_CONFIG = {
     ownerFirstName: "Mann",
     phoneDisplay: "647 978 6903",
     phone: "+16479786903",
+    // WhatsApp number in international format, digits only. Leave "" to hide every WhatsApp button.
+    whatsapp: "16479786903",
     email: "nestnrestcleaning@gmail.com",
     base: "Scarborough, Toronto",
     region: "ON",
@@ -58,9 +60,34 @@ window.NR_CONFIG = {
       label: "Founding household",
       percent: 20,
       spots: 50,
+      // Add 1 here after each new founding household books. The site shows "X of 50 founding spots left".
+      claimed: 0,
       text: "Our first 50 households receive 20% off their first visit."
     },
-    referral: 25
+    referral: 25,
+    /* "Gift a clean": the gift page is always live; the home-page banner shows only in these months (11 = November). */
+    gift: {
+      active: true,
+      bannerMonths: [11, 12],
+      amounts: [100, 150, 200, 250],
+      headline: "Gift a clean this holiday season.",
+      text: "Give someone in Scarborough or North York a few hours back. Gift cards never expire and work for any service."
+    }
+  },
+
+  /* Booking availability. leadDays: earliest booking is this many days from today (1 = tomorrow).
+     blockedDates: days you can't take new bookings, as "YYYY-MM-DD". "Next opening" on the site skips them. */
+  booking: {
+    leadDays: 1,
+    blockedDates: []
+  },
+
+  /* Confirmation emails sent to the customer by FormSubmit when they give an email address.
+     {name}, {ref}, {summary}, {reply} and {phone} are filled in automatically. */
+  emails: {
+    booking: "Hi {name}, thank you for your booking request with Nest & Rest Cleaning (reference {ref}). Here's what you asked for: {summary}. Mann will confirm your day and arrival window {reply}. There's nothing to pay until after your clean, and changes are free up to 24 hours before your arrival window. Questions? Call, text or WhatsApp {phone}. — Mann Patel, Nest & Rest Cleaning",
+    quote: "Hi {name}, thank you for your quote request with Nest & Rest Cleaning. Mann will reply {reply} with your free quote. Questions in the meantime? Call, text or WhatsApp {phone}. — Mann Patel, Nest & Rest Cleaning",
+    gift: "Hi {name}, thank you for your gift request with Nest & Rest Cleaning (reference {ref}). Mann will text you {reply} to confirm the details and send an Interac e-Transfer request. Your gift card is emailed as soon as it's paid. Questions? Call, text or WhatsApp {phone}. — Mann Patel, Nest & Rest Cleaning"
   },
 
   homeTypes: {
@@ -104,7 +131,7 @@ window.NR_CONFIG = {
       name: "Move-In / Move-Out Cleaning",
       menuName: "Move-In / Move-Out",
       shortName: "Move-out",
-      short: "An empty-home clean for keys, deposits and fresh starts.",
+      short: "An empty-home clean for landlord walk-throughs, closings and fresh starts.",
       base: 250, perBed: 50, perBath: 40, hours: 5,
       recurring: false,
       tag: "Fridge and oven included",
@@ -224,6 +251,59 @@ window.NR_CONFIG = {
       intro: "From Willowdale condos to family homes in Don Mills and York Mills, we clean across North York, seven days a week." }
   ],
 
+  /* Neighbourhood pages, one per entry, at /areas/<district>/<slug>/. Keep every fact true and local.
+     fsas must be postal codes listed in serviceArea above. */
+  neighbourhoods: [
+    { slug: "agincourt", name: "Agincourt", district: "scarborough", fsas: ["M1S", "M1T", "M1V"],
+      intro: "Agincourt runs along Sheppard Avenue East around Kennedy Road, with Agincourt GO and Agincourt Mall at its heart. We clean its condos, townhouses and family homes, from newer buildings near the GO line to the bungalows on its quieter streets.",
+      homes: "Condos and townhouses near Sheppard, and detached bungalows and back-splits on the side streets.",
+      near: ["malvern", "wexford"] },
+    { slug: "malvern", name: "Malvern", district: "scarborough", fsas: ["M1B"],
+      intro: "Malvern, in Scarborough's northeast, is home to Malvern Town Centre and sits beside Rouge National Urban Park. Many of its homes are townhouses and semi-detached houses, which is exactly what our townhouse price is built for.",
+      homes: "Townhouses, semis and detached family homes, plus low-rise and high-rise apartments.",
+      near: ["agincourt", "highland-creek"] },
+    { slug: "guildwood", name: "Guildwood", district: "scarborough", fsas: ["M1E"],
+      intro: "Guildwood is a quiet, leafy corner of Scarborough by the lake, known for Guild Park and Gardens and Guildwood GO. Its larger detached homes often start with a deep clean, then settle into a regular plan.",
+      homes: "Mostly detached houses on large lots, with some townhouses and apartments near Kingston Road.",
+      near: ["highland-creek", "birch-cliff"] },
+    { slug: "birch-cliff", name: "Birch Cliff", district: "scarborough", fsas: ["M1N"],
+      intro: "Birch Cliff sits along Kingston Road at Scarborough's southwest edge, above the Scarborough Bluffs. From older family homes to newer townhouses near Kingston Road, we clean it the same careful way.",
+      homes: "Older detached homes and bungalows, newer townhouses and low-rise condos along Kingston Road.",
+      near: ["guildwood", "wexford"] },
+    { slug: "highland-creek", name: "Highland Creek", district: "scarborough", fsas: ["M1C"],
+      intro: "Highland Creek is home to the University of Toronto Scarborough and to plenty of family homes around Military Trail and Old Kingston Road. Busy households and move-outs near campus are both a big part of our work here.",
+      homes: "Detached family homes, townhouses, and rentals close to campus.",
+      near: ["guildwood", "malvern"] },
+    { slug: "wexford", name: "Wexford", district: "scarborough", fsas: ["M1R", "M1P"],
+      intro: "Wexford, around Lawrence Avenue East and Warden Avenue, is a neighbourhood of bungalows, semis and apartment towers. We clean its homes seven days a week, evenings included.",
+      homes: "Bungalows and semis on residential streets, and apartment towers along the main roads.",
+      near: ["agincourt", "birch-cliff"] },
+    { slug: "willowdale", name: "Willowdale", district: "north-york", fsas: ["M2M", "M2N", "M2R"],
+      intro: "Willowdale stretches along Yonge Street north of the 401, with North York Centre and Mel Lastman Square at its core. It's one of Toronto's busiest condo areas, and condos are where our prices start.",
+      homes: "High-rise condos along Yonge Street, and detached homes on the streets east and west of it.",
+      near: ["bayview-village", "bathurst-manor"] },
+    { slug: "don-mills", name: "Don Mills", district: "north-york", fsas: ["M3B", "M3C"],
+      intro: "Don Mills, around Don Mills Road and Lawrence Avenue East, was one of Canada's first planned communities and is home to the Shops at Don Mills. We clean its mid-century homes, townhouses and condos alike.",
+      homes: "Mid-century detached homes, townhouses, and condos near the Shops at Don Mills.",
+      near: ["york-mills", "bayview-village"] },
+    { slug: "york-mills", name: "York Mills", district: "north-york", fsas: ["M2L", "M2P"],
+      intro: "York Mills, around Yonge Street and York Mills Road, includes Hogg's Hollow and some of North York's largest homes. For homes over about 3,000 square feet, our Residence Care service starts with a walkthrough and a written care plan.",
+      homes: "Large detached homes, plus condos and townhouses near Yonge Street.",
+      near: ["don-mills", "bayview-village"] },
+    { slug: "bayview-village", name: "Bayview Village", district: "north-york", fsas: ["M2K"],
+      intro: "Bayview Village, around Bayview Avenue and Sheppard Avenue East, mixes condos near Bayview Village Shopping Centre and the subway with quiet streets of detached homes.",
+      homes: "Condos near Bayview and Sheppard, and detached homes on the surrounding streets.",
+      near: ["willowdale", "don-mills"] },
+    { slug: "bathurst-manor", name: "Bathurst Manor", district: "north-york", fsas: ["M3H"],
+      intro: "Bathurst Manor, around Bathurst Street and Sheppard Avenue West, sits beside Earl Bales Park. Its family homes and apartments are a short drive from us, any day of the week.",
+      homes: "Detached and semi-detached family homes, and apartment buildings along Bathurst Street.",
+      near: ["willowdale", "lawrence-manor"] },
+    { slug: "lawrence-manor", name: "Lawrence Manor", district: "north-york", fsas: ["M6A", "M5M"],
+      intro: "Lawrence Manor, around Lawrence Avenue West between Bathurst Street and Allen Road, is a neighbourhood of family homes with condos along its main roads. We clean them all, evenings and weekends included.",
+      homes: "Detached and semi-detached homes, with newer condos along Lawrence and Bathurst.",
+      near: ["bathurst-manor", "york-mills"] }
+  ],
+
   /* Room-by-room checklist: [task, regular, deep, move] with "yes", "add" (add-on) or "". */
   checklist: [
     { room: "Kitchen", tasks: [
@@ -287,12 +367,20 @@ window.NR_CONFIG = {
     { q: "How long does a residence walkthrough take?", a: "Usually 20 to 30 minutes. We walk each room with you, note surfaces and priorities, and send a written care plan and quote afterwards.", on: ["residence"] },
     { q: "Can you clean outside business hours?", a: "Tell us what suits your business in the quote form. We'll confirm the times we can offer in your quote.", on: ["office"] },
     { q: "Do I need a contract?", a: "No contract is needed to start. Most offices begin with a single visit, then choose a schedule.", on: ["office"] },
-    { q: "Which areas do you serve?", a: "Scarborough and North York. Enter your postal code on the site to check. If you're just outside these areas, call or text and we'll tell you honestly whether we can help.", on: ["home", "area", "residence", "office"] }
+    { q: "Which areas do you serve?", a: "Scarborough and North York. Enter your postal code on the site to check. If you're just outside these areas, call or text and we'll tell you honestly whether we can help.", on: ["home", "area", "residence", "office", "realtors"] },
+    { q: "Can I message you on WhatsApp?", a: "Yes. WhatsApp, text or call 647 978 6903, whichever is easiest. Mann replies within 2 hours during business hours.", on: ["home", "area"] },
+    { q: "Do gift cards expire?", a: "No. Nest & Rest gift cards never expire, and they can be used toward any service. Any balance left after a clean stays on the card.", on: ["gift"] },
+    { q: "How do I pay for a gift card?", a: "Send the form and we'll text you to confirm the details and send an Interac e-Transfer request. Your gift card is emailed as soon as it's paid.", on: ["gift"] },
+    { q: "How does the person I'm gifting book?", a: "They book online, by text or on WhatsApp like anyone else and mention the code on their gift card. We take the gift value off their price after the clean.", on: ["gift"] },
+    { q: "Can the gift be for someone outside Scarborough or North York?", a: "The clean has to be in Scarborough or North York. If you're not sure, enter their postal code on the gift page to check.", on: ["gift"] },
+    { q: "Can you clean before listing photos or a showing?", a: "Yes. Tell us the date of your photos or first showing and we'll aim to clean the day before. Evenings and weekends are available.", on: ["realtors"] },
+    { q: "Does someone need to be there?", a: "No. Most realtors and property managers leave access by lockbox or with the concierge. We confirm the code by text and delete it after the clean.", on: ["realtors"] },
+    { q: "How does payment work for multiple properties?", a: "You pay after each clean by Interac e-Transfer, credit or debit card. Each property gets its own receipt, so it's easy to bill back to an owner or seller.", on: ["realtors"] }
   ],
 
   /* Service policies shown on the Service Policies page. Confirm these before launch. */
   policies: {
-    effectiveDate: "October 18, 2026",
+    effectiveDate: "October 24, 2026",
     cancelNoticeHours: 24,
     lateCancelFee: "up to 50% of the estimated price",
     recleanWindowHours: 24,
