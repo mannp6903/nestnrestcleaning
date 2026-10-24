@@ -725,7 +725,7 @@
         $("#f-notes").value.trim() ? "Notes: " + $("#f-notes").value.trim() : ""
       ].filter(Boolean).join("\n");
       var cfg = { name: $("#f-name").value.trim(), notes: notes, attendeePhoneNumber: "+1" + digits, "metadata[ref]": info.r,
-        duration: String(Math.min(480, Math.max(60, Math.ceil(q.hours) * 60))), layout: "month_view", theme: "light" };
+        duration: String(Math.min(480, Math.max(60, Math.ceil(q.hours) * 60))), layout: "month_view", theme: isDark() ? "dark" : "light" };
       if (info.email) cfg.email = info.email;
       return cfg;
     }
@@ -750,7 +750,7 @@
       loadCal();
       window.Cal("init", { origin: "https://app.cal.com" });
       window.Cal("inline", { elementOrSelector: $("[data-cal-embed]"), calLink: calPath, config: cfg });
-      window.Cal("ui", { theme: "light", layout: "month_view", hideEventTypeDetails: false, cssVarsPerTheme: { light: { "cal-brand": "#0A2D5C" } } });
+      window.Cal("ui", { theme: isDark() ? "dark" : "light", layout: "month_view", hideEventTypeDetails: false, cssVarsPerTheme: { light: { "cal-brand": "#0A2D5C" }, dark: { "cal-brand": "#6FC3E0" } } });
       window.Cal("on", { action: "bookingSuccessfulV2", callback: onBooked });
       window.Cal("on", { action: "bookingSuccessful", callback: onBooked });
       setTimeout(function () { if (!booked && !$("[data-cal-embed] iframe")) $("[data-cal-fail]").hidden = false; }, 10000);
@@ -778,6 +778,30 @@
     onPostal();
     renderSummary();
     showStep(state.step, false);
+  }
+
+  /* ---------- Light and dark mode ---------- */
+  // The site opens in light mode; the header button switches to dark, and the choice is remembered.
+  function isDark() {
+    return document.documentElement.getAttribute("data-theme") === "dark";
+  }
+  function bindTheme() {
+    var meta = $('meta[name="theme-color"]');
+    function paint() {
+      var dark = isDark();
+      $$("[data-theme-toggle]").forEach(function (b) { b.setAttribute("aria-pressed", String(dark)); });
+      if (meta) meta.setAttribute("content", dark ? "#0E1A2B" : "#F7F3EA");
+    }
+    $$("[data-theme-toggle]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var next = isDark() ? "light" : "dark";
+        document.documentElement.setAttribute("data-theme", next);
+        try { localStorage.setItem("nr-theme", next); } catch (e) { /* the choice lasts for this page only */ }
+        paint();
+        track("theme_toggle", { theme: next });
+      });
+    });
+    paint();
   }
 
   /* ---------- Announcement bar and floating header ---------- */
@@ -1046,6 +1070,73 @@
     });
   }
 
+  /* ---------- Preview only: links between pages ---------- */
+  // Claude's preview window can't open the site's other pages as new documents, but it can fetch them,
+  // so in the preview a link to another page loads that page into this one. The live site uses plain links.
+  function bindPreviewNav() {
+    if (!PREVIEW || window.__nrPreviewNav || !window.fetch || !window.DOMParser) return;
+    window.__nrPreviewNav = true;
+    var here = new URL(location.href);
+    var pageOf = function (u) { return u.pathname.replace(/\/$/, "/index.html"); };
+    var jump = function (hash) {
+      var el = hash && document.getElementById(decodeURIComponent(hash.slice(1)));
+      // "instant" so a new page opens at its top rather than gliding up from where the last one was read
+      if (el) el.scrollIntoView({ behavior: "instant" }); else window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+    };
+    function load(url, push) {
+      return fetch(url.href.split("#")[0]).then(function (r) {
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        return r.text();
+      }).then(function (html) {
+        var doc = new DOMParser().parseFromString(html, "text/html");
+        var src = doc.querySelector("div.page[data-page]") || doc.body;
+        var box = document.querySelector("div.page[data-page]") || document.body;
+        // Moving to the new address first makes the page's relative links, images and scripts resolve from it.
+        if (push) {
+          try { history.pushState({ nrPreview: true }, "", url.href); }
+          catch (err) {
+            var base = document.querySelector("base") || document.head.appendChild(document.createElement("base"));
+            base.href = url.href;
+          }
+        }
+        here = url;
+        document.title = doc.title;
+        ["data-page", "data-root"].forEach(function (a) {
+          box.setAttribute(a, src.getAttribute(a));
+          document.body.setAttribute(a, src.getAttribute(a));
+        });
+        document.body.classList.remove("menu-open");
+        box.innerHTML = src.innerHTML;
+        var site = null;
+        $$("script", box).forEach(function (s) {
+          if (s.type === "application/ld+json") return;
+          if (/js\/site\.js/.test(s.getAttribute("src") || "")) site = s.src;
+          if (s.src || /NR_CONFIG/.test(s.textContent)) { s.remove(); return; }
+          var run = document.createElement("script");
+          run.textContent = s.textContent;
+          s.replaceWith(run);
+        });
+        jump(url.hash);
+        if (site) {
+          var again = document.createElement("script");
+          again.src = site;
+          document.body.appendChild(again);
+        }
+      }).catch(function () { location.href = url.href; });
+    }
+    document.addEventListener("click", function (e) {
+      if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      var a = e.target.closest && e.target.closest("a[href]");
+      if (!a || a.target === "_blank" || a.hasAttribute("download") || a.hasAttribute("data-reel-open")) return;
+      var url = new URL(a.href);
+      if (url.origin !== location.origin || !/(\.html|\/)$/.test(url.pathname)) return;
+      e.preventDefault();
+      if (pageOf(url) === pageOf(here) && url.search === here.search) { jump(url.hash); return; }
+      load(url, true);
+    }, true);
+    window.addEventListener("popstate", function () { load(new URL(location.href), false); });
+  }
+
   initAnalytics();
   fillCommon();
   renderReviews();
@@ -1056,7 +1147,9 @@
   bindReview();
   bindGift();
   bindReel();
+  bindTheme();
   bindAnnounce();
   bindHeader();
   bindChrome();
+  bindPreviewNav();
 })();
