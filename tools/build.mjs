@@ -716,7 +716,7 @@ urls.push(page({
     </div>
     <a class="hero-owner" href="${L(REEL.src)}" data-reel-open aria-haspopup="dialog" data-track="video_open">
       <span class="hero-avatar"><picture><source type="image/webp" srcset="${L("assets/founder-mann-patel-avatar.webp")}"><img src="${L("assets/founder-mann-patel-avatar.jpg")}" alt="" width="76" height="76" decoding="async"></picture><span class="hero-avatar-play">${ic("i-play")}</span></span>
-      <span><strong>Cleaned by ${esc(B.owner)}, owner.</strong> Every clean carries my name. <span class="hero-watch">Watch my intro (${REEL.length})</span></span>
+      <span><strong>Cleaned by ${esc(B.owner)}, owner.</strong> Giving families their time back and a fresh, healthy home. <span class="hero-watch">Watch my intro (${REEL.length})</span></span>
     </a>
     ${assurances()}
   </div>
@@ -813,8 +813,8 @@ ${gift && gift.active ? `<section class="gift-band" data-gift-banner data-months
       <figure class="founder-quote">
         <p class="label">From our founder</p>
         <blockquote>
-          <p>“Home should be where you rest, not where the chores wait. I'm building Nest &amp; Rest to give that time back to families across Scarborough and North York, one home at a time.</p>
-          <p class="founder-promise">Every clean carries my name. If anything isn't right, tell me, and I'll come back and make it right.”</p>
+          <p>“I started Nest &amp; Rest to give families their time back and a fresh, healthy home, with the best care and value in every visit.</p>
+          <p class="founder-promise">If anything isn't right, tell me, and I'll come back and make it right.”</p>
         </blockquote>
         <figcaption><strong data-owner>${esc(B.owner)}</strong><span>Founder &amp; Owner</span></figcaption>
       </figure>
