@@ -66,7 +66,7 @@ Cal.com emails both of you the confirmation, with reschedule and cancel links.
 3. Create an event type, for example "Home clean" with the link `home-clean`. Turn on **multiple durations**, tick every length from 1 to 8 hours, and make 2 hours the default.
 4. In the event's limits, set the minimum notice to 24 hours and add a 30 to 60 minute buffer after each clean for travel. Leave "requires confirmation" off so bookings confirm instantly.
 5. Optional: in the booking questions, switch on the phone number field so it's filled in too.
-6. Paste the part of your link after `cal.com/` (for example `nestandrest/home-clean`) into `booking.calLink` in `js/config.js`, run `node tools/build.mjs`, and push.
+6. Open your event link in a private browser window first: it must show your calendar with times, not "404" or a list of events. Then paste the part after `cal.com/` (for example `nestnrestcleaning/home-clean`) into `booking.calLink` in `js/config.js`, run `node tools/build.mjs`, and push.
 7. Make one test booking on the live site, then cancel it from the confirmation email.
 
 8. In the event's description, paste: *"Your booking is with Nest & Rest Cleaning, owned and operated by Mann Patel, [your mailing address], 647 978 6903, nestnrestcleaning@gmail.com. Nothing to pay until after your clean. Free to change up to 24 hours before; later changes, or if we can't get in, may cost up to 50% of the estimated price. Full terms: nestnrestcleaning.com/policies/"* Cal.com's emails then carry who you are and your terms too.

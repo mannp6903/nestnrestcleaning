@@ -27,7 +27,7 @@
 <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
 <link rel="preload" href="../assets/fonts/barlow-condensed-800.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="../assets/fonts/dm-sans.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="../css/site.css">
+<link rel="stylesheet" href="../css/site.css?v=708eb0c9">
 
 </head>
 <body data-page="book" data-root="../">
@@ -82,12 +82,12 @@
     <div class="book-head">
       <div>
         <h1>Book your clean</h1>
-        <p class="book-sub"><svg class="ic" aria-hidden="true"><use href="#i-cal"/></svg> Bookings from <strong data-next-open>tomorrow</strong></p>
+        <p class="book-sub"><svg class="ic" aria-hidden="true"><use href="#i-cal"/></svg> Next opening: <strong data-next-open>tomorrow</strong></p>
       </div>
       <ol class="progress" data-progress aria-label="Booking steps">
         <li data-dot="1"><span>Your home</span></li>
-        <li data-dot="2"><span>Your details</span></li>
-        <li data-dot="3"><span>Pick a time</span></li>
+        <li data-dot="2"><span>Plan &amp; time</span></li>
+        <li data-dot="3"><span>Your details</span></li>
       </ol>
     </div>
     <div class="booker">
@@ -130,16 +130,29 @@
                 <label class="chip" data-addon="oven"><input type="checkbox" name="addon" value="oven"><span>Inside oven <b>+$40</b></span></label><label class="chip" data-addon="fridge"><input type="checkbox" name="addon" value="fridge"><span>Inside fridge <b>+$40</b></span></label><label class="chip" data-addon="cabinets"><input type="checkbox" name="addon" value="cabinets"><span>Inside kitchen cabinets <b>+$45</b></span></label><label class="chip" data-addon="windows"><input type="checkbox" name="addon" value="windows"><span>Interior windows <b>+$50</b></span></label><label class="chip" data-addon="walls"><input type="checkbox" name="addon" value="walls"><span>Wall spot cleaning <b>+$25</b></span></label><label class="chip" data-addon="laundry"><input type="checkbox" name="addon" value="laundry"><span>Laundry, wash and fold <b>+$25</b></span></label><label class="chip" data-addon="balcony"><input type="checkbox" name="addon" value="balcony"><span>Balcony or patio <b>+$30</b></span></label><label class="chip" data-addon="pets"><input type="checkbox" name="addon" value="pets"><span>Heavy pet hair <b>+$20</b></span></label>
               </div>
             </div>
+            
+          </fieldset>
+
+          <fieldset class="step" data-step="2" hidden>
+            <legend>Plan &amp; time</legend>
             <div class="field" data-freq-field><span class="field-label" id="freq-label">How often</span>
               <div class="freq-grid" role="radiogroup" aria-labelledby="freq-label">
                 <label class="choice"><input type="radio" name="freq" value="once"><span class="choice-body"><strong>One time</strong><span class="choice-desc">No commitment</span></span></label><label class="choice"><input type="radio" name="freq" value="biweekly"><span class="choice-body"><strong>Every 2 weeks</strong><span class="choice-desc">Save 15%</span></span></label><label class="choice"><input type="radio" name="freq" value="weekly"><span class="choice-body"><strong>Weekly</strong><span class="choice-desc">Save 20%</span></span></label><label class="choice"><input type="radio" name="freq" value="monthly"><span class="choice-body"><strong>Every 4 weeks</strong><span class="choice-desc">Save 10%</span></span></label>
               </div>
             </div>
+            <div class="field"><span class="field-label" id="date-label">Day</span>
+              <p class="field-note">Next opening: <strong data-next-open>tomorrow</strong>. Every day of the week, evenings included.</p>
+              <div class="date-strip" role="radiogroup" aria-labelledby="date-label" data-dates></div>
+              <label class="check"><input type="checkbox" id="flex-date" data-flex> I'm flexible: offer me the earliest opening</label>
+            </div>
+            <div class="field"><span class="field-label" id="slot-label">Arrival window</span>
+              <div class="seg seg-slots" role="radiogroup" aria-labelledby="slot-label">
+                <label><input type="radio" name="slot" value="morning"><span>Morning<small>9am to 12pm</small></span></label><label><input type="radio" name="slot" value="midday"><span>Midday<small>12 to 3pm</small></span></label><label><input type="radio" name="slot" value="afternoon"><span>Afternoon<small>3 to 6pm</small></span></label><label><input type="radio" name="slot" value="evening"><span>Evening<small>6 to 8pm</small></span></label>
+              </div>
+            </div>
           </fieldset>
 
-          
-
-          <fieldset class="step" data-step="2" hidden>
+          <fieldset class="step" data-step="3" hidden>
             <legend>Your details</legend>
             <p class="field-note">All fields are required unless marked optional.</p>
             <div class="form-grid">
@@ -164,9 +177,9 @@
                   <label><input type="radio" name="contactPref" value="Email"><span>Email</span></label>
                 </div>
               </div>
-              <p class="consent-line span-2"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg><span>Next, you pick a time on Mann's calendar and it's confirmed straight away. Nothing to pay until it's done. Free to change up to 24 hours before. Later changes, or if we can't get in at the agreed time, may cost up to 50% of the estimated price.</span></p>
+              <p class="consent-line span-2"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg><span>This is a booking request. Mann confirms the time and final price with you before the clean. Nothing to pay until it's done. Free to change up to 24 hours before. Later changes, or if we can't get in at the agreed time, may cost up to 50% of the estimated price.</span></p>
               <p class="privacy-note span-2">Your booking is with Nest &amp; Rest Cleaning, owned and operated by Mann Patel, Scarborough, Toronto, Ontario. <a data-tel href="tel:+16479786903">647 978 6903</a> · <a data-mailto href="mailto:nestnrestcleaning@gmail.com">nestnrestcleaning@gmail.com</a></p>
-              <p class="privacy-note span-2">By sending, you agree to our <a href="../policies/">Service Policies</a>. We use your details only to arrange your clean. Your request is sent through FormSubmit to our Google email inbox, and the time you pick is booked on Cal.com, our booking calendar. Both may store data outside Canada. See our <a href="../privacy/">Privacy Policy</a>.</p>
+              <p class="privacy-note span-2">By sending, you agree to our <a href="../policies/">Service Policies</a>. We use your details only to arrange your clean. Your request is sent through FormSubmit to our Google email inbox, which may store data outside Canada. See our <a href="../privacy/">Privacy Policy</a>.</p>
               <input type="text" name="_honey" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
             </div>
             <p class="form-error" data-form-error role="alert" hidden></p>
@@ -175,18 +188,9 @@
           <div class="step-nav">
             <button type="button" class="btn btn-ghost" data-prev hidden><svg class="ic" aria-hidden="true"><use href="#i-back"/></svg> Back</button>
             <button type="button" class="btn btn-primary btn-grow" data-next>Continue <svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></button>
-            <button type="submit" class="btn btn-primary btn-grow" data-submit hidden>Choose your time <svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></button>
+            <button type="submit" class="btn btn-primary btn-grow" data-submit hidden>Request booking</button>
           </div>
         </form>
-
-        <div class="cal-step" data-cal-step hidden tabindex="-1">
-          <p class="label">Last step</p>
-          <h2>Pick your time</h2>
-          <p>Your details are in. Choose a time that suits you and it's confirmed straight away, with a confirmation email.</p>
-          <div class="cal-embed" data-cal-embed></div>
-          <p class="form-error" data-cal-fail role="alert" hidden>The calendar didn't load here. Open it in a new tab below, or Mann will text you within 2 hours during business hours to arrange a time.</p>
-          <p class="cal-alt"><a class="text-link" data-cal-link href="#" target="_blank" rel="noopener">Open the calendar in a new tab <svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></a></p>
-        </div>
 
         <div class="done" data-done hidden tabindex="-1">
           <p class="label" data-done-label>Request received</p>
@@ -224,8 +228,8 @@
 
 
 <div class="toast" data-toast role="status" aria-live="polite" hidden></div>
-<script defer src="../js/config.js"></script>
+<script defer src="../js/config.js?v=fbd9aa78"></script>
 
-<script defer src="../js/site.js"></script>
+<script defer src="../js/site.js?v=41865e87"></script>
 </body>
 </html>
