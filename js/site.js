@@ -77,7 +77,8 @@
       window.dataLayer = window.dataLayer || [];
       window.gtag = function () { window.dataLayer.push(arguments); };
       window.gtag("js", new Date());
-      window.gtag("config", A.ga4Id);
+      // Measurement only: Google's advertising signals stay off, as the privacy policy says.
+      window.gtag("config", A.ga4Id, { allow_google_signals: false, allow_ad_personalization_signals: false });
     }
     if (A.metaPixelId) {
       /* Standard Meta Pixel loader */
