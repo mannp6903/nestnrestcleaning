@@ -780,6 +780,34 @@
     showStep(state.step, false);
   }
 
+  /* ---------- Announcement bar and floating header ---------- */
+  function bindAnnounce() {
+    var bar = $("[data-announce]");
+    if (!bar) return;
+    $("[data-announce-close]", bar).addEventListener("click", function () {
+      bar.hidden = true;
+      try { localStorage.setItem("nr-announce", bar.getAttribute("data-key")); } catch (e) { /* the bar simply returns next visit */ }
+    });
+    var items = $$("[data-announce-msgs] > span", bar);
+    if (items.length < 2 || (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches)) return;
+    var i = 0, paused = false;
+    ["mouseenter", "focusin"].forEach(function (ev) { bar.addEventListener(ev, function () { paused = true; }); });
+    ["mouseleave", "focusout"].forEach(function (ev) { bar.addEventListener(ev, function () { paused = false; }); });
+    setInterval(function () {
+      if (paused || bar.hidden || document.hidden) return;
+      items[i].classList.remove("is-on");
+      i = (i + 1) % items.length;
+      items[i].classList.add("is-on");
+    }, 5000);
+  }
+  function bindHeader() {
+    var hdr = $(".site-header");
+    if (!hdr) return;
+    var onScroll = function () { hdr.classList.toggle("is-scrolled", window.scrollY > 24); };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+  }
+
   /* ---------- Founder reel ---------- */
   function bindReel() {
     var dlg = $("[data-reel-dialog]");
@@ -1028,5 +1056,7 @@
   bindReview();
   bindGift();
   bindReel();
+  bindAnnounce();
+  bindHeader();
   bindChrome();
 })();

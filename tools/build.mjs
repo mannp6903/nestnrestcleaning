@@ -211,6 +211,32 @@ function socialLinks(cls = "") {
   </div>`;
 }
 
+// Thin top bar with rotating true messages. Dismissing it is remembered until the messages change.
+function announceBar() {
+  const A = C.announce || {};
+  const msgs = [
+    ...(founding && founding.active && spotsLeft > 0 ? [`${founding.percent}% off your first visit, first ${founding.spots} households`] : []),
+    ...(A.messages || [])
+  ];
+  if (!A.active || !msgs.length) return "";
+  const key = crypto.createHash("sha1").update(msgs.join("|")).digest("hex").slice(0, 8);
+  return `<div class="announce" data-announce data-key="${key}" role="region" aria-label="Announcements">
+  <div class="wrap announce-row">
+    <p class="announce-msgs" data-announce-msgs>${msgs.map((m, i) => `<span${i ? "" : ' class="is-on"'}>${esc(m)}</span>`).join("")}</p>
+    <button type="button" class="announce-close" data-announce-close aria-label="Hide announcements">${ic("i-close")}</button>
+  </div>
+</div>
+<script>try{if(localStorage.getItem("nr-announce")==="${key}")document.querySelector("[data-announce]").hidden=true}catch(e){}</script>`;
+}
+
+// The Google rating sits beside the founding offer in every price box, once business.googleRating has real numbers.
+function ratingPill() {
+  const G = B.googleRating || {};
+  if (!(G.count > 0)) return "";
+  const inner = `${ic("i-star")}<span><b>${Number(G.rating).toFixed(1)}</b> Google rating · ${G.count} review${G.count === 1 ? "" : "s"}</span>`;
+  return B.googleReviewUrl ? `<a class="pricer-rating" href="${esc(B.googleReviewUrl)}" target="_blank" rel="noopener">${inner}</a>` : `<p class="pricer-rating">${inner}</p>`;
+}
+
 function footer(L) {
   return `<footer class="site-footer">
   <div class="wrap">
@@ -285,6 +311,7 @@ function pricer(L, defaultKey = "regular", heading = "Your price, in seconds") {
   <div class="pricer-head">
     <p class="pricer-title">${esc(heading)}</p>
     ${offerNote()}
+    ${ratingPill()}
   </div>
   <div class="pricer-result" aria-live="polite">
     <p class="pricer-amount" data-p-amount>${money(p)}</p>
@@ -525,6 +552,7 @@ ${noindex ? '<meta name="robots" content="noindex">\n' : ""}<meta name="theme-co
 ${ld}`;
   const bodyInner = `${ICONS}
 <a class="skip" href="#main">Skip to content</a>
+${minimal ? "" : announceBar()}
 ${header(L, { minimal })}
 <main id="main">
 ${body(L)}
@@ -584,8 +612,23 @@ function quoteForm(L, { name, title = "Request a free quote", reply, fields, but
 }
 
 function serviceCards(L, list, cls = "") {
+  const shop = cls.includes("svc-grid-shop");
+  const first = founding && founding.active && spotsLeft > 0 ? (b) => money(b * (1 - founding.percent / 100)) : null;
   return `<ul class="svc-grid${cls ? " " + cls : ""}">
-      ${list.map((s) => `<li>
+      ${list.map((s) => shop ? `<li>
+        <div class="svc-card svc-shop">
+          <span class="svc-top"><span class="svc-ico">${ic(SVC_ICON[s.key] || "i-sparkle")}</span>${s.tag ? `<small class="svc-tag">${esc(s.tag)}</small>` : ""}</span>
+          <h3><a class="svc-link" href="${L("services/" + s.slug + "/")}">${esc(s.name)}</a></h3>
+          <p>${esc(s.short)}</p>
+          <p class="svc-foot"><span class="svc-price">${s.quote ? "Free quote" : `From <b data-from="${s.key}">${money(s.base)}</b>${first ? `<span class="svc-first">${first(s.base)} first visit</span>` : ""}`}</span></p>
+          <div class="svc-actions">
+            ${s.quote
+              ? `<a class="btn btn-primary btn-sm" href="${L("services/" + s.slug + "/")}" data-track="quote_click">Get a quote</a>`
+              : `<a class="btn btn-primary btn-sm" href="${L("book/")}?s=${s.key}" data-track="book_click">Book now</a>`}
+            ${B.whatsapp ? `<a class="btn btn-ghost btn-sm svc-wa" href="${esc(waLink(`Hi ${B.ownerFirstName}, I have a question about ${s.name}.`))}" target="_blank" rel="noopener" data-track="whatsapp_click">${ic("i-wa")} Ask ${esc(B.ownerFirstName)}</a>` : ""}
+          </div>
+        </div>
+      </li>` : `<li>
         <a class="svc-card" href="${L("services/" + s.slug + "/")}">
           <span class="svc-top"><span class="svc-ico">${ic(SVC_ICON[s.key] || "i-sparkle")}</span>${s.tag ? `<small class="svc-tag">${esc(s.tag)}</small>` : ""}</span>
           <h3>${esc(s.name)}</h3>
@@ -682,7 +725,7 @@ ${gift && gift.active ? `<section class="gift-band" data-gift-banner data-months
       <div><p class="label">Services</p><h2>Choose the care your home needs.</h2></div>
       <a class="text-link" href="${L("pricing/")}">See every price ${ic("i-arrow")}</a>
     </div>
-    ${serviceCards(L, allServices)}
+    ${serviceCards(L, allServices, "svc-grid-shop")}
   </div>
 </section>
 

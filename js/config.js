@@ -29,6 +29,8 @@ window.NR_CONFIG = {
     replyPromise: "within 2 hours during business hours",
     // Paste your Google Business Profile review link here once it exists.
     googleReviewUrl: "",
+    // Copy these from your Google Business Profile. A rating pill appears beside the founding offer once count is above 0.
+    googleRating: { rating: 0, count: 0 },
     instagramUrl: "",
     facebookUrl: ""
   },
@@ -78,6 +80,13 @@ window.NR_CONFIG = {
       headline: "Gift a clean this holiday season.",
       text: "Give someone in Scarborough or North York a few hours back. Gift cards never expire and work for any service."
     }
+  },
+
+  /* The thin bar at the top of every page (not the booking page). Every message must be true today.
+     The founding-household offer is added automatically while it's active. Set active: false to hide the bar. */
+  announce: {
+    active: true,
+    messages: ["Free re-clean if anything's missed", "No deposit. You pay after your clean"]
   },
 
   /* Booking availability. leadDays: earliest booking is this many days from today (1 = tomorrow).
