@@ -139,6 +139,8 @@ const ICONS = `
 <symbol id="i-instagram" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="4.8" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="12" r="3.9" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="17.2" cy="6.8" r="1.1"/></symbol>
 <symbol id="i-menu" viewBox="0 0 24 24"><path d="M3 7.5h18M3 12h18M3 16.5h18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
 <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+<symbol id="i-moon" viewBox="0 0 24 24"><path d="M20.5 14.4A8.5 8.5 0 0 1 9.6 3.5a8.5 8.5 0 1 0 10.9 10.9Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
+<symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 2.5v2.2M12 19.3v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
 <symbol id="i-play" viewBox="0 0 24 24"><path d="M8.5 5.8v12.4a.8.8 0 0 0 1.2.7l9.6-6.2a.8.8 0 0 0 0-1.4L9.7 5.1a.8.8 0 0 0-1.2.7Z" fill="currentColor"/></symbol>
 <symbol id="i-chev" viewBox="0 0 24 24"><path d="m7 9.5 5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
 </defs></svg>`;
@@ -146,14 +148,21 @@ const ic = (id, cls = "ic") => `<svg class="${cls}" aria-hidden="true"><use href
 const SVC_ICON = { regular: "i-sparkle", deep: "i-layers", move: "i-box", detail: "i-drop", residence: "i-gem", office: "i-building" };
 
 /* ---------- shared fragments ---------- */
-const logoImg = (L, white = false) => `<img src="${L(white ? "assets/logo-white.svg" : "assets/logo.svg")}" alt="${esc(B.name)}" width="772" height="210">`;
+// The header shows the navy logo in light mode and the white one in dark mode (css/site.css swaps them).
+const logoImg = (L) => `<img class="logo-light" src="${L("assets/logo.svg")}" alt="${esc(B.name)}" width="772" height="210"><img class="logo-dark" src="${L("assets/logo-white.svg")}" alt="${esc(B.name)}" width="772" height="210">`;
+const themeBtn = () => `<button type="button" class="theme-btn" data-theme-toggle aria-pressed="false" aria-label="Dark mode">${ic("i-moon", "ic theme-moon")}${ic("i-sun", "ic theme-sun")}</button>`;
+// Every visit opens light; a visitor who chose dark gets it back before the page paints, so it never flashes.
+const THEME_BOOT = `<script>try{if(localStorage.getItem("nr-theme")==="dark")document.documentElement.setAttribute("data-theme","dark")}catch(e){}</script>`;
 
 function header(L, opts = {}) {
   if (opts.minimal) {
     return `<header class="site-header minimal">
   <div class="wrap header-row">
     <a class="brand" href="${L("")}" aria-label="${esc(B.name)}, home">${logoImg(L)}</a>
-    <a class="header-help" data-tel href="tel:${B.phone}"><span>Questions?</span> <strong data-phone-text>${esc(B.phoneDisplay)}</strong></a>
+    <div class="header-actions">
+      <a class="header-call" data-tel href="tel:${B.phone}">${ic("i-phone")}<span class="sr-only">Call <span data-phone-text>${esc(B.phoneDisplay)}</span></span></a>
+      ${themeBtn()}
+    </div>
   </div>
 </header>`;
   }
@@ -168,8 +177,9 @@ function header(L, opts = {}) {
       <a href="${L("vision/")}">Our vision</a>
     </nav>
     <div class="header-actions">
-      <a class="header-phone" data-tel href="tel:${B.phone}">${ic("i-phone")}<span data-phone-text>${esc(B.phoneDisplay)}</span></a>
+      <a class="header-phone" data-tel href="tel:${B.phone}">${ic("i-phone")}<span class="sr-only">Call <span data-phone-text>${esc(B.phoneDisplay)}</span></span></a>
       ${B.whatsapp ? `<a class="header-wa" data-wa href="${esc(waLink(WA_HELLO))}" target="_blank" rel="noopener" aria-label="WhatsApp ${esc(B.ownerFirstName)}" data-track="whatsapp_click">${ic("i-wa")}</a>` : ""}
+      ${themeBtn()}
       <a class="btn btn-primary header-book" href="${L("book/")}" data-track="book_click"><span class="hb-long">Book your clean</span><span class="hb-short">Book now</span></a>
       <button class="menu-btn" type="button" aria-controls="menu" aria-expanded="false" aria-label="Open menu">${ic("i-menu")}</button>
     </div>
@@ -211,12 +221,38 @@ function socialLinks(cls = "") {
   </div>`;
 }
 
+// Thin top bar with rotating true messages. Dismissing it is remembered until the messages change.
+function announceBar() {
+  const A = C.announce || {};
+  const msgs = [
+    ...(founding && founding.active && spotsLeft > 0 ? [`${founding.percent}% off your first visit, first ${founding.spots} households`] : []),
+    ...(A.messages || [])
+  ];
+  if (!A.active || !msgs.length) return "";
+  const key = crypto.createHash("sha1").update(msgs.join("|")).digest("hex").slice(0, 8);
+  return `<div class="announce" data-announce data-key="${key}" role="region" aria-label="Announcements">
+  <div class="wrap announce-row">
+    <p class="announce-msgs" data-announce-msgs>${msgs.map((m, i) => `<span${i ? "" : ' class="is-on"'}>${esc(m)}</span>`).join("")}</p>
+    <button type="button" class="announce-close" data-announce-close aria-label="Hide announcements">${ic("i-close")}</button>
+  </div>
+</div>
+<script>try{if(localStorage.getItem("nr-announce")==="${key}")document.querySelector("[data-announce]").hidden=true}catch(e){}</script>`;
+}
+
+// The Google rating sits beside the founding offer in every price box, once business.googleRating has real numbers.
+function ratingPill() {
+  const G = B.googleRating || {};
+  if (!(G.count > 0)) return "";
+  const inner = `${ic("i-star")}<span><b>${Number(G.rating).toFixed(1)}</b> Google rating · ${G.count} review${G.count === 1 ? "" : "s"}</span>`;
+  return B.googleReviewUrl ? `<a class="pricer-rating" href="${esc(B.googleReviewUrl)}" target="_blank" rel="noopener">${inner}</a>` : `<p class="pricer-rating">${inner}</p>`;
+}
+
 function footer(L) {
   return `<footer class="site-footer">
   <div class="wrap">
     <div class="footer-top">
       <div class="footer-brand">
-        <img src="${L("assets/logo-stacked-white.svg")}" alt="${esc(B.name)}" width="488" height="364" loading="lazy" decoding="async">
+        <img src="${L("assets/logo-stacked-white.svg")}" alt="${esc(B.name)}" width="488" height="369" loading="lazy" decoding="async">
         <p class="footer-tag">${esc(B.tagline)}</p>
         ${socialLinks()}
       </div>
@@ -285,6 +321,7 @@ function pricer(L, defaultKey = "regular", heading = "Your price, in seconds") {
   <div class="pricer-head">
     <p class="pricer-title">${esc(heading)}</p>
     ${offerNote()}
+    ${ratingPill()}
   </div>
   <div class="pricer-result" aria-live="polite">
     <p class="pricer-amount" data-p-amount>${money(p)}</p>
@@ -497,7 +534,8 @@ function page({ depth, pathOut, title, description, body, schemas = [], pageType
   // Titles end in the short brand name so Google doesn't cut them off.
   const shortTitle = title.replace(" | " + B.name, " | " + BRAND_SHORT);
   const ld = schemas.filter(Boolean).map((s) => `<script type="application/ld+json">${JSON.stringify(s)}</script>`).join("\n");
-  const headInner = `<title>${esc(shortTitle)}</title>
+  const headInner = `${THEME_BOOT}
+<title>${esc(shortTitle)}</title>
 <meta name="description" content="${esc(description)}">
 ${noindex ? '<meta name="robots" content="noindex">\n' : ""}<meta name="theme-color" content="#F7F3EA">
 <link rel="canonical" href="${canonical}">
@@ -525,6 +563,7 @@ ${noindex ? '<meta name="robots" content="noindex">\n' : ""}<meta name="theme-co
 ${ld}`;
   const bodyInner = `${ICONS}
 <a class="skip" href="#main">Skip to content</a>
+${minimal ? "" : announceBar()}
 ${header(L, { minimal })}
 <main id="main">
 ${body(L)}
@@ -537,7 +576,7 @@ ${PREVIEW_DIR ? "<script>window.NR_CONFIG.preview = true;</script>" : ""}
 <script${DEFER} src="${L("js/site.js")}?v=${ASSET_V.site}"></script>`;
   const isPreviewRoot = PREVIEW_DIR && pathOut === "index.html";
   const html = isPreviewRoot
-    ? `${headInner}\n<div class="page" data-page="${pageType}" data-root="${L("")}">${bodyInner}</div>\n`
+    ? `${headInner}\n<div class="page" data-page="${pageType}" data-root="${depth ? "../".repeat(depth) : "./"}">${bodyInner}</div>\n`
     : `<!doctype html>
 <html lang="en-CA">
 <head>
@@ -545,7 +584,7 @@ ${PREVIEW_DIR ? "<script>window.NR_CONFIG.preview = true;</script>" : ""}
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 ${headInner}
 </head>
-<body data-page="${pageType}" data-root="${L("")}">
+<body data-page="${pageType}" data-root="${depth ? "../".repeat(depth) : "./"}">
 ${bodyInner}
 </body>
 </html>
@@ -584,8 +623,23 @@ function quoteForm(L, { name, title = "Request a free quote", reply, fields, but
 }
 
 function serviceCards(L, list, cls = "") {
+  const shop = cls.includes("svc-grid-shop");
+  const first = founding && founding.active && spotsLeft > 0 ? (b) => money(b * (1 - founding.percent / 100)) : null;
   return `<ul class="svc-grid${cls ? " " + cls : ""}">
-      ${list.map((s) => `<li>
+      ${list.map((s) => shop ? `<li>
+        <div class="svc-card svc-shop">
+          <span class="svc-top"><span class="svc-ico">${ic(SVC_ICON[s.key] || "i-sparkle")}</span>${s.tag ? `<small class="svc-tag">${esc(s.tag)}</small>` : ""}</span>
+          <h3><a class="svc-link" href="${L("services/" + s.slug + "/")}">${esc(s.name)}</a></h3>
+          <p>${esc(s.short)}</p>
+          <p class="svc-foot"><span class="svc-price">${s.quote ? "Free quote" : `From <b data-from="${s.key}">${money(s.base)}</b>${first ? `<span class="svc-first">${first(s.base)} first visit</span>` : ""}`}</span></p>
+          <div class="svc-actions">
+            ${s.quote
+              ? `<a class="btn btn-primary btn-sm" href="${L("services/" + s.slug + "/")}" data-track="quote_click">Get a quote</a>`
+              : `<a class="btn btn-primary btn-sm" href="${L("book/")}?s=${s.key}" data-track="book_click">Book now</a>`}
+            ${B.whatsapp ? `<a class="btn btn-ghost btn-sm svc-wa" href="${esc(waLink(`Hi ${B.ownerFirstName}, I have a question about ${s.name}.`))}" target="_blank" rel="noopener" data-track="whatsapp_click">${ic("i-wa")} Ask ${esc(B.ownerFirstName)}</a>` : ""}
+          </div>
+        </div>
+      </li>` : `<li>
         <a class="svc-card" href="${L("services/" + s.slug + "/")}">
           <span class="svc-top"><span class="svc-ico">${ic(SVC_ICON[s.key] || "i-sparkle")}</span>${s.tag ? `<small class="svc-tag">${esc(s.tag)}</small>` : ""}</span>
           <h3>${esc(s.name)}</h3>
@@ -661,7 +715,7 @@ urls.push(page({
       <div class="hero-pricer">${pricer(L)}</div>
     </div>
     <a class="hero-owner" href="${L(REEL.src)}" data-reel-open aria-haspopup="dialog" data-track="video_open">
-      <span class="hero-avatar"><picture><source type="image/webp" srcset="${L("assets/founder-mann-patel-600.webp")}"><img src="${L("assets/founder-mann-patel-600.jpg")}" alt="" width="56" height="56" decoding="async"></picture><span class="hero-avatar-play">${ic("i-play")}</span></span>
+      <span class="hero-avatar"><picture><source type="image/webp" srcset="${L("assets/founder-mann-patel-avatar.webp")}"><img src="${L("assets/founder-mann-patel-avatar.jpg")}" alt="" width="76" height="76" decoding="async"></picture><span class="hero-avatar-play">${ic("i-play")}</span></span>
       <span><strong>Cleaned by ${esc(B.owner)}, owner.</strong> Every clean carries my name. <span class="hero-watch">Watch my intro (${REEL.length})</span></span>
     </a>
     ${assurances()}
@@ -682,7 +736,7 @@ ${gift && gift.active ? `<section class="gift-band" data-gift-banner data-months
       <div><p class="label">Services</p><h2>Choose the care your home needs.</h2></div>
       <a class="text-link" href="${L("pricing/")}">See every price ${ic("i-arrow")}</a>
     </div>
-    ${serviceCards(L, allServices)}
+    ${serviceCards(L, allServices, "svc-grid-shop")}
   </div>
 </section>
 
@@ -1550,7 +1604,7 @@ for (const g of guides) {
       ${breadcrumbs(L, trail)}
       <p class="kicker">${esc(g.kicker)} · ${g.minutes} min read</p>
       <h1 class="display display-sub">${esc(g.h1)}</h1>
-      <p class="byline"><picture><source type="image/webp" srcset="${L("assets/founder-mann-patel-600.webp")}"><img src="${L("assets/founder-mann-patel-600.jpg")}" alt="" width="40" height="40" decoding="async"></picture><span>By <strong>${esc(B.owner)}</strong>, founder of ${esc(B.name)}</span></p>
+      <p class="byline"><picture><source type="image/webp" srcset="${L("assets/founder-mann-patel-avatar.webp")}"><img src="${L("assets/founder-mann-patel-avatar.jpg")}" alt="" width="44" height="44" decoding="async"></picture><span>By <strong>${esc(B.owner)}</strong>, founder of ${esc(B.name)}</span></p>
     </div>
   </header>
   <div class="wrap narrow">
@@ -1856,9 +1910,10 @@ if (!PREVIEW_DIR) {
 <meta name="robots" content="noindex">
 <title>Page not found | ${esc(B.name)}</title>
 <link rel="icon" type="image/svg+xml" href="${L404("assets/logo-mark.svg")}">
+${THEME_BOOT}
 <link rel="stylesheet" href="${L404("css/site.css")}?v=${ASSET_V.css}"></head>
 <body data-page="404"><main class="section"><div class="wrap narrow">
-<a class="brand" href="${L404()}"><img src="${L404("assets/logo.svg")}" alt="${esc(B.name)}" width="772" height="210" style="height:56px;width:auto"></a>
+<a class="brand" href="${L404()}"><img class="logo-light" src="${L404("assets/logo.svg")}" alt="${esc(B.name)}" width="772" height="210" style="height:56px;width:auto"><img class="logo-dark" src="${L404("assets/logo-white.svg")}" alt="${esc(B.name)}" width="772" height="210" style="height:56px;width:auto"></a>
 <h1 class="display display-sub" style="margin-top:48px">This page has moved.</h1>
 <p class="lede">Everything you need is a tap away.</p>
 <p class="cta-row" style="margin-top:24px"><a class="btn btn-primary" href="${L404("book/")}">Book a clean</a> <a class="btn btn-ghost" href="${L404()}">Go to the home page</a></p>
