@@ -704,7 +704,7 @@ urls.push(page({
       <div class="hero-pricer">${pricer(L)}</div>
     </div>
     <a class="hero-owner" href="${L(REEL.src)}" data-reel-open aria-haspopup="dialog" data-track="video_open">
-      <span class="hero-avatar"><picture><source type="image/webp" srcset="${L("assets/founder-mann-patel-600.webp")}"><img src="${L("assets/founder-mann-patel-600.jpg")}" alt="" width="56" height="56" decoding="async"></picture><span class="hero-avatar-play">${ic("i-play")}</span></span>
+      <span class="hero-avatar"><picture><source type="image/webp" srcset="${L("assets/founder-mann-patel-avatar.webp")}"><img src="${L("assets/founder-mann-patel-avatar.jpg")}" alt="" width="76" height="76" decoding="async"></picture><span class="hero-avatar-play">${ic("i-play")}</span></span>
       <span><strong>Cleaned by ${esc(B.owner)}, owner.</strong> Every clean carries my name. <span class="hero-watch">Watch my intro (${REEL.length})</span></span>
     </a>
     ${assurances()}
@@ -1593,7 +1593,7 @@ for (const g of guides) {
       ${breadcrumbs(L, trail)}
       <p class="kicker">${esc(g.kicker)} · ${g.minutes} min read</p>
       <h1 class="display display-sub">${esc(g.h1)}</h1>
-      <p class="byline"><picture><source type="image/webp" srcset="${L("assets/founder-mann-patel-600.webp")}"><img src="${L("assets/founder-mann-patel-600.jpg")}" alt="" width="40" height="40" decoding="async"></picture><span>By <strong>${esc(B.owner)}</strong>, founder of ${esc(B.name)}</span></p>
+      <p class="byline"><picture><source type="image/webp" srcset="${L("assets/founder-mann-patel-avatar.webp")}"><img src="${L("assets/founder-mann-patel-avatar.jpg")}" alt="" width="44" height="44" decoding="async"></picture><span>By <strong>${esc(B.owner)}</strong>, founder of ${esc(B.name)}</span></p>
     </div>
   </header>
   <div class="wrap narrow">
