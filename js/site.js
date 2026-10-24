@@ -336,7 +336,7 @@
     var form = $("#booking-form");
     if (!form) return;
     var state = { step: 1, service: "regular", homeType: "condo", beds: 1, baths: 1, addons: [], freq: "once", date: null, flex: false, slot: null };
-    var fieldIds = ["f-name", "f-phone", "f-email", "f-address", "f-postal", "f-access", "f-notes"];
+    var fieldIds = ["f-name", "f-phone", "f-email", "f-address", "f-postal", "f-access", "f-referrer", "f-notes"];
     // The page decides the flow: built with a Cal.com link, it has no day-and-window step and ends on the calendar.
     var LAST = $$(".step", form).length;
     var datesBox = $("[data-dates]");
@@ -459,6 +459,8 @@
       "f-phone": [phoneOk, "Enter a 10-digit mobile number, like 647 555 0123."],
       "f-email": [emailOk, "Check your email address, or leave it blank."],
       "f-address": [function (v) { return v.trim().length >= 5; }, "Add your street address and unit."],
+      // Optional, but a referral is credited by name, so it needs a first and a last name.
+      "f-referrer": [function (v) { return !v.trim() || v.trim().split(/\s+/).filter(function (w) { return /[A-Za-zÀ-ÿ]/.test(w); }).length >= 2; }, "Add their first and last name, so we can credit the right person."],
       "f-postal": [function (v) { return fullPostalOk(v) && !!(zoneFor(v) || {}).area; }, null]
     };
     function checkField(el) {
@@ -481,7 +483,7 @@
       }
       if (n === LAST) {
         var first = null;
-        ["f-name", "f-phone", "f-email", "f-address"].forEach(function (id) { var el = $("#" + id); if (!checkField(el) && !first) first = el; });
+        ["f-name", "f-phone", "f-email", "f-address", "f-referrer"].forEach(function (id) { var el = $("#" + id); if (!checkField(el) && !first) first = el; });
         if (first) { msg = "Please fix the highlighted fields."; first.focus(); }
       }
       if (msg) {
@@ -608,6 +610,7 @@
         "Estimate: " + money(q.first) + (q.repeat ? ", then " + money(q.repeat) + "/visit" : ""),
         "Name: " + $("#f-name").value, "Phone: " + $("#f-phone").value,
         "Address: " + $("#f-address").value + ", " + formatPostal($("#f-postal").value),
+        $("#f-referrer").value.trim() ? "Referred by: " + $("#f-referrer").value.trim() : "",
         $("#f-notes").value ? "Notes: " + $("#f-notes").value : ""].filter(Boolean).join("\n");
     }
     var last = null;
@@ -636,6 +639,7 @@
         "Name": $("#f-name").value.trim(), "Phone": $("#f-phone").value.trim(), email: email || "not given",
         "Address": $("#f-address").value.trim(), "Postal code": formatPostal($("#f-postal").value) + (z && z.area ? " (" + z.area + ")" : ""),
         "Getting in": $("#f-access").value, "Pets": ($('input[name="pets"]:checked', form) || {}).value,
+        "Referred by": $("#f-referrer").value.trim() || "None",
         "Notes": $("#f-notes").value.trim() || "None", "Confirm by": ($('input[name="contactPref"]:checked', form) || {}).value
       }).then(function (res) {
         track("generate_lead", { form: "booking", service: state.service, value: Math.round(q.first), currency: C.currency }, true);
@@ -667,10 +671,11 @@
         ["When", when],
         ["Where", $("#f-address").value.trim() + ", " + formatPostal($("#f-postal").value)],
         ["Service", q.s.name + " · " + homeLine(q)],
+        $("#f-referrer").value.trim() ? ["Referred by", $("#f-referrer").value.trim() + ". We'll credit them once your clean is done and paid."] : null,
         ["Estimate", money(q.first) + (q.firstDisc > 0 ? " (" + q.firstPct + "% off: " + q.firstLabel.toLowerCase() + ")" : "") + (q.repeat ? ", then " + money(q.repeat) + " " + q.freq.label.toLowerCase() : "") + ". Paid after the clean."],
         ["Changes", (booked ? "Use the links in your confirmation email. " : "") + "Free up to " + C.policies.cancelNoticeHours + " hours before your " + (booked ? "booking" : "arrival window") + ". Later changes may cost " + C.policies.lateCancelFee + "."]
       ];
-      $("[data-done-list]").innerHTML = rows.map(function (x) { return "<div><dt>" + esc(x[0]) + "</dt><dd>" + esc(x[1]) + "</dd></div>"; }).join("");
+      $("[data-done-list]").innerHTML = rows.filter(Boolean).map(function (x) { return "<div><dt>" + esc(x[0]) + "</dt><dd>" + esc(x[1]) + "</dd></div>"; }).join("");
       if (info.skipped) {
         $("[data-done-title]").textContent = "Preview only.";
         $("[data-done-text]").textContent = "This preview doesn't send bookings. On the live site, " + B.ownerFirstName + " receives this request by email.";
@@ -722,6 +727,7 @@
         "Estimate: " + money(q.first) + (q.repeat ? ", then " + money(q.repeat) + "/visit" : "") + ", about " + q.hours + " hours",
         "Address: " + $("#f-address").value.trim() + ", " + formatPostal($("#f-postal").value),
         "Getting in: " + $("#f-access").value + ". Pets: " + (($('input[name="pets"]:checked', form) || {}).value || "No pets"),
+        $("#f-referrer").value.trim() ? "Referred by: " + $("#f-referrer").value.trim() : "",
         $("#f-notes").value.trim() ? "Notes: " + $("#f-notes").value.trim() : ""
       ].filter(Boolean).join("\n");
       var cfg = { name: $("#f-name").value.trim(), notes: notes, attendeePhoneNumber: "+1" + digits, "metadata[ref]": info.r,
