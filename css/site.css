@@ -195,6 +195,7 @@ body.menu-open { overflow: hidden; }
 .pricer-amount { font-family: var(--display); font-weight: 800; font-size: clamp(2.8rem, 12vw, 3.4rem); line-height: 1; font-variant-numeric: tabular-nums; }
 .pricer-meta { font-size: 0.88rem; color: var(--muted); line-height: 1.4; flex: 1 1 140px; }
 .pricer-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.pricer-row > [hidden] + .stepper { grid-column: 1 / -1; }
 .pricer-next { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.9rem; color: var(--muted); }
 .pricer-next .ic { color: var(--teal-ink); width: 18px; height: 18px; }
 .pricer-next strong { color: var(--navy); }
@@ -865,9 +866,9 @@ a.svc-card:hover .svc-arrow { transform: translateX(4px); }
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
 
-/* One orchestrated entrance on the home hero, from a visible resting state. */
+/* One orchestrated entrance on the home hero, from a visible resting state.
+   The headline is the page's largest paint, so it stays still. */
 @media (prefers-reduced-motion: no-preference) {
-  [data-page="home"] .hero h1 { animation: rise .8s cubic-bezier(.2, .7, .2, 1) both; }
   [data-page="home"] .hero .lede { animation: rise .8s .1s cubic-bezier(.2, .7, .2, 1) both; }
   [data-page="home"] .hero-visual { animation: rise .8s .2s cubic-bezier(.2, .7, .2, 1) both; }
   @keyframes rise { from { transform: translateY(12px); opacity: .4; } to { transform: none; opacity: 1; } }

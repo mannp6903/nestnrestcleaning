@@ -257,7 +257,7 @@
       $("[data-inc]", bedsBox).disabled = st.beds >= 8 || st.service === "detail";
       $("[data-dec]", bathsBox).disabled = st.baths <= 1;
       $("[data-inc]", bathsBox).disabled = st.baths >= 6;
-      bedsBox.style.opacity = st.service === "detail" ? ".45" : "";
+      bedsBox.hidden = st.service === "detail";
       var p = price(st.service, st.beds, st.baths, st.home);
       $("[data-p-amount]", form).textContent = money(p);
       var f = C.offers.founding;

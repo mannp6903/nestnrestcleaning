@@ -240,13 +240,13 @@ function footer(L) {
 
 // Phones get Call and Text; large screens, where sms: links do nothing, get Email instead. WhatsApp works on both.
 function actionBar(L) {
-  return `<div class="action-bar" data-action-bar>
+  return `<nav class="action-bar" aria-label="Quick contact" data-action-bar>
   <a class="ab-link ab-phone" data-tel href="tel:${B.phone}" data-track="call_click">${ic("i-phone")}<span>Call</span></a>
   <a class="ab-link ab-phone" data-sms href="sms:${B.phone}" data-track="text_click">${ic("i-sms")}<span>Text</span></a>
   ${B.whatsapp ? `<a class="ab-link ab-wa" data-wa href="${esc(waLink(WA_HELLO))}" target="_blank" rel="noopener" data-track="whatsapp_click">${ic("i-wa")}<span>WhatsApp</span></a>` : ""}
   <a class="ab-link ab-desk" data-mailto href="mailto:${B.email}" data-track="email_click">${ic("i-mail")}<span>Email</span></a>
   <a class="btn btn-primary ab-book" href="${L("book/")}" data-track="book_click"><span class="ab-long">Book your clean</span><span class="ab-short">Book now</span></a>
-</div>`;
+</nav>`;
 }
 
 function offerNote() {
