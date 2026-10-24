@@ -42,6 +42,20 @@ const waLink = (msg) => B.whatsapp ? `https://wa.me/${B.whatsapp}?text=${encodeU
 const WA_HELLO = `Hi ${B.ownerFirstName}, I'd like to ask about a clean.`;
 const founding = C.offers.founding;
 const spotsLeft = founding ? Math.max(0, founding.spots - (founding.claimed || 0)) : 0;
+// Live calendar: with a Cal.com link in booking.calLink, booking ends with picking a confirmed time.
+const CAL = !!(C.booking && C.booking.calLink);
+// The founder reel: 27 seconds, 720 x 1280. To swap it, replace the files under the same names.
+const REEL = { src: "assets/video/founder-reel-720.mp4", poster: "assets/video/founder-reel-poster.webp", posterJpg: "assets/video/founder-reel-poster.jpg", length: "0:27", iso: "PT27S", uploaded: "2026-10-24", w: 720, h: 1280 };
+// Everything the reel says on screen, for anyone who can't watch it. Keep it word for word with the video.
+const REEL_TEXT = [
+  "My name is on every clean.",
+  "Mann Patel, founder. Scarborough & North York. Confirms bookings by text.",
+  "\u201cHome should be where you rest, not where the chores wait.\u201d Mann Patel, founder.",
+  "Not quite right? Tell us within 24 hours. We re-clean those areas. Free.",
+  "I confirm every booking by text within 2 hours, during business hours.",
+  "No deposit. You pay after the clean: Interac e-Transfer, card or cash.",
+  "Nest & Rest Cleaning. My name. Every clean. We clean. You rest. 20% off your first visit, first 50 households. Open 7 days, 9am to 11pm. Book at nestnrestcleaning.com. Call or text 647 978 6903."
+];
 const guides = guideList({ C, B, esc, money, price, listJoin });
 
 function price(key, beds, baths, home = "condo") {
@@ -118,6 +132,7 @@ const ICONS = `
 <symbol id="i-instagram" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="4.8" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="12" r="3.9" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="17.2" cy="6.8" r="1.1"/></symbol>
 <symbol id="i-menu" viewBox="0 0 24 24"><path d="M3 7.5h18M3 12h18M3 16.5h18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
 <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+<symbol id="i-play" viewBox="0 0 24 24"><path d="M8.5 5.8v12.4a.8.8 0 0 0 1.2.7l9.6-6.2a.8.8 0 0 0 0-1.4L9.7 5.1a.8.8 0 0 0-1.2.7Z" fill="currentColor"/></symbol>
 <symbol id="i-chev" viewBox="0 0 24 24"><path d="m7 9.5 5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
 </defs></svg>`;
 const ic = (id, cls = "ic") => `<svg class="${cls}" aria-hidden="true"><use href="#${id}"/></svg>`;
@@ -324,8 +339,38 @@ function founderPhoto(L, cls = "") {
         <source type="image/webp" srcset="${L("assets/founder-mann-patel-600.webp")} 600w, ${L("assets/founder-mann-patel.webp")} 848w" sizes="(min-width: 960px) 420px, 86vw">
         <img src="${L("assets/founder-mann-patel.jpg")}" srcset="${L("assets/founder-mann-patel-600.jpg")} 600w, ${L("assets/founder-mann-patel.jpg")} 848w" sizes="(min-width: 960px) 420px, 86vw" alt="${esc(B.owner)}, founder of ${esc(B.name)}" width="848" height="1060" loading="lazy" decoding="async">
       </picture>
+      <a class="reel-play" href="${L(REEL.src)}" data-reel-open aria-haspopup="dialog" data-track="video_open">${ic("i-play")}<span>Watch ${esc(B.ownerFirstName)}'s intro <small>${REEL.length}</small></span></a>
     </div>`;
 }
+
+// The reel opens in a dialog, so the video only downloads when someone asks for it. Without JavaScript the links open the video file.
+function reelDialog(L) {
+  return `<dialog class="reel-dialog" data-reel-dialog aria-labelledby="reel-title">
+  <div class="reel-box">
+    <div class="reel-top">
+      <h2 id="reel-title">Meet ${esc(B.ownerFirstName)}</h2>
+      <button type="button" class="reel-close" data-reel-close aria-label="Close video">${ic("i-close")}</button>
+    </div>
+    <video class="reel-video" controls playsinline preload="none" data-poster="${L(REEL.poster)}" width="${REEL.w}" height="${REEL.h}" data-reel-video>
+      <source src="${L(REEL.src)}" type="video/mp4">
+    </video>
+    <details class="reel-text">
+      <summary>Read what the video says</summary>
+      <ul>${REEL_TEXT.map((t) => `<li>${esc(t)}</li>`).join("")}</ul>
+    </details>
+  </div>
+</dialog>`;
+}
+
+const videoSchema = () => ({
+  "@context": "https://schema.org", "@type": "VideoObject",
+  name: `Meet ${B.owner}, founder of ${B.name}`,
+  description: REEL_TEXT.join(" "),
+  thumbnailUrl: [SITE + "/" + REEL.posterJpg],
+  uploadDate: REEL.uploaded + "T00:00:00-04:00",
+  duration: REEL.iso,
+  contentUrl: SITE + "/" + REEL.src
+});
 
 function foundingCard(L) {
   if (!founding || !founding.active) return "";
@@ -588,7 +633,7 @@ urls.push(page({
   depth: 0, pathOut: "index.html", pageType: "home",
   title: `Home Cleaning in Scarborough & North York | ${B.name}`,
   description: `Careful home cleaning in Scarborough and North York, Toronto, from ${money(C.services.regular.base)}. See your price in seconds, book in two minutes, pay after your clean.`,
-  schemas: [businessSchema(), websiteSchema(), homeFaq.schema],
+  schemas: [businessSchema(), websiteSchema(), homeFaq.schema, videoSchema()],
   body: (L) => `
 <section class="hero hero-home">
   <div class="wrap hero-grid">
@@ -605,9 +650,9 @@ urls.push(page({
       ${photo(L, "living-room", { sizes: "(min-width: 960px) 460px, 1px", cls: "hero-photo", eager: false })}
       <div class="hero-pricer">${pricer(L)}</div>
     </div>
-    <a class="hero-owner" href="${L("#founder")}">
-      <picture><source type="image/webp" srcset="${L("assets/founder-mann-patel-600.webp")}"><img src="${L("assets/founder-mann-patel-600.jpg")}" alt="" width="56" height="56" decoding="async"></picture>
-      <span><strong>Cleaned by ${esc(B.owner)}, owner.</strong> Every clean carries my name.</span>
+    <a class="hero-owner" href="${L(REEL.src)}" data-reel-open aria-haspopup="dialog" data-track="video_open">
+      <span class="hero-avatar"><picture><source type="image/webp" srcset="${L("assets/founder-mann-patel-600.webp")}"><img src="${L("assets/founder-mann-patel-600.jpg")}" alt="" width="56" height="56" decoding="async"></picture><span class="hero-avatar-play">${ic("i-play")}</span></span>
+      <span><strong>Cleaned by ${esc(B.owner)}, owner.</strong> Every clean carries my name. <span class="hero-watch">Watch my intro (${REEL.length})</span></span>
     </a>
     ${assurances()}
   </div>
@@ -635,12 +680,15 @@ ${gift && gift.active ? `<section class="gift-band" data-gift-banner data-months
   <div class="wrap">
     <div class="section-head">
       <p class="label">Booking</p>
-      <h2>Booked in two minutes. Confirmed by text.</h2>
+      <h2>${CAL ? "Booked in two minutes. Confirmed instantly." : "Booked in two minutes. Confirmed by text."}</h2>
     </div>
     <ol class="steps-3">
       <li><h3>See your price</h3><p>From your home's size and the extras you choose. No estimate visit needed.</p></li>
-      <li><h3>Choose a time</h3><p>Any day of the week, evenings included. Next opening: <strong data-next-open>tomorrow</strong>.</p></li>
-      <li><h3>We confirm</h3><p>${esc(B.ownerFirstName)} confirms by text <span data-reply>${esc(B.replyPromise)}</span>, with a confirmation email if you add your address. You pay after the clean.</p></li>
+      ${CAL
+        ? `<li><h3>Pick a time</h3><p>Choose a real opening on ${esc(B.ownerFirstName)}'s calendar, any day of the week, evenings included.</p></li>
+      <li><h3>You're confirmed</h3><p>Your time is confirmed straight away, by email. ${esc(B.ownerFirstName)} also texts you <span data-reply>${esc(B.replyPromise)}</span>. You pay after the clean.</p></li>`
+        : `<li><h3>Choose a time</h3><p>Any day of the week, evenings included. Next opening: <strong data-next-open>tomorrow</strong>.</p></li>
+      <li><h3>We confirm</h3><p>${esc(B.ownerFirstName)} confirms by text <span data-reply>${esc(B.replyPromise)}</span>, with a confirmation email if you add your address. You pay after the clean.</p></li>`}
     </ol>
     <div class="center-cta"><a class="btn btn-primary" href="${L("book/")}" data-track="book_click">Book your clean</a></div>
   </div>
@@ -748,6 +796,7 @@ ${gift && gift.active ? `<section class="gift-band" data-gift-banner data-months
 
 ${homeFaq.html}
 ${finalCta(L)}
+${reelDialog(L)}
 `
 }));
 
@@ -756,7 +805,13 @@ urls.push(page({
   depth: 1, pathOut: "book/index.html", pageType: "book", minimal: true, noBar: true,
   title: `Book a Clean | ${B.name}`,
   description: "Book your home cleaning online in about two minutes. See your price, choose a day and arrival window, and pay after the clean.",
-  body: (L) => `
+  body: (L) => {
+    const freqField = `<div class="field" data-freq-field><span class="field-label" id="freq-label">How often</span>
+              <div class="freq-grid" role="radiogroup" aria-labelledby="freq-label">
+                ${Object.keys(C.frequencies).map((k) => { const f = C.frequencies[k]; return `<label class="choice"><input type="radio" name="freq" value="${k}"><span class="choice-body"><strong>${esc(f.label)}</strong><span class="choice-desc">${f.discount ? `Save ${f.discount}%` : "No commitment"}</span></span></label>`; }).join("")}
+              </div>
+            </div>`;
+    return `
 <section class="book">
   <noscript><div class="wrap"><p class="form-error">Booking needs JavaScript. Please call or text <a href="tel:${B.phone}">${esc(B.phoneDisplay)}</a> and we'll book you in.</p></div></noscript>
   <div class="wrap">
@@ -766,9 +821,7 @@ urls.push(page({
         <p class="book-sub">${ic("i-cal")} Next opening: <strong data-next-open>tomorrow</strong></p>
       </div>
       <ol class="progress" data-progress aria-label="Booking steps">
-        <li data-dot="1"><span>Your home</span></li>
-        <li data-dot="2"><span>Plan &amp; time</span></li>
-        <li data-dot="3"><span>Your details</span></li>
+        ${(CAL ? ["Your home", "Your details", "Pick a time"] : ["Your home", "Plan &amp; time", "Your details"]).map((t, i) => `<li data-dot="${i + 1}"><span>${t}</span></li>`).join("\n        ")}
       </ol>
     </div>
     <div class="booker">
@@ -797,15 +850,12 @@ urls.push(page({
                 ${C.addons.map((a) => `<label class="chip" data-addon="${a.id}"><input type="checkbox" name="addon" value="${a.id}"><span>${esc(a.name)} <b>+${money(a.price)}</b></span></label>`).join("")}
               </div>
             </div>
+            ${CAL ? freqField : ""}
           </fieldset>
 
-          <fieldset class="step" data-step="2" hidden>
+          ${CAL ? "" : `<fieldset class="step" data-step="2" hidden>
             <legend>Plan &amp; time</legend>
-            <div class="field" data-freq-field><span class="field-label" id="freq-label">How often</span>
-              <div class="freq-grid" role="radiogroup" aria-labelledby="freq-label">
-                ${Object.keys(C.frequencies).map((k) => { const f = C.frequencies[k]; return `<label class="choice"><input type="radio" name="freq" value="${k}"><span class="choice-body"><strong>${esc(f.label)}</strong><span class="choice-desc">${f.discount ? `Save ${f.discount}%` : "No commitment"}</span></span></label>`; }).join("")}
-              </div>
-            </div>
+            ${freqField}
             <div class="field"><span class="field-label" id="date-label">Day</span>
               <p class="field-note">Next opening: <strong data-next-open>tomorrow</strong>. Every day of the week, evenings included.</p>
               <div class="date-strip" role="radiogroup" aria-labelledby="date-label" data-dates></div>
@@ -816,9 +866,9 @@ urls.push(page({
                 ${C.timeSlots.map((t) => `<label><input type="radio" name="slot" value="${t.id}"><span>${esc(t.label)}<small>${esc(t.time)}</small></span></label>`).join("")}
               </div>
             </div>
-          </fieldset>
+          </fieldset>`}
 
-          <fieldset class="step" data-step="3" hidden>
+          <fieldset class="step" data-step="${CAL ? 2 : 3}" hidden>
             <legend>Your details</legend>
             <p class="field-note">All fields are required unless marked optional.</p>
             <div class="form-grid">
@@ -843,8 +893,10 @@ urls.push(page({
                   <label><input type="radio" name="contactPref" value="Email"><span>Email</span></label>
                 </div>
               </div>
-              <p class="consent-line span-2">${ic("i-check")}<span>This is a booking request. ${esc(B.ownerFirstName)} confirms the time and final price with you before the clean. Free to change up to ${C.policies.cancelNoticeHours} hours before, and nothing to pay until it's done.</span></p>
-              <p class="privacy-note span-2">By sending, you agree to our <a href="${L("policies/")}">Service Policies</a>. We use your details only to arrange your clean. Your request is sent through FormSubmit to our Google email inbox, which may store data outside Canada. See our <a href="${L("privacy/")}">Privacy Policy</a>.</p>
+              <p class="consent-line span-2">${ic("i-check")}<span>${CAL
+                ? `Next, you pick a time on ${esc(B.ownerFirstName)}'s calendar and it's confirmed straight away. Free to change up to ${C.policies.cancelNoticeHours} hours before, and nothing to pay until it's done.`
+                : `This is a booking request. ${esc(B.ownerFirstName)} confirms the time and final price with you before the clean. Free to change up to ${C.policies.cancelNoticeHours} hours before, and nothing to pay until it's done.`}</span></p>
+              <p class="privacy-note span-2">By sending, you agree to our <a href="${L("policies/")}">Service Policies</a>. We use your details only to arrange your clean. Your request is sent through FormSubmit to our Google email inbox${CAL ? ", and the time you pick is booked on Cal.com, our booking calendar. Both" : ", which"} may store data outside Canada. See our <a href="${L("privacy/")}">Privacy Policy</a>.</p>
               <input type="text" name="_honey" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
             </div>
             <p class="form-error" data-form-error role="alert" hidden></p>
@@ -853,12 +905,21 @@ urls.push(page({
           <div class="step-nav">
             <button type="button" class="btn btn-ghost" data-prev hidden>${ic("i-back")} Back</button>
             <button type="button" class="btn btn-primary btn-grow" data-next>Continue ${ic("i-arrow")}</button>
-            <button type="submit" class="btn btn-primary btn-grow" data-submit hidden>Request booking</button>
+            <button type="submit" class="btn btn-primary btn-grow" data-submit hidden>${CAL ? `Choose your time ${ic("i-arrow")}` : "Request booking"}</button>
           </div>
         </form>
 
-        <div class="done" data-done hidden tabindex="-1">
-          <p class="label">Request received</p>
+        ${CAL ? `<div class="cal-step" data-cal-step hidden tabindex="-1">
+          <p class="label">Last step</p>
+          <h2>Pick your time</h2>
+          <p>Your details are in. Choose a time that suits you and it's confirmed straight away, with a confirmation email.</p>
+          <div class="cal-embed" data-cal-embed></div>
+          <p class="form-error" data-cal-fail role="alert" hidden>The calendar didn't load here. Open it in a new tab below, or ${esc(B.ownerFirstName)} will text you ${esc(B.replyPromise)} to arrange a time.</p>
+          <p class="cal-alt"><a class="text-link" data-cal-link href="#" target="_blank" rel="noopener">Open the calendar in a new tab ${ic("i-arrow")}</a></p>
+        </div>
+
+        ` : ""}<div class="done" data-done hidden tabindex="-1">
+          <p class="label" data-done-label>Request received</p>
           <h2 data-done-title>Thank you.</h2>
           <p data-done-text></p>
           <p class="ref">Reference <strong data-ref></strong></p>
@@ -888,7 +949,8 @@ urls.push(page({
       </aside>
     </div>
   </div>
-</section>`
+</section>`;
+  }
 }));
 
 /* ---------- service pages ---------- */
@@ -1508,7 +1570,8 @@ ${finalCta(L)}`
     description: `Why ${B.name} exists, what we believe, the promises we keep every visit, and where we're going. A note from founder ${B.owner}.`,
     schemas: [
       { "@context": "https://schema.org", "@type": "AboutPage", name: `Our vision | ${B.name}`, url: SITE + "/vision/", description: V.intro, about: { "@id": SITE + "/#business" } },
-      crumbSchema(trail)
+      crumbSchema(trail),
+      videoSchema()
     ],
     body: (L) => `
 <section class="hero hero-sub">
@@ -1604,7 +1667,8 @@ ${finalCta(L)}`
 </section>
 ${founding && founding.active
   ? finalCta(L, "Be a founding household.", `${founding.text} Book in two minutes and pay after it's done.`)
-  : finalCta(L)}`
+  : finalCta(L)}
+${reelDialog(L)}`
   }));
 }
 
@@ -1707,7 +1771,8 @@ legalPage({
       <ul>
         <li><strong>GitHub</strong> (GitHub, Inc.) hosts this website and keeps standard server logs, including IP addresses, for security.</li>
         <li><strong>Google</strong> provides our email service, where booking, quote, gift card and review messages are stored.</li>
-        <li><strong>FormSubmit</strong> (formsubmit.co) delivers the website's forms to our email inbox, and sends your confirmation email when you give us your address.</li>
+        ${CAL ? `<li><strong>Cal.com</strong> (cal.com) runs our booking calendar. When you pick a time, it receives your name, email, phone number and booking details, and emails your confirmation. It may store data outside Canada.</li>
+        ` : ""}<li><strong>FormSubmit</strong> (formsubmit.co) delivers the website's forms to our email inbox, and sends your confirmation email when you give us your address.</li>
         <li><strong>WhatsApp</strong> (WhatsApp LLC, part of Meta Platforms) delivers and stores messages if you choose to contact us on WhatsApp.</li>
         <li><strong>Your bank or card payment provider</strong> processes payments you make by Interac e-Transfer or card.</li>
       </ul>
@@ -1739,7 +1804,9 @@ legalPage({
   intro: `Clear terms, so there are no surprises. These apply to every clean we do. If anything here is unclear, call, text or WhatsApp ${esc(B.phoneDisplay)}.`,
   sections: [
     { id: "area", h: "Where we clean", html: () => `<p>We clean homes and small offices in Scarborough and North York, Toronto. We confirm your postal code before every booking.</p>` },
-    { id: "booking", h: "Booking and confirmation", html: () => `<p>A booking made on the website is a request. It's confirmed once we've contacted you by text, WhatsApp, call or email and agreed a day and arrival window. We usually reply ${esc(B.replyPromise)}. If you give us your email address, you also get an automatic email confirming we've received your request.</p>` },
+    { id: "booking", h: "Booking and confirmation", html: () => CAL
+      ? `<p>When you book on the website, you send your details first, then pick a time on our online calendar. The time you pick is confirmed straight away, and our calendar provider, Cal.com, emails you a confirmation with links to reschedule or cancel. We also contact you by text, WhatsApp, call or email, as you prefer, ${esc(B.replyPromise)}. If you don't pick a time, your details reach us as a request and we'll contact you to arrange one.</p>`
+      : `<p>A booking made on the website is a request. It's confirmed once we've contacted you by text, WhatsApp, call or email and agreed a day and arrival window. We usually reply ${esc(B.replyPromise)}. If you give us your email address, you also get an automatic email confirming we've received your request.</p>` },
     { id: "pricing", h: "Prices and estimates", html: () => `<p>The price shown on the website is an estimate based on what you tell us: the service, home type, bedrooms, bathrooms and extras. If your home needs much more or less time than expected, we'll tell you and agree the price with you before we start, never after. Prices are in Canadian dollars.</p>
       ${founding && founding.active ? `<p>Founding household offer: ${esc(founding.text)} The discount applies to the first visit only and can't be combined with other discounts.</p>` : ""}
       <p>Recurring plans (weekly, every 2 weeks or every 4 weeks) receive the discount shown when you book. You can pause or change your plan with ${P.cancelNoticeHours} hours' notice.</p>` },

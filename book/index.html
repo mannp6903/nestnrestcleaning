@@ -64,6 +64,7 @@
 <symbol id="i-instagram" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="4.8" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="12" r="3.9" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="17.2" cy="6.8" r="1.1"/></symbol>
 <symbol id="i-menu" viewBox="0 0 24 24"><path d="M3 7.5h18M3 12h18M3 16.5h18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
 <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+<symbol id="i-play" viewBox="0 0 24 24"><path d="M8.5 5.8v12.4a.8.8 0 0 0 1.2.7l9.6-6.2a.8.8 0 0 0 0-1.4L9.7 5.1a.8.8 0 0 0-1.2.7Z" fill="currentColor"/></symbol>
 <symbol id="i-chev" viewBox="0 0 24 24"><path d="m7 9.5 5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
 </defs></svg>
 <a class="skip" href="#main">Skip to content</a>
@@ -129,6 +130,7 @@
                 <label class="chip" data-addon="oven"><input type="checkbox" name="addon" value="oven"><span>Inside oven <b>+$40</b></span></label><label class="chip" data-addon="fridge"><input type="checkbox" name="addon" value="fridge"><span>Inside fridge <b>+$40</b></span></label><label class="chip" data-addon="cabinets"><input type="checkbox" name="addon" value="cabinets"><span>Inside kitchen cabinets <b>+$45</b></span></label><label class="chip" data-addon="windows"><input type="checkbox" name="addon" value="windows"><span>Interior windows <b>+$50</b></span></label><label class="chip" data-addon="walls"><input type="checkbox" name="addon" value="walls"><span>Wall spot cleaning <b>+$25</b></span></label><label class="chip" data-addon="laundry"><input type="checkbox" name="addon" value="laundry"><span>Laundry, wash and fold <b>+$25</b></span></label><label class="chip" data-addon="balcony"><input type="checkbox" name="addon" value="balcony"><span>Balcony or patio <b>+$30</b></span></label><label class="chip" data-addon="pets"><input type="checkbox" name="addon" value="pets"><span>Heavy pet hair <b>+$20</b></span></label>
               </div>
             </div>
+            
           </fieldset>
 
           <fieldset class="step" data-step="2" hidden>
@@ -190,7 +192,7 @@
         </form>
 
         <div class="done" data-done hidden tabindex="-1">
-          <p class="label">Request received</p>
+          <p class="label" data-done-label>Request received</p>
           <h2 data-done-title>Thank you.</h2>
           <p data-done-text></p>
           <p class="ref">Reference <strong data-ref></strong></p>

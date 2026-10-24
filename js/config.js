@@ -76,10 +76,14 @@ window.NR_CONFIG = {
   },
 
   /* Booking availability. leadDays: earliest booking is this many days from today (1 = tomorrow).
-     blockedDates: days you can't take new bookings, as "YYYY-MM-DD". "Next opening" on the site skips them. */
+     blockedDates: days you can't take new bookings, as "YYYY-MM-DD". "Next opening" on the site skips them.
+     calLink: your Cal.com booking link, the part after cal.com/ (e.g. "nestandrest/home-clean"). When set, customers
+     pick a confirmed time on your calendar as the last step of booking. Leave "" to keep booking requests.
+     After changing calLink, run `node tools/build.mjs`. Setup steps are in README.md. */
   booking: {
     leadDays: 1,
-    blockedDates: []
+    blockedDates: [],
+    calLink: ""
   },
 
   /* Confirmation emails sent to the customer by FormSubmit when they give an email address.

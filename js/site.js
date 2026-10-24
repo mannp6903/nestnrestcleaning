@@ -331,6 +331,12 @@
     if (!form) return;
     var state = { step: 1, service: "regular", homeType: "condo", beds: 1, baths: 1, addons: [], freq: "once", date: null, flex: false, slot: null };
     var fieldIds = ["f-name", "f-phone", "f-email", "f-address", "f-postal", "f-access", "f-notes"];
+    // The page decides the flow: built with a Cal.com link, it has no day-and-window step and ends on the calendar.
+    var LAST = $$(".step", form).length;
+    var datesBox = $("[data-dates]");
+    var calStep = $("[data-cal-step]");
+    var calPath = String((C.booking || {}).calLink || "").trim().replace(/^https?:\/\/(app\.)?cal\.com\//, "").replace(/^\/+|\/+$/g, "");
+    var CAL = !!(calStep && calPath);
 
     function availableDates() { return openDates(C.daysAhead); }
     var iso = isoDay;
@@ -339,7 +345,7 @@
     function slotById(id) { return C.timeSlots.filter(function (t) { return t.id === id; })[0]; }
 
     var wd = new Intl.DateTimeFormat("en-CA", { weekday: "short" }), mo = new Intl.DateTimeFormat("en-CA", { month: "short" });
-    $("[data-dates]").innerHTML = availableDates().map(function (d) {
+    if (datesBox) datesBox.innerHTML = availableDates().map(function (d) {
       return '<label class="date-chip"><input type="radio" name="date" value="' + iso(d) + '" aria-label="' + esc(longDate(iso(d))) + '"><span><small>' +
         wd.format(d) + "</small><strong>" + d.getDate() + "</strong><small>" + mo.format(d) + "</small></span></label>";
     }).join("");
@@ -392,8 +398,10 @@
       $$('input[name="freq"]', form).forEach(function (i) { i.checked = i.value === state.freq; });
       $$('input[name="slot"]', form).forEach(function (i) { i.checked = i.value === state.slot; });
       $$('input[name="date"]', form).forEach(function (i) { i.checked = i.value === state.date; });
-      $("[data-flex]").checked = state.flex;
-      $("[data-dates]").classList.toggle("is-disabled", state.flex);
+      if (datesBox) {
+        $("[data-flex]").checked = state.flex;
+        datesBox.classList.toggle("is-disabled", state.flex);
+      }
       var beds = $('[data-counter="beds"]'), baths = $('[data-counter="baths"]');
       $("output", beds).textContent = state.beds;
       $("output", baths).textContent = state.baths;
@@ -415,18 +423,21 @@
       $("[data-freq-field]").hidden = !recurring;
       if (!recurring) state.freq = "once";
     }
-    function showStep(n, focus) {
-      state.step = n;
-      $$(".step", form).forEach(function (fs) { fs.hidden = +fs.getAttribute("data-step") !== n; });
+    function markDots(n) {
       $$("[data-dot]").forEach(function (li) {
         var i = +li.getAttribute("data-dot");
         li.classList.toggle("is-done", i < n);
         li.classList.toggle("is-current", i === n);
         if (i === n) li.setAttribute("aria-current", "step"); else li.removeAttribute("aria-current");
       });
+    }
+    function showStep(n, focus) {
+      state.step = n;
+      $$(".step", form).forEach(function (fs) { fs.hidden = +fs.getAttribute("data-step") !== n; });
+      markDots(n);
       $("[data-prev]").hidden = n === 1;
-      $("[data-next]").hidden = n === 3;
-      $("[data-submit]").hidden = n !== 3;
+      $("[data-next]").hidden = n === LAST;
+      $("[data-submit]").hidden = n !== LAST;
       $("[data-form-error]").hidden = true;
       if (focus) {
         var top = $(".book-head").getBoundingClientRect().top;
@@ -458,19 +469,19 @@
     function validate(n) {
       var msg = "";
       if (n === 1 && !checkField($("#f-postal"))) { msg = $("#err-f-postal").textContent; $("#f-postal").focus(); }
-      if (n === 2) {
+      if (n === 2 && datesBox) {
         if (!state.date && !state.flex) msg = "Choose a day, or tick “I'm flexible”.";
         else if (!state.slot) msg = "Choose an arrival window.";
       }
-      if (n === 3) {
+      if (n === LAST) {
         var first = null;
         ["f-name", "f-phone", "f-email", "f-address"].forEach(function (id) { var el = $("#" + id); if (!checkField(el) && !first) first = el; });
         if (first) { msg = "Please fix the highlighted fields."; first.focus(); }
       }
       if (msg) {
         var err = $("[data-form-error]");
-        // Step 3 shows its message inline and focuses the first field to fix, so it needs no toast.
-        if (n === 3) { err.textContent = msg; err.hidden = false; return false; }
+        // The details step shows its message inline and focuses the first field to fix, so it needs no toast.
+        if (n === LAST) { err.textContent = msg; err.hidden = false; return false; }
         if (n === 1) return false;
         toast(msg);
         return false;
@@ -500,7 +511,9 @@
       if (+q.get("ba")) state.baths = Math.min(6, +q.get("ba"));
       if (!C.services[state.service]) state.service = "regular";
       if (state.date && availableDates().map(iso).indexOf(state.date) === -1) state.date = null;
-      if (state.step > 3 || state.step < 1) state.step = 1;
+      if (state.step > LAST || state.step < 1) state.step = 1;
+      // Built for the calendar but no link set: send a request and we'll arrange the earliest opening.
+      if (calStep && !CAL) state.flex = true;
     }
     function onPostal() {
       var el = $("#f-postal"), out = $("[data-pc-booking]");
@@ -548,7 +561,7 @@
     });
     $("[data-prev]").addEventListener("click", function () { showStep(Math.max(1, state.step - 1), true); });
     form.addEventListener("keydown", function (e) {
-      if (e.key === "Enter" && e.target.tagName === "INPUT" && state.step < 3) { e.preventDefault(); $("[data-next]").click(); }
+      if (e.key === "Enter" && e.target.tagName === "INPUT" && state.step < LAST) { e.preventDefault(); $("[data-next]").click(); }
     });
     var sum = $("[data-summary]");
     // Keep a focused field clear of the sticky Continue and price bars on phones.
@@ -563,12 +576,20 @@
       this.setAttribute("aria-expanded", String(open));
     });
 
+    function whenText() {
+      if (CAL) return "Picking a time on the calendar";
+      return state.flex ? "Flexible: earliest opening" : longDate(state.date);
+    }
+    // A booked calendar time, shown in Toronto time whatever the visitor's device says.
+    function fmtStart(d) {
+      return new Intl.DateTimeFormat("en-CA", { weekday: "long", month: "long", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/Toronto" }).format(d);
+    }
     function ref() { var c = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789", s = ""; for (var i = 0; i < 4; i++) s += c[Math.floor(Math.random() * c.length)]; return "NR-" + s; }
-    function text(r) {
+    function text(r, when) {
       var q = quote(), slot = slotById(state.slot);
-      return ["Booking request " + r, q.s.name + ", " + homeLine(q),
+      return [(CAL ? "Booking " : "Booking request ") + r, q.s.name + ", " + homeLine(q),
         q.addons.length ? "Extras: " + q.addons.map(function (a) { return a.name; }).join(", ") : "",
-        "When: " + (state.flex ? "earliest opening" : longDate(state.date)) + (slot ? ", " + slot.label + " (" + slot.time + ")" : ""),
+        "When: " + (when || (state.flex ? "earliest opening" : longDate(state.date)) + (slot ? ", " + slot.label + " (" + slot.time + ")" : "")),
         q.repeat ? "Plan: " + q.freq.label : "",
         "Estimate: " + money(q.first) + (q.repeat ? ", then " + money(q.repeat) + "/visit" : ""),
         "Name: " + $("#f-name").value, "Phone: " + $("#f-phone").value,
@@ -578,17 +599,18 @@
     var last = null;
     form.addEventListener("submit", function (e) {
       e.preventDefault();
-      if (!validate(3)) return;
+      if (!validate(LAST)) return;
       var r = ref(), q = quote(), slot = slotById(state.slot), z = q.zone;
-      var when = state.flex ? "Flexible: earliest opening" : longDate(state.date);
-      var btn = $("[data-submit]");
+      var when = whenText();
+      var btn = $("[data-submit]"), btnLabel = btn.innerHTML;
       btn.disabled = true; btn.textContent = "Sending…";
       var email = $("#f-email").value.trim(), firstName = $("#f-name").value.trim().split(/\s+/)[0];
       var plain = q.s.name + ", " + homeLine(q) + "; " + when + (slot ? ", arrival " + slot.time : "") + "; estimate " + money(q.first) + (q.repeat ? ", then " + money(q.repeat) + " " + q.freq.label.toLowerCase() : "");
       send({
         _subject: "New booking " + r + ": " + q.s.name + ", " + when,
         _template: "table", _captcha: "false", _replyto: email || undefined,
-        _autoresponse: email ? fillTpl((C.emails || {}).booking, { name: firstName, ref: r, summary: plain, reply: B.replyPromise, phone: B.phoneDisplay }) : undefined,
+        // With the calendar, Cal.com emails the confirmation once a time is picked.
+        _autoresponse: email && !CAL ? fillTpl((C.emails || {}).booking, { name: firstName, ref: r, summary: plain, reply: B.replyPromise, phone: B.phoneDisplay }) : undefined,
         _honey: $('[name="_honey"]', form).value,
         "Reference": r, "Service": q.s.name, "Home": homeLine(q),
         "Extras": q.addons.map(function (a) { return a.name; }).join(", ") || "None",
@@ -602,45 +624,122 @@
         "Notes": $("#f-notes").value.trim() || "None", "Confirm by": ($('input[name="contactPref"]:checked', form) || {}).value
       }).then(function (res) {
         track("generate_lead", { form: "booking", service: state.service, value: Math.round(q.first), currency: C.currency }, true);
-        last = { ref: r, date: state.flex ? null : state.date, slot: slot, hours: q.hours, service: q.s.name, address: $("#f-address").value };
-        var how = { Text: "text", WhatsApp: "message", Call: "call", Email: "email" }[($('input[name="contactPref"]:checked', form) || {}).value] || "text";
+        last = { ref: r, date: state.flex || CAL ? null : state.date, slot: slot, hours: q.hours, service: q.s.name, address: $("#f-address").value };
+        var info = { r: r, q: q, slot: slot, email: email, firstName: firstName, skipped: !!(res && res.skipped),
+          how: { Text: "text", WhatsApp: "message", Call: "call", Email: "email" }[($('input[name="contactPref"]:checked', form) || {}).value] || "text" };
         form.hidden = true;
-        $("[data-progress]").hidden = true;
-        $("[data-summary]").hidden = true;
-        $(".book-head h1").textContent = "Request sent";
-        var done = $("[data-done]");
-        $("[data-ref]").textContent = r;
-        var rows = [
-          ["When", (state.flex ? "Earliest opening (we'll confirm)" : longDate(state.date)) + (slot ? ", arrival " + slot.time : "")],
-          ["Where", $("#f-address").value.trim() + ", " + formatPostal($("#f-postal").value)],
-          ["Service", q.s.name + " · " + homeLine(q)],
-          ["Estimate", money(q.first) + (q.firstDisc > 0 ? " (" + q.firstPct + "% off: " + q.firstLabel.toLowerCase() + ")" : "") + (q.repeat ? ", then " + money(q.repeat) + " " + q.freq.label.toLowerCase() : "") + ". Paid after the clean."],
-          ["Changes", "Free up to " + C.policies.cancelNoticeHours + " hours before your arrival window."]
-        ];
-        $("[data-done-list]").innerHTML = rows.map(function (x) { return "<div><dt>" + esc(x[0]) + "</dt><dd>" + esc(x[1]) + "</dd></div>"; }).join("");
-        if (res && res.skipped) {
-          $("[data-done-title]").textContent = "Preview only.";
-          $("[data-done-text]").textContent = "This preview doesn't send bookings. On the live site, " + B.ownerFirstName + " receives this request by email.";
-        } else {
-          $("[data-done-title]").textContent = "Thank you, " + firstName + ".";
-          $("[data-done-text]").textContent = B.ownerFirstName + " will " + how + " you " + B.replyPromise + " to confirm " +
-            (state.flex ? "the earliest opening" : longDate(state.date) + (slot ? ", " + slot.label.toLowerCase() : "")) + "." + (email ? " A confirmation is on its way to " + email + "." : "") + " Nothing to pay until after your clean.";
-        }
-        $("[data-sms-booking]").href = "sms:" + B.phone + "?&body=" + encodeURIComponent(text(r));
-        var wab = $("[data-wa-booking]");
-        if (wab) wab.href = waHref(text(r));
-        $("[data-ics]").hidden = PREVIEW || !last.date;
-        done.hidden = false;
-        done.focus();
-        window.scrollTo({ top: 0, behavior: "smooth" });
+        if (CAL && !info.skipped) showCalendar(info);
+        else showDone(info, false, null);
         store(DRAFT_KEY, null);
       }).catch(function () {
         var err = $("[data-form-error]");
         err.innerHTML = "We couldn't send your request online. Please <a href=\"sms:" + B.phone + "?&body=" + encodeURIComponent(text(r)) + "\">text it to us</a> or <a href=\"mailto:" + B.email +
           "?subject=" + encodeURIComponent("Booking request " + r) + "&body=" + encodeURIComponent(text(r)) + "\">email it</a>. Your details are filled in.";
         err.hidden = false;
-      }).then(function () { btn.disabled = false; btn.textContent = "Request booking"; });
+      }).then(function () { btn.disabled = false; btn.innerHTML = btnLabel; });
     });
+
+    function showDone(info, booked, start) {
+      var q = info.q, slot = info.slot;
+      var when = booked ? (start ? fmtStart(start) : "The time you picked (see your confirmation email)")
+        : (state.flex ? "Earliest opening (we'll confirm)" : longDate(state.date)) + (slot ? ", arrival " + slot.time : "");
+      $("[data-progress]").hidden = true;
+      $("[data-summary]").hidden = true;
+      $(".book-head h1").textContent = booked ? "You're booked" : "Request sent";
+      $("[data-done-label]").textContent = booked ? "Booking confirmed" : "Request received";
+      $("[data-ref]").textContent = info.r;
+      var rows = [
+        ["When", when],
+        ["Where", $("#f-address").value.trim() + ", " + formatPostal($("#f-postal").value)],
+        ["Service", q.s.name + " · " + homeLine(q)],
+        ["Estimate", money(q.first) + (q.firstDisc > 0 ? " (" + q.firstPct + "% off: " + q.firstLabel.toLowerCase() + ")" : "") + (q.repeat ? ", then " + money(q.repeat) + " " + q.freq.label.toLowerCase() : "") + ". Paid after the clean."],
+        ["Changes", (booked ? "Use the links in your confirmation email. " : "") + "Free up to " + C.policies.cancelNoticeHours + " hours before your " + (booked ? "booking." : "arrival window.")]
+      ];
+      $("[data-done-list]").innerHTML = rows.map(function (x) { return "<div><dt>" + esc(x[0]) + "</dt><dd>" + esc(x[1]) + "</dd></div>"; }).join("");
+      if (info.skipped) {
+        $("[data-done-title]").textContent = "Preview only.";
+        $("[data-done-text]").textContent = "This preview doesn't send bookings. On the live site, " + B.ownerFirstName + " receives this request by email.";
+      } else if (booked) {
+        $("[data-done-title]").textContent = "You're booked, " + info.firstName + ".";
+        var at = start ? fmtStart(start) : "";
+        $("[data-done-text]").textContent = (at ? at + (/\.$/.test(at) ? " " : ". ") : "") + "Your confirmation email has links to reschedule or cancel. " +
+          B.ownerFirstName + " will " + info.how + " you " + B.replyPromise + " to confirm the details. Nothing to pay until after your clean.";
+      } else {
+        $("[data-done-title]").textContent = "Thank you, " + info.firstName + ".";
+        $("[data-done-text]").textContent = B.ownerFirstName + " will " + info.how + " you " + B.replyPromise + " to confirm " +
+          (state.flex ? "the earliest opening" : longDate(state.date) + (slot ? ", " + slot.label.toLowerCase() : "")) + "." + (info.email ? " A confirmation is on its way to " + info.email + "." : "") + " Nothing to pay until after your clean.";
+      }
+      var msg = text(info.r, booked ? when : null);
+      $("[data-sms-booking]").href = "sms:" + B.phone + "?&body=" + encodeURIComponent(msg);
+      var wab = $("[data-wa-booking]");
+      if (wab) wab.href = waHref(msg);
+      // A calendar booking already comes with its own calendar invite.
+      $("[data-ics]").hidden = PREVIEW || booked || !last.date;
+      var done = $("[data-done]");
+      done.hidden = false;
+      done.focus();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    // Cal.com's standard embed loader, in this file's ES5 style. It queues calls until embed.js arrives.
+    function loadCal() {
+      if (window.Cal) return;
+      var d = document, push = function (a, ar) { a.q.push(ar); };
+      window.Cal = function () {
+        var cal = window.Cal, ar = arguments;
+        if (!cal.loaded) { cal.ns = {}; cal.q = cal.q || []; d.head.appendChild(d.createElement("script")).src = "https://app.cal.com/embed/embed.js"; cal.loaded = true; }
+        if (ar[0] === "init") {
+          var api = function () { push(api, arguments); }, ns = ar[1];
+          api.q = api.q || [];
+          if (typeof ns === "string") { cal.ns[ns] = cal.ns[ns] || api; push(cal.ns[ns], ar); push(cal, ["initNamespace", ns]); } else push(cal, ar);
+          return;
+        }
+        push(cal, ar);
+      };
+    }
+    // Everything the customer already typed, so Cal.com's form is filled in and the slot is the right length.
+    function calConfig(info) {
+      var q = info.q, digits = $("#f-phone").value.replace(/\D/g, "").slice(-10);
+      var notes = [
+        "Booking " + info.r + ": " + q.s.name + ", " + homeLine(q),
+        q.addons.length ? "Extras: " + q.addons.map(function (a) { return a.name; }).join(", ") : "",
+        q.repeat ? "Plan: " + q.freq.label : "",
+        "Estimate: " + money(q.first) + (q.repeat ? ", then " + money(q.repeat) + "/visit" : "") + ", about " + q.hours + " hours",
+        "Address: " + $("#f-address").value.trim() + ", " + formatPostal($("#f-postal").value),
+        "Getting in: " + $("#f-access").value + ". Pets: " + (($('input[name="pets"]:checked', form) || {}).value || "No pets"),
+        $("#f-notes").value.trim() ? "Notes: " + $("#f-notes").value.trim() : ""
+      ].filter(Boolean).join("\n");
+      var cfg = { name: $("#f-name").value.trim(), notes: notes, attendeePhoneNumber: "+1" + digits, "metadata[ref]": info.r,
+        duration: String(Math.min(480, Math.max(60, Math.ceil(q.hours) * 60))), layout: "month_view", theme: "light" };
+      if (info.email) cfg.email = info.email;
+      return cfg;
+    }
+    function showCalendar(info) {
+      var cfg = calConfig(info);
+      $(".book-head h1").textContent = "Almost booked";
+      markDots(3);
+      $("[data-cal-link]").href = "https://cal.com/" + calPath + "?" + Object.keys(cfg).map(function (k) { return encodeURIComponent(k) + "=" + encodeURIComponent(cfg[k]); }).join("&");
+      calStep.hidden = false;
+      calStep.focus();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      var booked = false;
+      function onBooked(e) {
+        if (booked) return;
+        booked = true;
+        var d = (e && e.detail && e.detail.data) || {};
+        var start = d.startTime || (d.booking && d.booking.startTime) || d.date;
+        track("booking_scheduled", { service: state.service, value: Math.round(info.q.first), currency: C.currency });
+        calStep.hidden = true;
+        showDone(info, true, start && !isNaN(new Date(start)) ? new Date(start) : null);
+      }
+      loadCal();
+      window.Cal("init", { origin: "https://app.cal.com" });
+      window.Cal("inline", { elementOrSelector: $("[data-cal-embed]"), calLink: calPath, config: cfg });
+      window.Cal("ui", { theme: "light", layout: "month_view", hideEventTypeDetails: false, cssVarsPerTheme: { light: { "cal-brand": "#0A2D5C" } } });
+      window.Cal("on", { action: "bookingSuccessfulV2", callback: onBooked });
+      window.Cal("on", { action: "bookingSuccessful", callback: onBooked });
+      setTimeout(function () { if (!booked && !$("[data-cal-embed] iframe")) $("[data-cal-fail]").hidden = false; }, 10000);
+    }
 
     $("[data-ics]").addEventListener("click", function () {
       if (!last || !last.date) return;
@@ -664,6 +763,26 @@
     onPostal();
     renderSummary();
     showStep(state.step, false);
+  }
+
+  /* ---------- Founder reel ---------- */
+  function bindReel() {
+    var dlg = $("[data-reel-dialog]");
+    // Without dialog support the links simply open the video file.
+    if (!dlg || typeof dlg.showModal !== "function") return;
+    var video = $("[data-reel-video]", dlg);
+    $$("[data-reel-open]").forEach(function (a) {
+      a.addEventListener("click", function (e) {
+        e.preventDefault();
+        if (!video.poster) video.poster = video.getAttribute("data-poster");
+        dlg.showModal();
+        var p = video.play();
+        if (p && p.catch) p.catch(function () { /* the visitor can press play */ });
+      });
+    });
+    $("[data-reel-close]", dlg).addEventListener("click", function () { dlg.close(); });
+    dlg.addEventListener("click", function (e) { if (e.target === dlg) dlg.close(); });
+    dlg.addEventListener("close", function () { video.pause(); });
   }
 
   /* ---------- Inline field errors ---------- */
@@ -893,5 +1012,6 @@
   bindQuote();
   bindReview();
   bindGift();
+  bindReel();
   bindChrome();
 })();
