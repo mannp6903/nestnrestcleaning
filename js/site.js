@@ -838,26 +838,6 @@
     onScroll();
   }
 
-  /* ---------- Founder reel ---------- */
-  function bindReel() {
-    var dlg = $("[data-reel-dialog]");
-    // Without dialog support the links simply open the video file.
-    if (!dlg || typeof dlg.showModal !== "function") return;
-    var video = $("[data-reel-video]", dlg);
-    $$("[data-reel-open]").forEach(function (a) {
-      a.addEventListener("click", function (e) {
-        e.preventDefault();
-        if (!video.poster) video.poster = video.getAttribute("data-poster");
-        dlg.showModal();
-        var p = video.play();
-        if (p && p.catch) p.catch(function () { /* the visitor can press play */ });
-      });
-    });
-    $("[data-reel-close]", dlg).addEventListener("click", function () { dlg.close(); });
-    dlg.addEventListener("click", function (e) { if (e.target === dlg) dlg.close(); });
-    dlg.addEventListener("close", function () { video.pause(); });
-  }
-
   /* ---------- Inline field errors ---------- */
   function fieldError(el, msg) {
     var id = "err-" + el.id;
@@ -1133,7 +1113,7 @@
     document.addEventListener("click", function (e) {
       if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
       var a = e.target.closest && e.target.closest("a[href]");
-      if (!a || a.target === "_blank" || a.hasAttribute("download") || a.hasAttribute("data-reel-open")) return;
+      if (!a || a.target === "_blank" || a.hasAttribute("download")) return;
       var url = new URL(a.href);
       if (url.origin !== location.origin || !/(\.html|\/)$/.test(url.pathname)) return;
       e.preventDefault();
@@ -1152,7 +1132,6 @@
   bindQuote();
   bindReview();
   bindGift();
-  bindReel();
   bindTheme();
   bindAnnounce();
   bindHeader();
