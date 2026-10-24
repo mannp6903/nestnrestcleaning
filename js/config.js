@@ -83,7 +83,7 @@ window.NR_CONFIG = {
   booking: {
     leadDays: 1,
     blockedDates: [],
-    calLink: ""
+    calLink: "nestnrestcleaning/home-clean"
   },
 
   /* Confirmation emails sent to the customer by FormSubmit when they give an email address.
