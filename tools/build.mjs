@@ -124,7 +124,7 @@ const ic = (id, cls = "ic") => `<svg class="${cls}" aria-hidden="true"><use href
 const SVC_ICON = { regular: "i-sparkle", deep: "i-layers", move: "i-box", detail: "i-drop", residence: "i-gem", office: "i-building" };
 
 /* ---------- shared fragments ---------- */
-const logoImg = (L, white = false) => `<img src="${L(white ? "assets/logo-white.svg" : "assets/logo.svg")}" alt="${esc(B.name)}" width="440" height="210">`;
+const logoImg = (L, white = false) => `<img src="${L(white ? "assets/logo-white.svg" : "assets/logo.svg")}" alt="${esc(B.name)}" width="772" height="210">`;
 
 function header(L, opts = {}) {
   if (opts.minimal) {
@@ -170,7 +170,7 @@ function header(L, opts = {}) {
     <div class="menu-cta">
       <a class="btn btn-primary btn-block" href="${L("book/")}">Book your clean</a>
       ${B.whatsapp ? `<a class="btn btn-wa btn-block" data-wa href="${esc(waLink(WA_HELLO))}" target="_blank" rel="noopener">${ic("i-wa")} WhatsApp ${esc(B.ownerFirstName)}</a>` : ""}
-      <a class="btn btn-ghost btn-block" data-tel href="tel:${B.phone}">Call or text ${esc(B.phoneDisplay)}</a>
+      <a class="btn btn-ghost btn-block" data-tel href="tel:${B.phone}">Call or text <span class="nowrap">${esc(B.phoneDisplay)}</span></a>
     </div>
     ${socialLinks("social-menu")}
   </div>
@@ -192,7 +192,7 @@ function footer(L) {
   <div class="wrap">
     <div class="footer-top">
       <div class="footer-brand">
-        <img src="${L("assets/logo-stacked-white.svg")}" alt="${esc(B.name)}" width="310" height="186" loading="lazy" decoding="async">
+        <img src="${L("assets/logo-stacked-white.svg")}" alt="${esc(B.name)}" width="488" height="364" loading="lazy" decoding="async">
         <p class="footer-tag">${esc(B.tagline)}</p>
         ${socialLinks()}
       </div>
@@ -268,7 +268,7 @@ function pricer(L, defaultKey = "regular", heading = "Your price, in seconds") {
   <div class="field">
     <label for="p-service">Service</label>
     <div class="select-wrap"><select id="p-service" data-p-service>
-      ${svcKeys.map((k) => `<option value="${k}"${k === defaultKey ? " selected" : ""}>${esc(C.services[k].name)}</option>`).join("")}
+      ${svcKeys.map((k) => `<option value="${k}"${k === defaultKey ? " selected" : ""}>${esc(C.services[k].menuName)}</option>`).join("")}
     </select>${ic("i-chev")}</div>
   </div>
   <div class="field">
@@ -399,7 +399,7 @@ function finalCta(L, title = "Come home to it.", text = "Book in two minutes. No
     <div class="cta-row">
       <a class="btn btn-light" href="${L("book/")}" data-track="book_click">Book your clean</a>
       ${B.whatsapp ? `<a class="btn btn-wa" data-wa href="${esc(waLink(WA_HELLO))}" target="_blank" rel="noopener" data-track="whatsapp_click">${ic("i-wa")} WhatsApp</a>` : ""}
-      <a class="btn btn-ghost-light" data-tel href="tel:${B.phone}">Call ${esc(B.phoneDisplay)}</a>
+      <a class="btn btn-ghost-light" data-tel href="tel:${B.phone}">Call <span class="nowrap">${esc(B.phoneDisplay)}</span></a>
     </div>
   </div>
 </section>`;
@@ -609,8 +609,8 @@ urls.push(page({
       <picture><source type="image/webp" srcset="${L("assets/founder-mann-patel-600.webp")}"><img src="${L("assets/founder-mann-patel-600.jpg")}" alt="" width="56" height="56" decoding="async"></picture>
       <span><strong>Cleaned by ${esc(B.owner)}, owner.</strong> Every clean carries my name.</span>
     </a>
+    ${assurances()}
   </div>
-  <div class="wrap">${assurances()}</div>
 </section>
 
 ${gift && gift.active ? `<section class="gift-band" data-gift-banner data-months="${gift.bannerMonths.join(",")}" hidden>
@@ -784,7 +784,7 @@ urls.push(page({
               <p class="field-note">Larger home or an office? <a href="${L("services/residence-care/")}">Residence Care</a> and <a href="${L("services/office-cleaning/")}">office cleaning</a> are by quote.</p>
             </div>
             <div class="field"><span class="field-label" id="home-label">Type of home</span>
-              <div class="seg" role="radiogroup" aria-labelledby="home-label">
+              <div class="seg seg-home" role="radiogroup" aria-labelledby="home-label">
                 ${Object.keys(C.homeTypes).map((k) => `<label><input type="radio" name="homeType" value="${k}"><span>${esc(C.homeTypes[k].label)}</span></label>`).join("")}
               </div>
             </div>
@@ -1282,7 +1282,7 @@ ${finalCta(L, `Book your ${h.name} clean.`)}`
 /* ---------- realtors and property managers ---------- */
 {
   const trail = [["Home", ""], ["Realtors & property managers", "realtors/"]];
-  const fq = faqBlock("realtors", "Questions from realtors.", "section-tint");
+  const fq = faqBlock("realtors", "Questions from realtors.");
   const jobs = [
     ["i-sparkle", "Listing prep", "A deep clean before photos and the first showing, so the home looks its best online and in person.", `From ${money(C.services.deep.base)}`],
     ["i-box", "Move-out and move-in", "An empty-home clean inside every cabinet, drawer and closet, fridge and oven included, before closing or a new tenant.", `From ${money(C.services.move.base)}`],
@@ -1768,7 +1768,7 @@ if (!PREVIEW_DIR) {
 <link rel="icon" type="image/svg+xml" href="${L404("assets/logo-mark.svg")}">
 <link rel="stylesheet" href="${L404("css/site.css")}"></head>
 <body data-page="404"><main class="section"><div class="wrap narrow">
-<a class="brand" href="${L404()}"><img src="${L404("assets/logo.svg")}" alt="${esc(B.name)}" width="440" height="210" style="height:56px;width:auto"></a>
+<a class="brand" href="${L404()}"><img src="${L404("assets/logo.svg")}" alt="${esc(B.name)}" width="772" height="210" style="height:56px;width:auto"></a>
 <h1 class="display display-sub" style="margin-top:48px">This page has moved.</h1>
 <p class="lede">Everything you need is a tap away.</p>
 <p class="cta-row" style="margin-top:24px"><a class="btn btn-primary" href="${L404("book/")}">Book a clean</a> <a class="btn btn-ghost" href="${L404()}">Go to the home page</a></p>
