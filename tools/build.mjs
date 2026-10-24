@@ -4,6 +4,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import vm from "node:vm";
+import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
 import guideList from "./guides.mjs";
 
@@ -22,6 +23,9 @@ const BRAND_SHORT = "Nest & Rest";
 const DEFER = PREVIEW_DIR ? "" : " defer";
 const YEAR = new Date().getFullYear();
 const TODAY = new Date().toISOString().slice(0, 10);
+// Version tags from each file's contents, so browsers fetch the new CSS and JS as soon as a change is published.
+const ver = (f) => crypto.createHash("sha1").update(fs.readFileSync(path.join(ROOT, f))).digest("hex").slice(0, 8);
+const ASSET_V = { css: ver("css/site.css"), config: ver("js/config.js"), site: ver("js/site.js") };
 
 /* ---------- helpers ---------- */
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -165,6 +169,8 @@ function header(L, opts = {}) {
     </nav>
     <div class="header-actions">
       <a class="header-phone" data-tel href="tel:${B.phone}">${ic("i-phone")}<span data-phone-text>${esc(B.phoneDisplay)}</span></a>
+      ${B.whatsapp ? `<a class="header-wa" data-wa href="${esc(waLink(WA_HELLO))}" target="_blank" rel="noopener" aria-label="WhatsApp ${esc(B.ownerFirstName)}" data-track="whatsapp_click">${ic("i-wa")}</a>` : ""}
+      <a class="btn btn-primary header-book" href="${L("book/")}" data-track="book_click"><span class="hb-long">Book your clean</span><span class="hb-short">Book now</span></a>
       <button class="menu-btn" type="button" aria-controls="menu" aria-expanded="false" aria-label="Open menu">${ic("i-menu")}</button>
     </div>
   </div>
@@ -515,7 +521,7 @@ ${noindex ? '<meta name="robots" content="noindex">\n' : ""}<meta name="theme-co
 <link rel="apple-touch-icon" href="${L("assets/apple-touch-icon.png")}">
 <link rel="preload" href="${L("assets/fonts/barlow-condensed-800.woff2")}" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="${L("assets/fonts/dm-sans.woff2")}" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="${L("css/site.css")}">
+<link rel="stylesheet" href="${L("css/site.css")}?v=${ASSET_V.css}">
 ${ld}`;
   const bodyInner = `${ICONS}
 <a class="skip" href="#main">Skip to content</a>
@@ -526,9 +532,9 @@ ${body(L)}
 ${minimal ? "" : footer(L)}
 ${noBar ? "" : actionBar(L)}
 <div class="toast" data-toast role="status" aria-live="polite" hidden></div>
-<script${DEFER} src="${L("js/config.js")}"></script>
+<script${DEFER} src="${L("js/config.js")}?v=${ASSET_V.config}"></script>
 ${PREVIEW_DIR ? "<script>window.NR_CONFIG.preview = true;</script>" : ""}
-<script${DEFER} src="${L("js/site.js")}"></script>`;
+<script${DEFER} src="${L("js/site.js")}?v=${ASSET_V.site}"></script>`;
   const isPreviewRoot = PREVIEW_DIR && pathOut === "index.html";
   const html = isPreviewRoot
     ? `${headInner}\n<div class="page" data-page="${pageType}" data-root="${L("")}">${bodyInner}</div>\n`
@@ -1251,17 +1257,17 @@ for (const a of C.areas) {
 </section>
 
 <section class="section section-tint">
-  <div class="wrap ideal-grid">
+  <div class="wrap ideal-grid ideal-2">
     ${photo(L, "entryway", { sizes: "(min-width: 960px) 380px, 92vw", cls: "ideal-photo" })}
     <div class="split-head">
       <p class="label">The standard</p>
       <h2>The same careful visit, in every home.</h2>
       <p class="muted">Introduced by name, house shoes on at the door, and the same room-by-room checklist every time.</p>
       <a class="text-link" href="${L("#standard")}">See our standard ${ic("i-arrow")}</a>
+      <ul class="area-list">
+        ${C.areas.filter((o) => o.slug !== a.slug).map((o) => `<li><a href="${L("areas/" + o.slug + "/")}"><span>Also in ${esc(o.name)}</span><small>${o.neighbourhoods.length} neighbourhoods</small>${ic("i-arrow")}</a></li>`).join("")}
+      </ul>
     </div>
-    <ul class="area-list">
-      ${C.areas.filter((o) => o.slug !== a.slug).map((o) => `<li><a href="${L("areas/" + o.slug + "/")}"><span>Also in ${esc(o.name)}</span><small>${o.neighbourhoods.length} neighbourhoods</small>${ic("i-arrow")}</a></li>`).join("")}
-    </ul>
   </div>
 </section>
 ${fq.html}
@@ -1850,7 +1856,7 @@ if (!PREVIEW_DIR) {
 <meta name="robots" content="noindex">
 <title>Page not found | ${esc(B.name)}</title>
 <link rel="icon" type="image/svg+xml" href="${L404("assets/logo-mark.svg")}">
-<link rel="stylesheet" href="${L404("css/site.css")}"></head>
+<link rel="stylesheet" href="${L404("css/site.css")}?v=${ASSET_V.css}"></head>
 <body data-page="404"><main class="section"><div class="wrap narrow">
 <a class="brand" href="${L404()}"><img src="${L404("assets/logo.svg")}" alt="${esc(B.name)}" width="772" height="210" style="height:56px;width:auto"></a>
 <h1 class="display display-sub" style="margin-top:48px">This page has moved.</h1>
