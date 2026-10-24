@@ -91,10 +91,9 @@ The site then reports: book clicks, call, text, WhatsApp and email taps, instant
 
 ## Brand
 
-- **Logo:** `assets/logo.svg` (horizontal), `logo-stacked.svg`, `logo-mark.svg` and their `-white` versions for dark backgrounds. Traced from the founder reel; the wordmark is Barlow Condensed.
+- **Logo:** `assets/logo.svg` (horizontal), `logo-stacked.svg`, `logo-mark.svg` and their `-white` versions for dark backgrounds. Traced from the original logo artwork; the wordmark is Barlow Condensed.
 - **Colours:** navy `#0A2D5C`, teal `#2FA4A6`, sky `#6FC3E0`, sand `#EFD9AE` on ivory `#F7F3EA`. All tokens are at the top of `css/site.css`.
 - **Fonts:** Barlow Condensed (headlines) and DM Sans (text), self-hosted in `assets/fonts` under the SIL Open Font License.
-- **Founder reel:** `assets/video/founder-reel-720.mp4` (720 × 1280, about 2 MB, no sound) with its cover image `founder-reel-poster.webp` / `.jpg`. It opens from the "Watch" buttons on the home and vision pages and only downloads when someone presses play. To swap in a new cut, replace the files under the same names and update the on-screen words in `REEL_TEXT` in `tools/build.mjs`. The website copy is silent because the music's licence for website use isn't confirmed (music from app libraries such as CapCut, Instagram, TikTok or Canva is often licensed only inside that app). Put the sound back only with music you're licensed to use on a website.
 - **Room photos** in `assets/photos` are AI-generated illustrations, and the footer says so. Replace them with real photos from your own jobs (with the client's permission) as soon as you have them: same file names, 928 × 1152 px.
 
 ## Hosting
@@ -112,5 +111,5 @@ js/config.js       business settings (edit this)
 js/site.js         pricing, booking, forms, WhatsApp, tracking
 tools/build.mjs    page generator
 tools/guides.mjs   the guide articles
-assets/            logo, icons, founder photo and reel, room photos, social-share image, fonts
+assets/            logo, icons, founder photo, room photos, social-share image, fonts
 ```

@@ -51,18 +51,6 @@ const CAL = !!(C.booking && C.booking.calLink);
 // The business mailing address (CASL and Ontario's Consumer Protection Act). Shown everywhere once it's set in config.
 const ADDR = (B.mailingAddress || "").trim();
 const LATE_FEE_LINE = `Later changes, or if we can't get in at the agreed time, may cost ${esc(C.policies.lateCancelFee)}.`;
-// The founder reel: 27 seconds, 720 x 1280. To swap it, replace the files under the same names.
-const REEL = { src: "assets/video/founder-reel-720.mp4", poster: "assets/video/founder-reel-poster.webp", posterJpg: "assets/video/founder-reel-poster.jpg", length: "0:27", iso: "PT27S", uploaded: "2026-10-24", w: 720, h: 1280 };
-// Everything the reel says on screen, for anyone who can't watch it. Keep it word for word with the video.
-const REEL_TEXT = [
-  "My name is on every clean.",
-  "Mann Patel, founder. Scarborough & North York. Confirms bookings by text.",
-  "\u201cHome should be where you rest, not where the chores wait.\u201d Mann Patel, founder.",
-  "Not quite right? Tell us within 24 hours. We re-clean those areas. Free.",
-  "I confirm every booking by text within 2 hours, during business hours.",
-  "No deposit. You pay after the clean: Interac e-Transfer, card or cash.",
-  "Nest & Rest Cleaning. My name. Every clean. We clean. You rest. 20% off your first visit, first 50 households. Open 7 days, 9am to 11pm. Book at nestnrestcleaning.com. Call or text 647 978 6903."
-];
 const guides = guideList({ C, B, esc, money, price, listJoin });
 
 function price(key, beds, baths, home = "condo") {
@@ -386,38 +374,8 @@ function founderPhoto(L, cls = "") {
         <source type="image/webp" srcset="${L("assets/founder-mann-patel-600.webp")} 600w, ${L("assets/founder-mann-patel.webp")} 848w" sizes="(min-width: 960px) 420px, 86vw">
         <img src="${L("assets/founder-mann-patel.jpg")}" srcset="${L("assets/founder-mann-patel-600.jpg")} 600w, ${L("assets/founder-mann-patel.jpg")} 848w" sizes="(min-width: 960px) 420px, 86vw" alt="${esc(B.owner)}, founder of ${esc(B.name)}" width="848" height="1060" loading="lazy" decoding="async">
       </picture>
-      <a class="reel-play" href="${L(REEL.src)}" data-reel-open aria-haspopup="dialog" data-track="video_open">${ic("i-play")}<span>Watch ${esc(B.ownerFirstName)}'s intro <small>${REEL.length}</small></span></a>
     </div>`;
 }
-
-// The reel opens in a dialog, so the video only downloads when someone asks for it. Without JavaScript the links open the video file.
-function reelDialog(L) {
-  return `<dialog class="reel-dialog" data-reel-dialog aria-labelledby="reel-title">
-  <div class="reel-box">
-    <div class="reel-top">
-      <h2 id="reel-title">Meet ${esc(B.ownerFirstName)}</h2>
-      <button type="button" class="reel-close" data-reel-close aria-label="Close video">${ic("i-close")}</button>
-    </div>
-    <video class="reel-video" controls playsinline muted preload="none" data-poster="${L(REEL.poster)}" width="${REEL.w}" height="${REEL.h}" data-reel-video>
-      <source src="${L(REEL.src)}" type="video/mp4">
-    </video>
-    <details class="reel-text">
-      <summary>Read what the video says</summary>
-      <ul>${REEL_TEXT.map((t) => `<li>${esc(t)}</li>`).join("")}</ul>
-    </details>
-  </div>
-</dialog>`;
-}
-
-const videoSchema = () => ({
-  "@context": "https://schema.org", "@type": "VideoObject",
-  name: `Meet ${B.owner}, founder of ${B.name}`,
-  description: REEL_TEXT.join(" "),
-  thumbnailUrl: [SITE + "/" + REEL.posterJpg],
-  uploadDate: REEL.uploaded + "T00:00:00-04:00",
-  duration: REEL.iso,
-  contentUrl: SITE + "/" + REEL.src
-});
 
 function foundingCard(L) {
   if (!founding || !founding.active) return "";
@@ -697,7 +655,7 @@ urls.push(page({
   depth: 0, pathOut: "index.html", pageType: "home",
   title: `Home Cleaning in Scarborough & North York | ${B.name}`,
   description: `Careful home cleaning in Scarborough and North York, Toronto, from ${money(C.services.regular.base)}. See your price in seconds, book in two minutes, pay after your clean.`,
-  schemas: [businessSchema(), websiteSchema(), homeFaq.schema, videoSchema()],
+  schemas: [businessSchema(), websiteSchema(), homeFaq.schema],
   body: (L) => `
 <section class="hero hero-home">
   <div class="wrap hero-grid">
@@ -714,10 +672,10 @@ urls.push(page({
       ${photo(L, "living-room", { sizes: "(min-width: 960px) 460px, 1px", cls: "hero-photo", eager: false })}
       <div class="hero-pricer">${pricer(L)}</div>
     </div>
-    <a class="hero-owner" href="${L(REEL.src)}" data-reel-open aria-haspopup="dialog" data-track="video_open">
-      <span class="hero-avatar"><picture><source type="image/webp" srcset="${L("assets/founder-mann-patel-avatar.webp")}"><img src="${L("assets/founder-mann-patel-avatar.jpg")}" alt="" width="76" height="76" decoding="async"></picture><span class="hero-avatar-play">${ic("i-play")}</span></span>
-      <span><strong>Cleaned by ${esc(B.owner)}, owner.</strong> Giving families their time back and a fresh, healthy home. <span class="hero-watch">Watch my intro (${REEL.length})</span></span>
-    </a>
+    <p class="hero-owner">
+      <span class="hero-avatar"><picture><source type="image/webp" srcset="${L("assets/founder-mann-patel-avatar.webp")}"><img src="${L("assets/founder-mann-patel-avatar.jpg")}" alt="" width="76" height="76" decoding="async"></picture></span>
+      <span><strong>Cleaned by ${esc(B.owner)}, owner.</strong> Giving families their time back and a fresh, healthy home.</span>
+    </p>
     ${assurances()}
   </div>
 </section>
@@ -860,7 +818,6 @@ ${gift && gift.active ? `<section class="gift-band" data-gift-banner data-months
 
 ${homeFaq.html}
 ${finalCta(L)}
-${reelDialog(L)}
 `
 }));
 
@@ -1636,8 +1593,7 @@ ${finalCta(L)}`
     description: `Why ${B.name} exists, what we believe, the promises we keep every visit, and where we're going. A note from founder ${B.owner}.`,
     schemas: [
       { "@context": "https://schema.org", "@type": "AboutPage", name: `Our vision | ${B.name}`, url: SITE + "/vision/", description: V.intro, about: { "@id": SITE + "/#business" } },
-      crumbSchema(trail),
-      videoSchema()
+      crumbSchema(trail)
     ],
     body: (L) => `
 <section class="hero hero-sub">
@@ -1733,8 +1689,7 @@ ${finalCta(L)}`
 </section>
 ${founding && founding.active
   ? finalCta(L, "Be a founding household.", `${founding.text} Book in two minutes and pay after it's done.`)
-  : finalCta(L)}
-${reelDialog(L)}`
+  : finalCta(L)}`
   }));
 }
 

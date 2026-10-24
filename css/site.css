@@ -1,6 +1,6 @@
 /* Nest & Rest Cleaning
-   Direction: taken from the logo and the founder reel. Ink-navy condensed headlines, a teal accent, sky and sand from the nest,
-   on warm ivory. Rounded, friendly cards; photos framed like the reel's end card.
+   Direction: taken from the logo. Ink-navy condensed headlines, a teal accent, sky and sand from the nest,
+   on warm ivory. Rounded, friendly cards; photos in soft rounded frames.
    Layout: one column on phones with the price box on the first screen; two-column splits from 960px. Booking is reachable from every screen. */
 :root {
   --navy: #0A2D5C;         /* logo house and wordmark */
@@ -136,7 +136,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .text-link .ic { transition: transform .2s; }
 .text-link:hover .ic { transform: translateX(3px); }
 
-/* Buttons: rounded, condensed and confident, like the reel */
+/* Buttons: rounded, condensed and confident */
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 10px;
   min-height: 54px; padding: 12px 26px; border-radius: var(--r); border: 2px solid transparent;
@@ -226,16 +226,12 @@ body.menu-open { overflow: hidden; }
 .hero-cta { display: none; }
 .hero-visual { grid-area: visual; min-width: 0; }
 .photo.hero-photo { display: none; }
-.hero-owner { grid-area: owner; display: flex; align-items: center; gap: 14px; max-width: 46ch; text-decoration: none; font-size: 0.95rem; line-height: 1.4; color: var(--muted); }
+.hero-owner { grid-area: owner; margin: 0; display: flex; align-items: center; gap: 14px; max-width: 46ch; text-decoration: none; font-size: 0.95rem; line-height: 1.4; color: var(--muted); }
 .hero-owner picture { display: block; width: 64px; height: 64px; border-radius: 50%; overflow: hidden; flex: none; box-shadow: 0 0 0 3px var(--paper), 0 0 0 5px var(--teal); }
 /* A square headshot, so the whole face fits the circle */
 .hero-owner img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .hero-owner strong { color: var(--ink); font-weight: 700; }
 .hero-avatar { position: relative; flex: none; display: block; }
-.hero-avatar-play { position: absolute; right: -5px; bottom: -5px; width: 24px; height: 24px; display: grid; place-items: center; border-radius: 50%; background: var(--teal-fill); color: #fff; box-shadow: 0 0 0 2px var(--paper); }
-.hero-avatar-play .ic { width: 12px; height: 12px; margin-left: 1px; }
-.hero-watch { color: var(--teal-ink); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; white-space: nowrap; }
-.hero-owner:hover span { text-decoration: underline; text-underline-offset: 4px; }
 .hero-sub { padding-top: 22px; }
 .hero-sub .hero-grid { grid-template-areas: none; gap: clamp(28px, 5vw, 56px); }
 .hero-sub .hero-copy, .hero-sub .hero-pricer { grid-area: auto; }
@@ -410,10 +406,6 @@ a.svc-card:hover .svc-arrow { transform: translateX(4px); }
 .founder-photo { position: relative; margin: 0; width: calc(100% - 18px); max-width: 420px; }
 .founder-photo::before { content: ""; position: absolute; inset: 18px -18px -18px 18px; background: var(--band-sand); border-radius: var(--r-lg); }
 .founder-photo img { position: relative; width: 100%; aspect-ratio: 4 / 5; object-fit: cover; border-radius: var(--r-lg); box-shadow: var(--shadow); }
-.reel-play { position: absolute; left: 14px; bottom: 14px; right: 14px; justify-self: start; width: fit-content; max-width: calc(100% - 28px); display: inline-flex; align-items: center; gap: 10px; padding: 8px 16px 8px 8px; border-radius: 999px; background: rgba(10, 45, 92, 0.94); color: #fff; text-decoration: none; font-family: var(--display); font-weight: 700; font-size: 1.05rem; letter-spacing: 0.04em; text-transform: uppercase; line-height: 1.1; box-shadow: var(--shadow-sm); }
-.reel-play .ic { flex: none; width: 34px; height: 34px; padding: 9px 8px 9px 10px; border-radius: 50%; background: var(--teal); color: #fff; }
-.reel-play small { font-family: var(--body); font-weight: 600; font-size: 0.82rem; letter-spacing: 0; opacity: 0.82; margin-left: 4px; }
-.reel-play:hover { background: var(--navy-3); }
 .founder-body { display: grid; gap: 24px; justify-items: start; }
 .founder-quote { margin: 0; display: grid; gap: 20px; }
 .founder-quote blockquote { margin: 0; display: grid; gap: 18px; }
@@ -740,19 +732,6 @@ a.svc-card:hover .svc-arrow { transform: translateX(4px); }
 .cal-embed iframe { width: 100% !important; }
 .cal-alt { font-size: 0.95rem; }
 
-/* Founder reel dialog */
-.reel-dialog { border: 0; padding: 0; background: transparent; width: min(420px, calc(100vw - 32px)); max-width: none; max-height: calc(100dvh - 32px); overflow: visible; }
-.reel-dialog::backdrop { background: rgba(7, 30, 63, 0.84); }
-.reel-box { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; max-height: calc(100dvh - 32px); background: var(--paper); border-radius: var(--r-lg); overflow: hidden; box-shadow: var(--shadow); }
-.reel-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 8px 8px 18px; }
-.reel-top h2 { font-size: 1.5rem; }
-.reel-close { display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: 50%; background: transparent; color: var(--ink); cursor: pointer; }
-.reel-close:hover { background: var(--tint); }
-.reel-close .ic { width: 22px; height: 22px; }
-.reel-video { display: block; width: 100%; height: auto; max-height: calc(100dvh - 150px); aspect-ratio: 9 / 16; object-fit: contain; background: var(--navy-3); }
-.reel-text { padding: 10px 18px 14px; font-size: 0.92rem; }
-.reel-text summary { cursor: pointer; font-weight: 700; color: var(--ink); padding: 4px 0; }
-.reel-text ul { margin: 8px 0 0; padding-left: 18px; display: grid; gap: 6px; max-height: 32vh; overflow: auto; color: var(--muted); }
 .done-refer { margin-top: 16px; padding-top: 20px; border-top: 1px solid var(--line); display: grid; gap: 12px; justify-items: start; }
 .done-refer p { color: var(--muted); }
 .done-refer strong { color: var(--ink); }
