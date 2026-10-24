@@ -423,7 +423,7 @@ window.NR_CONFIG = {
       "For most families, a clean home is something you earn on the weekend. Saturday goes to the bathrooms and the floors, and rest waits until the list is done. Often, it never is.",
       "I started Nest & Rest because I think that trade is backwards. Your home should give you rest, not take it away. Every hour spent scrubbing is an hour not spent with your kids, your parents, your friends or yourself.",
       "So I take the list off your hands. I do it the same careful way every visit, so you never have to check, and I hold Nest & Rest to the promises on this page. I would rather grow slowly and keep them than grow quickly and break them.",
-      "Today, I clean every home myself. When there are a hundred of us, every clean will still carry my name."
+      "Today, I clean every home myself. As we grow, every family will still get their time back and a fresh, healthy home, with the same care and value in every visit."
     ],
     beliefs: [
       { title: "Rest is the real product.", text: "Cleaning is how we deliver it. We measure ourselves by the hours a family gets back, not the rooms we finish." },
