@@ -44,6 +44,9 @@ const founding = C.offers.founding;
 const spotsLeft = founding ? Math.max(0, founding.spots - (founding.claimed || 0)) : 0;
 // Live calendar: with a Cal.com link in booking.calLink, booking ends with picking a confirmed time.
 const CAL = !!(C.booking && C.booking.calLink);
+// The business mailing address (CASL and Ontario's Consumer Protection Act). Shown everywhere once it's set in config.
+const ADDR = (B.mailingAddress || "").trim();
+const LATE_FEE_LINE = `Later changes, or if we can't get in at the agreed time, may cost ${esc(C.policies.lateCancelFee)}.`;
 // The founder reel: 27 seconds, 720 x 1280. To swap it, replace the files under the same names.
 const REEL = { src: "assets/video/founder-reel-720.mp4", poster: "assets/video/founder-reel-poster.webp", posterJpg: "assets/video/founder-reel-poster.jpg", length: "0:27", iso: "PT27S", uploaded: "2026-10-24", w: 720, h: 1280 };
 // Everything the reel says on screen, for anyone who can't watch it. Keep it word for word with the video.
@@ -237,6 +240,7 @@ function footer(L) {
             <li><a data-mailto href="mailto:${B.email}" data-email-text>${esc(B.email)}</a></li>
             <li><span data-hours>${esc(B.hours)}</span></li>
             <li><span>${esc(B.areaLabel)}</span></li>
+            ${ADDR ? `<li><span>${esc(ADDR)}</span></li>` : ""}
           </ul>
         </div>
       </div>
@@ -297,7 +301,7 @@ function pricer(L, defaultKey = "regular", heading = "Your price, in seconds") {
     ${stepper("p-baths", "Bathrooms", 1, "data-p-baths")}
   </div>
   <a class="btn btn-primary btn-block" href="${L("book/")}" data-p-go data-track="pricer_continue">Choose your time ${ic("i-arrow")}</a>
-  <p class="pricer-next">${ic("i-cal")}<span>Next opening: <strong data-next-open>tomorrow</strong></span></p>
+  <p class="pricer-next">${ic("i-cal")}<span>${CAL ? "Bookings from" : "Next opening:"} <strong data-next-open>tomorrow</strong></span></p>
   <div class="pricer-alt">
     <button type="button" class="link-btn" data-textme-open aria-expanded="false" aria-controls="textme-${defaultKey}">${ic("i-sms")} Text me this price</button>
     ${B.whatsapp ? `<a class="link-btn" data-p-wa href="${esc(waLink(WA_HELLO))}" target="_blank" rel="noopener" data-track="whatsapp_click">${ic("i-wa")} Ask on WhatsApp</a>` : ""}
@@ -351,7 +355,7 @@ function reelDialog(L) {
       <h2 id="reel-title">Meet ${esc(B.ownerFirstName)}</h2>
       <button type="button" class="reel-close" data-reel-close aria-label="Close video">${ic("i-close")}</button>
     </div>
-    <video class="reel-video" controls playsinline preload="none" data-poster="${L(REEL.poster)}" width="${REEL.w}" height="${REEL.h}" data-reel-video>
+    <video class="reel-video" controls playsinline muted preload="none" data-poster="${L(REEL.poster)}" width="${REEL.w}" height="${REEL.h}" data-reel-video>
       <source src="${L(REEL.src)}" type="video/mp4">
     </video>
     <details class="reel-text">
@@ -818,7 +822,7 @@ urls.push(page({
     <div class="book-head">
       <div>
         <h1>Book your clean</h1>
-        <p class="book-sub">${ic("i-cal")} Next opening: <strong data-next-open>tomorrow</strong></p>
+        <p class="book-sub">${ic("i-cal")} ${CAL ? "Bookings from" : "Next opening:"} <strong data-next-open>tomorrow</strong></p>
       </div>
       <ol class="progress" data-progress aria-label="Booking steps">
         ${(CAL ? ["Your home", "Your details", "Pick a time"] : ["Your home", "Plan &amp; time", "Your details"]).map((t, i) => `<li data-dot="${i + 1}"><span>${t}</span></li>`).join("\n        ")}
@@ -894,8 +898,9 @@ urls.push(page({
                 </div>
               </div>
               <p class="consent-line span-2">${ic("i-check")}<span>${CAL
-                ? `Next, you pick a time on ${esc(B.ownerFirstName)}'s calendar and it's confirmed straight away. Free to change up to ${C.policies.cancelNoticeHours} hours before, and nothing to pay until it's done.`
-                : `This is a booking request. ${esc(B.ownerFirstName)} confirms the time and final price with you before the clean. Free to change up to ${C.policies.cancelNoticeHours} hours before, and nothing to pay until it's done.`}</span></p>
+                ? `Next, you pick a time on ${esc(B.ownerFirstName)}'s calendar and it's confirmed straight away. Nothing to pay until it's done. Free to change up to ${C.policies.cancelNoticeHours} hours before. ${LATE_FEE_LINE}`
+                : `This is a booking request. ${esc(B.ownerFirstName)} confirms the time and final price with you before the clean. Nothing to pay until it's done. Free to change up to ${C.policies.cancelNoticeHours} hours before. ${LATE_FEE_LINE}`}</span></p>
+              <p class="privacy-note span-2">Your booking is with ${esc(B.name)}, owned and operated by ${esc(B.owner)}, ${ADDR ? esc(ADDR) : `${esc(B.base)}, Ontario`}. <a data-tel href="tel:${B.phone}">${esc(B.phoneDisplay)}</a> · <a data-mailto href="mailto:${B.email}">${esc(B.email)}</a></p>
               <p class="privacy-note span-2">By sending, you agree to our <a href="${L("policies/")}">Service Policies</a>. We use your details only to arrange your clean. Your request is sent through FormSubmit to our Google email inbox${CAL ? ", and the time you pick is booked on Cal.com, our booking calendar. Both" : ", which"} may store data outside Canada. See our <a href="${L("privacy/")}">Privacy Policy</a>.</p>
               <input type="text" name="_honey" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
             </div>
@@ -930,7 +935,7 @@ urls.push(page({
             <a class="btn btn-ghost" data-sms-booking href="#">${ic("i-sms")} Text us these details</a>
           </div>
           <div class="done-refer">
-            <p><strong>Know someone who'd love this?</strong> When a friend books their first clean, you both get $<span data-referral>${C.offers.referral}</span> off.</p>
+            <p><strong>Know someone who'd love this?</strong> When a friend books their first clean, you both get $<span data-referral>${C.offers.referral}</span> off. <a href="${L("policies/#referral")}">Terms</a></p>
             <button type="button" class="btn btn-ghost btn-sm" data-share>Share ${esc(B.name)}</button>
           </div>
         </div>
@@ -1741,17 +1746,18 @@ legalPage({
   description: `How ${B.name} collects, uses and protects your personal information under Canada's PIPEDA.`,
   intro: `This policy explains what personal information ${esc(B.name)} collects, why, who it is shared with, and the choices you have. We follow Canada's <em>Personal Information Protection and Electronic Documents Act</em> (PIPEDA).`,
   sections: [
-    { id: "who", h: "Who we are", html: () => `<p>${esc(B.name)} is a home cleaning business owned and operated by ${esc(B.owner)} in ${esc(B.base)}, Ontario. ${esc(B.owner)} is responsible for how we handle personal information and is our privacy contact. You can reach us at ${contactLine}. Our mailing address is available on request.</p>` },
+    { id: "who", h: "Who we are", html: () => `<p>${esc(B.name)} is a home cleaning business owned and operated by ${esc(B.owner)} in ${esc(B.base)}, Ontario. ${esc(B.owner)} is responsible for how we handle personal information and is our privacy contact. You can reach us at ${contactLine}. ${ADDR ? `Our mailing address is ${esc(ADDR)}.` : "Our mailing address is available on request."}</p>` },
     { id: "collect", h: "What we collect", html: () => `
       <div class="table-scroll"><table>
         <thead><tr><th scope="col">When</th><th scope="col">What we collect</th></tr></thead>
         <tbody>
-          <tr><td>You request a booking</td><td>Name, mobile number, email (optional), street address and postal code, home type and size, extras, preferred day and arrival window, how we get in (for example a lockbox or concierge), pets, notes, and how you'd like us to confirm.</td></tr>
+          <tr><td>You request a booking</td><td>Name, mobile number, email (optional), street address and postal code, home type and size, extras, ${CAL ? "the time you pick on our calendar" : "preferred day and arrival window"}, how we get in (for example a lockbox or concierge), pets, notes, and how you'd like us to confirm.</td></tr>
           <tr><td>You ask us to text you a price</td><td>Your mobile number and the price details you chose.</td></tr>
           <tr><td>You request a quote</td><td>Name, phone, email (optional), postal code, details about the space or property, and any notes you add.</td></tr>
           <tr><td>You request a gift card</td><td>Your name, phone and email, the gift amount, the recipient's name, and optionally their email, postal code and your message.</td></tr>
           <tr><td>You leave a review</td><td>Rating, first name and last initial, neighbourhood (optional), the service, your review, and the phone or email you booked with so we can match it to your visit.</td></tr>
           <tr><td>You call, text, WhatsApp or email us</td><td>Your number or address and what you tell us.</td></tr>
+          <tr><td>You ask about working with us</td><td>Your name, contact details and what you tell us about your experience.</td></tr>
           <tr><td>You pay</td><td>Payment records such as the amount, date and method. We do not store full card numbers.</td></tr>
           <tr><td>You visit the website</td><td>Technical information your browser sends, such as your IP address and browser type, which our website host receives to deliver the site.</td></tr>
         </tbody>
@@ -1764,6 +1770,7 @@ legalPage({
       <li>To prepare quotes, keep payment and tax records, and meet our legal obligations.</li>
       <li>To publish your review on our website, using only your first name, last initial, neighbourhood and review, if you've sent us one.</li>
       <li>To improve our service, for example by learning which services clients book.</li>
+      <li>To consider you for work, if you've asked about working with us.</li>
     </ul><p>We do not sell or rent your personal information, and we don't use it for any purpose not listed here without asking you first.</p>` },
     { id: "consent", h: "Your consent", html: () => `<p>When you send us a booking request, price request, quote request, gift card request or review, you agree to us using your information for the purposes above. You can withdraw your consent at any time by contacting us, subject to legal or contractual limits. If you do, we may not be able to provide some services.</p>
       <p>We send you messages about your booking, quote or gift card, and occasionally ask for a review after a clean. When you ask us to text you a price, we text it once. We won't send you promotional emails or texts without your consent, and every message we send will tell you how to opt out. If you ask us to stop, we'll stop within 10 business days, as Canada's Anti-Spam Legislation (CASL) requires.</p>` },
@@ -1782,13 +1789,15 @@ legalPage({
       <li><strong>Access codes and key instructions:</strong> deleted within ${P.accessCodeDeleteDays} days of your last scheduled visit, or sooner if you ask.</li>
       <li><strong>Client and booking records:</strong> kept while you're a client, then for as long as tax law requires (generally six years for financial records).</li>
       <li><strong>Price and quote requests that don't become bookings:</strong> deleted within 12 months.</li>
+      <li><strong>Job enquiries:</strong> deleted within 12 months if we don't hire you, or sooner if you ask.</li>
       <li><strong>Gift card records:</strong> kept until the gift card is used up, then for as long as tax law requires.</li>
       <li><strong>Reviews:</strong> kept while published. Ask us and we'll remove yours.</li>
     </ul>` },
     { id: "safeguards", h: "How we protect it", html: () => `<p>Only the people who need your information to serve you can see it. We protect our email and business accounts with strong passwords and two-step verification, keep access codes separate from other records, and delete information we no longer need. No method of transmission or storage is completely secure, but we work to protect your information.</p>
       <p>If a breach of our safeguards creates a real risk of significant harm to you, we will notify you and the Office of the Privacy Commissioner of Canada as the law requires.</p>` },
     { id: "access", h: "Door and lockbox codes", html: () => `<p>Codes and keys give access to your home, so we treat them with extra care. We don't ask for them on the website. We ask by text or phone only after your booking is confirmed, keep them separate from your name and address, never write them on keys, and delete them within ${P.accessCodeDeleteDays} days of your last scheduled visit. We recommend changing your code from time to time, and after you stop using our service.</p>` },
-    { id: "cookies", h: "Cookies and your browser", html: () => `<p>We don't use advertising cookies or tracking pixels. When you start a booking, the details you enter are saved in your own browser so you don't lose them if you leave the page. They stay on your device and are sent to us only when you submit the request. You can clear them at any time through your browser settings.</p>
+    { id: "cookies", h: "Cookies and your browser", html: () => `<p>We don't use advertising cookies or tracking pixels. When you start a booking, the details you enter are saved in your own browser so you don't lose them if you leave the page. They stay on your device and are sent to us only when you submit the request. You can clear them at any time through your browser settings.</p>${CAL ? `
+      <p>When you pick a time, our booking calendar from Cal.com loads on the page and may use its own cookies to run the calendar. See Cal.com's privacy policy for details.</p>` : ""}
       <p>If we add website analytics or advertising tools in future, we will update this policy first and explain how to opt out.</p>` },
     { id: "rights", h: "Your rights", html: () => `<p>You can ask to see the personal information we hold about you, ask how it has been used or shared, and ask us to correct it if it's wrong. Contact us at ${contactLine}. We'll respond within 30 days, and there's no charge.</p>` },
     { id: "children", h: "Children", html: () => `<p>Our services and website are for adults. We don't knowingly collect personal information from children.</p>` },
@@ -1815,11 +1824,19 @@ legalPage({
       <p>If we ever need to reschedule because of illness or severe weather, we'll tell you as early as possible and offer the next available time.</p>` },
     { id: "guarantee", h: "Our re-clean guarantee", html: () => `<p>If something isn't right, tell us within ${P.recleanWindowHours} hours of your clean, with photos if you can. We'll come back and re-clean those areas at no charge. If a re-clean doesn't put it right, contact ${esc(B.ownerFirstName)} and we'll agree a fair solution together.</p>` },
     { id: "gift", h: "Gift cards", html: () => `<p>Gift cards are issued once paid. They never expire, can be used toward any service in our service area, and any balance left after a clean stays on the card.</p>` },
+    { id: "referral", h: "Referral credit", html: () => { const r = money(C.offers.referral); return `<p>When someone you refer books their first clean with us, you each get ${r} off:</p>
+      <ul>
+        <li>Your friend gets ${r} off their first clean. Ask them to put your name in their booking notes.</li>
+        <li>You get ${r} off your next clean, once their first clean is done and paid.</li>
+        <li>Their home must be new to ${esc(B.name)} and in our service area. There's one credit for each household you refer.</li>
+        ${founding && founding.active ? `<li>Discounts on a first visit aren't combined, so a founding household gets whichever is larger: ${founding.percent}% off or ${r} off. You still get your ${r}.</li>` : ""}
+        <li>Credits have no cash value and can't be transferred.</li>
+      </ul>`; } },
     { id: "damage", h: "Breakage and damage", html: () => `<p>We take great care in your home. If something is damaged during a clean, we'll tell you the same day. If you notice something after we leave, please tell us within ${P.damageReportHours} hours, with photos, and we'll work with you on a fair repair or replacement. Please let us know in advance about fragile, valuable or sentimental items you'd rather we didn't handle.</p>` },
     { id: "access", h: "Keys, codes and access", html: () => `<p>If you won't be home, a lockbox, key code or concierge works best. We never copy keys or write codes on them, and we delete access codes within ${P.accessCodeDeleteDays} days of your last scheduled visit. We recommend changing codes from time to time.</p>` },
     { id: "pets", h: "Pets", html: () => `<p>Pets are welcome. Please tell us about them when you book, and keep any anxious or protective pets in a separate room while we work.</p>` },
     { id: "safety", h: "Safety", html: () => `<p>We bring our own supplies and equipment. For everyone's safety, we may decline or stop work in unsafe conditions, such as biohazards, pest infestations, mould, or anything that requires climbing higher than a two-step ladder or moving heavy furniture. We'll always explain why and agree next steps with you.</p>` },
-    { id: "contact", h: "Contact", html: () => `<p>Questions about these policies? Contact ${esc(B.owner)} at ${contactLine}. See also our <a href="${linker(1)("privacy/")}">Privacy Policy</a>.</p>` }
+    { id: "contact", h: "Contact", html: () => `<p>${esc(B.name)} is owned and operated by ${esc(B.owner)}${ADDR ? `, ${esc(ADDR)}` : `, ${esc(B.base)}, Ontario`}. Questions about these policies? Contact ${esc(B.owner)} at ${contactLine}. See also our <a href="${linker(1)("privacy/")}">Privacy Policy</a>.</p>` }
   ]
 });
 

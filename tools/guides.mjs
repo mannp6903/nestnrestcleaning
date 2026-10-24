@@ -50,7 +50,7 @@ ${ul([
   "<strong>Is there a deposit?</strong> And what does it cost to cancel or reschedule?",
   "<strong>What if something is missed?</strong> A free re-clean within a day or two is a good sign."
 ])}
-<p>Our answers: no HST is added today, supplies are included, every service has a <a href="${L("pricing/#compare")}">room-by-room list</a>, there's no deposit, changes are free up to ${C.policies.cancelNoticeHours} hours before, and a missed spot gets a free re-clean within ${C.policies.recleanWindowHours} hours.</p>
+<p>Our answers: no HST is added today, supplies are included, every service has a <a href="${L("pricing/#compare")}">room-by-room list</a>, there's no deposit, changes are free up to ${C.policies.cancelNoticeHours} hours before, and if we miss a spot, tell us within ${C.policies.recleanWindowHours} hours and we'll re-clean it free.</p>
 ${cta(L)}`
     },
     {
@@ -141,7 +141,7 @@ ${cta(L)}`
 ${ul([
   "Buying supplies. We bring cloths, mops, a vacuum and our products. Prefer your own products, or need fragrance-free? Just say so in your booking notes.",
   "Pre-cleaning. That's our job.",
-  "Being home. Many clients leave access and come home to it done."
+  "Being home. You can leave access and come home to it done."
 ])}
 <p>One more thing: we change into indoor-only house shoes at your door, so you don't need to worry about street shoes on your floors.</p>
 ${cta(L)}`

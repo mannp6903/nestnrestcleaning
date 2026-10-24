@@ -35,6 +35,12 @@
   }
   function waHref(msg) { return B.whatsapp ? "https://wa.me/" + B.whatsapp + "?text=" + encodeURIComponent(msg) : ""; }
   function fillTpl(t, vals) { return String(t || "").replace(/\{(\w+)\}/g, function (m, k) { return vals[k] != null ? vals[k] : m; }); }
+  // Every confirmation email ends with who we are and how to stop emails (CASL), from config.emails.footer.
+  function autoReply(tpl, vals) {
+    var E = C.emails || {};
+    var foot = fillTpl(E.footer, { owner: B.owner, address: B.mailingAddress ? ", " + B.mailingAddress : "", phone: B.phoneDisplay, email: B.email, site: C.siteUrl.replace(/^https?:\/\//, "") });
+    return fillTpl(tpl, vals) + (E.footer ? "\n\n" + foot : "");
+  }
   function isoDay(d) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
   // Days a booking can be made for: from booking.leadDays out, on open days, skipping booking.blockedDates.
   function openDates(n) {
@@ -576,6 +582,14 @@
       this.setAttribute("aria-expanded", String(open));
     });
 
+    function itemsText(q) {
+      var parts = [q.s.name + " (" + homeLine(q) + ") " + money(q.base)];
+      q.addons.forEach(function (a) { parts.push(a.name + " +" + money(a.price)); });
+      if (q.firstDisc > 0) parts.push(q.firstLabel + " " + q.firstPct + "% off −" + money(q.firstDisc));
+      parts.push((q.repeat ? "first visit " : "estimated total ") + money(q.first) + (q.tax ? " including HST" : ", no HST charged"));
+      if (q.repeat) parts.push("then " + money(q.repeat) + " a visit, " + q.freq.label.toLowerCase());
+      return parts.join("; ");
+    }
     function whenText() {
       if (CAL) return "Picking a time on the calendar";
       return state.flex ? "Flexible: earliest opening" : longDate(state.date);
@@ -609,8 +623,9 @@
       send({
         _subject: "New booking " + r + ": " + q.s.name + ", " + when,
         _template: "table", _captcha: "false", _replyto: email || undefined,
-        // With the calendar, Cal.com emails the confirmation once a time is picked.
-        _autoresponse: email && !CAL ? fillTpl((C.emails || {}).booking, { name: firstName, ref: r, summary: plain, reply: B.replyPromise, phone: B.phoneDisplay }) : undefined,
+        // The customer's written copy: itemized price and change terms. With the calendar, Cal.com confirms the time separately.
+        _autoresponse: email ? autoReply(CAL ? (C.emails || {}).bookingCal : (C.emails || {}).booking, { name: firstName, ref: r, summary: plain, items: itemsText(q), reply: B.replyPromise, phone: B.phoneDisplay,
+          notice: C.policies.cancelNoticeHours, lateFee: C.policies.lateCancelFee, terms: C.siteUrl + "/policies/", calendar: "https://cal.com/" + calPath }) : undefined,
         _honey: $('[name="_honey"]', form).value,
         "Reference": r, "Service": q.s.name, "Home": homeLine(q),
         "Extras": q.addons.map(function (a) { return a.name; }).join(", ") || "None",
@@ -653,7 +668,7 @@
         ["Where", $("#f-address").value.trim() + ", " + formatPostal($("#f-postal").value)],
         ["Service", q.s.name + " · " + homeLine(q)],
         ["Estimate", money(q.first) + (q.firstDisc > 0 ? " (" + q.firstPct + "% off: " + q.firstLabel.toLowerCase() + ")" : "") + (q.repeat ? ", then " + money(q.repeat) + " " + q.freq.label.toLowerCase() : "") + ". Paid after the clean."],
-        ["Changes", (booked ? "Use the links in your confirmation email. " : "") + "Free up to " + C.policies.cancelNoticeHours + " hours before your " + (booked ? "booking." : "arrival window.")]
+        ["Changes", (booked ? "Use the links in your confirmation email. " : "") + "Free up to " + C.policies.cancelNoticeHours + " hours before your " + (booked ? "booking" : "arrival window") + ". Later changes may cost " + C.policies.lateCancelFee + "."]
       ];
       $("[data-done-list]").innerHTML = rows.map(function (x) { return "<div><dt>" + esc(x[0]) + "</dt><dd>" + esc(x[1]) + "</dd></div>"; }).join("");
       if (info.skipped) {
@@ -852,7 +867,7 @@
       });
       if (data.Email && data.Email !== "—") {
         data._replyto = data.email = data.Email;
-        data._autoresponse = fillTpl((C.emails || {}).quote, { name: String(data.Name).split(/\s+/)[0], reply: form.getAttribute("data-reply-time"), phone: B.phoneDisplay });
+        data._autoresponse = autoReply((C.emails || {}).quote, { name: String(data.Name).split(/\s+/)[0], reply: form.getAttribute("data-reply-time"), phone: B.phoneDisplay });
       }
       delete data.Email;
       var btn = $('button[type="submit"]', form);
@@ -913,7 +928,7 @@
       var amount = ($('input[name="amount"]:checked', form) || {}).value;
       var mine = $("#g-email").value.trim(), name = $("#g-name").value.trim();
       var data = { _subject: "New gift card request " + r + ": " + money(+amount), _template: "table", _captcha: "false", _replyto: mine, email: mine,
-        _autoresponse: fillTpl((C.emails || {}).gift, { name: name.split(/\s+/)[0], ref: r, reply: B.replyPromise, phone: B.phoneDisplay }),
+        _autoresponse: autoReply((C.emails || {}).gift, { name: name.split(/\s+/)[0], ref: r, reply: B.replyPromise, phone: B.phoneDisplay }),
         "Reference": r, "Amount": money(+amount), "Send": ($('input[name="send"]:checked', form) || {}).value };
       $$("input, textarea", form).forEach(function (el) {
         if (el.name === "_honey") data._honey = el.value;
