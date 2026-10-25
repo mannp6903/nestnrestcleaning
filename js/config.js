@@ -45,7 +45,7 @@ window.NR_CONFIG = {
 
   /* Optional tracking for ads and growth. Paste IDs to switch on; leave blank to keep off. */
   analytics: {
-    ga4Id: "",        // e.g. "G-XXXXXXXXXX" from Google Analytics
+    ga4Id: "G-7YT1SGQCCS", // Google Analytics 4 Measurement ID
     metaPixelId: ""   // e.g. "123456789012345" from Meta Events Manager
   },
 
@@ -402,7 +402,7 @@ window.NR_CONFIG = {
 
   /* Service policies shown on the Service Policies page. Confirm these before launch. */
   policies: {
-    effectiveDate: "October 24, 2026",
+    effectiveDate: "October 25, 2026",
     cancelNoticeHours: 24,
     lateCancelFee: "up to 50% of the estimated price",
     recleanWindowHours: 24,
