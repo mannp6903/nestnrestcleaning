@@ -2,11 +2,17 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** A Google Apps Script, tied to a Google Sheet in nestnrestcleaning@gmail.com, that sends every booking and quote client a personal email (draft first, automatic later), plus a pick-a-time nudge, a quote nudge, a day-before reminder and a review request.
+**Goal:** A Google Apps Script tied to a Google Sheet in nestnrestcleaning@gmail.com. It receives the website's forms directly, replacing FormSubmit. For each request it sends the client's confirmation and Mann's new-request email at once. Then it sends every booking and quote client a personal email (draft first, automatic later), a pick-a-time nudge, a quote nudge, a day-before reminder and a review request.
 
-**Architecture:** Pure JavaScript modules (`automation/src/*.js`) hold all the logic: parsing FormSubmit emails, Toronto time, composing emails, checking the Claude paragraph, Sheet rows and deciding what's due. They are tested in Node. One adapter file (`google.js`) connects them to Gmail, Calendar, Sheets and UrlFetch. `tools/build.mjs` joins the sources into one file Mann pastes into Apps Script, and publishes `automation/site-config.json` (wording and facts from `js/config.js`), which the script reads from the live site.
+**Architecture:** Pure JavaScript modules (`automation/src/*.js`) hold all the logic, tested in Node:
+- checking form requests, building the new-request and confirmation emails, and reading them back;
+- Toronto time;
+- composing the personal emails, and checking the Claude paragraph;
+- Sheet rows, and deciding what's due.
 
-**Tech Stack:** Google Apps Script (V8), the Claude Messages API over raw HTTPS (no SDK exists for Apps Script), Node 22 `node:test` for tests, and the existing `tools/build.mjs` generator.
+`main.js` drives them through an `env` object. `google.js` builds that `env` from Apps Script services, and holds `doPost` (the web app) and the timer entry points. `tools/build.mjs` joins the sources into one file Mann pastes into Apps Script, and publishes `automation/site-config.json` (wording and facts from `js/config.js`), which the script reads from the live site. `js/site.js` posts to the web app when `delivery.provider` is `"google"`.
+
+**Tech Stack:** Google Apps Script (V8), with web app `doPost`; the Claude Messages API over raw HTTPS (no SDK exists for Apps Script); Node 22 `node:test`; Playwright (pre-installed) for the browser test; and the existing `tools/build.mjs`.
 
 **Spec:** `docs/superpowers/specs/2026-10-26-email-automation-design.md`
 
@@ -16,7 +22,7 @@
 - **No `Intl` or `toLocale*` in `automation/src/`.** Toronto time comes from the `localParts` function passed into `makeClock` (Task 2).
 - **Time zone:** `America/Toronto` everywhere.
 - **Timings:**
-  - pick-a-time nudge: 3 hours after the booking email, moved to 9am if it falls between 9pm and 9am;
+  - pick-a-time nudge: 3 hours after the request, moved to 9am if it falls between 9pm and 9am;
   - quote nudge: 2 days after the quote reply was sent, at 10am;
   - reminder: 6pm the day before the clean;
   - review request: 11am the day after the client's first clean;
@@ -29,6 +35,11 @@
   - the calendar is read from 2 days ago to 90 days ahead;
   - client replies are searched over the last 3 days;
   - after 3 failures, a lead is marked Needs you.
+- **Web app limits:**
+  - `receive()` never calls Claude, so it answers in seconds;
+  - at most 30 requests an hour overall, and 3 an hour per email address;
+  - a request has at most 40 fields, each value up to 2000 characters, and a subject up to 200;
+  - confirmation values: name up to 60 characters, summary up to 400, items up to 800, with no `http`, `www.`, `<` or `>`.
 - **The Claude request:**
   - `POST https://api.anthropic.com/v1/messages`;
   - headers `anthropic-version: 2026-10-21` and `anthropic-beta: server-side-fallback-2026-07-01`;
@@ -36,9 +47,9 @@
   - never send `thinking`, `temperature`, `top_p` or `top_k`;
   - the key lives only in Script Properties, under `ANTHROPIC_API_KEY`.
 - **Data sent to Claude:** only the first name, the service, form choices and notes. Never the email address, phone number, address, postal code or estimate.
-- **The Sheet never stores** a client's notes or address.
+- **The Sheet never stores** a client's notes or address. That includes the Incoming tab.
 - **No real client data** in the repo. Fixtures use made-up people.
-- **Every email** ends with the filled `emails.footer`.
+- **Every email to a client** ends with the filled `emails.footer`.
 - **Commands:** run tests with `node --test automation/test/*.test.mjs`, and build with `node tools/build.mjs`.
 - **Commit messages:** plain-English and imperative, like the existing history ("Ask new clients who referred them…"), ending with the session's attribution trailer.
 
@@ -46,31 +57,63 @@
 
 1. **The daylight-saving change on Sunday, November 1, 2026,** the week after launch. A 6pm reminder on Nov 1 must go at 23:00 UTC, not 22:00 (Tasks 2 and 7).
 2. **An ordinary client reply that quotes our footer,** which contains the word "unsubscribe", must not opt them out (Task 7).
-3. **First install with older FormSubmit emails in the inbox:** those leads are marked seen and never emailed (Task 8).
+3. **Someone posting straight to the web address.** A stranger's email address plus a link in the name must not get an email from the business; Mann's email says why. A flood stops at the hourly limits instead of using up Gmail's daily quota (Tasks 3 and 8).
 4. **The script stops for a day, then resumes:** no late nudges or review requests, no reminder after a clean has started, and no personal note for a booking that's already in the past (Task 7).
-5. **Returning clients:** two booking forms from one email address, plus calendar events matched only by the guest's email, still give exactly one reminder per clean and one review request per client, ever (Task 7).
+5. **Returning clients:** two booking requests from one email address, plus calendar events matched only by the guest's email, still give exactly one reminder per clean and one review request per client, ever (Task 7).
 
 ---
 
-### Task 1: Email wording, site config and Privacy Policy line
+### Task 1: Email wording and the published site config
 
 **Files:**
-- Modify: `js/config.js` (add `automation` after `emails`, around line 116)
+- Modify: `js/config.js`
+  - add `automation` after `emails`, around line 116;
+  - add `emails.subjects`;
+  - update the comments on `delivery` and `emails`.
 - Create: `tools/automation.mjs`
-- Modify: `tools/build.mjs` (call `buildAutomation` beside the sitemap block, about line 1889; add the Anthropic line to the "sharing" list, about line 1806)
+- Modify: `tools/build.mjs`
+  - call `buildAutomation` inside the `if (!PREVIEW_DIR)` sitemap block, about line 1889;
+  - add the Anthropic line to the "sharing" list, about line 1806.
 - Test: `automation/test/build.test.mjs`
 
 **Interfaces:**
-- Produces: `SRC_FILES` (array of file names, in bundle order), `buildSiteConfig(C) → object`, and `buildAutomation(C, outDir) → void`, which writes `outDir/automation/site-config.json` (and the bundle once Task 9 exists). All are exported from `tools/automation.mjs`.
-- `site-config.json` shape, used by every later task as `site`:
-  - `{ version, business: { name, owner, ownerFirstName, email, areaLabel } }`
-  - `links: { site, book, review, policies, calendar, walkthrough }`
-  - `policies` (`C.policies` as is), `referral` (for example `"$25"`), `footer` (filled text)
-  - `automation` (`C.automation` as is)
-  - `services: [{ key, name, intro }]`, `quoteServices: [{ name, intro, includes }]`
-  - `extras: [names]`, `faqs: [{ q, a }]`
+- Produces, exported from `tools/automation.mjs`:
+  - `SRC_FILES` (file names in bundle order);
+  - `buildSiteConfig(C) → site`;
+  - `buildAutomation(C, outDir) → void`, which writes `outDir/automation/site-config.json` (and the bundle once Task 9 exists).
+- `site` is what every later task uses:
+  - `version`;
+  - `business: { name, owner, ownerFirstName, email, phoneDisplay, areaLabel, replyPromise, contact }`;
+  - `replyPromises` (an array);
+  - `links: { site, book, review, policies, calendar, walkthrough }`;
+  - `policies`;
+  - `referral` (for example `"$25"`);
+  - `footer` (filled text);
+  - `emails: { booking, bookingCal, quote, gift, subjects }`;
+  - `automation`;
+  - `services: [{ key, name, intro }]`;
+  - `quoteServices: [{ name, intro, includes }]`;
+  - `extras: [names]`;
+  - `faqs: [{ q, a }]`.
 
-- [ ] **Step 1: Add this exact block to `js/config.js`, directly after `emails: {…},`**
+- [ ] **Step 1: Edit `js/config.js`**
+
+Inside `emails`, add:
+
+```js
+    subjects: {
+      booking: "Your booking request with Nest & Rest Cleaning ({ref})",
+      bookingCal: "Your booking with Nest & Rest Cleaning ({ref})",
+      quote: "Your quote request with Nest & Rest Cleaning",
+      gift: "Your gift card request with Nest & Rest Cleaning ({ref})"
+    },
+```
+
+Change the first line of the `emails` comment to: `Confirmation emails sent to the customer when they give an email address: by FormSubmit, or by our Google script when delivery.provider is "google".`
+
+Add a line to the `delivery` comment: `"google" sends each form to our Google script (the web app in automation/README.md), which emails Mann and the customer and keeps the client list.`
+
+Add this exact block directly after `emails: {…},`:
 
 ```js
   /* Personal emails sent by the email automation. Setup: automation/README.md.
@@ -158,11 +201,14 @@
 
 The test loads `js/config.js` the way `tools/build.mjs` does (`vm.runInNewContext` with a `window` sandbox) and calls `buildSiteConfig(C)`. Assertions:
 - `site.links.review === "https://nestnrestcleaning.com/review/"` and `site.links.policies === "https://nestnrestcleaning.com/policies/"`.
-- `site.links.calendar === ""` while `C.booking.calLink` is `""`. With `calLink` set to `"https://cal.com/nr/home-clean/"`, it is `"https://cal.com/nr/home-clean"`, using the same path cleaning as `js/site.js:350`.
+- `site.links.calendar === ""` while `calLink` is `""`. With `calLink = "https://cal.com/nr/home-clean/"`, it is `"https://cal.com/nr/home-clean"`, using the same path cleaning as `js/site.js:350`.
 - `site.referral === "$25"`.
+- `site.business.contact === "Email nestnrestcleaning@gmail.com"` while the phone is `""`. This matches `autoReply` in `js/site.js:43`.
+- `site.replyPromises` includes `"within 2 hours during business hours"` and `"within one business day"`.
 - `site.footer` starts with `"This email is from Nest & Rest Cleaning, owned and operated by Mann Patel."` and contains no `{`.
-- `site.services` maps key to name: `regular → "Regular Home Cleaning"`, `deep`, `move`, `detail`.
-- `site.faqs.length > 10`, and every FAQ has non-empty `q` and `a`.
+- `site.emails.subjects.booking` contains `"{ref}"`, and `site.emails.booking === C.emails.booking`.
+- `site.services` maps `regular → "Regular Home Cleaning"`, `deep`, `move` and `detail`.
+- `site.faqs.length > 10`.
 - `JSON.stringify(site).length < 45000`. The cached copy must fit in one Sheet cell.
 - `buildAutomation(C, tmpDir)` writes `tmpDir/automation/site-config.json`, and parsing it gives the same `version`.
 
@@ -173,19 +219,16 @@ Expected: FAIL, because it can't find `tools/automation.mjs`.
 
 - [ ] **Step 4: Implement `tools/automation.mjs` and hook it into `tools/build.mjs`**
 
-- **`buildSiteConfig(C)`:**
-  - `footer` fills `C.emails.footer` exactly as `autoReply` does in `js/site.js:41-46`: `{owner}`, `{address}` (`", " + mailingAddress` or `""`), `{email}`, and `{site}` (`siteUrl` without the protocol).
-  - `extras` holds the `C.addons` names.
-  - `faqs` is `C.faqs`, de-duplicated by `q`.
-  - `version` is the first 8 hex characters of the SHA-1 of the JSON without `version`.
-- **`SRC_FILES`:** `["time.js","parse.js","guard.js","claude.js","compose.js","sheet.js","plan.js","main.js","google.js"]`.
-- **In `tools/build.mjs`:** inside the existing `if (!PREVIEW_DIR)` sitemap block, call `buildAutomation(C, OUT)`.
-- **In the "sharing" list,** add this `<li>` only when `C.automation && C.automation.aiReplies`: `<li><strong>Anthropic</strong> (anthropic.com) provides Claude, an AI service that helps us write the personal part of our emails to you. It receives your first name, the service you asked about, your choices on our form and any notes you add, but not your email address, phone number or address. It may store data outside Canada.</li>`
+- **`footer`:** fill `C.emails.footer` exactly as `autoReply` does in `js/site.js:41-46`.
+- **`replyPromises`:** the unique values of `B.replyPromise`, each `quoteServices[*].replyPromise`, and `"within one business day"`.
+- **`version`:** the first 8 hex characters of the SHA-1 of the JSON without `version`.
+- **`SRC_FILES`:** `["time.js","intake.js","parse.js","guard.js","claude.js","compose.js","sheet.js","plan.js","main.js","google.js"]`.
+- **The Anthropic line:** add this `<li>` to the "sharing" list only when `C.automation && C.automation.aiReplies`: `<li><strong>Anthropic</strong> (anthropic.com) provides Claude, an AI service that helps us write the personal part of our emails to you. It receives your first name, the service you asked about, your choices on our form and any notes you add, but not your email address, phone number or address. It may store data outside Canada.</li>`
 
 - [ ] **Step 5: Run the test, then the build**
 
-Run: `node --test automation/test/build.test.mjs && node tools/build.mjs && grep -c "Anthropic" privacy/index.html`
-Expected: the test PASSES, the build prints `Built N pages…`, and grep prints `1`.
+Run: `node --test automation/test/build.test.mjs && node tools/build.mjs && grep -c "Anthropic" privacy/index.html && grep -c "FormSubmit" privacy/index.html`
+Expected: the test PASSES, the build prints `Built N pages…`, and grep prints `1` and then `1`.
 
 - [ ] **Step 6: Commit**
 
@@ -208,6 +251,7 @@ git commit -m "Add the wording for the personal emails and publish it for the au
   - `loadAutomation()` runs every `SRC_FILES` entry except `google.js` with `vm.runInThisContext(code, { filename })`, after setting `globalThis.SITE_CONFIG_URL = "https://nestnrestcleaning.com/automation/site-config.json"`. Files that don't exist yet are skipped.
   - `torontoParts(date)` uses `Intl.DateTimeFormat` with `America/Toronto` and returns `{ year, month (1-12), day, hour (0-23), minute, weekday (0=Sunday) }`.
   - `clock` is `makeClock(torontoParts)`.
+  - `site` is `buildSiteConfig(C)`, with `C` loaded from `js/config.js`.
 - Produces from `time.js`: `makeClock(localParts) → Clock`, where `Clock` is:
   - `local(date) → parts`;
   - `at(year, month, day, hour, minute) → Date`, from Toronto wall-clock time;
@@ -257,29 +301,39 @@ Expected: PASS.
 
 - [ ] **Step 5: Commit** with the message "Add Toronto time helpers for the email automation".
 
-### Task 3: Read FormSubmit emails into leads
+### Task 3: Receive form requests: check them, write the two emails, read them back
 
 **Files:**
-- Create: `automation/src/parse.js`, plus these fixtures:
-  - `automation/test/fixtures/booking.html`
-  - `booking-no-email.html`
-  - `booking-request.html`
-  - `quote-residence.html`
-  - `quote-realtors.html`
-- Test: `automation/test/parse.test.mjs`
+- Create: `automation/src/intake.js`, `automation/src/parse.js`, `automation/test/fixtures/requests.mjs`
+- Test: `automation/test/intake.test.mjs`
 
 **Interfaces:**
-- Consumes: `Clock` (Task 2).
-- Produces:
-  - `parseFormSubmitTable(html) → { [label]: value }`.
-  - `parseLeadEmail({ id, subject, html, date }, clock) → Lead | null`.
-  - `Lead` is `{ ref, kind: "booking"|"quote", form, receivedAt (ISO), name, firstName, email, phone, area, sourceMessageId, requested, access, pets, referrer, hasNotes, needsYou: "", optedOut: false, eventId: "", eventStart: "", firstCleanAt: "", emails: {}, clientRepliedAt: "", failures: 0, lastAction: "" }`.
+- Consumes: `site` (Task 1) and `Clock` (Task 2).
+- Produces from `intake.js`:
+  - `INTAKE_FORMS` is `["booking","quote","gift","review","textPrice"]`, and `RATE_LIMITS` is `{ all: 30, perEmail: 3 }`.
+  - `checkRequest(payload) → { ok: true, spam: boolean } | { ok: false, error }`.
+  - `requestFields(payload) → { [label]: string }` (every key not starting with `_`, as text, trimmed).
+  - `replyToOf(payload) → string` (a valid `_replyto` email, or `""`).
+  - `rateLimitKeys(payload, now) → string[]`: `["rl:all:" + yyyymmddhh UTC]`, plus `"rl:email:" + lowercased reply-to + ":" + hour` when there is one.
+  - `isOverLimit(counts: number[]) → boolean` (`counts[0] >= all`, or `counts[1] >= perEmail`).
+  - `notificationEmail(payload, site, note) → Email`:
+    - `to` is `site.business.email`, `subject` is `_subject`, `replyTo` is `replyToOf(payload)`, and `name` is `"Nest & Rest website"`;
+    - `html` is a `<table>` with one `<tr><th align="left">Label</th><td>Value</td></tr>` per field, values HTML-escaped, `\n` as `<br>`;
+    - `text` has one `Label: value` line per field;
+    - `note`, when not empty, is a first paragraph in both.
+  - `confirmationEmail(payload, site) → { email: Email | null, problem: string }`.
+  - `incomingRecord(payload, receivedAt: Date, notice: { messageId, threadId }) → record | null`. Only for booking and quote. A record is `{ receivedAt (ISO), form, subject, fields (without "Notes" and "Address"), hasNotes, messageId, threadId }`.
+- `Email` is `{ to, subject, text, html, replyTo, name }`, the shape every send uses.
+- Produces from `parse.js`:
+  - `parseRequestTable(html) → { [label]: value }`, which reads `notificationEmail` HTML back;
+  - `notesFrom(fields) → string` (`""` for `None`, `—` or empty);
+  - `leadFromIncoming(record, clock) → Lead`.
+- `Lead` is `{ ref, kind: "booking"|"quote", form, receivedAt (ISO), name, firstName, email, phone, area, sourceMessageId, requested, access, pets, referrer, hasNotes, needsYou: "", optedOut: false, eventId: "", eventStart: "", firstCleanAt: "", emails: {}, clientRepliedAt: "", failures: 0, lastAction: "" }`.
   - `emails[key]` is `{ state: "draft"|"sent"|"skipped", at, draftId, threadId }`.
-  - `notesFrom(fields) → string`. It returns `""` for `None`, `—` or an empty value.
 
-The fixtures use FormSubmit's table layout. Each `<tr>` has a label cell (`<th>` or `<td>` wrapping `<strong>`) and a value cell (`<td>`). Line breaks inside a value are `<br>`. Field labels are exactly the ones `js/site.js:638-648` (booking) and `js/site.js:908-916` (quotes) send.
+`fixtures/requests.mjs` exports `booking`, `quote`, `gift`, `review` and `textPrice`. Each is the exact object `js/site.js` sends for that form after Task 10: the field labels from `js/site.js:633-648`, `908-916`, `975-978`, `1019-1020` and `299-300`, plus `_form` and `_confirm`.
 
-`booking.html` has these fields:
+`booking` has `_subject: "New booking NR-AB12: Deep Cleaning, Picking a time on the calendar"`, `_replyto: "priya@example.com"` and `_honey: ""`. Its `_confirm` is `{ tpl: "booking", vals: { name: "Priya", ref: "NR-AB12", summary: "Deep Cleaning, 2 bed, 1 bath condo; Picking a time on the calendar; estimate $228", items: "Deep Cleaning $285; Founding household −$57" } }`. Its fields:
 
 | Field | Value |
 |---|---|
@@ -287,6 +341,7 @@ The fixtures use FormSubmit's table layout. Each `<tr>` has a label cell (`<th>`
 | Service | `Deep Cleaning` |
 | Home | `2 bed, 1 bath condo` |
 | Date | `Picking a time on the calendar` |
+| Arrival window | `""` |
 | Name | `Priya Sharma` |
 | Phone | `647 555 0123` |
 | email | `priya@example.com` |
@@ -294,44 +349,80 @@ The fixtures use FormSubmit's table layout. Each `<tr>` has a label cell (`<th>`
 | Postal code | `M1B 2K3 (Scarborough)` |
 | Getting in | `Lockbox or key code` |
 | Pets | `Cat or other` |
-| Referred by | `Sam O&#39;Brien` |
-| Notes | `We have a cat &amp; the kitchen is the priority<br>Code 4321` |
+| Referred by | `Sam O'Brien` |
+| Notes | `We have a cat & the kitchen is the priority\nCode 4321` |
+
+`quote` is Residence Care, with `email: "lee@example.com"`, `Postal code: "M2N 1A1"`, `Notes: "—"`, and `_confirm: { tpl: "quote", vals: { name: "Lee", reply: "within one business day" } }`.
 
 - [ ] **Step 1: Write the failing tests**
 
-- `parseFormSubmitTable(booking)["Notes"] === "We have a cat & the kitchen is the priority\nCode 4321"`, and `["Referred by"] === "Sam O'Brien"`.
-- `parseLeadEmail({id:"m1", subject:"New booking NR-AB12: Deep Cleaning, Picking a time on the calendar", html: booking, date: new Date("2026-10-26T18:32:00Z")}, clock)` deep-equals the full `Lead`:
-  - `ref: "NR-AB12"`, `kind: "booking"`, `form: "Deep Cleaning"`
-  - `name: "Priya Sharma"`, `firstName: "Priya"`, `email: "priya@example.com"`, `phone: "647 555 0123"`, `area: "Scarborough"`
-  - `sourceMessageId: "m1"`, `requested: ""`, `access: "Lockbox or key code"`, `pets: "Cat or other"`, `referrer: "Sam O'Brien"`, `hasNotes: true`
-  - `receivedAt: "2026-10-26T18:32:00.000Z"`, and the defaults above
-  - The lead has **no** `address` or `notes` key.
-- `booking-no-email.html` (`email` is `not given`) gives `email: ""`.
-- `booking-request.html` has `Date: Tuesday, October 27` and `Arrival window: Morning (9am to 12pm)`, which gives `requested: "Tuesday, October 27, Morning (9am to 12pm)"`.
-- `quote-residence.html`, with subject `New quote request: Residence Care` and the same date, gives:
-  - `kind: "quote"`, `form: "Residence Care"`, `ref: "Q-261026143200"` (Toronto time, `yyMMddHHmmss`);
-  - `area: "M2N"` (the first 3 characters of the postal code);
-  - `hasNotes: false` when Notes is `—`.
-- The subjects `New gift card request NR-X: $100` and `New review: 5 stars from A` give `null`.
+**`checkRequest`:**
+- every fixture is ok, with `spam: false`;
+- `_honey: "x"` is ok, with `spam: true`;
+- `_form: "other"`, 41 fields, a 2001-character value and a missing `_subject` each give `ok: false` with a reason.
+
+**Rate limits:**
+- `rateLimitKeys(booking, new Date("2026-10-26T18:32:00Z"))` equals `["rl:all:2026102618", "rl:email:priya@example.com:2026102618"]`;
+- `isOverLimit([29, 2])` is false; `isOverLimit([30, 0])` and `isOverLimit([0, 3])` are true.
+
+**The new-request email** (`notificationEmail(booking, site, "")`):
+- `to: "nestnrestcleaning@gmail.com"`, `replyTo: "priya@example.com"`, and the subject is the `_subject`;
+- `parseRequestTable(email.html)` equals `requestFields(booking)`. That includes the `&` and the line break in Notes, and `Sam O'Brien` (Review Focus 3: escaping round trip).
+
+**Confirmations:**
+- **Booking:** subject `"Your booking request with Nest & Rest Cleaning (NR-AB12)"`, to `priya@example.com`, name `"Mann Patel, Nest & Rest Cleaning"`. The text:
+  - starts `"Hi Priya, thank you for your booking request with Nest & Rest Cleaning (reference NR-AB12)."`;
+  - contains `"within 2 hours during business hours"`, `"24 hours"`, `"up to 50% of the estimated price"`, `"https://nestnrestcleaning.com/policies/"` and `"Email nestnrestcleaning@gmail.com"`;
+  - ends with the footer and has no `{`.
+- **Quote:** the text contains `"within one business day"`. The same with `reply: "whenever"` falls back to `"within 2 hours during business hours"`.
+- **Link in the name:** `vals.name = "Visit http://spam.example"` gives `email: null` and a problem starting `"Confirmation not sent"` (Review Focus 3).
+- **No client email:** `_replyto: ""` gives `email: null` and `problem: ""`.
+- **Wrong template:** `tpl: "gift"` on the booking form gives `email: null` and a problem.
+- **No confirmation at all:** the review and textPrice forms give `email: null` and `problem: ""`.
+
+**The queued record:**
+- `incomingRecord(booking, date, {messageId:"m1", threadId:"t1"})` has no `Notes` or `Address` key, and has `hasNotes: true` and `messageId: "m1"`;
+- `incomingRecord(gift, …)` is `null`.
+
+**`leadFromIncoming(record, clock)`** for the booking deep-equals the full `Lead`:
+- `ref: "NR-AB12"`, `kind: "booking"`, `form: "Deep Cleaning"`;
+- `name: "Priya Sharma"`, `firstName: "Priya"`, `email: "priya@example.com"`, `phone: "647 555 0123"`, `area: "Scarborough"`;
+- `sourceMessageId: "m1"`, `requested: ""`, `access: "Lockbox or key code"`, `pets: "Cat or other"`, `referrer: "Sam O'Brien"`, `hasNotes: true`;
+- `receivedAt: "2026-10-26T18:32:00.000Z"`, plus the defaults above.
+
+**Other leads:**
+- A booking with `Date: "Tuesday, October 27"` and `Arrival window: "Morning (9am to 12pm)"` gives `requested: "Tuesday, October 27, Morning (9am to 12pm)"`.
+- A booking with `email: "not given"` gives `email: ""`.
+- The quote gives `kind: "quote"`, `form: "Residence Care"`, `ref: "Q-261026143200"`, `area: "M2N"` and `hasNotes: false`.
 
 - [ ] **Step 2: Run to verify it fails**
 
-Run: `node --test automation/test/parse.test.mjs`
-Expected: FAIL, `parseLeadEmail is not defined`.
+Run: `node --test automation/test/intake.test.mjs`
+Expected: FAIL.
 
-- [ ] **Step 3: Implement `parse.js`**
+- [ ] **Step 3: Implement `intake.js` and `parse.js`**
 
+**`confirmationEmail`:**
+- The allowed templates are `booking: ["booking","bookingCal"]`, `quote: ["quote"]` and `gift: ["gift"]`.
+- `ref` must match `/^(NR|GIFT)-[A-Z0-9]{4}$/` when the template contains `{ref}`.
+- `reply` must be in `site.replyPromises`; otherwise it's `site.business.replyPromise`.
+- Fill the template with the same rule as `fillTpl` in `js/site.js:39` (unknown keys stay as `{key}`), using these values:
+  - from `_confirm.vals`: `name`, `ref`, `summary`, `items` and `reply`;
+  - from `site`: `contact`, `notice` (`policies.cancelNoticeHours`), `lateFee`, `terms` (`links.policies`), `calendar` (`links.calendar`) and `phone` (`business.phoneDisplay`).
+- If any `{word}` is left after filling, set a problem.
+- The subject is `site.emails.subjects[tpl]` filled with `ref`.
+
+**`parseRequestTable`:**
 - Split the HTML on `<tr`.
 - Turn `<br>` into `\n`, strip tags, and decode `&amp; &lt; &gt; &quot; &#39; &nbsp; &#NNN; &#xHH;`.
-- Collapse spaces and tabs, but keep newlines, then trim.
-- A row with exactly 2 cells is one `label: value` pair.
+- A row with 2 cells is one `label: value` pair.
 
 - [ ] **Step 4: Run to verify it passes**
 
-Run: `node --test automation/test/parse.test.mjs`
+Run: `node --test automation/test/intake.test.mjs`
 Expected: PASS.
 
-- [ ] **Step 5: Commit** with the message "Read booking and quote emails into leads for the email automation".
+- [ ] **Step 5: Commit** with the message "Check form requests and write the new-request and confirmation emails".
 
 ### Task 4: The Claude paragraph: request, answer and checks
 
@@ -340,7 +431,7 @@ Expected: PASS.
 - Test: `automation/test/claude.test.mjs`
 
 **Interfaces:**
-- Consumes: `Lead` and `parseFormSubmitTable` output (Task 3), and `site` (Task 1).
+- Consumes: `Lead` and `parseRequestTable` output (Task 3), and `site` (Task 1).
 - Produces:
   - `checkParagraph(text) → { ok: boolean, reasons: string[] }`.
   - `clientDetailsFor(lead, fields) → { firstName, service, choices: {label: value}, notes }`.
@@ -357,7 +448,7 @@ Expected: PASS.
   - more than 90 words, and empty text.
 - **It allows** `"I may be a few minutes early"`. The month "May" is only rejected before a digit.
 - **`clientDetailsFor`:**
-  - takes the `booking.html` fields and returns `choices` with Home, Getting in and Pets;
+  - takes the booking fixture's fields and returns `choices` with Home, Getting in and Pets;
   - its JSON has none of `Reference`, `Name`, `Phone`, `email`, `Address`, `Postal code`, `Estimate, first visit`, `Estimate, repeat visits`, `Estimated time`, `Date`, `Arrival window`, `Confirm by`, `Referred by` or `Notes`;
   - returns `notes` as the notes text.
 - **`buildClaudeRequest("welcome", …, "sk-test")`:**
@@ -413,15 +504,15 @@ Expected: PASS.
 
 - [ ] **Step 5: Commit** with the message "Ask Claude for the personal paragraph and check it before use".
 
-### Task 5: Compose every email
+### Task 5: Compose every personal email
 
 **Files:**
 - Create: `automation/src/compose.js`
 - Test: `automation/test/compose.test.mjs`
 
 **Interfaces:**
-- Consumes: `Lead`, `site` and `Clock`.
-- Produces: `composeEmail(kind, lead, ctx) → { to, subject, text, html }`.
+- Consumes: `Lead`, `site`, `Clock` and `Email`.
+- Produces: `composeEmail(kind, lead, ctx) → Email` (with `name: site.automation.senderName` and `replyTo: ""`).
   - `kind` is one of `welcome`, `pickTime`, `requestAck`, `quoteReply`, `quoteNudge`, `reminder` or `review`.
   - `ctx` is `{ site, clock, event: { start: Date } | null, paragraph: string }`.
   - It throws `Error("Unfilled placeholder {x} in <kind>")` if a placeholder has no value.
@@ -448,9 +539,9 @@ Placeholder values:
 | `{nextStep}`, `{nudgeStep}` | From the form entry; the `NoLink` variant when the walkthrough link is `""` and that variant exists |
 | `{paragraph}` | `ctx.paragraph` |
 
-Lines are filled, lines that end up empty are dropped, and the rest are joined with blank lines. Then `"\n\n" + site.footer` is added. The HTML version is each paragraph in `<p>`, HTML-escaped, with `https://…` turned into links and the footer in `<p style="color:#666;font-size:12px">`. `to` is `lead.email`.
+Lines are filled, lines that end up empty are dropped, and the rest are joined with blank lines. Then `"\n\n" + site.footer` is added. The HTML version is each paragraph in `<p>`, HTML-escaped, with `https://…` turned into links and the footer in `<p style="color:#666;font-size:12px">`.
 
-- [ ] **Step 1: Write the failing tests**, one per email type, using `booking.html` and `quote-residence.html` from Task 3.
+- [ ] **Step 1: Write the failing tests**, one per email type, using leads built from the Task 3 fixtures with `leadFromIncoming`.
 
 **Personal note** (event `2026-11-02T15:00:00Z`, paragraph `"P."`):
 - subject `"Your deep cleaning on Monday, November 2"`;
@@ -593,7 +684,7 @@ Leads that are opted out, have no email, or are inactive get nothing. A lead is 
 
 - [ ] **Step 1: Write the failing tests**
 
-Use a fixed `now` and a lead built with `parseLeadEmail` from Task 3.
+Use a fixed `now` and the booking lead from Task 3.
 
 **When each email is due:**
 
@@ -674,7 +765,7 @@ Expected: PASS.
 
 - [ ] **Step 5: Commit** with the message "Decide which personal emails are due on each run".
 
-### Task 8: The run loop and install, tested with a fake Google
+### Task 8: Receive, run and install, tested with a fake Google
 
 **Files:**
 - Create: `automation/src/main.js`, `automation/test/fake-env.mjs`
@@ -687,25 +778,43 @@ Expected: PASS.
     - `now() → Date`
     - `localParts(date)`
     - `props.get(k)` and `props.set(k, v)`
+    - `cache.get(k) → string|null` and `cache.put(k, v, seconds)`
     - `http.fetch(url, options) → { status, body }`
-    - `sheet.readLeadRows()`, `writeLeadRows(rows)`, `readSettingsRows()`, `writeSettingValue(key, value)`, `appendLog([[at, ref, message]])`, `readConfigCache() → string|null`, `writeConfigCache(text)`, `setup(headers, settingsRows)`
-    - `gmail.findLeadEmails() → [{ id, threadId, subject, html, date }]`, `markSeen(threadId)`, `getMessageHtml(id)`, `findClientMessages(since) → Message[]`, `existingDraftIds()`, `sentDatesInThread(threadId) → Date[]`, `createDraft(email) → { draftId, threadId }`, `send(email) → { threadId, sentAt: Date }`, `label(threadId, name)`, `ensureLabels(names)`
+    - `sheet.readLeadRows()`, `writeLeadRows(rows)`, `readSettingsRows()`, `writeSettingValue(key, value)`, `appendLog([[at, ref, message]])`
+    - `sheet.readConfigCache() → string|null`, `writeConfigCache(text)`
+    - `sheet.appendIncoming(text)`, `readIncoming() → string[]`, `removeIncoming(count)` (removes the oldest `count`)
+    - `sheet.setup(headers, settingsRows)`
+    - `gmail.send(Email) → { messageId, threadId, sentAt: Date }` and `createDraft(Email) → { draftId, threadId }`
+    - `gmail.getMessageHtml(id)`, `findClientMessages(since) → Message[]`, `existingDraftIds()`, `sentDatesInThread(threadId) → Date[]`
+    - `gmail.label(threadId, name)` and `ensureLabels(names)`
     - `calendar.events(from, to) → Event[]`
     - `triggers.reset()`, which removes old timers and adds the 5-minute timer for `runAutomation`
-  - **`LABELS`** is `{ seen: "Nest auto/seen", draft: "Nest auto/draft ready", sent: "Nest auto/sent", needsYou: "Nest auto/needs you" }`.
+  - **`LABELS`** is `{ draft: "Nest auto/draft ready", sent: "Nest auto/sent", needsYou: "Nest auto/needs you" }`.
+  - **`receive(env, bodyText) → { success: "true" } | { success: "false", message }`.**
   - **`run(env) → { drafted, sent, errors: string[] }`.**
-  - **`install(env) → void`.** It calls `sheet.setup(CLIENT_HEADERS, defaultSettingsRows(now))`, keeping existing values; sets `INSTALLED_AT` if it's unset; calls `gmail.ensureLabels(Object.values(LABELS))` and `triggers.reset()`; and writes "Last error" = `"Add ANTHROPIC_API_KEY in Project Settings → Script Properties"` when `aiReplies` is on and the key is missing.
+  - **`install(env) → void`.** It calls `sheet.setup(CLIENT_HEADERS, defaultSettingsRows(now))`, keeping existing values; calls `gmail.ensureLabels(Object.values(LABELS))` and `triggers.reset()`; and writes "Last error" = `"Add ANTHROPIC_API_KEY in Project Settings → Script Properties"` when `aiReplies` is on and the key is missing.
   - **`loadSiteConfig(env, now) → site`.** It refetches `SITE_CONFIG_URL` when the cache is more than 6 hours old (`props CONFIG_FETCHED_AT`), and falls back to `sheet.readConfigCache()`. If there's no copy at all, it throws `"Can't read the site settings at <url>"`.
+
+**`receive` order** (it ignores the kill switch, so no request is lost):
+1. `JSON.parse`. A failure gives `{success:"false", message:"Bad request"}`.
+2. `checkRequest`. A failure is logged and gives `"Bad request"`. Spam gives `{success:"true"}`, with nothing sent.
+3. Load `site`.
+4. **Request limits:** read the counts for `rateLimitKeys`. Over the limit, log it and give `{success:"false", message:"Too many requests. Please email us."}`. Otherwise put count + 1 with a 3600-second lifetime.
+5. Call `confirmationEmail`.
+6. `gmail.send(notificationEmail(payload, site, problem))`. If this throws, give `success:"false"`.
+7. If there's a confirmation email, `gmail.send(confirmation)`. A failure is logged only.
+8. `incomingRecord` goes to `sheet.appendIncoming(JSON.stringify(record))`. A failure is logged only.
+9. Give `{success:"true"}`.
 
 **`run` order:**
 1. Read the settings; if the kill switch is off, write "Last run" and stop.
 2. Load `site`.
 3. Read the lead rows.
-4. **Ingest new leads.** For each lead email: if `parseLeadEmail` gives `null`, skip it unlabelled. If the email is older than `INSTALLED_AT`, or its ref already exists, `markSeen` and skip it. Otherwise add the lead and `markSeen`.
-5. **Gather.** Read calendar events (2 days ago to 90 days ahead), client messages (last 3 days), and draft and sent dates for leads with pending drafts.
+4. **Ingest:** for each `readIncoming()` record, add `leadFromIncoming(record)` unless its ref already exists. After the rows are written, `removeIncoming(n)`.
+5. **Gather:** read calendar events (2 days ago to 90 days ahead), client messages (last 3 days), and draft and sent dates for leads with pending drafts.
 6. Call `planRun`.
 7. **Do each `todo` item, each in its own try/catch:**
-   - For `welcome`, `requestAck` and `quoteReply`: re-read the source email's fields and, when `site.automation.aiReplies` is on, call Claude.
+   - For `welcome`, `requestAck` and `quoteReply`: read the fields with `parseRequestTable(gmail.getMessageHtml(lead.sourceMessageId))` and, when `site.automation.aiReplies` is on, call Claude.
    - If `needsMann` is true, set `needsYou = reason` and force a draft.
    - If Claude fails or the check fails, set the paragraph to `""`, `needsYou = "Couldn't write the personal paragraph: " + error`, and force a draft.
    - If `aiReplies` is off and `hasNotes`, set `needsYou = "Client wrote notes: add a line before sending"`.
@@ -716,20 +825,36 @@ Expected: PASS.
 
 - [ ] **Step 1: Write the failing tests**
 
-`fake-env.mjs` exports `makeFakeEnv({ now, leadEmails, events, messages, settingsRows, claude })`. It returns `{ env, outbox: { drafts: [], sent: [] }, sheet, claudeCalls: [] }`. It serves `SITE_CONFIG_URL` with `buildSiteConfig(C)` and answers Anthropic calls with `claude(payload)`.
+`fake-env.mjs` exports `makeFakeEnv({ now, events, messages, settingsRows, claude })`. It returns `{ env, outbox: { drafts: [], sent: [] }, sheet, cache, claudeCalls: [] }`. `gmail.send` stores the email and its HTML, so `getMessageHtml` finds it. The fake serves `SITE_CONFIG_URL` with `buildSiteConfig(C)`, and answers Anthropic calls with `claude(payload)`.
 
-- **A new booking plus its event, before auto-send starts:**
+**Receiving requests:**
+- **The booking request:**
+  - `{success:"true"}`;
+  - two sent emails: one to `nestnrestcleaning@gmail.com` with `replyTo: "priya@example.com"`, and the confirmation to `priya@example.com`;
+  - one Incoming record, whose JSON contains neither `Code 4321` nor `12 Example St`.
+- **The gift request:** two sent emails, and no Incoming record.
+- **The review request:** one sent email, to Mann.
+- **Spam:** with `_honey: "x"`, the answer is `{success:"true"}` and nothing is sent.
+- **Limits:** the 4th booking request from the same email in one hour gives `success:"false"`, and no more emails are sent for it (Review Focus 3).
+- **Link in the name:** only Mann's email is sent, and its text starts with `"Confirmation not sent"` (Review Focus 3).
+- **`gmail.send` throws on Mann's email:** `success:"false"`.
+- **Kill switch off:** requests are still received and emailed.
+
+**Runs:**
+- **After a received booking plus its Cal.com event, before auto-send starts:**
   - one draft goes to `priya@example.com`, with subject `"Your deep cleaning on Monday, November 2"`, labelled `Nest auto/draft ready`;
   - the row's Status is `"Draft ready"`;
-  - there was 1 Claude call, and its payload has no `priya@example.com`.
+  - the Incoming tab is empty;
+  - there was 1 Claude call, whose payload has `"We have a cat"` but no `priya@example.com`.
 - **The same run again:** no new drafts, and no second Claude call.
 - **After `autoSendFrom`:** the email is in `outbox.sent`, and the Status is `"Booked"`.
 - **Claude answers `needs_mann:true`:** the email is a draft even after `autoSendFrom`, and "Needs you" shows the reason.
 - **Claude returns HTTP 500:** a draft goes out without a paragraph, and "Needs you" starts `"Couldn't write the personal paragraph"`.
 - **"Automation on" is false:** no drafts, no sends, and "Last run" is still written.
-- **A lead email dated before `INSTALLED_AT`:** it's marked seen, no row is added, and nothing is drafted (Review Focus 3).
 - **Site config:** when the fetch returns 404 but the cache has a copy, the run still works. With no cache, "Last error" contains `"Can't read the site settings"`.
-- **`install` twice:** one 5-minute timer, and the existing settings values are kept.
+
+**Install:**
+- **Twice:** one 5-minute timer, and the existing settings values are kept.
 
 - [ ] **Step 2: Run to verify it fails**
 
@@ -743,9 +868,9 @@ Expected: FAIL.
 Run: `node --test automation/test/*.test.mjs`
 Expected: all PASS.
 
-- [ ] **Step 5: Commit** with the message "Run the email automation end to end against a stand-in for Google".
+- [ ] **Step 5: Commit** with the message "Receive form requests and run the email automation end to end against a stand-in for Google".
 
-### Task 9: The Google adapter and the single pasteable file
+### Task 9: The Google adapter, the web app and the single pasteable file
 
 **Files:**
 - Create: `automation/src/google.js`
@@ -753,26 +878,26 @@ Expected: all PASS.
 - Test: `automation/test/build.test.mjs` (extend)
 
 **Interfaces:**
-- Consumes: the `env` interface and `run`/`install` (Task 8).
-- Produces the Apps Script entry points: `onOpen()`, `runAutomation()`, `installAutomation()`, `pauseAutomation()`. Also `makeGoogleEnv() → env`.
+- Consumes: the `env` interface and `receive`/`run`/`install` (Task 8).
+- Produces the Apps Script entry points: `doPost(e)`, `doGet()`, `onOpen()`, `runAutomation()`, `installAutomation()`, `pauseAutomation()`. Also `makeGoogleEnv() → env`.
 
 **`makeGoogleEnv()` maps each part as follows:**
 
-**Time and settings:**
+**Time, settings and cache:**
 - `localParts` uses `Utilities.formatDate(date, "America/Toronto", "yyyy|M|d|H|m|u")`, with `weekday = u % 7`.
 - `props` is `PropertiesService.getScriptProperties()`.
+- `cache` is `CacheService.getScriptCache()`.
 - The Sheet comes from `SpreadsheetApp.openById(props SHEET_ID)`. `installAutomation` stores `SpreadsheetApp.getActive().getId()`.
-  - Tabs: `Clients`, `Settings`, `Log`, and a hidden `Config`.
+  - Tabs: `Clients`, `Settings`, `Log`, and the hidden `Incoming` (header row, then `[receivedAt, json]` rows; `removeIncoming(n)` deletes rows 2 to n+1) and `Config`.
   - "Opted out" is a checkbox column.
   - "Data" is a hidden column.
   - "Auto-send starts" is formatted as plain text.
 
 **Gmail:**
-- `findLeadEmails` uses `GmailApp.search('from:formsubmit subject:("New booking" OR "New quote request") newer_than:7d -label:"Nest auto/seen"')`.
-- `findClientMessages(since)` uses `GmailApp.search("in:inbox newer_than:3d -from:me -from:formsubmit -from:cal.com")`, keeping messages dated after `since`.
+- `send` calls `GmailApp.createDraft(to, subject, text, { htmlBody, name, replyTo })` and then `.send()`, and returns the message's id, thread id and date.
+- `createDraft` does the same without sending, and returns `draft.getId()` and the thread id.
+- `findClientMessages(since)` uses `GmailApp.search("in:inbox newer_than:3d -from:me")`, keeping messages dated after `since`.
 - `sentDatesInThread` keeps messages whose `getFrom()` contains the business email.
-- `createDraft` uses `GmailApp.createDraft(to, subject, text, { htmlBody, name: site.automation.senderName })` and returns the ids from `draft.getId()` and `draft.getMessage().getThread().getId()`.
-- `send` creates a draft and calls `.send()`, returning the message's thread id and date.
 
 **Calendar, web and timers:**
 - `calendar.events` uses `CalendarApp.getDefaultCalendar().getEvents(from, to)`, with the guests' emails.
@@ -780,7 +905,9 @@ Expected: all PASS.
 - `triggers.reset` deletes the project's existing triggers for `runAutomation`, then adds `ScriptApp.newTrigger("runAutomation").timeBased().everyMinutes(5).create()`.
 
 **Entry points:**
-- `runAutomation` takes `LockService.getScriptLock().tryLock(10000)`. Without the lock it returns.
+- `doPost(e)` returns `ContentService.createTextOutput(JSON.stringify(receive(makeGoogleEnv(), e && e.postData ? e.postData.contents : ""))).setMimeType(ContentService.MimeType.JSON)`.
+- `doGet()` returns the text `"Nest & Rest Cleaning forms: working."`. Mann opens the web address to check the deployment.
+- `runAutomation` takes `LockService.getScriptLock().tryLock(10000)`. Without the lock it returns. `receive` takes no lock.
 - `onOpen` adds the **Nest & Rest** menu: **Run now** (`runAutomation`), **Pause everything** (`pauseAutomation`, which sets "Automation on" to FALSE) and **Install / repair** (`installAutomation`).
 
 **The bundle** is the header comment (`/* Nest & Rest Cleaning: email automation. Generated by tools/build.mjs from automation/src; edit those files, not this one. Setup: automation/README.md */`), then `var SITE_CONFIG_URL = "<siteUrl>/automation/site-config.json";`, then every `SRC_FILES` entry in order.
@@ -789,9 +916,9 @@ Expected: all PASS.
 
 After `buildAutomation(C, tmpDir)`:
 - `new vm.Script(bundle)` doesn't throw;
-- the bundle contains `function runAutomation(`, `function onOpen(` and `var SITE_CONFIG_URL = "https://nestnrestcleaning.com/automation/site-config.json";`;
+- the bundle contains `function doPost(`, `function runAutomation(`, `function onOpen(` and `var SITE_CONFIG_URL = "https://nestnrestcleaning.com/automation/site-config.json";`;
 - the bundle contains no `import `, `export `, `require(` or `Intl.`;
-- running the bundle in a fresh `vm` context leaves `typeof run === "function"` and `typeof makeClock === "function"` (Apps Script globals are only touched inside functions).
+- running the bundle in a fresh `vm` context leaves `typeof receive === "function"` and `typeof makeClock === "function"` (Apps Script globals are only touched inside functions).
 
 - [ ] **Step 2: Run to verify it fails**
 
@@ -807,37 +934,128 @@ Expected: all PASS.
 
 - [ ] **Step 5: Commit** with the message "Connect the email automation to Gmail, Calendar and Sheets as one pasteable script". Include `automation/nest-rest-automation.gs`.
 
-### Task 10: Setup guide, then a live check with Mann
+### Task 10: The website sends its forms to the Google script
+
+**Files:**
+- Modify: `js/site.js`
+  - `send()`, about line 870;
+  - the five `send(...)` calls at lines 299, 633, 908, 975 and 1019.
+- Modify: `tools/build.mjs`
+  - the privacy notes at lines 585, 929 and 1504;
+  - the "sharing" list, about lines 1803-1806.
+- Test: `automation/test/site-forms.test.mjs`
+
+**Interfaces:**
+- Consumes: the request shape that Task 3's `checkRequest` and `confirmationEmail` expect (the fixtures in `automation/test/fixtures/requests.mjs`).
+- Produces: with `C.delivery.provider === "google"`, `send(data)` POSTs `JSON.stringify(body)` to `C.delivery.endpoint` with the header `Content-Type: text/plain;charset=utf-8`.
+  - `text/plain` keeps the browser from making a CORS preflight, which Apps Script can't answer.
+  - `body` is `data` without `undefined` values and without `_autoresponse`, `_template` and `_captcha`.
+  - With any other provider, `body` is `data` without `_form` and `_confirm`, sent with the current JSON headers. FormSubmit keeps working exactly as today.
+  - The response handling is unchanged: `success: "false"` throws, and the form shows its "email us instead" fallback.
+
+**The five calls each add `_form`:**
+- **textPrice:** `_form: "textPrice"`.
+- **Booking:** `_form: "booking"`, plus `_confirm: email ? { tpl: CAL ? "bookingCal" : "booking", vals: { name: firstName, ref: r, summary: plain, items: itemsText(q) } } : undefined`.
+- **Quote:** `_form: "quote"`, plus `_confirm: { tpl: "quote", vals: { name: <first name>, reply: form.getAttribute("data-reply-time") } }` when there's an email.
+- **Gift:** `_form: "gift"`, plus `_confirm: { tpl: "gift", vals: { name: <first name>, ref: r } }`.
+- **Review:** `_form: "review"`.
+
+**In `tools/build.mjs`, define `const GFORMS = (C.delivery || {}).provider === "google";`. When it's true:**
+- the quote and gift form notes read: `Your request is sent to our Google account (our email and a private spreadsheet), which may store data outside Canada.`
+- the booking note reads: `Your request is sent to our Google account (our email and a private spreadsheet)` + (`CAL` ? `, and the time you pick is booked on Cal.com, our booking calendar. Both` : `, which`) + ` may store data outside Canada.`
+- the FormSubmit `<li>` is left out;
+- the Google `<li>` reads `<li><strong>Google</strong> provides our email, calendar and spreadsheet services, and runs the small program that receives this website's forms and sends your confirmation emails.</li>`.
+
+When it's false, the output stays exactly as it is.
+
+- [ ] **Step 1: Write the failing browser test**
+
+The test skips itself if `createRequire(import.meta.url)("playwright")` throws. It serves the repo root with a small Node static server on `127.0.0.1` (a directory path serves its `index.html`).
+
+**Google mode:** `page.route("**/js/config.js*")` fetches the real file and appends `window.NR_CONFIG.delivery = { provider: "google", endpoint: "https://script.google.com/macros/s/TEST/exec" };`. `page.route("https://script.google.com/**")` records the request, then answers 200 with `{"success":"true"}` and `access-control-allow-origin: *`.
+
+- **Quote form** (`/services/residence-care/`):
+  - fill `#q-name` "Lee Chen", `#q-phone` "647 555 0199", `#q-email` "lee@example.com", `#q-postal` "M2N 1A1" and `#q-notes` "Marble floors", then submit;
+  - the request's `content-type` starts with `text/plain`;
+  - the body has `_form: "quote"`, `_confirm.tpl: "quote"`, `_confirm.vals.name: "Lee"`, `_confirm.vals.reply: "within one business day"`, `Name: "Lee Chen"`, `email: "lee@example.com"`, `Service: "Residence Care"` and `Notes: "Marble floors"`;
+  - the body has no `_autoresponse`, `_template` or `_captcha`;
+  - `[data-quote-done]` becomes visible.
+- **Booking form** (`/book/`):
+  - complete the steps using the form's own ids (`#f-name`, `#f-phone`, `#f-email`, `#f-address`, `#f-postal` "M1B 2K3", `#f-notes`) and its step buttons;
+  - `_form: "booking"` and `_confirm.tpl: "booking"`;
+  - `_confirm.vals.ref === body.Reference`, and it matches `/^NR-[A-Z2-9]{4}$/`;
+  - `_confirm.vals.items` is non-empty;
+  - `Notes` equals the typed notes.
+
+**FormSubmit mode:** without the config override, route `https://formsubmit.co/**`. On the quote form submission:
+- the `content-type` is `application/json`;
+- the body has `_autoresponse`;
+- the body has no `_form` or `_confirm`.
+
+- [ ] **Step 2: Run to verify it fails**
+
+Run: `node tools/build.mjs && node --test automation/test/site-forms.test.mjs`
+Expected: FAIL. `_form` is missing, and the content type is JSON.
+
+- [ ] **Step 3: Implement the `js/site.js` and `tools/build.mjs` changes.**
+
+- [ ] **Step 4: Run the suite and check the build output is unchanged in FormSubmit mode**
+
+Run: `node tools/build.mjs && node --test automation/test/*.test.mjs && grep -c "FormSubmit" privacy/index.html book/index.html`
+Expected: all PASS; both files still mention FormSubmit, because the provider is still `formsubmit`.
+
+- [ ] **Step 5: Commit** with the message "Let the website's forms send to the Google script, keeping FormSubmit as the fallback".
+
+### Task 11: Setup guide, the switch-over and a live check with Mann
 
 **Files:**
 - Create: `automation/README.md`
-- Modify: `README.md` (add a short "Personal email automation" section after "Bookings, quotes, gift cards and reviews", linking to `automation/README.md`)
+- Modify: `README.md`
+  - add a short "Personal email automation" section after "Bookings, quotes, gift cards and reviews", linking to `automation/README.md`;
+  - change that section's FormSubmit wording to describe both providers.
 
 - [ ] **Step 1: Write `automation/README.md`**
 
-Use plain language and number every step. It covers:
-1. Switch on Cal.com (point to the root README) and create the "Free walkthrough" event. Paste its path into `automation.walkthroughLink`, run `node tools/build.mjs`, and publish.
-2. Get the Claude API key: create an account at console.anthropic.com with any email, add $5 of credit, set a $10 monthly limit, and create the key.
-3. Create the "Nest & Rest clients" Sheet, open Extensions → Apps Script, paste `automation/nest-rest-automation.gs`, and add `ANTHROPIC_API_KEY` under Script Properties.
-4. Reload the Sheet, choose **Nest & Rest → Install / repair**, and approve the permission screens.
-5. Make a test booking and a test quote with a personal email, then check the Sheet rows and the drafts.
+Use plain language and number every step, following the spec's "Setup" list:
+1. Cal.com and the walkthrough event.
+2. The Claude API key, with $5 of credit and a $10 monthly limit.
+3. Publish.
+4. The Sheet, the pasted script and Script Properties.
+5. Install.
+6. Deploy the web app, then open its address to see "Nest & Rest Cleaning forms: working."
+7. Switch `delivery.provider` and `delivery.endpoint`, then build and publish.
+8. Test requests.
 
 It also has:
 - **"How it works day to day":** drafts, the Needs you column, Opted out, and Settings.
-- **"Changing the wording":** edit `js/config.js` `automation`, then build and publish.
-- **"Updating the script":** after code changes, paste the new `.gs` over the old one.
-- **"Stopping it":** use **Pause everything**.
+- **"Changing the wording":** edit `js/config.js` (`automation` and `emails`), then build and publish.
+- **"Updating the script":** paste it, then Deploy → Manage deployments → Edit → New version.
+- **"Stopping it":** **Pause everything** stops the personal emails, while requests and confirmations keep working. To stop using the script for forms, set `delivery.provider` back to `"formsubmit"`.
 
-- [ ] **Step 2: Verify the build is clean and the suite passes**
+- [ ] **Step 2: Verify the suite and build, then commit and push**
 
 Run: `node tools/build.mjs && node --test automation/test/*.test.mjs && git status --short`
-Expected: everything PASSES. The build output shows changes only to files this plan touched.
+Expected: everything PASSES. Only this plan's files have changed.
 
-- [ ] **Step 3: Commit and push** with the message "Add the setup guide for the personal email automation", using `git push -u origin claude/awesome-gates-i5p06z`.
+Commit with the message "Add the setup guide for the personal email automation", then run `git push -u origin claude/awesome-gates-i5p06z`.
 
-- [ ] **Step 4: The live check, with Mann (after the site is published)**
+- [ ] **Step 3: The switch-over, after Mann sends the web app URL (setup step 6)**
 
-Mann follows the guide. Then:
-- **One test booking:** a row appears with the correct ref, service, name and area, and no notes. When the time is picked on Cal.com, the row gets the booked time; this proves the calendar event carries the `NR-` ref. A "Personal note" draft appears, with a sensible paragraph.
-- **One test quote:** a "Quote reply" draft appears.
-- **If a row's fields are blank:** ask Mann for that FormSubmit email's "Show original" HTML (Gmail ⋮ → Show original), with the personal details replaced. Add it as `automation/test/fixtures/real-booking.html`, make `parse.test.mjs` pass on it, rebuild, and have Mann paste the new script.
+Set `delivery: { provider: "google", endpoint: "<URL>" }` in `js/config.js`, and run `node tools/build.mjs`.
+
+Check: `grep -c "FormSubmit" privacy/index.html book/index.html` prints `0` for both, and `grep -c "small program that receives" privacy/index.html` prints `1`.
+
+Commit with the message "Send the website's forms to the Google script", then push.
+
+- [ ] **Step 4: The live check, with Mann (after publishing)**
+
+On the live site, using a personal email address:
+- **A test booking:**
+  - Mann's new-request email arrives;
+  - the confirmation arrives from nestnrestcleaning@gmail.com;
+  - within 5 minutes, a Clients row appears with the correct ref, service, name and area, and no notes.
+- **Picking the time on Cal.com:**
+  - the row gets the booked time, which proves the calendar event carries the `NR-` ref;
+  - a "Personal note" draft appears, with a sensible paragraph.
+- **A test quote and a gift card request:** the emails match.
+- **If the site shows "email us instead" for a real request:** read the browser console. If the cause is CORS, set `delivery.provider` back to `"formsubmit"` straight away, and fix it before trying again.
