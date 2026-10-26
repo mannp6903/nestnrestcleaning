@@ -210,3 +210,67 @@ test("a forged request can't make the business email a stranger", () => {
   run(env);
   assert.ok([...outbox.sent, ...outbox.drafts].every((e) => e.to !== "victim@example.org"));
 });
+
+test("a daily cap stops a flood before it uses up Gmail's allowance", () => {
+  const { env, outbox } = installed();
+  env.props.set("RL_DAY", "20261026:60");
+  const res = receive(env, body(R.booking));
+  assert.equal(res.success, "false");
+  assert.match(res.message, /Too many requests/);
+  assert.equal(outbox.sent.length, 0);
+  env.props.set("RL_DAY", "20261025:60");
+  assert.equal(receive(env, body(R.booking)).success, "true");
+  assert.equal(env.props.get("RL_DAY"), "20261026:1");
+});
+
+test("when Gmail's allowance runs low, Mann still hears about requests", () => {
+  const { env, outbox, state } = installed();
+  state.quota = 10;
+  assert.equal(receive(env, body(R.booking)).success, "true");
+  assert.equal(outbox.sent.length, 1);
+  assert.match(outbox.sent[0].text, /^Confirmation not sent: Gmail's daily email limit is nearly used up/);
+  state.quota = 1;
+  assert.equal(receive(env, body(R.quote)).success, "false");
+});
+
+test("when Gmail's allowance runs low, automatic emails wait as drafts", () => {
+  const { env, outbox, state } = booked();
+  env.sheet.writeSettingValue("Auto-send starts", "2026-10-26");
+  state.quota = 10;
+  const sentBefore = outbox.sent.length;
+  run(env);
+  assert.equal(outbox.sent.length, sentBefore);
+  assert.equal(outbox.drafts.length, 1);
+});
+
+test("an unreadable row in Clients doesn't stop the run", () => {
+  const { env, outbox, state } = booked();
+  const junk = Array(17).fill("");
+  junk[0] = "Mann's note: call Priya back";
+  junk[16] = "not json";
+  state.leadRows = [junk, Array(17).fill("")];
+  run(env);
+  assert.equal(outbox.drafts.length, 1);
+  assert.ok(state.leadRows.some((r) => r[0] === "Mann's note: call Priya back" && r[16] === "not json"));
+  assert.match(String(setting(state, "Last error")), /Couldn't read row 2/);
+});
+
+test("replies are only searched for the clients being emailed", () => {
+  const { env, state } = booked();
+  run(env);
+  assert.deepEqual(state.searchedFor, ["priya@example.com"]);
+  state.leadRows[0][11] = true;
+  state.searchedFor = null;
+  run(env);
+  assert.equal(state.searchedFor, null);
+});
+
+test("an email that keeps failing is given up on after three tries", () => {
+  const { env, state, claudeCalls } = booked();
+  state.failDraft = true;
+  for (let i = 0; i < 5; i++) run(env);
+  assert.equal(claudeCalls.length, 3);
+  const lead = rowToLead(state.leadRows[0]);
+  assert.equal(lead.emails.welcome.state, "skipped");
+  assert.match(lead.needsYou, /^Couldn't send Personal note: Drafts are down/);
+});

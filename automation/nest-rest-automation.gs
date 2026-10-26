@@ -43,7 +43,7 @@ function makeClock(localParts) {
    wording; a request only fills in short, link-free values. */
 
 var INTAKE_FORMS = ["booking", "quote", "gift", "review", "textPrice"];
-var RATE_LIMITS = { all: 30, perEmail: 3 };
+var RATE_LIMITS = { all: 30, perEmail: 3, perDay: 60 };
 var INTAKE_MAX = { fields: 40, value: 2000, subject: 200 };
 // The confirmation templates each form may use, and the longest value each may fill in.
 var CONFIRM_TEMPLATES = { booking: ["booking", "bookingCal"], quote: ["quote"], gift: ["gift"] };
@@ -129,7 +129,7 @@ function confirmationEmail(payload, site) {
   for (var k in CONFIRM_MAX) {
     var v = c.vals[k] == null ? "" : String(c.vals[k]).trim();
     if (v.length > CONFIRM_MAX[k]) return fail("the " + k + " was too long.");
-    if (/https?:|www\.|[<>]/i.test(v)) return fail("the " + k + " contained a link or markup.");
+    if (looksLikeLink(v) || PHONE_PATTERN.test(v)) return fail("the " + k + " contained a link, markup or a phone number.");
     vals[k] = v;
   }
   var tpl = site.emails[c.tpl];
@@ -156,12 +156,34 @@ function confirmationEmail(payload, site) {
   };
 }
 
+// Fields from a request that end up in personal emails. Each must be short and link-free, and the service one of ours,
+// so the public web address can't be used to send a stranger someone else's words.
+var LEAD_TEXT_FIELDS = ["Name", "Referred by", "Date", "Arrival window"];
+var LEAD_TEXT_MAX = 80;
+
+function leadProblem(payload, site) {
+  if (payload._form !== "booking" && payload._form !== "quote") return "";
+  var f = requestFields(payload), why = "";
+  var known = site.services.map(function (s) { return s.name; })
+    .concat(site.quoteServices.map(function (q) { return q.name; }), Object.keys(site.automation.quoteForms).filter(function (k) { return k !== "default"; }));
+  if (known.indexOf(f.Service) === -1) why = "the service wasn't one of ours";
+  LEAD_TEXT_FIELDS.forEach(function (k) {
+    var v = f[k] || "";
+    if (why) return;
+    if (v.length > LEAD_TEXT_MAX) why = "the " + k.toLowerCase() + " was too long";
+    else if (looksLikeLink(v)) why = "the " + k.toLowerCase() + " contained a link or markup";
+  });
+  return why ? "Not added to the client list: " + why + "." : "";
+}
+
 // Bookings and quotes wait in the Incoming tab for the next run. Notes and the address stay in Mann's email only.
+// Personal emails only ever go to the checked reply-to address, which the hourly limits also count.
 function incomingRecord(payload, receivedAt, notice) {
   if (payload._form !== "booking" && payload._form !== "quote") return null;
   var fields = requestFields(payload), hasNotes = notesFrom(fields) !== "";
   delete fields.Notes;
   delete fields.Address;
+  fields.email = replyToOf(payload);
   return { receivedAt: new Date(receivedAt).toISOString(), form: payload._form, subject: payload._subject.trim(), fields: fields, hasNotes: hasNotes, messageId: notice.messageId, threadId: notice.threadId };
 }
 
@@ -222,6 +244,9 @@ function leadFromIncoming(record, clock) {
    promises come only from the fixed wording, so a paragraph that mentions any of them is thrown away. */
 
 var GUARD_MAX_WORDS = 90;
+// Anything a mail app might turn into a link: web addresses, bare domains like bit.ly/x, and markup.
+var LINK_PATTERN = /https?:|www\.|[<>]|\b[a-z0-9][a-z0-9-]*(\.[a-z0-9-]+)*\.[a-z]{2,}\b/i;
+var PHONE_PATTERN = /\d{3}[\s.)-]*\d{3}[\s.-]?\d{4}/;
 var GUARD_RULES = [
   [/\$/, "a price ($)"],
   [/%/, "a percent"],
@@ -229,10 +254,12 @@ var GUARD_RULES = [
   [/\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)s?\b/i, "a day of the week"],
   [/\b(january|february|march|april|june|july|august|september|october|november|december)\b|\bmay\s+\d/i, "a month"],
   [/[^\s@]+@[^\s@]+\.[^\s@]+/, "an email address"],
-  [/https?:\/\/|www\.|\b[\w-]+\.(com|ca|co|org|net|io)\b/i, "a link"],
-  [/\d{3}[\s.)-]*\d{3}[\s.-]?\d{4}/, "a phone number"],
+  [LINK_PATTERN, "a link"],
+  [PHONE_PATTERN, "a phone number"],
   [/\b(discount|coupon|promo|credit|refund|guarantee)/i, "a promise word"]
 ];
+
+function looksLikeLink(text) { return LINK_PATTERN.test(String(text || "")); }
 
 function checkParagraph(text) {
   var t = String(text || "").trim(), reasons = [];
@@ -480,6 +507,9 @@ function planEmailOf(from) {
 
 function sameEmail(a, b) { return !!a && !!b && a.toLowerCase() === b.toLowerCase(); }
 function byStart(a, b) { return new Date(a.start) - new Date(b.start); }
+// Cal.com's "Free walkthrough" events are visits for a quote, not cleans: no reminder or review, but they count as booked.
+function isWalkthrough(ev) { return /walkthrough/i.test(ev.title || ""); }
+function hasGuest(ev, email) { return (ev.guests || []).some(function (g) { return sameEmail(String(g), email); }); }
 
 // The moment that is `days` calendar days after `date`'s Toronto day, at `hour` o'clock Toronto time.
 function dayOffsetAt(clock, date, days, hour) {
@@ -490,6 +520,7 @@ function dayOffsetAt(clock, date, days, hour) {
 function assignEvents(leads, events) {
   var out = {}, bookings = leads.filter(function (l) { return l.kind === "booking" && l.ref; });
   events.forEach(function (ev) {
+    if (isWalkthrough(ev)) return;
     var desc = ev.description || "";
     var owner = bookings.filter(function (l) { return desc.indexOf(l.ref) > -1; })[0];
     if (!owner) {
@@ -503,10 +534,17 @@ function assignEvents(leads, events) {
   return out;
 }
 
-function matchEvents(leads, events, now) {
+// The clean a booking request led to: the event carrying its reference or, when the client trimmed Cal.com's notes,
+// an event for their email address that was made after the request (not an older clean already on the calendar).
+function matchEvents(leads, events, now, assigned) {
   leads.forEach(function (l) {
     if (l.kind !== "booking" || !l.ref) return;
-    var ev = events.filter(function (e) { return (e.description || "").indexOf(l.ref) > -1; }).sort(byStart)[0];
+    var ev = events.filter(function (e) { return !isWalkthrough(e) && (e.description || "").indexOf(l.ref) > -1; }).sort(byStart)[0];
+    if (!ev) {
+      ev = ((assigned || {})[l.ref] || []).filter(function (e) {
+        return e.created && new Date(e.created) >= new Date(l.receivedAt).getTime() - 60000;
+      })[0];
+    }
     if (ev) {
       l.eventId = ev.id;
       l.eventStart = new Date(ev.start).toISOString();
@@ -590,17 +628,22 @@ function dueEmails(lead, ctx) {
       if (!has("requestAck")) out.push({ kind: "requestAck", key: "requestAck", event: null, at: now });
     } else if (lead.eventId) {
       if (new Date(lead.eventStart) > now && !has("welcome")) out.push({ kind: "welcome", key: "welcome", event: { id: lead.eventId, start: new Date(lead.eventStart) }, at: now });
+      var welcomeDue = out.length > 0;
     } else if (!has("welcome") && !has("pickTime") && !lead.clientRepliedAt) {
       var nudge = new Date(new Date(lead.receivedAt).getTime() + s.pickTimeHours * PLAN_HOUR), h = clock.local(nudge).hour;
       if (h >= 21) nudge = dayOffsetAt(clock, nudge, 1, 9);
       else if (h < 9) nudge = dayOffsetAt(clock, nudge, 0, 9);
       if (onTime(nudge)) out.push({ kind: "pickTime", key: "pickTime", event: null, at: nudge });
     }
-    var events = ctx.assigned[lead.ref] || [];
+    var events = ctx.assigned[lead.ref] || [], welcome = lead.emails.welcome;
     events.forEach(function (ev) {
       var start = new Date(ev.start), key = "reminder:" + ev.id + ":" + clock.dayKey(start);
       var at = dayOffsetAt(clock, start, -1, s.reminderHour);
-      if (!has(key) && now >= at && now < start) out.push({ kind: "reminder", key: key, event: ev, at: at });
+      // Once per clean, whichever of the client's requests it was sent under; and only on the day before ("See you tomorrow").
+      var sentBefore = ctx.leads.some(function (l) { return sameEmail(l.email, lead.email) && l.emails[key]; }) || has(key);
+      // Not straight after the personal note, which already gave the day and time.
+      var justNoted = ev.id === lead.eventId && (welcomeDue || (welcome && now - new Date(welcome.at) < 12 * PLAN_HOUR));
+      if (!sentBefore && !justNoted && now >= at && now < start && clock.dayKey(now) === clock.dayKey(at)) out.push({ kind: "reminder", key: key, event: ev, at: at });
     });
     var reviewed = ctx.leads.some(function (l) { return sameEmail(l.email, lead.email) && l.emails.review; });
     var first = events[0];
@@ -611,7 +654,8 @@ function dueEmails(lead, ctx) {
   } else {
     if (!has("quoteReply")) out.push({ kind: "quoteReply", key: "quoteReply", event: null, at: now });
     var reply = lead.emails.quoteReply;
-    var booked = ctx.leads.some(function (l) { return l.kind === "booking" && sameEmail(l.email, lead.email) && (l.eventId || (ctx.assigned[l.ref] || []).length); });
+    var booked = ctx.leads.some(function (l) { return l.kind === "booking" && sameEmail(l.email, lead.email) && (l.eventId || (ctx.assigned[l.ref] || []).length); }) ||
+      (ctx.events || []).some(function (e) { return hasGuest(e, lead.email); });
     if (reply && reply.state === "sent" && !has("quoteNudge") && !lead.clientRepliedAt && !booked) {
       var nudgeAt = dayOffsetAt(clock, new Date(reply.at), s.quoteNudgeDays, s.quoteNudgeHour);
       if (onTime(nudgeAt)) out.push({ kind: "quoteNudge", key: "quoteNudge", event: null, at: nudgeAt });
@@ -637,14 +681,14 @@ function planRun(input) {
   var leads = input.leads, now = input.now, settings = input.settings;
   if (!settings.on) return { todo: [], needsYouThreads: [] };
   syncDrafts(leads, input.existingDraftIds, input.sentByThread);
-  matchEvents(leads, input.events, now);
-  var threads = applyMessages(leads, input.messages);
   var assigned = assignEvents(leads, input.events), todo = [], reviewing = {};
+  matchEvents(leads, input.events, now, assigned);
+  var threads = applyMessages(leads, input.messages);
   leads.forEach(function (l) {
     if (l.optedOut || !l.email) return;
     var events = assigned[l.ref] || [];
     if (!isActiveLead(l, now) && !events.length) return;
-    dueEmails(l, { leads: leads, assigned: assigned, settings: settings, now: now, clock: input.clock }).forEach(function (d) {
+    dueEmails(l, { leads: leads, assigned: assigned, events: input.events, settings: settings, now: now, clock: input.clock }).forEach(function (d) {
       if (d.kind === "review") {
         if (reviewing[l.email.toLowerCase()]) return;
         reviewing[l.email.toLowerCase()] = true;
@@ -664,6 +708,10 @@ var CONFIG_MAX_AGE = 6 * 3600000;
 var MAIN_DAY = 86400000;
 // Personal emails that carry Claude's paragraph.
 var PARAGRAPH_KINDS = ["welcome", "requestAck", "quoteReply"];
+// A free Gmail account sends to about 100 people a day. Below this many, confirmations stop and personal emails wait as drafts,
+// keeping the rest for Mann's new-request emails.
+var QUOTA_RESERVE = 15;
+var MAIN_RETRIES = 3;
 
 // The site's published settings, refreshed at most every 6 hours, with the last good copy kept in the Sheet.
 function loadSiteConfig(env, now) {
@@ -714,21 +762,31 @@ function receive(env, bodyText) {
     return answer({ success: "false", message: "Please email us" });
   }
   var keys = rateLimitKeys(payload, now), counts = keys.map(function (k) { return Number(env.cache.get(k) || 0); });
-  if (isOverLimit(counts)) {
-    note(ref, "Refused a " + payload._form + " request: too many in the last hour");
+  var day = clock.dayKey(now).replace(/-/g, ""), dayCount = String(env.props.get("RL_DAY") || "").split(":");
+  var today = dayCount[0] === day ? Number(dayCount[1]) || 0 : 0;
+  if (isOverLimit(counts) || today >= RATE_LIMITS.perDay) {
+    note(ref, "Refused a " + payload._form + " request: too many " + (today >= RATE_LIMITS.perDay ? "today" : "in the last hour"));
     return answer({ success: "false", message: "Too many requests. Please email us." });
   }
+  var left = env.gmail.remainingQuota();
+  if (left < 2) {
+    note(ref, "Refused a " + payload._form + " request: Gmail's daily email limit is used up");
+    return answer({ success: "false", message: "Please email us" });
+  }
   keys.forEach(function (k, i) { env.cache.put(k, String(counts[i] + 1), 3600); });
-  var conf = confirmationEmail(payload, site), sent;
+  env.props.set("RL_DAY", day + ":" + (today + 1));
+  var conf = confirmationEmail(payload, site), problem = leadProblem(payload, site), sent;
+  if (conf.email && left < QUOTA_RESERVE) conf = { email: null, problem: "Confirmation not sent: Gmail's daily email limit is nearly used up." };
   if (conf.problem) note(ref, conf.problem);
-  try { sent = env.gmail.send(notificationEmail(payload, site, conf.problem)); } catch (e) {
+  if (problem) note(ref, problem);
+  try { sent = env.gmail.send(notificationEmail(payload, site, [problem, conf.problem].filter(Boolean).join(" "))); } catch (e) {
     note(ref, "Couldn't email the new " + payload._form + " request: " + e.message);
     return answer({ success: "false", message: "Please email us" });
   }
   if (conf.email) {
     try { env.gmail.send(conf.email); } catch (e) { note(ref, "Couldn't send the client's confirmation: " + e.message); }
   }
-  var record = incomingRecord(payload, now, sent);
+  var record = problem ? null : incomingRecord(payload, now, sent);
   if (record) {
     try { env.sheet.appendIncoming(JSON.stringify(record)); } catch (e) { note(ref, "Couldn't queue the request for its personal email: " + e.message); }
   }
@@ -765,21 +823,35 @@ function run(env) {
   try { site = loadSiteConfig(env, now); } catch (e) { note("", e.message); return finish(); }
 
   // Take new leads from the Incoming tab. They're written to Clients before Incoming is cleared, so none is lost.
-  var leads = env.sheet.readLeadRows().map(rowToLead), incoming = env.sheet.readIncoming();
+  // A row the script can't read (a note typed into the tab, say) is left exactly as it is, and the rest carry on.
+  var leads = [], unreadable = [], incoming = env.sheet.readIncoming();
+  env.sheet.readLeadRows().forEach(function (row, i) {
+    if (row.every(function (v) { return v === "" || v === null || v === false; })) return;
+    try { leads.push(rowToLead(row)); } catch (e) {
+      unreadable.push(row);
+      note("", "Couldn't read row " + (i + 2) + " of Clients, so left it as it is");
+    }
+  });
   incoming.forEach(function (text) {
     try {
       var lead = leadFromIncoming(JSON.parse(text), clock);
       if (!leads.some(function (l) { return l.ref === lead.ref; })) leads.push(lead);
     } catch (e) { note("", "Couldn't read a queued request: " + e.message); }
   });
-  var save = function () { env.sheet.writeLeadRows(leads.map(function (l) { return leadToRow(l, now, clock); })); };
+  var save = function () { env.sheet.writeLeadRows(leads.map(function (l) { return leadToRow(l, now, clock); }).concat(unreadable)); };
   if (incoming.length) {
     save();
     env.sheet.removeIncoming(incoming.length);
   }
 
   var events = env.calendar.events(new Date(now.getTime() - 2 * MAIN_DAY), new Date(now.getTime() + 90 * MAIN_DAY));
-  var messages = env.gmail.findClientMessages(new Date(now.getTime() - 3 * MAIN_DAY));
+  // Replies and opt-outs only matter from clients the automation might still email.
+  var watching = [];
+  leads.forEach(function (l) {
+    var e = (l.email || "").toLowerCase();
+    if (e && !l.optedOut && isActiveLead(l, now) && watching.indexOf(e) === -1) watching.push(e);
+  });
+  var messages = watching.length ? env.gmail.findClientMessages(new Date(now.getTime() - 3 * MAIN_DAY), watching) : [];
   var pending = [];
   leads.forEach(function (l) {
     Object.keys(l.emails).forEach(function (k) { if (l.emails[k].state === "draft") pending.push(l.emails[k]); });
@@ -806,6 +878,7 @@ function run(env) {
         if (lead.needsYou) mode = "draft";
       }
       var email = composeEmail(t.kind, lead, { site: site, clock: clock, event: t.event, paragraph: paragraph });
+      if (mode === "auto" && env.gmail.remainingQuota() < QUOTA_RESERVE) mode = "draft";
       if (mode === "auto") {
         var s = env.gmail.send(email);
         lead.emails[t.key] = { state: "sent", at: new Date(s.sentAt).toISOString(), draftId: "", threadId: s.threadId };
@@ -824,7 +897,13 @@ function run(env) {
     } catch (e) {
       lead.failures = (lead.failures || 0) + 1;
       note(lead.ref, "Couldn't do the " + label.toLowerCase() + ": " + e.message);
-      if (lead.failures >= 3) lead.needsYou = "Couldn't send " + label + ": " + e.message;
+      if (lead.failures >= MAIN_RETRIES) {
+        // Given up: no more tries (each one could call Claude again), and Mann is told.
+        lead.needsYou = "Couldn't send " + label + ": " + e.message;
+        lead.emails[t.key] = { state: "skipped", at: now.toISOString(), draftId: "", threadId: "" };
+        lead.failures = 0;
+        save();
+      }
     }
   });
   plan.needsYouThreads.forEach(function (th) {
@@ -877,6 +956,12 @@ function makeGoogleEnv() {
     if (email.replyTo) o.replyTo = email.replyTo;
     return o;
   }
+  // Checkboxes come from a validation rule: Range.insertCheckboxes() would also reset every box to unticked.
+  function checkbox() { return SpreadsheetApp.newDataValidation().requireCheckbox().build(); }
+  // A new tab has 1000 rows and getRange can't reach past the last one, so grow the tab first.
+  function ensureRows(sh, lastRow) {
+    if (lastRow > sh.getMaxRows()) sh.insertRowsAfter(sh.getMaxRows(), lastRow - sh.getMaxRows() + 100);
+  }
   function settingRow(sh, key) {
     var last = sh.getLastRow(), keys = last ? sh.getRange(1, 1, last, 1).getValues() : [];
     for (var i = 0; i < keys.length; i++) if (String(keys[i][0]).trim() === key) return i + 1;
@@ -911,8 +996,9 @@ function makeGoogleEnv() {
       writeLeadRows: function (rows) {
         var sh = tab(NR_CLIENTS), last = sh.getLastRow();
         if (rows.length) {
+          ensureRows(sh, rows.length + 1);
+          sh.getRange(2, CLIENT_HEADERS.indexOf("Opted out") + 1, rows.length, 1).setDataValidation(checkbox());
           sh.getRange(2, 1, rows.length, CLIENT_HEADERS.length).setValues(rows);
-          sh.getRange(2, CLIENT_HEADERS.indexOf("Opted out") + 1, rows.length, 1).insertCheckboxes();
         }
         if (last > rows.length + 1) sh.getRange(rows.length + 2, 1, last - rows.length - 1, CLIENT_HEADERS.length).clearContent();
       },
@@ -928,6 +1014,7 @@ function makeGoogleEnv() {
       appendLog: function (entries) {
         if (!entries.length) return;
         var sh = tab(NR_LOG);
+        ensureRows(sh, sh.getLastRow() + entries.length);
         sh.getRange(sh.getLastRow() + 1, 1, entries.length, 3).setValues(entries);
         if (sh.getLastRow() > NR_LOG_KEEP + 500) sh.deleteRows(2, sh.getLastRow() - 1 - NR_LOG_KEEP);
       },
@@ -944,8 +1031,11 @@ function makeGoogleEnv() {
         var clients = b.getSheetByName(NR_CLIENTS) || b.insertSheet(NR_CLIENTS, 0);
         clients.getRange(1, 1, 1, headers.length).setValues([headers]).setFontWeight("bold");
         clients.setFrozenRows(1);
-        // Plain text everywhere but the checkbox, so dates and links stay exactly as written.
-        clients.getRange(2, 1, clients.getMaxRows() - 1, headers.length).setNumberFormat("@");
+        // Plain text everywhere but the checkbox column, so dates and links stay exactly as written.
+        var box = headers.indexOf("Opted out") + 1, rest = clients.getMaxRows() - 1;
+        clients.getRange(2, 1, rest, box - 1).setNumberFormat("@");
+        clients.getRange(2, box + 1, rest, headers.length - box).setNumberFormat("@");
+        clients.getRange(2, box, rest, 1).setDataValidation(checkbox());
         clients.hideColumns(headers.indexOf("Data") + 1);
         var settings = b.getSheetByName(NR_SETTINGS) || b.insertSheet(NR_SETTINGS);
         settingsRows.forEach(function (r) {
@@ -953,8 +1043,8 @@ function makeGoogleEnv() {
           var row = settings.getLastRow() + 1, cell = settings.getRange(row, 2);
           settings.getRange(row, 1).setValue(r[0]).setFontWeight("bold");
           if (typeof r[1] === "string") cell.setNumberFormat("@");
+          if (typeof r[1] === "boolean") cell.setDataValidation(checkbox());
           cell.setValue(r[1]);
-          if (typeof r[1] === "boolean") cell.insertCheckboxes();
           if (r[1] === "Off" || r[1] === "Draft" || r[1] === "Auto") cell.setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(["Off", "Draft", "Auto"]).build());
         });
         settings.setColumnWidth(1, 300);
@@ -976,15 +1066,19 @@ function makeGoogleEnv() {
         return { draftId: d.getId(), threadId: d.getMessage().getThread().getId() };
       },
       getMessageHtml: function (id) { return GmailApp.getMessageById(id).getBody(); },
-      findClientMessages: function (since) {
+      // Only the given clients' messages, archived ones included, 20 addresses per search.
+      findClientMessages: function (since, emails) {
         var out = [];
-        GmailApp.search("in:inbox newer_than:3d -from:me", 0, 100).forEach(function (th) {
-          th.getMessages().forEach(function (m) {
-            if (m.getDate() > since && !m.isDraft() && !fromMe(m)) out.push({ from: m.getFrom(), date: m.getDate(), text: m.getPlainBody(), threadId: th.getId() });
+        for (var i = 0; i < emails.length; i += 20) {
+          GmailApp.search("newer_than:3d -from:me from:(" + emails.slice(i, i + 20).join(" OR ") + ")", 0, 100).forEach(function (th) {
+            th.getMessages().forEach(function (m) {
+              if (m.getDate() > since && !m.isDraft() && !fromMe(m)) out.push({ from: m.getFrom(), date: m.getDate(), text: m.getPlainBody(), threadId: th.getId() });
+            });
           });
-        });
+        }
         return out;
       },
+      remainingQuota: function () { return MailApp.getRemainingDailyQuota(); },
       existingDraftIds: function () { return GmailApp.getDrafts().map(function (d) { return d.getId(); }); },
       sentDatesInThread: function (threadId) {
         var th = GmailApp.getThreadById(threadId);
@@ -1005,7 +1099,10 @@ function makeGoogleEnv() {
     calendar: {
       events: function (from, to) {
         return CalendarApp.getDefaultCalendar().getEvents(from, to).map(function (e) {
-          return { id: e.getId(), start: e.getStartTime(), end: e.getEndTime(), description: e.getDescription() || "", guests: e.getGuestList().map(function (g) { return g.getEmail(); }) };
+          return {
+            id: e.getId(), title: e.getTitle() || "", start: e.getStartTime(), end: e.getEndTime(), created: e.getDateCreated(),
+            description: e.getDescription() || "", guests: e.getGuestList().map(function (g) { return g.getEmail(); })
+          };
         });
       }
     },

@@ -111,3 +111,18 @@ test("calendar events carry their title and when they were made", () => {
   assert.equal(e.created, made);
   assert.deepEqual(e.guests, ["priya@example.com"]);
 });
+
+test("reply search covers only the given clients, in all mail, a few at a time", () => {
+  const { env } = fakeGoogle();
+  const queries = [], mine = "nestnrestcleaning@gmail.com", since = new Date("2026-10-25T00:00:00Z");
+  const msg = (from, date) => ({ getFrom: () => from, getDate: () => new Date(date), isDraft: () => false, getPlainBody: () => "Thanks!" });
+  globalThis.GmailApp = { search: (q) => { queries.push(q); return q.includes("priya@example.com") ? [{ getId: () => "th1", getMessages: () => [msg("Priya <priya@example.com>", "2026-10-26T00:00:00Z"), msg(mine, "2026-10-26T01:00:00Z"), msg("Priya <priya@example.com>", "2026-10-24T00:00:00Z")] }] : []; } };
+  globalThis.MailApp = { getRemainingDailyQuota: () => 87 };
+  const emails = ["priya@example.com", ...Array.from({ length: 24 }, (_, i) => "c" + i + "@example.com")];
+  const found = env.gmail.findClientMessages(since, emails);
+  assert.equal(queries.length, 2);
+  assert.ok(queries.every((q) => q.startsWith("newer_than:3d -from:me from:(") && !q.includes("in:inbox")));
+  assert.ok(queries[0].includes("from:(priya@example.com OR c0@example.com"));
+  assert.deepEqual(found.map((m) => m.from), ["Priya <priya@example.com>"]);
+  assert.equal(env.gmail.remainingQuota(), 87);
+});

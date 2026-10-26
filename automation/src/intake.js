@@ -3,7 +3,7 @@
    wording; a request only fills in short, link-free values. */
 
 var INTAKE_FORMS = ["booking", "quote", "gift", "review", "textPrice"];
-var RATE_LIMITS = { all: 30, perEmail: 3 };
+var RATE_LIMITS = { all: 30, perEmail: 3, perDay: 60 };
 var INTAKE_MAX = { fields: 40, value: 2000, subject: 200 };
 // The confirmation templates each form may use, and the longest value each may fill in.
 var CONFIRM_TEMPLATES = { booking: ["booking", "bookingCal"], quote: ["quote"], gift: ["gift"] };

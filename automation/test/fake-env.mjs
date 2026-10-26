@@ -6,7 +6,8 @@ const okParagraph = () => ({ status: 200, body: JSON.stringify({ stop_reason: "e
 export function makeFakeEnv({ now, events = [], messages = [], claude = okParagraph } = {}) {
   const state = {
     now: new Date(now), props: {}, cache: {}, leadRows: [], settingsRows: null, log: [], configCache: null, configStatus: 200,
-    incoming: [], triggers: 0, labels: new Set(), labelled: [], html: {}, drafts: {}, sentInThread: {}, events, messages, failSend: null
+    incoming: [], triggers: 0, labels: new Set(), labelled: [], html: {}, drafts: {}, sentInThread: {}, events, messages, failSend: null,
+    failDraft: false, quota: 100, searchedFor: null
   };
   const outbox = { drafts: [], sent: [] }, claudeCalls = [];
   let seq = 0;
@@ -46,19 +47,26 @@ export function makeFakeEnv({ now, events = [], messages = [], claude = okParagr
     gmail: {
       send(email) {
         if (state.failSend && state.failSend(email)) throw new Error("Gmail is down");
+        state.quota--;
         const messageId = "m" + ++seq, threadId = "t" + seq;
         outbox.sent.push({ messageId, threadId, ...email });
         state.html[messageId] = email.html;
         return { messageId, threadId, sentAt: new Date(state.now) };
       },
       createDraft(email) {
+        if (state.failDraft) throw new Error("Drafts are down");
         const draftId = "d" + ++seq, threadId = "t" + seq;
         outbox.drafts.push({ draftId, threadId, ...email });
         state.drafts[draftId] = threadId;
         return { draftId, threadId };
       },
       getMessageHtml: (id) => { if (!(id in state.html)) throw new Error("No message " + id); return state.html[id]; },
-      findClientMessages: (since) => state.messages.filter((m) => m.date > since),
+      findClientMessages: (since, emails) => {
+        state.searchedFor = emails.slice();
+        const addr = (from) => (/<([^>]+)>/.exec(from) || [null, from])[1].trim().toLowerCase();
+        return state.messages.filter((m) => m.date > since && emails.includes(addr(m.from)));
+      },
+      remainingQuota: () => state.quota,
       existingDraftIds: () => Object.keys(state.drafts),
       sentDatesInThread: (t) => state.sentInThread[t] || [],
       label: (t, name) => { state.labelled.push([t, name]); },

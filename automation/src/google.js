@@ -138,15 +138,19 @@ function makeGoogleEnv() {
         return { draftId: d.getId(), threadId: d.getMessage().getThread().getId() };
       },
       getMessageHtml: function (id) { return GmailApp.getMessageById(id).getBody(); },
-      findClientMessages: function (since) {
+      // Only the given clients' messages, archived ones included, 20 addresses per search.
+      findClientMessages: function (since, emails) {
         var out = [];
-        GmailApp.search("in:inbox newer_than:3d -from:me", 0, 100).forEach(function (th) {
-          th.getMessages().forEach(function (m) {
-            if (m.getDate() > since && !m.isDraft() && !fromMe(m)) out.push({ from: m.getFrom(), date: m.getDate(), text: m.getPlainBody(), threadId: th.getId() });
+        for (var i = 0; i < emails.length; i += 20) {
+          GmailApp.search("newer_than:3d -from:me from:(" + emails.slice(i, i + 20).join(" OR ") + ")", 0, 100).forEach(function (th) {
+            th.getMessages().forEach(function (m) {
+              if (m.getDate() > since && !m.isDraft() && !fromMe(m)) out.push({ from: m.getFrom(), date: m.getDate(), text: m.getPlainBody(), threadId: th.getId() });
+            });
           });
-        });
+        }
         return out;
       },
+      remainingQuota: function () { return MailApp.getRemainingDailyQuota(); },
       existingDraftIds: function () { return GmailApp.getDrafts().map(function (d) { return d.getId(); }); },
       sentDatesInThread: function (threadId) {
         var th = GmailApp.getThreadById(threadId);

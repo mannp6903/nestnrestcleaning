@@ -6,6 +6,10 @@ var CONFIG_MAX_AGE = 6 * 3600000;
 var MAIN_DAY = 86400000;
 // Personal emails that carry Claude's paragraph.
 var PARAGRAPH_KINDS = ["welcome", "requestAck", "quoteReply"];
+// A free Gmail account sends to about 100 people a day. Below this many, confirmations stop and personal emails wait as drafts,
+// keeping the rest for Mann's new-request emails.
+var QUOTA_RESERVE = 15;
+var MAIN_RETRIES = 3;
 
 // The site's published settings, refreshed at most every 6 hours, with the last good copy kept in the Sheet.
 function loadSiteConfig(env, now) {
@@ -56,12 +60,21 @@ function receive(env, bodyText) {
     return answer({ success: "false", message: "Please email us" });
   }
   var keys = rateLimitKeys(payload, now), counts = keys.map(function (k) { return Number(env.cache.get(k) || 0); });
-  if (isOverLimit(counts)) {
-    note(ref, "Refused a " + payload._form + " request: too many in the last hour");
+  var day = clock.dayKey(now).replace(/-/g, ""), dayCount = String(env.props.get("RL_DAY") || "").split(":");
+  var today = dayCount[0] === day ? Number(dayCount[1]) || 0 : 0;
+  if (isOverLimit(counts) || today >= RATE_LIMITS.perDay) {
+    note(ref, "Refused a " + payload._form + " request: too many " + (today >= RATE_LIMITS.perDay ? "today" : "in the last hour"));
     return answer({ success: "false", message: "Too many requests. Please email us." });
   }
+  var left = env.gmail.remainingQuota();
+  if (left < 2) {
+    note(ref, "Refused a " + payload._form + " request: Gmail's daily email limit is used up");
+    return answer({ success: "false", message: "Please email us" });
+  }
   keys.forEach(function (k, i) { env.cache.put(k, String(counts[i] + 1), 3600); });
+  env.props.set("RL_DAY", day + ":" + (today + 1));
   var conf = confirmationEmail(payload, site), problem = leadProblem(payload, site), sent;
+  if (conf.email && left < QUOTA_RESERVE) conf = { email: null, problem: "Confirmation not sent: Gmail's daily email limit is nearly used up." };
   if (conf.problem) note(ref, conf.problem);
   if (problem) note(ref, problem);
   try { sent = env.gmail.send(notificationEmail(payload, site, [problem, conf.problem].filter(Boolean).join(" "))); } catch (e) {
@@ -108,21 +121,35 @@ function run(env) {
   try { site = loadSiteConfig(env, now); } catch (e) { note("", e.message); return finish(); }
 
   // Take new leads from the Incoming tab. They're written to Clients before Incoming is cleared, so none is lost.
-  var leads = env.sheet.readLeadRows().map(rowToLead), incoming = env.sheet.readIncoming();
+  // A row the script can't read (a note typed into the tab, say) is left exactly as it is, and the rest carry on.
+  var leads = [], unreadable = [], incoming = env.sheet.readIncoming();
+  env.sheet.readLeadRows().forEach(function (row, i) {
+    if (row.every(function (v) { return v === "" || v === null || v === false; })) return;
+    try { leads.push(rowToLead(row)); } catch (e) {
+      unreadable.push(row);
+      note("", "Couldn't read row " + (i + 2) + " of Clients, so left it as it is");
+    }
+  });
   incoming.forEach(function (text) {
     try {
       var lead = leadFromIncoming(JSON.parse(text), clock);
       if (!leads.some(function (l) { return l.ref === lead.ref; })) leads.push(lead);
     } catch (e) { note("", "Couldn't read a queued request: " + e.message); }
   });
-  var save = function () { env.sheet.writeLeadRows(leads.map(function (l) { return leadToRow(l, now, clock); })); };
+  var save = function () { env.sheet.writeLeadRows(leads.map(function (l) { return leadToRow(l, now, clock); }).concat(unreadable)); };
   if (incoming.length) {
     save();
     env.sheet.removeIncoming(incoming.length);
   }
 
   var events = env.calendar.events(new Date(now.getTime() - 2 * MAIN_DAY), new Date(now.getTime() + 90 * MAIN_DAY));
-  var messages = env.gmail.findClientMessages(new Date(now.getTime() - 3 * MAIN_DAY));
+  // Replies and opt-outs only matter from clients the automation might still email.
+  var watching = [];
+  leads.forEach(function (l) {
+    var e = (l.email || "").toLowerCase();
+    if (e && !l.optedOut && isActiveLead(l, now) && watching.indexOf(e) === -1) watching.push(e);
+  });
+  var messages = watching.length ? env.gmail.findClientMessages(new Date(now.getTime() - 3 * MAIN_DAY), watching) : [];
   var pending = [];
   leads.forEach(function (l) {
     Object.keys(l.emails).forEach(function (k) { if (l.emails[k].state === "draft") pending.push(l.emails[k]); });
@@ -149,6 +176,7 @@ function run(env) {
         if (lead.needsYou) mode = "draft";
       }
       var email = composeEmail(t.kind, lead, { site: site, clock: clock, event: t.event, paragraph: paragraph });
+      if (mode === "auto" && env.gmail.remainingQuota() < QUOTA_RESERVE) mode = "draft";
       if (mode === "auto") {
         var s = env.gmail.send(email);
         lead.emails[t.key] = { state: "sent", at: new Date(s.sentAt).toISOString(), draftId: "", threadId: s.threadId };
@@ -167,7 +195,13 @@ function run(env) {
     } catch (e) {
       lead.failures = (lead.failures || 0) + 1;
       note(lead.ref, "Couldn't do the " + label.toLowerCase() + ": " + e.message);
-      if (lead.failures >= 3) lead.needsYou = "Couldn't send " + label + ": " + e.message;
+      if (lead.failures >= MAIN_RETRIES) {
+        // Given up: no more tries (each one could call Claude again), and Mann is told.
+        lead.needsYou = "Couldn't send " + label + ": " + e.message;
+        lead.emails[t.key] = { state: "skipped", at: now.toISOString(), draftId: "", threadId: "" };
+        lead.failures = 0;
+        save();
+      }
     }
   });
   plan.needsYouThreads.forEach(function (th) {
