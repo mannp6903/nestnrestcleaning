@@ -35,7 +35,7 @@ All settings are in `js/config.js`. Prices and contact details update on every p
 - **Referral credit:** the amount is `offers.referral`; the terms are in the "Referral credit" section of the Service Policies (`tools/build.mjs`). New clients give the referring client's first and last name in the optional "Referred by" box on the booking form, and it arrives as "Referred by" in your booking email.
 - **Phone number:** private for now. `business.phoneDisplay` and `business.phone` are both `""`, so the site shows no call or text buttons, leaves the number out of Google's business data and the confirmation emails, and points people to email instead. To show it again, set `phoneDisplay` (e.g. `"647 555 0123"`) and `phone` (e.g. `"+16475550123"`) and run `node tools/build.mjs`.
 - **WhatsApp:** `business.whatsapp` is the WhatsApp number (digits only, with the 1). Leave it `""` to hide every WhatsApp button.
-- **Confirmation emails:** customers who give an email get an automatic confirmation from FormSubmit. The wording is in `emails` (booking, bookingCal, quote, gift). Booking emails are the customer's written copy of the agreement (Ontario's Consumer Protection Act), so keep the itemized price, the change terms and the link to the policies in them. `emails.footer` is added to every email with who we are and how to stop emails, as CASL requires.
+- **Confirmation emails:** customers who give an email get an automatic confirmation, from FormSubmit or, once it's switched on, from our Google script. The wording is in `emails` (booking, bookingCal, quote, gift). Booking emails are the customer's written copy of the agreement (Ontario's Consumer Protection Act), so keep the itemized price, the change terms and the link to the policies in them. `emails.footer` is added to every email with who we are and how to stop emails, as CASL requires.
 - **Gift a clean:** amounts and wording are in `offers.gift`. The home-page banner only shows in `bannerMonths` (November and December).
 - **Neighbourhood pages:** each one is an entry in `neighbourhoods`. Keep every fact true and local. Run the build to add or change one.
 - **Guides:** the articles are in `tools/guides.mjs`. Prices inside them come from `js/config.js`.
@@ -52,9 +52,16 @@ All settings are in `js/config.js`. Prices and contact details update on every p
 
 ## Bookings, quotes, gift cards and reviews
 
-Everything is emailed to `nestnrestcleaning@gmail.com` through [FormSubmit](https://formsubmit.co), including "Text me this price" requests from the price box.
-After any change of email address, send one test booking and click **Activate** in the FormSubmit email.
+Everything is emailed to `nestnrestcleaning@gmail.com`, including "Text me this price" requests from the price box. `delivery.provider` in `js/config.js` decides how:
+
+- `"formsubmit"`: through [FormSubmit](https://formsubmit.co). After any change of email address, send one test booking and click **Activate** in the FormSubmit email.
+- `"google"`: through our own Google script, which also sends the personal emails. See [Personal email automation](#personal-email-automation).
+
 If sending fails, the customer gets an email button with their details filled in (plus text and WhatsApp buttons while those numbers are set).
+
+## Personal email automation
+
+A Google Sheet with a small script sends every booking and quote client a personal note from Mann, a reminder the day before, a review request after their first clean, and follow-ups. Claude writes one personal paragraph in each. Drafts wait for you for the first two weeks. Setup, costs and day-to-day use: [automation/README.md](automation/README.md).
 
 ## Booking calendar (Cal.com)
 
@@ -112,5 +119,7 @@ js/config.js       business settings (edit this)
 js/site.js         pricing, booking, forms, WhatsApp, tracking
 tools/build.mjs    page generator
 tools/guides.mjs   the guide articles
+tools/automation.mjs builds the email automation (automation/)
+automation/        email automation: source, tests, setup guide, and the generated script and settings
 assets/            logo, icons, founder photo, room photos, social-share image, fonts
 ```
