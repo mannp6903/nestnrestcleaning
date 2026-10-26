@@ -19,7 +19,8 @@ test("personal note after booking", () => {
   assert.ok(e.text.includes("\n\nP.\n\n"));
   assert.ok(e.text.includes("Thank you for mentioning Sam O'Brien. If they're one of our clients, you'll get $25 off this first clean"));
   assert.ok(e.text.includes(site.automation.prep.deep));
-  assert.ok(e.text.includes("It's free up to 24 hours before."));
+  assert.ok(e.text.includes("If your plans change, just reply to this email. Changes are free up to 24 hours before."));
+  assert.ok(!/cal\.com/i.test(e.text));
   assert.ok(e.text.includes("— Mann"));
   assert.ok(e.text.endsWith("\n\n" + site.footer));
   assert.ok(!/\{\w+\}/.test(e.text + e.subject));
@@ -50,27 +51,17 @@ test("review request", () => {
   assert.ok(e.html.includes('<a href="https://nestnrestcleaning.com/review/">'));
 });
 
-test("pick-a-time nudge links the calendar", () => {
-  const s = withSite((x) => { x.links.calendar = "https://cal.com/nr/home-clean"; });
-  const e = composeEmail("pickTime", booking(), { site: s, clock, event: null, paragraph: "" });
-  assert.equal(e.subject, "Pick a time for your deep cleaning");
-  assert.ok(e.text.includes("so here it is again: https://cal.com/nr/home-clean"));
-});
-
 test("booking request reply repeats what they asked for", () => {
   const e = composeEmail("requestAck", booking({ requested: "Tuesday, October 27, Morning (9am to 12pm)" }), { site, clock, event: null, paragraph: "P." });
   assert.equal(e.subject, "Your deep cleaning request");
   assert.ok(e.text.includes("You asked for Tuesday, October 27, Morning (9am to 12pm)."));
 });
 
-test("quote reply with and without a walkthrough link", () => {
+test("quote reply asks for walkthrough times", () => {
   const e = composeEmail("quoteReply", quote(), { site, clock, event: null, paragraph: "P." });
   assert.equal(e.subject, "Your free quote for Residence Care");
   assert.ok(e.text.includes("Thank you for asking about Residence Care with Nest & Rest Cleaning."));
-  assert.ok(e.text.includes(site.automation.quoteForms["Residence Care"].nextStepNoLink));
-  const s = withSite((x) => { x.links.walkthrough = "https://cal.com/nr/walkthrough"; });
-  const linked = composeEmail("quoteReply", quote(), { site: s, clock, event: null, paragraph: "P." });
-  assert.ok(linked.text.includes("Pick a time that suits you: https://cal.com/nr/walkthrough"));
+  assert.ok(e.text.includes("Reply with two or three times that suit you."));
 });
 
 test("quote nudge for a form with no entry of its own", () => {

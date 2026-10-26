@@ -55,8 +55,9 @@ test("default settings", () => {
   const s = parseSettings(rows, clock);
   assert.equal(s.on, true);
   assert.equal(s.autoSendFrom.toISOString(), "2026-11-09T05:00:00.000Z");
-  assert.deepEqual(plain(s.modes), { welcome: "Auto", pickTime: "Auto", requestAck: "Draft", quoteReply: "Draft", quoteNudge: "Auto", reminder: "Auto", review: "Auto" });
-  assert.equal(s.pickTimeHours, 3);
+  assert.deepEqual(plain(s.modes), { welcome: "Auto", requestAck: "Draft", quoteReply: "Draft", quoteNudge: "Auto", reminder: "Auto", review: "Auto" });
+  assert.equal(s.pickTimeHours, undefined);
+  assert.ok(!rows.some((r) => /pick-a-time/i.test(r[0])));
   assert.equal(s.quoteNudgeDays, 2);
   assert.equal(s.quoteNudgeHour, 10);
   assert.equal(s.reminderHour, 18);
@@ -90,10 +91,9 @@ test("status, in order of precedence", () => {
   assert.equal(statusOf(booking({ eventId: "e1", eventStart: "x", emails: { review: sent("x"), "reminder:e1:2026-11-02": sent("x") } }), now), "Reviewed");
   assert.equal(statusOf(booking({ eventId: "e1", eventStart: "x", emails: { "reminder:e1:2026-11-02": sent("x") } }), now), "Reminder sent");
   assert.equal(statusOf(booking({ eventId: "e1", eventStart: "x" }), now), "Booked");
-  assert.equal(statusOf(booking({ emails: { pickTime: sent("x") } }), now), "Nudged");
   assert.equal(statusOf(booking({ requested: "Tue", emails: { requestAck: sent("x") } }), now), "Sent");
   assert.equal(statusOf(booking({ requested: "Tue" }), now), "New");
-  assert.equal(statusOf(booking(), now), "Waiting for time");
+  assert.equal(statusOf(booking({ requested: "" }), now), "Waiting for time");
   assert.equal(statusOf(quote({ emails: { quoteReply: sent("x"), quoteNudge: sent("2026-10-01T00:00:00Z") } }), now), "Done");
   assert.equal(statusOf(quote({ emails: { quoteReply: sent("x"), quoteNudge: sent("2026-10-20T00:00:00Z") } }), now), "Nudged");
   assert.equal(statusOf(quote({ emails: { quoteReply: sent("x") } }), now), "Quote sent");

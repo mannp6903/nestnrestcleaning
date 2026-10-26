@@ -4,8 +4,8 @@ A small Google program (an Apps Script) that lives in a Google Sheet in the nest
 
 - **The website's forms send to it** instead of FormSubmit. You still get an email for every booking, quote, gift card, review and "Text me this price" request, and clients still get their confirmation email, now sent from nestnrestcleaning@gmail.com.
 - **Every booking and quote client gets a personal email from you:**
-  - a short personal note after they pick their time;
-  - a nudge if they never picked a time;
+  - a reply to their booking request;
+  - a short personal note confirming the day and time, once you've put the clean on your Google Calendar;
   - a reminder at 6pm the day before;
   - one review request after their first clean;
   - for quotes, a reply and one follow-up.
@@ -19,17 +19,18 @@ The design is in `docs/superpowers/specs/2026-10-26-email-automation-design.md`.
 | | Cost |
 |---|---|
 | Google Apps Script, Gmail, Sheets, Calendar | Free |
-| Cal.com | Free plan |
 | Claude API, for the personal paragraph | About 3 cents per client (about $1.50 for 50 clients a month) |
 
 ## Setup (about 30 minutes, once)
 
 0. **Add your mailing address.** Put it in `business.mailingAddress` in `js/config.js` (a PO box or mailbox service is fine). Canada's anti-spam law (CASL) requires it in every business email. Until it's set, the script won't send any personal email on its own: everything waits as a draft, and **Last error** in Settings says why.
 
-1. **Switch on the booking calendar.**
-   - Follow the "Booking calendar (Cal.com)" steps in the main [README](../README.md).
-   - Then create a second Cal.com event called "Free walkthrough", 30 minutes long, for quote clients. Keep the word "walkthrough" in its name: that's how the script tells walkthroughs from cleans.
-   - Paste the part of its link after `cal.com/` into `automation.walkthroughLink` in `js/config.js`, for example `"nestnrestcleaning/walkthrough"`.
+1. **Use your Google Calendar for confirmed cleans.** Bookings on the website are requests. When you've agreed a day and time with a client:
+   - add the clean to the Google Calendar of nestnrestcleaning@gmail.com, at the arrival time;
+   - add the client's email address as a guest (Google offers to email them the invitation, which is fine);
+   - for a quote walkthrough, put the word "walkthrough" in the title, so the script doesn't treat it as a clean.
+
+   The script then sends the personal note, the reminder and the review request from your calendar.
 
 2. **Get a Claude API key.** This is separate from any Claude subscription.
    - Go to console.anthropic.com and sign up with any email (the business email is a good choice).
@@ -68,7 +69,8 @@ The design is in `docs/superpowers/specs/2026-10-26-email-automation-design.md`.
      - you get the new-booking email;
      - your test address gets the confirmation;
      - within 5 minutes, a row appears in the **Clients** tab.
-   - **Pick a time on Cal.com:** within 5 minutes, a "Personal note" draft appears in Gmail.
+   - **A "Booking request reply" draft** appears in Gmail within 5 minutes.
+   - **Put the test clean on your Google Calendar** with your test address as a guest: within 5 minutes, a "Personal note" draft appears.
    - **A test quote and a gift card request:** check the same emails arrive.
    - **In Settings:** **Automation on** is ticked.
    - **Opted out:** tick it on your test row, wait 10 minutes, and check it's still ticked.
@@ -89,7 +91,7 @@ The design is in `docs/superpowers/specs/2026-10-26-email-automation-design.md`.
   - **Automation on:** untick to pause all personal emails. Requests and confirmations keep working.
   - **Auto-send starts:** the date routine emails start sending themselves. Until then, everything is a draft.
   - **One row per email type:** **Off**, **Draft** (always wait for you) or **Auto**.
-  - **Timings:** the nudge delay and the reminder and review times.
+  - **Timings:** the quote follow-up and the reminder and review times.
   - **Last run and Last error:** show that it's working.
 - **Log tab:** anything that went wrong or was refused, newest at the bottom.
 - **Limits:**

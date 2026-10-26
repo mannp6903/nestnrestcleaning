@@ -147,8 +147,8 @@ function run(env) {
       if (leads.some(function (l) { return l.sourceMessageId && l.sourceMessageId === lead.sourceMessageId; })) return; // taken already
       var same = leads.filter(function (l) { return l.ref === lead.ref; })[0];
       if (same) {
-        // References are short, so two can match. A booking keeps its own (Cal.com's notes carry it) and the older row
-        // gets a suffix; a quote's reference is ours alone, so the new one gets it.
+        // References are short, so two can match. A booking keeps its own (Mann may copy it into the calendar) and the
+        // older row gets a suffix; a quote's reference is ours alone, so the new one gets it.
         var n = 2, base = lead.ref;
         while (leads.some(function (l) { return l.ref === base + "-" + n; })) n++;
         if (lead.kind === "booking") same.ref = base + "-" + n; else lead.ref = base + "-" + n;
@@ -202,7 +202,8 @@ function run(env) {
     var lead = leads.filter(function (l) { return l.ref === t.ref; })[0], label = KIND_LABELS[t.kind];
     try {
       var paragraph = "", mode = t.mode;
-      if (PARAGRAPH_KINDS.indexOf(t.kind) > -1) {
+      // One paragraph per request: the personal note doesn't repeat what the booking request reply already said.
+      if (PARAGRAPH_KINDS.indexOf(t.kind) > -1 && !(t.kind === "welcome" && lead.emails.requestAck)) {
         var fields = parseRequestTable(env.gmail.getMessageHtml(lead.sourceMessageId));
         if (site.automation.aiReplies) {
           var p = writeParagraph(env, t.kind, lead, fields, site);

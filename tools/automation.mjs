@@ -9,9 +9,6 @@ import { fileURLToPath } from "node:url";
 export const SRC_FILES = ["time.js", "intake.js", "parse.js", "guard.js", "claude.js", "compose.js", "sheet.js", "plan.js", "main.js", "google.js"];
 
 const fillTpl = (t, vals) => String(t || "").replace(/\{(\w+)\}/g, (m, k) => (vals[k] != null ? vals[k] : m));
-// The part after cal.com/, cleaned the same way the booking page does it (js/site.js).
-const calPath = (link) => String(link || "").trim().replace(/^https?:\/\/(app\.)?cal\.com\//, "").replace(/^\/+|\/+$/g, "");
-const calUrl = (link) => (calPath(link) ? "https://cal.com/" + calPath(link) : "");
 
 export function buildSiteConfig(C) {
   const B = C.business, E = C.emails, A = C.automation || {};
@@ -26,14 +23,11 @@ export function buildSiteConfig(C) {
       contact: B.phone ? (B.whatsapp ? "Call, text or WhatsApp " : "Call or text ") + B.phoneDisplay : "Email " + B.email
     },
     replyPromises,
-    links: {
-      site, book: site + "/book/", review: site + "/review/", policies: site + "/policies/",
-      calendar: calUrl((C.booking || {}).calLink), walkthrough: calUrl(A.walkthroughLink)
-    },
+    links: { site, book: site + "/book/", review: site + "/review/", policies: site + "/policies/" },
     policies: C.policies,
     referral: "$" + C.offers.referral,
     footer: fillTpl(E.footer, { owner: B.owner, address: B.mailingAddress ? ", " + B.mailingAddress : "", phone: B.phoneDisplay, email: B.email, site: site.replace(/^https?:\/\//, "") }),
-    emails: { booking: E.booking, bookingCal: E.bookingCal, quote: E.quote, gift: E.gift, subjects: E.subjects },
+    emails: { booking: E.booking, quote: E.quote, gift: E.gift, subjects: E.subjects },
     automation: A,
     services: Object.entries(C.services).map(([key, s]) => ({ key, name: s.name, intro: s.intro })),
     quoteServices: Object.values(C.quoteServices).map((q) => ({ name: q.name, intro: q.intro, includes: q.includes })),

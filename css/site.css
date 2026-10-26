@@ -723,15 +723,6 @@ a.svc-card:hover .svc-arrow { transform: translateX(4px); }
 .done-list dd { margin: 0; font-weight: 500; overflow-wrap: anywhere; }
 .done-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; }
 
-/* Booking calendar (Cal.com), the last step when booking.calLink is set */
-.cal-step { display: grid; gap: 12px; padding: 8px 0; }
-.cal-step:focus { outline: none; }
-.cal-step h2 { font-size: clamp(2.2rem, 7vw, 3rem); }
-/* The calendar runs edge to edge inside the booking card so it has room on phones. */
-.cal-embed { min-height: 560px; margin-inline: calc(-1 * clamp(20px, 4vw, 38px)); background: var(--paper); overflow: hidden; }
-.cal-embed iframe { width: 100% !important; }
-.cal-alt { font-size: 0.95rem; }
-
 .done-refer { margin-top: 16px; padding-top: 20px; border-top: 1px solid var(--line); display: grid; gap: 12px; justify-items: start; }
 .done-refer p { color: var(--muted); }
 .done-refer strong { color: var(--ink); }

@@ -132,7 +132,7 @@ test("a booking becomes a lead", () => {
   assert.deepEqual(plain(lead), {
     ref: "NR-AB12", kind: "booking", form: "Deep Cleaning", receivedAt: "2026-10-26T18:32:00.000Z",
     name: "Priya Sharma", firstName: "Priya", email: "priya@example.com", phone: "647 555 0123", area: "Scarborough",
-    sourceMessageId: "m1", requested: "", access: "Lockbox or key code", pets: "Cat or other", referrer: "Sam O'Brien", hasNotes: true,
+    sourceMessageId: "m1", requested: "Flexible: earliest opening, Morning (9am to 12pm)", access: "Lockbox or key code", pets: "Cat or other", referrer: "Sam O'Brien", hasNotes: true,
     needsYou: "", optedOut: false, eventId: "", eventStart: "", firstCleanAt: "", emails: {}, clientRepliedAt: "", failures: 0, lastAction: ""
   });
 });
@@ -211,9 +211,9 @@ test("subjects must match their form and stay on one line", () => {
   assert.equal(bad("New gift card request GIFT-7QXZ: $150", "gift"), true);
 });
 
-test("a calendar confirmation needs the calendar link", () => {
+test("the booking confirmation is the website's only booking template", () => {
   const r = R.copy(R.booking);
   r._confirm.tpl = "bookingCal";
-  assert.equal(confirmationEmail(r, Object.assign({}, site, { links: Object.assign({}, site.links, { calendar: "" }) })).email, null);
-  assert.ok(confirmationEmail(r, Object.assign({}, site, { links: Object.assign({}, site.links, { calendar: "https://cal.com/nr/home-clean" }) })).email.text.includes("https://cal.com/nr/home-clean"));
+  assert.equal(confirmationEmail(r, site).email, null);
+  assert.equal(site.emails.bookingCal, undefined);
 });

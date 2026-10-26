@@ -9,7 +9,7 @@ It's built to turn visitors into booked clients and to rank on Google for local 
 |---|---|
 | `/` | Home: instant price (visible on the first phone screen), services, how booking works, the Nest & Rest standard and guarantee, plans, founder and founding offer, areas, guides, FAQ |
 | `/pricing/` | Every price by home size and type, plan discounts, extras, a room-by-room comparison of regular, deep and move-out cleaning, pricing FAQ |
-| `/book/` | Focused 3-step booking: your home → plan & time → your details. With a Cal.com link set: your home & plan → your details → pick a confirmed time on your calendar |
+| `/book/` | Focused 3-step booking request: your home → plan & time → your details. Mann confirms the day and arrival window |
 | `/services/<service>/` | One page per service (regular, deep, move-in/out, kitchen & bath, residence care, office), each with its own price table |
 | `/areas/<district>/` | Scarborough and North York, with their neighbourhoods and postal codes |
 | `/areas/<district>/<neighbourhood>/` | 12 neighbourhood pages (Agincourt, Malvern, Guildwood, Birch Cliff, Highland Creek, Wexford, Willowdale, Don Mills, York Mills, Bayview Village, Bathurst Manor, Lawrence Manor) |
@@ -29,7 +29,7 @@ All settings are in `js/config.js`. Prices and contact details update on every p
 
 - **Prices, offers, contact details, hours, FAQs, reviews:** edit `js/config.js`.
 - **Founding spots left:** after each new founding household books, add 1 to `offers.founding.claimed`. The site shows "X of 50 founding spots left". Set `offers.founding.active` to `false` when they're all taken.
-- **Live booking calendar (Cal.com):** see [Booking calendar](#booking-calendar-calcom) below. Until `booking.calLink` is set, bookings are requests you confirm by text.
+- **Bookings are requests:** the client picks a preferred day and arrival window, and you confirm it with them.
 - **Next opening:** the site shows the next day you can be booked. `booking.leadDays` is how many days' notice you need (1 = tomorrow). Add any day you're full or away to `booking.blockedDates` as `"YYYY-MM-DD"`; the booking calendar and "Next opening" both skip it.
 - **Mailing address:** paste one into `business.mailingAddress` (a PO box or mailbox service is fine) and run the build. Canada's anti-spam law (CASL) needs it in every business email and text, and Ontario's Consumer Protection Act needs it shown when customers book online. It then appears in the footer, the policies, the booking page and every confirmation email.
 - **Referral credit:** the amount is `offers.referral`; the terms are in the "Referral credit" section of the Service Policies (`tools/build.mjs`). New clients give the referring client's first and last name in the optional "Referred by" box on the booking form, and it arrives as "Referred by" in your booking email.
@@ -62,25 +62,6 @@ If sending fails, the customer gets an email button with their details filled in
 ## Personal email automation
 
 A Google Sheet with a small script sends every booking and quote client a personal note from Mann, a reminder the day before, a review request after their first clean, and follow-ups. Claude writes one personal paragraph in each. Drafts wait for you for the first two weeks. Setup, costs and day-to-day use: [automation/README.md](automation/README.md).
-
-## Booking calendar (Cal.com)
-
-With your Cal.com link in `booking.calLink`, booking ends with picking a real time on your calendar, confirmed straight away.
-The customer's details reach your inbox first (so you still get the lead if they leave), then the calendar opens with their name, email, phone and job notes filled in, and the slot length set from the job size.
-Cal.com emails both of you the confirmation, with reschedule and cancel links.
-
-1. Sign up free at [cal.com](https://cal.com) with the business email and connect your Google Calendar, so busy times are blocked.
-2. Set your availability to every day, 9am to 11pm, Toronto time.
-3. Create an event type, for example "Home clean" with the link `home-clean`. Turn on **multiple durations**, tick every length from 1 to 8 hours, and make 2 hours the default.
-4. In the event's limits, set the minimum notice to 24 hours and add a 30 to 60 minute buffer after each clean for travel. Leave "requires confirmation" off so bookings confirm instantly.
-5. Optional: in the booking questions, switch on the phone number field so it's filled in too.
-6. Open your event link in a private browser window first: it must show your calendar with times, not "404" or a list of events. Then paste the part after `cal.com/` (for example `nestnrestcleaning/home-clean`) into `booking.calLink` in `js/config.js`, run `node tools/build.mjs`, and push.
-7. Make one test booking on the live site, then cancel it from the confirmation email.
-
-8. In the event's description, paste: *"Your booking is with Nest & Rest Cleaning, owned and operated by Mann Patel, [your mailing address], nestnrestcleaning@gmail.com. Nothing to pay until after your clean. Free to change up to 24 hours before; later changes, or if we can't get in, may cost up to 50% of the estimated price. Full terms: nestnrestcleaning.com/policies/"* Cal.com's emails then carry who you are and your terms too.
-
-With the calendar on, block days off in Cal.com or Google Calendar; `booking.blockedDates` then only changes the "Next opening" line.
-To go back to booking requests, set `calLink` to `""` and run the build again.
 
 ## Texts and emails you send yourself (CASL)
 

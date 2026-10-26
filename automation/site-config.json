@@ -1,5 +1,5 @@
 {
- "version": "fb89f27d",
+ "version": "3170205a",
  "business": {
   "name": "Nest & Rest Cleaning",
   "owner": "Mann Patel",
@@ -19,9 +19,7 @@
   "site": "https://nestnrestcleaning.com",
   "book": "https://nestnrestcleaning.com/book/",
   "review": "https://nestnrestcleaning.com/review/",
-  "policies": "https://nestnrestcleaning.com/policies/",
-  "calendar": "",
-  "walkthrough": ""
+  "policies": "https://nestnrestcleaning.com/policies/"
  },
  "policies": {
   "effectiveDate": "October 25, 2026",
@@ -35,19 +33,16 @@
  "footer": "This email is from Nest & Rest Cleaning, owned and operated by Mann Patel. nestnrestcleaning@gmail.com · nestnrestcleaning.com. To stop emails from us, email nestnrestcleaning@gmail.com with \"unsubscribe\" and we'll stop within 10 business days.",
  "emails": {
   "booking": "Hi {name}, thank you for your booking request with Nest & Rest Cleaning (reference {ref}). Here's what you asked for: {summary}. Your estimate: {items}. Mann will confirm your day and arrival window {reply}. There's nothing to pay until after your clean (Interac e-Transfer, card or cash). Changes are free up to {notice} hours before your arrival window. Later changes, or if we can't get in at the agreed time, may cost {lateFee}. Full terms: {terms} Questions? {contact}. — Mann Patel, Nest & Rest Cleaning",
-  "bookingCal": "Hi {name}, thank you for booking with Nest & Rest Cleaning (reference {ref}). Your booking: {summary}. Your estimate: {items}. Your time is confirmed when you pick it on our calendar, and Cal.com emails that confirmation separately, with links to reschedule or cancel. Haven't picked a time yet? Pick one here: {calendar} There's nothing to pay until after your clean (Interac e-Transfer, card or cash). Changes are free up to {notice} hours before your booking. Later changes, or if we can't get in at the agreed time, may cost {lateFee}. Full terms: {terms} Questions? {contact}. — Mann Patel, Nest & Rest Cleaning",
   "quote": "Hi {name}, thank you for your quote request with Nest & Rest Cleaning. Mann will reply {reply} with your free quote. Questions in the meantime? {contact}. — Mann Patel, Nest & Rest Cleaning",
   "gift": "Hi {name}, thank you for your gift request with Nest & Rest Cleaning (reference {ref}). Mann will text you {reply} to confirm the details and send an Interac e-Transfer request. Your gift card is emailed as soon as it's paid. Questions? {contact}. — Mann Patel, Nest & Rest Cleaning",
   "subjects": {
    "booking": "Your booking request with Nest & Rest Cleaning ({ref})",
-   "bookingCal": "Your booking with Nest & Rest Cleaning ({ref})",
    "quote": "Your quote request with Nest & Rest Cleaning",
    "gift": "Your gift card request with Nest & Rest Cleaning ({ref})"
   }
  },
  "automation": {
   "aiReplies": true,
-  "walkthroughLink": "",
   "senderName": "Mann Patel, Nest & Rest Cleaning",
   "welcome": {
    "subject": "Your {service} on {day}",
@@ -57,7 +52,7 @@
     "{paragraph}",
     "{referralLine}",
     "{prepLine}",
-    "There's nothing to pay until after your clean. If your plans change, use the link in your Cal.com confirmation email to reschedule or cancel. It's free up to {notice} hours before.",
+    "There's nothing to pay until after your clean. If your plans change, just reply to this email. Changes are free up to {notice} hours before.",
     "— {owner}"
    ]
   },
@@ -67,15 +62,6 @@
    "deep": "I bring all the supplies and equipment. A deep clean gets into the edges, so if you can, clear counters and the spaces along the baseboards before I arrive.",
    "move": "I bring all the supplies and equipment. For a move-in or move-out clean, the home should be empty, with the power and water still on.",
    "detail": "I bring all the supplies and equipment. If you can, clear the kitchen counters and bathroom surfaces before I arrive."
-  },
-  "pickTime": {
-   "subject": "Pick a time for your {service}",
-   "lines": [
-    "Hi {firstName},",
-    "Thank you for sending your details for a {service}. It looks like you didn't get to pick a time on the calendar, so here it is again: {calendarLink}",
-    "If none of the times suit you, reply with a day and time that works and I'll do my best to fit you in.",
-    "— {owner}"
-   ]
   },
   "requestAck": {
    "subject": "Your {service} request",
@@ -141,18 +127,14 @@
    "Residence Care": {
     "label": "Residence Care",
     "subject": "Your free quote for Residence Care",
-    "nextStep": "The next step is a free 30-minute walkthrough, so I can see your home and write your care plan. Pick a time that suits you: {walkthroughLink}",
-    "nextStepNoLink": "The next step is a free 30-minute walkthrough, so I can see your home and write your care plan. Reply with two or three times that suit you.",
-    "nudgeStep": "If you'd like to go ahead, pick a walkthrough time here: {walkthroughLink}",
-    "nudgeStepNoLink": "If you'd like to go ahead, reply with two or three times that suit you for a walkthrough."
+    "nextStep": "The next step is a free 30-minute walkthrough, so I can see your home and write your care plan. Reply with two or three times that suit you.",
+    "nudgeStep": "If you'd like to go ahead, reply with two or three times that suit you for a walkthrough."
    },
    "Small Office Cleaning": {
     "label": "office cleaning",
     "subject": "Your free quote for office cleaning",
-    "nextStep": "The next step is a free 30-minute walkthrough of your space, so I can give you an exact price. Pick a time that suits you: {walkthroughLink}",
-    "nextStepNoLink": "The next step is a free 30-minute walkthrough of your space, so I can give you an exact price. Reply with two or three times that suit you.",
-    "nudgeStep": "If you'd like to go ahead, pick a walkthrough time here: {walkthroughLink}",
-    "nudgeStepNoLink": "If you'd like to go ahead, reply with two or three times that suit you for a walkthrough."
+    "nextStep": "The next step is a free 30-minute walkthrough of your space, so I can give you an exact price. Reply with two or three times that suit you.",
+    "nudgeStep": "If you'd like to go ahead, reply with two or three times that suit you for a walkthrough."
    },
    "Realtors & property managers": {
     "label": "cleaning your property",

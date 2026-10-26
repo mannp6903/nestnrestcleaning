@@ -48,7 +48,7 @@ var RATE_LIMITS = { all: 30, perEmail: 3, perEmail6h: 5, perDay: 60 };
 var SUBJECT_PREFIX = { booking: "New booking ", quote: "New quote request: ", gift: "New gift card request ", review: "New review: ", textPrice: "Text this price: " };
 var INTAKE_MAX = { fields: 40, value: 2000, subject: 200 };
 // The confirmation templates each form may use, and the longest value each may fill in.
-var CONFIRM_TEMPLATES = { booking: ["booking", "bookingCal"], quote: ["quote"], gift: ["gift"] };
+var CONFIRM_TEMPLATES = { booking: ["booking"], quote: ["quote"], gift: ["gift"] };
 var CONFIRM_MAX = { name: 60, ref: 12, summary: 400, items: 800, reply: 80 };
 
 function checkRequest(payload) {
@@ -138,14 +138,12 @@ function confirmationEmail(payload, site) {
     vals[k] = v;
   }
   var tpl = site.emails[c.tpl];
-  if (c.tpl === "bookingCal" && !site.links.calendar) return fail("the booking calendar link isn't set yet.");
   if (/\{ref\}/.test(tpl) && !/^(NR|GIFT)-[A-Z0-9]{4}$/.test(vals.ref)) return fail("the reference looked wrong.");
   vals.reply = site.replyPromises.indexOf(vals.reply) > -1 ? vals.reply : site.business.replyPromise;
   vals.contact = site.business.contact;
   vals.notice = site.policies.cancelNoticeHours;
   vals.lateFee = site.policies.lateCancelFee;
   vals.terms = site.links.policies;
-  vals.calendar = site.links.calendar;
   vals.phone = site.business.phoneDisplay;
   var body = fillTemplate(tpl, vals), gap = /\{(\w+)\}/.exec(body);
   if (gap) return fail("the wording has a gap ({" + gap[1] + "}).");
@@ -234,7 +232,7 @@ function leadFromIncoming(record, clock) {
   if (booking) {
     lead.ref = f.Reference || "";
     lead.area = ((/\(([^)]+)\)/.exec(f["Postal code"] || "")) || [])[1] || "";
-    if (f.Date && f.Date !== "Picking a time on the calendar") lead.requested = f.Date + (f["Arrival window"] ? ", " + f["Arrival window"] : "");
+    if (f.Date) lead.requested = f.Date + (f["Arrival window"] ? ", " + f["Arrival window"] : "");
     lead.access = f["Getting in"] || "";
     lead.pets = f.Pets || "";
     lead.referrer = f["Referred by"] && f["Referred by"] !== "None" ? f["Referred by"] : "";
@@ -362,14 +360,13 @@ function composeEmail(kind, lead, ctx) {
   var site = ctx.site, A = site.automation, quote = lead.kind === "quote";
   var form = quote ? (A.quoteForms[lead.form] || A.quoteForms["default"]) : null;
   var tpl = kind === "quoteReply" ? { subject: form.subject, lines: A.quoteReply.lines } : A[kind];
-  var walk = site.links.walkthrough;
   var service = quote ? form.label.replace("{form}", lead.form) : lead.form.toLowerCase();
   var prep = site.services.filter(function (s) { return s.name === lead.form; })[0];
   var base = {
     firstName: lead.firstName, service: service, requested: lead.requested, referrer: lead.referrer, paragraph: ctx.paragraph || "",
     notice: site.policies.cancelNoticeHours, codeDays: site.policies.accessCodeDeleteDays,
     owner: site.business.ownerFirstName, ownerFull: site.business.owner, referral: site.referral, areaLabel: site.business.areaLabel,
-    calendarLink: site.links.calendar, reviewLink: site.links.review, walkthroughLink: walk
+    reviewLink: site.links.review
   };
   if (ctx.event) {
     base.day = ctx.clock.formatDay(ctx.event.start);
@@ -388,8 +385,8 @@ function composeEmail(kind, lead, ctx) {
   base.accessLine = fill(A.access[lead.access] || "");
   base.petsLine = fill(A.pets[lead.pets] || "");
   if (form) {
-    base.nextStep = fill(!walk && form.nextStepNoLink ? form.nextStepNoLink : form.nextStep);
-    base.nudgeStep = fill(!walk && form.nudgeStepNoLink ? form.nudgeStepNoLink : form.nudgeStep);
+    base.nextStep = fill(form.nextStep);
+    base.nudgeStep = fill(form.nudgeStep);
   }
   var lines = tpl.lines.map(fill).filter(function (l) { return l !== ""; });
   return {
@@ -407,12 +404,11 @@ function composeEmail(kind, lead, ctx) {
 
 var CLIENT_HEADERS = ["Received", "Ref", "Type", "Service", "Name", "Email", "Phone", "Area", "Booked time", "Status", "Needs you", "Opted out",
   "First clean", "Review requested", "Last action", "Last email", "Data"];
-var KIND_LABELS = { welcome: "Personal note", pickTime: "Pick-a-time nudge", requestAck: "Booking request reply", quoteReply: "Quote reply",
+var KIND_LABELS = { welcome: "Personal note", requestAck: "Booking request reply", quoteReply: "Quote reply",
   quoteNudge: "Quote nudge", reminder: "Reminder", review: "Review request" };
-var DEFAULT_MODES = { welcome: "Auto", pickTime: "Auto", requestAck: "Draft", quoteReply: "Draft", quoteNudge: "Auto", reminder: "Auto", review: "Auto" };
+var DEFAULT_MODES = { welcome: "Auto", requestAck: "Draft", quoteReply: "Draft", quoteNudge: "Auto", reminder: "Auto", review: "Auto" };
 // Settings tab: label, setting name, default, lowest and highest allowed.
 var SETTING_NUMBERS = [
-  ["Pick-a-time nudge after (hours)", "pickTimeHours", 3, 1, 72],
   ["Quote nudge after (days)", "quoteNudgeDays", 2, 1, 30],
   ["Quote nudge time (hour, 0-23)", "quoteNudgeHour", 10, 0, 23],
   ["Reminder time, day before (hour, 0-23)", "reminderHour", 18, 0, 23],
@@ -431,7 +427,6 @@ function statusOf(lead, now) {
     if (emailSent(lead, "review")) return "Reviewed";
     if (lead.eventId && keys.some(function (k) { return k.indexOf("reminder:" + lead.eventId + ":") === 0 && emailSent(lead, k); })) return "Reminder sent";
     if (lead.eventStart) return "Booked";
-    if (emailSent(lead, "pickTime")) return "Nudged";
     if (lead.requested) return emailSent(lead, "requestAck") ? "Sent" : "New";
     return "Waiting for time";
   }
@@ -508,7 +503,7 @@ var PLAN_DAY = 86400000;
 var PLAN_LATE_LIMIT = PLAN_DAY; // nudges and review requests more than a day late are dropped
 var PLAN_ACTIVE_DAYS = 120;
 // Emails that belong to the conversation: a lead marked Needs you gets these as drafts. Reminders and reviews belong to the clean.
-var CONVERSATION_KINDS = ["welcome", "pickTime", "requestAck", "quoteReply", "quoteNudge"];
+var CONVERSATION_KINDS = ["welcome", "requestAck", "quoteReply", "quoteNudge"];
 
 function planEmailOf(from) {
   var m = /<([^>]+)>/.exec(String(from || ""));
@@ -517,7 +512,7 @@ function planEmailOf(from) {
 
 function sameEmail(a, b) { return !!a && !!b && a.toLowerCase() === b.toLowerCase(); }
 function byStart(a, b) { return new Date(a.start) - new Date(b.start); }
-// Cal.com's "Free walkthrough" events are visits for a quote, not cleans: no reminder or review, but they count as booked.
+// Calendar events with "walkthrough" in the title are visits for a quote, not cleans: no reminder or review, but they count as booked.
 function isWalkthrough(ev) { return /walkthrough/i.test(ev.title || ""); }
 function hasGuest(ev, email) { return (ev.guests || []).some(function (g) { return sameEmail(String(g), email); }); }
 
@@ -544,8 +539,8 @@ function assignEvents(leads, events) {
   return out;
 }
 
-// The clean a booking request led to: the event carrying its reference or, when the client trimmed Cal.com's notes,
-// an event for their email address that was made after the request (not an older clean already on the calendar).
+// The clean a booking request led to: the event carrying its reference or, more usually, an event Mann put on the
+// calendar for the client's email address after the request came in (not an older clean already on the calendar).
 function matchEvents(leads, events, now, assigned) {
   leads.forEach(function (l) {
     if (l.kind !== "booking" || !l.ref) return;
@@ -634,16 +629,12 @@ function dueEmails(lead, ctx) {
   var has = function (k) { return !!lead.emails[k]; };
   var onTime = function (at) { return now >= at && now - at <= PLAN_LATE_LIMIT; };
   if (lead.kind === "booking") {
-    if (lead.requested) {
-      if (!has("requestAck")) out.push({ kind: "requestAck", key: "requestAck", event: null, at: now });
-    } else if (lead.eventId) {
+    // A request gets its reply straight away; once Mann puts the clean on the calendar, the personal note confirms it.
+    if (lead.eventId) {
       if (new Date(lead.eventStart) > now && !has("welcome")) out.push({ kind: "welcome", key: "welcome", event: { id: lead.eventId, start: new Date(lead.eventStart) }, at: now });
       var welcomeDue = out.length > 0;
-    } else if (!has("welcome") && !has("pickTime") && !lead.clientRepliedAt) {
-      var nudge = new Date(new Date(lead.receivedAt).getTime() + s.pickTimeHours * PLAN_HOUR), h = clock.local(nudge).hour;
-      if (h >= 21) nudge = dayOffsetAt(clock, nudge, 1, 9);
-      else if (h < 9) nudge = dayOffsetAt(clock, nudge, 0, 9);
-      if (onTime(nudge)) out.push({ kind: "pickTime", key: "pickTime", event: null, at: nudge });
+    } else if (lead.requested && !has("requestAck")) {
+      out.push({ kind: "requestAck", key: "requestAck", event: null, at: now });
     }
     var events = ctx.assigned[lead.ref] || [], welcome = lead.emails.welcome;
     events.forEach(function (ev) {
@@ -677,7 +668,6 @@ function dueEmails(lead, ctx) {
 function deliveryMode(kind, lead, settings, now) {
   var mode = settings.modes[kind];
   if (mode === "Off") return "off";
-  if (kind === "requestAck") return "draft";
   if (lead.needsYou && CONVERSATION_KINDS.indexOf(kind) > -1) return "draft";
   if (!settings.autoSendFrom || now < settings.autoSendFrom) return "draft";
   return mode === "Auto" ? "auto" : "draft";
@@ -863,8 +853,8 @@ function run(env) {
       if (leads.some(function (l) { return l.sourceMessageId && l.sourceMessageId === lead.sourceMessageId; })) return; // taken already
       var same = leads.filter(function (l) { return l.ref === lead.ref; })[0];
       if (same) {
-        // References are short, so two can match. A booking keeps its own (Cal.com's notes carry it) and the older row
-        // gets a suffix; a quote's reference is ours alone, so the new one gets it.
+        // References are short, so two can match. A booking keeps its own (Mann may copy it into the calendar) and the
+        // older row gets a suffix; a quote's reference is ours alone, so the new one gets it.
         var n = 2, base = lead.ref;
         while (leads.some(function (l) { return l.ref === base + "-" + n; })) n++;
         if (lead.kind === "booking") same.ref = base + "-" + n; else lead.ref = base + "-" + n;
@@ -918,7 +908,8 @@ function run(env) {
     var lead = leads.filter(function (l) { return l.ref === t.ref; })[0], label = KIND_LABELS[t.kind];
     try {
       var paragraph = "", mode = t.mode;
-      if (PARAGRAPH_KINDS.indexOf(t.kind) > -1) {
+      // One paragraph per request: the personal note doesn't repeat what the booking request reply already said.
+      if (PARAGRAPH_KINDS.indexOf(t.kind) > -1 && !(t.kind === "welcome" && lead.emails.requestAck)) {
         var fields = parseRequestTable(env.gmail.getMessageHtml(lead.sourceMessageId));
         if (site.automation.aiReplies) {
           var p = writeParagraph(env, t.kind, lead, fields, site);

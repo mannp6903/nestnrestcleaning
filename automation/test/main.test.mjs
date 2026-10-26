@@ -354,3 +354,20 @@ test("a calendar failure is reported in Settings instead of stopping silently", 
   assert.match(String(setting(state, "Last error")), /Calendar is down/);
   assert.equal(state.incoming.length, 0);
 });
+
+test("a booking request gets its reply, then a personal note without a second Claude call once it's on the calendar", () => {
+  const f = installed();
+  f.state.now = T("2026-10-26T18:32:00Z");
+  receive(f.env, body(R.booking));
+  f.state.now = T("2026-10-26T18:40:00Z");
+  run(f.env);
+  assert.equal(f.outbox.drafts.length, 1);
+  assert.equal(f.outbox.drafts[0].subject, "Your deep cleaning request");
+  assert.equal(f.claudeCalls.length, 1);
+  f.state.events = [{ id: "e9", start: NOV2, end: NOV2, description: "", title: "Deep cleaning: Priya", guests: ["priya@example.com"], created: T("2026-10-26T19:30:00Z") }];
+  f.state.now = T("2026-10-26T19:35:00Z");
+  run(f.env);
+  assert.equal(f.outbox.drafts.length, 2);
+  assert.equal(f.outbox.drafts[1].subject, "Your deep cleaning on Monday, November 2");
+  assert.equal(f.claudeCalls.length, 1);
+});

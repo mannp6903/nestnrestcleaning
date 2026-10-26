@@ -39,7 +39,7 @@ function leadFromIncoming(record, clock) {
   if (booking) {
     lead.ref = f.Reference || "";
     lead.area = ((/\(([^)]+)\)/.exec(f["Postal code"] || "")) || [])[1] || "";
-    if (f.Date && f.Date !== "Picking a time on the calendar") lead.requested = f.Date + (f["Arrival window"] ? ", " + f["Arrival window"] : "");
+    if (f.Date) lead.requested = f.Date + (f["Arrival window"] ? ", " + f["Arrival window"] : "");
     lead.access = f["Getting in"] || "";
     lead.pets = f.Pets || "";
     lead.referrer = f["Referred by"] && f["Referred by"] !== "None" ? f["Referred by"] : "";

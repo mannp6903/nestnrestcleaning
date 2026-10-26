@@ -6,7 +6,7 @@ var PLAN_DAY = 86400000;
 var PLAN_LATE_LIMIT = PLAN_DAY; // nudges and review requests more than a day late are dropped
 var PLAN_ACTIVE_DAYS = 120;
 // Emails that belong to the conversation: a lead marked Needs you gets these as drafts. Reminders and reviews belong to the clean.
-var CONVERSATION_KINDS = ["welcome", "pickTime", "requestAck", "quoteReply", "quoteNudge"];
+var CONVERSATION_KINDS = ["welcome", "requestAck", "quoteReply", "quoteNudge"];
 
 function planEmailOf(from) {
   var m = /<([^>]+)>/.exec(String(from || ""));
@@ -15,7 +15,7 @@ function planEmailOf(from) {
 
 function sameEmail(a, b) { return !!a && !!b && a.toLowerCase() === b.toLowerCase(); }
 function byStart(a, b) { return new Date(a.start) - new Date(b.start); }
-// Cal.com's "Free walkthrough" events are visits for a quote, not cleans: no reminder or review, but they count as booked.
+// Calendar events with "walkthrough" in the title are visits for a quote, not cleans: no reminder or review, but they count as booked.
 function isWalkthrough(ev) { return /walkthrough/i.test(ev.title || ""); }
 function hasGuest(ev, email) { return (ev.guests || []).some(function (g) { return sameEmail(String(g), email); }); }
 
@@ -42,8 +42,8 @@ function assignEvents(leads, events) {
   return out;
 }
 
-// The clean a booking request led to: the event carrying its reference or, when the client trimmed Cal.com's notes,
-// an event for their email address that was made after the request (not an older clean already on the calendar).
+// The clean a booking request led to: the event carrying its reference or, more usually, an event Mann put on the
+// calendar for the client's email address after the request came in (not an older clean already on the calendar).
 function matchEvents(leads, events, now, assigned) {
   leads.forEach(function (l) {
     if (l.kind !== "booking" || !l.ref) return;
@@ -132,16 +132,12 @@ function dueEmails(lead, ctx) {
   var has = function (k) { return !!lead.emails[k]; };
   var onTime = function (at) { return now >= at && now - at <= PLAN_LATE_LIMIT; };
   if (lead.kind === "booking") {
-    if (lead.requested) {
-      if (!has("requestAck")) out.push({ kind: "requestAck", key: "requestAck", event: null, at: now });
-    } else if (lead.eventId) {
+    // A request gets its reply straight away; once Mann puts the clean on the calendar, the personal note confirms it.
+    if (lead.eventId) {
       if (new Date(lead.eventStart) > now && !has("welcome")) out.push({ kind: "welcome", key: "welcome", event: { id: lead.eventId, start: new Date(lead.eventStart) }, at: now });
       var welcomeDue = out.length > 0;
-    } else if (!has("welcome") && !has("pickTime") && !lead.clientRepliedAt) {
-      var nudge = new Date(new Date(lead.receivedAt).getTime() + s.pickTimeHours * PLAN_HOUR), h = clock.local(nudge).hour;
-      if (h >= 21) nudge = dayOffsetAt(clock, nudge, 1, 9);
-      else if (h < 9) nudge = dayOffsetAt(clock, nudge, 0, 9);
-      if (onTime(nudge)) out.push({ kind: "pickTime", key: "pickTime", event: null, at: nudge });
+    } else if (lead.requested && !has("requestAck")) {
+      out.push({ kind: "requestAck", key: "requestAck", event: null, at: now });
     }
     var events = ctx.assigned[lead.ref] || [], welcome = lead.emails.welcome;
     events.forEach(function (ev) {
@@ -175,7 +171,6 @@ function dueEmails(lead, ctx) {
 function deliveryMode(kind, lead, settings, now) {
   var mode = settings.modes[kind];
   if (mode === "Off") return "off";
-  if (kind === "requestAck") return "draft";
   if (lead.needsYou && CONVERSATION_KINDS.indexOf(kind) > -1) return "draft";
   if (!settings.autoSendFrom || now < settings.autoSendFrom) return "draft";
   return mode === "Auto" ? "auto" : "draft";

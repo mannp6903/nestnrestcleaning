@@ -52,8 +52,6 @@ const WA_HELLO = `Hi ${B.ownerFirstName}, I'd like to ask about a clean.`;
 const PHONE = !!B.phone;
 const founding = C.offers.founding;
 const spotsLeft = founding ? Math.max(0, founding.spots - (founding.claimed || 0)) : 0;
-// Live calendar: with a Cal.com link in booking.calLink, booking ends with picking a confirmed time.
-const CAL = !!(C.booking && C.booking.calLink);
 // Google Analytics runs only once analytics.ga4Id is set; the privacy policy describes it from then on.
 const GA = !!(C.analytics && C.analytics.ga4Id);
 // The business mailing address (CASL and Ontario's Consumer Protection Act). Shown everywhere once it's set in config.
@@ -342,7 +340,7 @@ function pricer(L, defaultKey = "regular", heading = "Your price, in seconds") {
     ${stepper("p-baths", "Bathrooms", 1, "data-p-baths")}
   </div>
   <a class="btn btn-primary btn-block" href="${L("book/")}" data-p-go data-track="pricer_continue">Choose your time ${ic("i-arrow")}</a>
-  <p class="pricer-next">${ic("i-cal")}<span>${CAL ? "Bookings from" : "Next opening:"} <strong data-next-open>tomorrow</strong></span></p>
+  <p class="pricer-next">${ic("i-cal")}<span>Next opening: <strong data-next-open>tomorrow</strong></span></p>
   <div class="pricer-alt">
     <button type="button" class="link-btn" data-textme-open aria-expanded="false" aria-controls="textme-${defaultKey}">${ic("i-sms")} Text me this price</button>
     ${B.whatsapp ? `<a class="link-btn" data-p-wa href="${esc(waLink(WA_HELLO))}" target="_blank" rel="noopener" data-track="whatsapp_click">${ic("i-wa")} Ask on WhatsApp</a>` : ""}
@@ -713,15 +711,12 @@ ${gift && gift.active ? `<section class="gift-band" data-gift-banner data-months
   <div class="wrap">
     <div class="section-head">
       <p class="label">Booking</p>
-      <h2>${CAL ? "Booked in two minutes. Confirmed instantly." : "Booked in two minutes. Confirmed by text."}</h2>
+      <h2>Booked in two minutes. Confirmed by text.</h2>
     </div>
     <ol class="steps-3">
       <li><h3>See your price</h3><p>From your home's size and the extras you choose. No estimate visit needed.</p></li>
-      ${CAL
-        ? `<li><h3>Pick a time</h3><p>Choose a real opening on ${esc(B.ownerFirstName)}'s calendar, any day of the week, evenings included.</p></li>
-      <li><h3>You're confirmed</h3><p>Your time is confirmed straight away, by email. ${esc(B.ownerFirstName)} also texts you <span data-reply>${esc(B.replyPromise)}</span>. You pay after the clean.</p></li>`
-        : `<li><h3>Choose a time</h3><p>Any day of the week, evenings included. Next opening: <strong data-next-open>tomorrow</strong>.</p></li>
-      <li><h3>We confirm</h3><p>${esc(B.ownerFirstName)} confirms by text <span data-reply>${esc(B.replyPromise)}</span>, with a confirmation email if you add your address. You pay after the clean.</p></li>`}
+      <li><h3>Choose a time</h3><p>Any day of the week, evenings included. Next opening: <strong data-next-open>tomorrow</strong>.</p></li>
+      <li><h3>We confirm</h3><p>${esc(B.ownerFirstName)} confirms by text <span data-reply>${esc(B.replyPromise)}</span>, with a confirmation email if you add your address. You pay after the clean.</p></li>
     </ol>
     <div class="center-cta"><a class="btn btn-primary" href="${L("book/")}" data-track="book_click">Book your clean</a></div>
   </div>
@@ -850,10 +845,10 @@ urls.push(page({
     <div class="book-head">
       <div>
         <h1>Book your clean</h1>
-        <p class="book-sub">${ic("i-cal")} ${CAL ? "Bookings from" : "Next opening:"} <strong data-next-open>tomorrow</strong></p>
+        <p class="book-sub">${ic("i-cal")} Next opening: <strong data-next-open>tomorrow</strong></p>
       </div>
       <ol class="progress" data-progress aria-label="Booking steps">
-        ${(CAL ? ["Your home", "Your details", "Pick a time"] : ["Your home", "Plan &amp; time", "Your details"]).map((t, i) => `<li data-dot="${i + 1}"><span>${t}</span></li>`).join("\n        ")}
+        ${["Your home", "Plan &amp; time", "Your details"].map((t, i) => `<li data-dot="${i + 1}"><span>${t}</span></li>`).join("\n        ")}
       </ol>
     </div>
     <div class="booker">
@@ -882,10 +877,10 @@ urls.push(page({
                 ${C.addons.map((a) => `<label class="chip" data-addon="${a.id}"><input type="checkbox" name="addon" value="${a.id}"><span>${esc(a.name)} <b>+${money(a.price)}</b></span></label>`).join("")}
               </div>
             </div>
-            ${CAL ? freqField : ""}
+            
           </fieldset>
 
-          ${CAL ? "" : `<fieldset class="step" data-step="2" hidden>
+          <fieldset class="step" data-step="2" hidden>
             <legend>Plan &amp; time</legend>
             ${freqField}
             <div class="field"><span class="field-label" id="date-label">Day</span>
@@ -898,9 +893,9 @@ urls.push(page({
                 ${C.timeSlots.map((t) => `<label><input type="radio" name="slot" value="${t.id}"><span>${esc(t.label)}<small>${esc(t.time)}</small></span></label>`).join("")}
               </div>
             </div>
-          </fieldset>`}
+          </fieldset>
 
-          <fieldset class="step" data-step="${CAL ? 2 : 3}" hidden>
+          <fieldset class="step" data-step="${3}" hidden>
             <legend>Your details</legend>
             <p class="field-note">All fields are required unless marked optional.</p>
             <div class="form-grid">
@@ -926,11 +921,9 @@ urls.push(page({
                   <label><input type="radio" name="contactPref" value="Email"><span>Email</span></label>
                 </div>
               </div>
-              <p class="consent-line span-2">${ic("i-check")}<span>${CAL
-                ? `Next, you pick a time on ${esc(B.ownerFirstName)}'s calendar and it's confirmed straight away. Nothing to pay until it's done. Free to change up to ${C.policies.cancelNoticeHours} hours before. ${LATE_FEE_LINE}`
-                : `This is a booking request. ${esc(B.ownerFirstName)} confirms the time and final price with you before the clean. Nothing to pay until it's done. Free to change up to ${C.policies.cancelNoticeHours} hours before. ${LATE_FEE_LINE}`}</span></p>
+              <p class="consent-line span-2">${ic("i-check")}<span>This is a booking request. ${esc(B.ownerFirstName)} confirms the time and final price with you before the clean. Nothing to pay until it's done. Free to change up to ${C.policies.cancelNoticeHours} hours before. ${LATE_FEE_LINE}</span></p>
               <p class="privacy-note span-2">Your booking is with ${esc(B.name)}, owned and operated by ${esc(B.owner)}, ${ADDR ? esc(ADDR) : `${esc(B.base)}, Ontario`}. ${PHONE ? `<a data-tel href="tel:${B.phone}">${esc(B.phoneDisplay)}</a> · ` : ""}<a data-mailto href="mailto:${B.email}">${esc(B.email)}</a></p>
-              <p class="privacy-note span-2">By sending, you agree to our <a href="${L("policies/")}">Service Policies</a>. We use your details only to arrange your clean. ${FORMS_TO}${CAL ? ", and the time you pick is booked on Cal.com, our booking calendar. Both" : ", which"} may store data outside Canada. See our <a href="${L("privacy/")}">Privacy Policy</a>.</p>
+              <p class="privacy-note span-2">By sending, you agree to our <a href="${L("policies/")}">Service Policies</a>. We use your details only to arrange your clean. ${FORMS_TO}, which may store data outside Canada. See our <a href="${L("privacy/")}">Privacy Policy</a>.</p>
               <input type="text" name="_honey" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
             </div>
             <p class="form-error" data-form-error role="alert" hidden></p>
@@ -939,20 +932,11 @@ urls.push(page({
           <div class="step-nav">
             <button type="button" class="btn btn-ghost" data-prev hidden>${ic("i-back")} Back</button>
             <button type="button" class="btn btn-primary btn-grow" data-next>Continue ${ic("i-arrow")}</button>
-            <button type="submit" class="btn btn-primary btn-grow" data-submit hidden>${CAL ? `Choose your time ${ic("i-arrow")}` : "Request booking"}</button>
+            <button type="submit" class="btn btn-primary btn-grow" data-submit hidden>Request booking</button>
           </div>
         </form>
 
-        ${CAL ? `<div class="cal-step" data-cal-step hidden tabindex="-1">
-          <p class="label">Last step</p>
-          <h2>Pick your time</h2>
-          <p>Your details are in. Choose a time that suits you and it's confirmed straight away, with a confirmation email.</p>
-          <div class="cal-embed" data-cal-embed></div>
-          <p class="form-error" data-cal-fail role="alert" hidden>The calendar didn't load here. Open it in a new tab below, or ${esc(B.ownerFirstName)} will text you ${esc(B.replyPromise)} to arrange a time.</p>
-          <p class="cal-alt"><a class="text-link" data-cal-link href="#" target="_blank" rel="noopener">Open the calendar in a new tab ${ic("i-arrow")}</a></p>
-        </div>
-
-        ` : ""}<div class="done" data-done hidden tabindex="-1">
+        <div class="done" data-done hidden tabindex="-1">
           <p class="label" data-done-label>Request received</p>
           <h2 data-done-title>Thank you.</h2>
           <p data-done-text></p>
@@ -1778,7 +1762,7 @@ legalPage({
       <div class="table-scroll"><table>
         <thead><tr><th scope="col">When</th><th scope="col">What we collect</th></tr></thead>
         <tbody>
-          <tr><td>You request a booking</td><td>Name, mobile number, email (optional), street address and postal code, home type and size, extras, ${CAL ? "the time you pick on our calendar" : "preferred day and arrival window"}, how we get in (for example a lockbox or concierge), pets, notes, and how you'd like us to confirm.</td></tr>
+          <tr><td>You request a booking</td><td>Name, mobile number, email (optional), street address and postal code, home type and size, extras, preferred day and arrival window, how we get in (for example a lockbox or concierge), pets, notes, and how you'd like us to confirm.</td></tr>
           <tr><td>You ask us to text you a price</td><td>Your mobile number and the price details you chose.</td></tr>
           <tr><td>You request a quote</td><td>Name, phone, email (optional), postal code, details about the space or property, and any notes you add.</td></tr>
           <tr><td>You request a gift card</td><td>Your name, phone and email, the gift amount, the recipient's name, and optionally their email, postal code and your message.</td></tr>
@@ -1805,8 +1789,7 @@ legalPage({
       <ul>
         <li><strong>GitHub</strong> (GitHub, Inc.) hosts this website and keeps standard server logs, including IP addresses, for security.</li>
         ${GFORMS ? `<li><strong>Google</strong> provides our email, calendar and spreadsheet services, and runs the small program that receives this website's forms and sends your confirmation emails.</li>` : `<li><strong>Google</strong> provides our email service, where booking, quote, gift card and review messages are stored.</li>`}
-        ${CAL ? `<li><strong>Cal.com</strong> (cal.com) runs our booking calendar. When you pick a time, it receives your name, email, phone number and booking details, and emails your confirmation. It may store data outside Canada.</li>
-        ` : ""}${GA ? `<li><strong>Google Analytics</strong> (Google LLC) measures how visitors use this website: the pages viewed, how they arrived (for example from our flyer or business card), the type of device and an approximate location. It doesn't receive anything you type into our forms, and it stores data in the United States.</li>
+        ${GA ? `<li><strong>Google Analytics</strong> (Google LLC) measures how visitors use this website: the pages viewed, how they arrived (for example from our flyer or business card), the type of device and an approximate location. It doesn't receive anything you type into our forms, and it stores data in the United States.</li>
         ` : ""}${GFORMS && C.automation && C.automation.aiReplies ? `<li><strong>Anthropic</strong> (anthropic.com) provides Claude, an AI service that helps us write the personal part of our emails to you. It receives your first name, the service you asked about, your choices on our form and any notes you add, but not your email address, phone number or address. It may store data outside Canada.</li>
         ` : ""}${GFORMS ? "" : `<li><strong>FormSubmit</strong> (formsubmit.co) delivers the website's forms to our email inbox, and sends your confirmation email when you give us your address.</li>`}
         ${B.whatsapp ? `<li><strong>WhatsApp</strong> (WhatsApp LLC, part of Meta Platforms) delivers and stores messages if you choose to contact us on WhatsApp.</li>
@@ -1825,8 +1808,7 @@ legalPage({
     { id: "safeguards", h: "How we protect it", html: () => `<p>Only the people who need your information to serve you can see it. We protect our email and business accounts with strong passwords and two-step verification, keep access codes separate from other records, and delete information we no longer need. No method of transmission or storage is completely secure, but we work to protect your information.</p>
       <p>If a breach of our safeguards creates a real risk of significant harm to you, we will notify you and the Office of the Privacy Commissioner of Canada as the law requires.</p>` },
     { id: "access", h: "Door and lockbox codes", html: () => `<p>Codes and keys give access to your home, so we treat them with extra care. We don't ask for them on the website. We ask by text or phone only after your booking is confirmed, keep them separate from your name and address, never write them on keys, and delete them within ${P.accessCodeDeleteDays} days of your last scheduled visit. We recommend changing your code from time to time, and after you stop using our service.</p>` },
-    { id: "cookies", h: "Cookies and your browser", html: () => `<p>We don't use advertising cookies or tracking pixels.${GA ? ` We use Google Analytics to understand how visitors use the site, and it sets its own cookies in your browser (their names start with "_ga"). We've turned off Google's advertising features for this site. To opt out, block cookies in your browser settings or install Google's opt-out add-on at <a href="https://tools.google.com/dlpage/gaoptout" rel="noopener" target="_blank">tools.google.com/dlpage/gaoptout</a>.` : ""} When you start a booking, the details you enter are saved in your own browser so you don't lose them if you leave the page. They stay on your device and are sent to us only when you submit the request. You can clear them at any time through your browser settings.</p>${CAL ? `
-      <p>When you pick a time, our booking calendar from Cal.com loads on the page and may use its own cookies to run the calendar. See Cal.com's privacy policy for details.</p>` : ""}
+    { id: "cookies", h: "Cookies and your browser", html: () => `<p>We don't use advertising cookies or tracking pixels.${GA ? ` We use Google Analytics to understand how visitors use the site, and it sets its own cookies in your browser (their names start with "_ga"). We've turned off Google's advertising features for this site. To opt out, block cookies in your browser settings or install Google's opt-out add-on at <a href="https://tools.google.com/dlpage/gaoptout" rel="noopener" target="_blank">tools.google.com/dlpage/gaoptout</a>.` : ""} When you start a booking, the details you enter are saved in your own browser so you don't lose them if you leave the page. They stay on your device and are sent to us only when you submit the request. You can clear them at any time through your browser settings.</p>
       <p>If we add ${GA ? "advertising tools" : "website analytics or advertising tools"} in future, we will update this policy first and explain how to opt out.</p>` },
     { id: "rights", h: "Your rights", html: () => `<p>You can ask to see the personal information we hold about you, ask how it has been used or shared, and ask us to correct it if it's wrong. Contact us at ${contactLine}. We'll respond within 30 days, and there's no charge.</p>` },
     { id: "children", h: "Children", html: () => `<p>Our services and website are for adults. We don't knowingly collect personal information from children.</p>` },
@@ -1842,9 +1824,7 @@ legalPage({
   intro: `Clear terms, so there are no surprises. These apply to every clean we do. If anything here is unclear, ${PHONE ? `call, text or WhatsApp ${esc(B.phoneDisplay)}` : `email ${esc(B.email)}`}.`,
   sections: [
     { id: "area", h: "Where we clean", html: () => `<p>We clean homes and small offices in Scarborough and North York, Toronto. We confirm your postal code before every booking.</p>` },
-    { id: "booking", h: "Booking and confirmation", html: () => CAL
-      ? `<p>When you book on the website, you send your details first, then pick a time on our online calendar. The time you pick is confirmed straight away, and our calendar provider, Cal.com, emails you a confirmation with links to reschedule or cancel. We also contact you by text, WhatsApp, call or email, as you prefer, ${esc(B.replyPromise)}. If you don't pick a time, your details reach us as a request and we'll contact you to arrange one.</p>`
-      : `<p>A booking made on the website is a request. It's confirmed once we've contacted you by text, WhatsApp, call or email and agreed a day and arrival window. We usually reply ${esc(B.replyPromise)}. If you give us your email address, you also get an automatic email confirming we've received your request.</p>` },
+    { id: "booking", h: "Booking and confirmation", html: () => `<p>A booking made on the website is a request. It's confirmed once we've contacted you by text, WhatsApp, call or email and agreed a day and arrival window. We usually reply ${esc(B.replyPromise)}. If you give us your email address, you also get an automatic email confirming we've received your request.</p>` },
     { id: "pricing", h: "Prices and estimates", html: () => `<p>The price shown on the website is an estimate based on what you tell us: the service, home type, bedrooms, bathrooms and extras. If your home needs much more or less time than expected, we'll tell you and agree the price with you before we start, never after. Prices are in Canadian dollars.</p>
       ${founding && founding.active ? `<p>Founding household offer: ${esc(founding.text)} The discount applies to the first visit only and can't be combined with other discounts.</p>` : ""}
       <p>Recurring plans (weekly, every 2 weeks or every 4 weeks) receive the discount shown when you book. You can pause or change your plan with ${P.cancelNoticeHours} hours' notice.</p>` },

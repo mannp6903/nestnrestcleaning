@@ -343,12 +343,8 @@
     if (!form) return;
     var state = { step: 1, service: "regular", homeType: "condo", beds: 1, baths: 1, addons: [], freq: "once", date: null, flex: false, slot: null };
     var fieldIds = ["f-name", "f-phone", "f-email", "f-address", "f-postal", "f-access", "f-referrer", "f-notes"];
-    // The page decides the flow: built with a Cal.com link, it has no day-and-window step and ends on the calendar.
     var LAST = $$(".step", form).length;
     var datesBox = $("[data-dates]");
-    var calStep = $("[data-cal-step]");
-    var calPath = String((C.booking || {}).calLink || "").trim().replace(/^https?:\/\/(app\.)?cal\.com\//, "").replace(/^\/+|\/+$/g, "");
-    var CAL = !!(calStep && calPath);
 
     function availableDates() { return openDates(C.daysAhead); }
     var iso = isoDay;
@@ -526,8 +522,6 @@
       if (!C.services[state.service]) state.service = "regular";
       if (state.date && availableDates().map(iso).indexOf(state.date) === -1) state.date = null;
       if (state.step > LAST || state.step < 1) state.step = 1;
-      // Built for the calendar but no link set: send a request and we'll arrange the earliest opening.
-      if (calStep && !CAL) state.flex = true;
     }
     function onPostal() {
       var el = $("#f-postal"), out = $("[data-pc-booking]");
@@ -599,17 +593,12 @@
       return parts.join("; ");
     }
     function whenText() {
-      if (CAL) return "Picking a time on the calendar";
       return state.flex ? "Flexible: earliest opening" : longDate(state.date);
-    }
-    // A booked calendar time, shown in Toronto time whatever the visitor's device says.
-    function fmtStart(d) {
-      return new Intl.DateTimeFormat("en-CA", { weekday: "long", month: "long", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/Toronto" }).format(d);
     }
     function ref() { var c = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789", s = ""; for (var i = 0; i < 4; i++) s += c[Math.floor(Math.random() * c.length)]; return "NR-" + s; }
     function text(r, when) {
       var q = quote(), slot = slotById(state.slot);
-      return [(CAL ? "Booking " : "Booking request ") + r, q.s.name + ", " + homeLine(q),
+      return ["Booking request " + r, q.s.name + ", " + homeLine(q),
         q.addons.length ? "Extras: " + q.addons.map(function (a) { return a.name; }).join(", ") : "",
         "When: " + (when || (state.flex ? "earliest opening" : longDate(state.date)) + (slot ? ", " + slot.label + " (" + slot.time + ")" : "")),
         q.repeat ? "Plan: " + q.freq.label : "",
@@ -632,11 +621,11 @@
       send({
         _subject: "New booking " + r + ": " + q.s.name + ", " + when,
         _template: "table", _captcha: "false", _replyto: email || undefined,
-        // The customer's written copy: itemized price and change terms. With the calendar, Cal.com confirms the time separately.
-        _autoresponse: email ? autoReply(CAL ? (C.emails || {}).bookingCal : (C.emails || {}).booking, { name: firstName, ref: r, summary: plain, items: itemsText(q), reply: B.replyPromise, phone: B.phoneDisplay,
-          notice: C.policies.cancelNoticeHours, lateFee: C.policies.lateCancelFee, terms: C.siteUrl + "/policies/", calendar: "https://cal.com/" + calPath }) : undefined,
+        // The customer's written copy: itemized price and change terms.
+        _autoresponse: email ? autoReply((C.emails || {}).booking, { name: firstName, ref: r, summary: plain, items: itemsText(q), reply: B.replyPromise, phone: B.phoneDisplay,
+          notice: C.policies.cancelNoticeHours, lateFee: C.policies.lateCancelFee, terms: C.siteUrl + "/policies/" }) : undefined,
         _form: "booking",
-        _confirm: email ? { tpl: CAL ? "bookingCal" : "booking", vals: { name: firstName, ref: r, summary: plain, items: itemsText(q) } } : undefined,
+        _confirm: email ? { tpl: "booking", vals: { name: firstName, ref: r, summary: plain, items: itemsText(q) } } : undefined,
         _honey: $('[name="_honey"]', form).value,
         "Reference": r, "Service": q.s.name, "Home": homeLine(q),
         "Extras": q.addons.map(function (a) { return a.name; }).join(", ") || "None",
@@ -651,12 +640,11 @@
         "Notes": $("#f-notes").value.trim() || "None", "Confirm by": ($('input[name="contactPref"]:checked', form) || {}).value
       }).then(function (res) {
         track("generate_lead", { form: "booking", service: state.service, value: Math.round(q.first), currency: C.currency }, true);
-        last = { ref: r, date: state.flex || CAL ? null : state.date, slot: slot, hours: q.hours, service: q.s.name, address: $("#f-address").value };
+        last = { ref: r, date: state.flex ? null : state.date, slot: slot, hours: q.hours, service: q.s.name, address: $("#f-address").value };
         var info = { r: r, q: q, slot: slot, email: email, firstName: firstName, skipped: !!(res && res.skipped),
           how: { Text: "text", WhatsApp: "message", Call: "call", Email: "email" }[($('input[name="contactPref"]:checked', form) || {}).value] || "text" };
         form.hidden = true;
-        if (CAL && !info.skipped) showCalendar(info);
-        else showDone(info, false, null);
+        showDone(info);
         store(DRAFT_KEY, null);
       }).catch(function () {
         var err = $("[data-form-error]");
@@ -666,14 +654,13 @@
       }).then(function () { btn.disabled = false; btn.innerHTML = btnLabel; });
     });
 
-    function showDone(info, booked, start) {
+    function showDone(info) {
       var q = info.q, slot = info.slot;
-      var when = booked ? (start ? fmtStart(start) : "The time you picked (see your confirmation email)")
-        : (state.flex ? "Earliest opening (we'll confirm)" : longDate(state.date)) + (slot ? ", arrival " + slot.time : "");
+      var when = (state.flex ? "Earliest opening (we'll confirm)" : longDate(state.date)) + (slot ? ", arrival " + slot.time : "");
       $("[data-progress]").hidden = true;
       $("[data-summary]").hidden = true;
-      $(".book-head h1").textContent = booked ? "You're booked" : "Request sent";
-      $("[data-done-label]").textContent = booked ? "Booking confirmed" : "Request received";
+      $(".book-head h1").textContent = "Request sent";
+      $("[data-done-label]").textContent = "Request received";
       $("[data-ref]").textContent = info.r;
       var rows = [
         ["When", when],
@@ -681,94 +668,27 @@
         ["Service", q.s.name + " · " + homeLine(q)],
         $("#f-referrer").value.trim() ? ["Referred by", $("#f-referrer").value.trim() + ". We'll credit them once your clean is done and paid."] : null,
         ["Estimate", money(q.first) + (q.firstDisc > 0 ? " (" + q.firstPct + "% off: " + q.firstLabel.toLowerCase() + ")" : "") + (q.repeat ? ", then " + money(q.repeat) + " " + q.freq.label.toLowerCase() : "") + ". Paid after the clean."],
-        ["Changes", (booked ? "Use the links in your confirmation email. " : "") + "Free up to " + C.policies.cancelNoticeHours + " hours before your " + (booked ? "booking" : "arrival window") + ". Later changes may cost " + C.policies.lateCancelFee + "."]
+        ["Changes", "Free up to " + C.policies.cancelNoticeHours + " hours before your arrival window. Later changes may cost " + C.policies.lateCancelFee + "."]
       ];
       $("[data-done-list]").innerHTML = rows.filter(Boolean).map(function (x) { return "<div><dt>" + esc(x[0]) + "</dt><dd>" + esc(x[1]) + "</dd></div>"; }).join("");
       if (info.skipped) {
         $("[data-done-title]").textContent = "Preview only.";
         $("[data-done-text]").textContent = "This preview doesn't send bookings. On the live site, " + B.ownerFirstName + " receives this request by email.";
-      } else if (booked) {
-        $("[data-done-title]").textContent = "You're booked, " + info.firstName + ".";
-        var at = start ? fmtStart(start) : "";
-        $("[data-done-text]").textContent = (at ? at + (/\.$/.test(at) ? " " : ". ") : "") + "Your confirmation email has links to reschedule or cancel. " +
-          B.ownerFirstName + " will " + info.how + " you " + B.replyPromise + " to confirm the details. Nothing to pay until after your clean.";
       } else {
         $("[data-done-title]").textContent = "Thank you, " + info.firstName + ".";
         $("[data-done-text]").textContent = B.ownerFirstName + " will " + info.how + " you " + B.replyPromise + " to confirm " +
           (state.flex ? "the earliest opening" : longDate(state.date) + (slot ? ", " + slot.label.toLowerCase() : "")) + "." + (info.email ? " A confirmation is on its way to " + info.email + "." : "") + " Nothing to pay until after your clean.";
       }
-      var msg = text(info.r, booked ? when : null);
+      var msg = text(info.r);
       var smsb = $("[data-sms-booking]");
       if (smsb) smsb.href = "sms:" + B.phone + "?&body=" + encodeURIComponent(msg);
       var wab = $("[data-wa-booking]");
       if (wab) wab.href = waHref(msg);
-      // A calendar booking already comes with its own calendar invite.
-      $("[data-ics]").hidden = PREVIEW || booked || !last.date;
+      $("[data-ics]").hidden = PREVIEW || !last.date;
       var done = $("[data-done]");
       done.hidden = false;
       done.focus();
       window.scrollTo({ top: 0, behavior: "smooth" });
-    }
-
-    // Cal.com's standard embed loader, in this file's ES5 style. It queues calls until embed.js arrives.
-    function loadCal() {
-      if (window.Cal) return;
-      var d = document, push = function (a, ar) { a.q.push(ar); };
-      window.Cal = function () {
-        var cal = window.Cal, ar = arguments;
-        if (!cal.loaded) { cal.ns = {}; cal.q = cal.q || []; d.head.appendChild(d.createElement("script")).src = "https://app.cal.com/embed/embed.js"; cal.loaded = true; }
-        if (ar[0] === "init") {
-          var api = function () { push(api, arguments); }, ns = ar[1];
-          api.q = api.q || [];
-          if (typeof ns === "string") { cal.ns[ns] = cal.ns[ns] || api; push(cal.ns[ns], ar); push(cal, ["initNamespace", ns]); } else push(cal, ar);
-          return;
-        }
-        push(cal, ar);
-      };
-    }
-    // Everything the customer already typed, so Cal.com's form is filled in and the slot is the right length.
-    function calConfig(info) {
-      var q = info.q, digits = $("#f-phone").value.replace(/\D/g, "").slice(-10);
-      var notes = [
-        "Booking " + info.r + ": " + q.s.name + ", " + homeLine(q),
-        q.addons.length ? "Extras: " + q.addons.map(function (a) { return a.name; }).join(", ") : "",
-        q.repeat ? "Plan: " + q.freq.label : "",
-        "Estimate: " + money(q.first) + (q.repeat ? ", then " + money(q.repeat) + "/visit" : "") + ", about " + q.hours + " hours",
-        "Address: " + $("#f-address").value.trim() + ", " + formatPostal($("#f-postal").value),
-        "Getting in: " + $("#f-access").value + ". Pets: " + (($('input[name="pets"]:checked', form) || {}).value || "No pets"),
-        $("#f-referrer").value.trim() ? "Referred by: " + $("#f-referrer").value.trim() : "",
-        $("#f-notes").value.trim() ? "Notes: " + $("#f-notes").value.trim() : ""
-      ].filter(Boolean).join("\n");
-      var cfg = { name: $("#f-name").value.trim(), notes: notes, attendeePhoneNumber: "+1" + digits, "metadata[ref]": info.r,
-        duration: String(Math.min(480, Math.max(60, Math.ceil(q.hours) * 60))), layout: "month_view", theme: isDark() ? "dark" : "light" };
-      if (info.email) cfg.email = info.email;
-      return cfg;
-    }
-    function showCalendar(info) {
-      var cfg = calConfig(info);
-      $(".book-head h1").textContent = "Almost booked";
-      markDots(3);
-      $("[data-cal-link]").href = "https://cal.com/" + calPath + "?" + Object.keys(cfg).map(function (k) { return encodeURIComponent(k) + "=" + encodeURIComponent(cfg[k]); }).join("&");
-      calStep.hidden = false;
-      calStep.focus();
-      window.scrollTo({ top: 0, behavior: "smooth" });
-      var booked = false;
-      function onBooked(e) {
-        if (booked) return;
-        booked = true;
-        var d = (e && e.detail && e.detail.data) || {};
-        var start = d.startTime || (d.booking && d.booking.startTime) || d.date;
-        track("booking_scheduled", { service: state.service, value: Math.round(info.q.first), currency: C.currency });
-        calStep.hidden = true;
-        showDone(info, true, start && !isNaN(new Date(start)) ? new Date(start) : null);
-      }
-      loadCal();
-      window.Cal("init", { origin: "https://app.cal.com" });
-      window.Cal("inline", { elementOrSelector: $("[data-cal-embed]"), calLink: calPath, config: cfg });
-      window.Cal("ui", { theme: isDark() ? "dark" : "light", layout: "month_view", hideEventTypeDetails: false, cssVarsPerTheme: { light: { "cal-brand": "#0A2D5C" }, dark: { "cal-brand": "#6FC3E0" } } });
-      window.Cal("on", { action: "bookingSuccessfulV2", callback: onBooked });
-      window.Cal("on", { action: "bookingSuccessful", callback: onBooked });
-      setTimeout(function () { if (!booked && !$("[data-cal-embed] iframe")) $("[data-cal-fail]").hidden = false; }, 10000);
     }
 
     $("[data-ics]").addEventListener("click", function () {

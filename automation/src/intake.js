@@ -8,7 +8,7 @@ var RATE_LIMITS = { all: 30, perEmail: 3, perEmail6h: 5, perDay: 60 };
 var SUBJECT_PREFIX = { booking: "New booking ", quote: "New quote request: ", gift: "New gift card request ", review: "New review: ", textPrice: "Text this price: " };
 var INTAKE_MAX = { fields: 40, value: 2000, subject: 200 };
 // The confirmation templates each form may use, and the longest value each may fill in.
-var CONFIRM_TEMPLATES = { booking: ["booking", "bookingCal"], quote: ["quote"], gift: ["gift"] };
+var CONFIRM_TEMPLATES = { booking: ["booking"], quote: ["quote"], gift: ["gift"] };
 var CONFIRM_MAX = { name: 60, ref: 12, summary: 400, items: 800, reply: 80 };
 
 function checkRequest(payload) {
@@ -98,14 +98,12 @@ function confirmationEmail(payload, site) {
     vals[k] = v;
   }
   var tpl = site.emails[c.tpl];
-  if (c.tpl === "bookingCal" && !site.links.calendar) return fail("the booking calendar link isn't set yet.");
   if (/\{ref\}/.test(tpl) && !/^(NR|GIFT)-[A-Z0-9]{4}$/.test(vals.ref)) return fail("the reference looked wrong.");
   vals.reply = site.replyPromises.indexOf(vals.reply) > -1 ? vals.reply : site.business.replyPromise;
   vals.contact = site.business.contact;
   vals.notice = site.policies.cancelNoticeHours;
   vals.lateFee = site.policies.lateCancelFee;
   vals.terms = site.links.policies;
-  vals.calendar = site.links.calendar;
   vals.phone = site.business.phoneDisplay;
   var body = fillTemplate(tpl, vals), gap = /\{(\w+)\}/.exec(body);
   if (gap) return fail("the wording has a gap ({" + gap[1] + "}).");

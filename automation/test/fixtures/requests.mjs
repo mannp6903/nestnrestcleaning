@@ -1,20 +1,20 @@
 // What js/site.js sends to the Google script for each form (with delivery.provider "google"). Made-up people.
 export const booking = {
   _form: "booking",
-  _subject: "New booking NR-AB12: Deep Cleaning, Picking a time on the calendar",
+  _subject: "New booking NR-AB12: Deep Cleaning, Flexible: earliest opening",
   _replyto: "priya@example.com",
   _honey: "",
   _confirm: {
     tpl: "booking",
-    vals: { name: "Priya", ref: "NR-AB12", summary: "Deep Cleaning, 2 bed, 1 bath condo; Picking a time on the calendar; estimate $228", items: "Deep Cleaning $285; Founding household −$57" }
+    vals: { name: "Priya", ref: "NR-AB12", summary: "Deep Cleaning, 2 bed, 1 bath condo; Flexible: earliest opening, arrival 9am to 12pm; estimate $228", items: "Deep Cleaning $285; Founding household −$57" }
   },
   "Reference": "NR-AB12",
   "Service": "Deep Cleaning",
   "Home": "2 bed, 1 bath condo",
   "Extras": "None",
   "Plan": "One time",
-  "Date": "Picking a time on the calendar",
-  "Arrival window": "",
+  "Date": "Flexible: earliest opening",
+  "Arrival window": "Morning (9am to 12pm)",
   "Estimate, first visit": "$228",
   "Estimate, repeat visits": "n/a",
   "Estimated time": "about 4 hours",

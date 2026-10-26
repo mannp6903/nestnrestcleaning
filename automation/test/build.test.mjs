@@ -23,14 +23,12 @@ test("links point at the live site", () => {
   assert.equal(site.links.book, "https://nestnrestcleaning.com/book/");
 });
 
-test("the calendar link is cleaned the same way the booking page cleans it", () => {
-  const C = loadConfig();
-  C.booking.calLink = "";
-  assert.equal(buildSiteConfig(C).links.calendar, "");
-  C.booking.calLink = "https://cal.com/nr/home-clean/";
-  assert.equal(buildSiteConfig(C).links.calendar, "https://cal.com/nr/home-clean");
-  C.automation.walkthroughLink = "nr/walkthrough";
-  assert.equal(buildSiteConfig(C).links.walkthrough, "https://cal.com/nr/walkthrough");
+test("nothing about Cal.com is published", () => {
+  const site = buildSiteConfig(loadConfig());
+  assert.equal(site.links.calendar, undefined);
+  assert.equal(site.links.walkthrough, undefined);
+  assert.equal(site.emails.bookingCal, undefined);
+  assert.ok(!/cal\.com/i.test(JSON.stringify(site)));
 });
 
 test("business details, contact line and reply promises", () => {

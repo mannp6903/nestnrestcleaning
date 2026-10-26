@@ -1,7 +1,7 @@
 # Personal email automation: design
 
 Date: 2026-10-26
-Status: revised (the website's forms now go straight to the Google script, replacing FormSubmit), waiting for review
+Status: revised. The website's forms go straight to the Google script, replacing FormSubmit. Cal.com was removed: bookings are requests, and Mann confirms each one by putting the clean on Google Calendar.
 
 ## Goal
 
@@ -14,13 +14,13 @@ Every client who books a clean or asks for a free quote gets a fast, personal em
 - **The website's forms send straight to the Google script,** replacing FormSubmit. The forms, prices and booking flow look and work exactly as they do now.
 - **Drafts first, then auto-send.** For the first two weeks, every personal email waits in Gmail as a draft. After that, routine ones send on their own. Quote replies, and anything the system isn't sure about, always stay drafts.
 - Claude writes **one personal paragraph** that responds to what the client wrote in their notes.
-- **Cal.com is switched on** (`booking.calLink` in `js/config.js`), so clients pick a confirmed time themselves and the bookings land in Google Calendar.
+- **No booking tool.** Bookings stay requests (preferred day and arrival window). Mann confirms the time with the client and puts the clean on Google Calendar, with the client's email address as a guest.
 
 ### Assumptions (correct these if they're wrong)
 
 - Emails are written as Mann, in the first person, and signed "Mann".
-- **The script runs in the nestnrestcleaning@gmail.com Google account.** That account receives the website's forms, sends every email, and owns the Google Calendar that Cal.com writes to.
-- Mann creates a second Cal.com event type, "Free walkthrough" (30 minutes), for quote clients.
+- **The script runs in the nestnrestcleaning@gmail.com Google account.** That account receives the website's forms, sends every email, and owns the Google Calendar where Mann puts confirmed cleans.
+- Quote walkthroughs are arranged by reply; if Mann puts one on the calendar, its title contains "walkthrough".
 
 ### What success looks like
 
@@ -63,18 +63,18 @@ The script is published as a Google **web app**: a private web address that only
 
 ## What each client receives
 
-The client's confirmation email keeps its current wording, but now comes from nestnrestcleaning@gmail.com instead of FormSubmit. Cal.com's confirmation stays exactly as it is. The automation adds the following.
+The client's confirmation email keeps its current wording, but now comes from nestnrestcleaning@gmail.com instead of FormSubmit. The automation adds the following.
 
-### Bookings (home cleaning, through the booking page and Cal.com)
+### Bookings (home cleaning, through the booking page)
 
 | When | Email | Notes |
 |---|---|---|
-| A few minutes after the client picks a time on Cal.com | **Personal note** | Mentions their actual booking (service, day, arrival time), the personal paragraph, a thank-you to whoever referred them (fixed wording that includes the referral credit), and what to expect and how to get ready. |
-| 3 hours after the booking form, if no time was picked | **Pick-a-time nudge** (once) | A friendly reminder with the calendar link. If 3 hours lands between 9pm and 9am, it goes at 9am. |
+| Within 5 minutes of the booking request | **Booking request reply** (a draft unless Settings says Auto) | Thanks them, repeats the day and window they asked for, the personal paragraph, and says Mann will confirm shortly. |
+| A few minutes after Mann puts the clean on Google Calendar | **Personal note** | Confirms the day and arrival time, thanks whoever referred them (fixed wording), and says how to get ready. No second Claude paragraph. |
 | 6pm the day before each clean | **Reminder** | Arrival time, how we're getting in (from their form), pets, and that nothing is paid until after. |
 | 11am the day after the client's **first** clean | **Review request** (once per client, ever) | Links to `/review/`. Never offers anything in return, as Google's rules and the Competition Bureau require. |
 
-A clean that's cancelled in Cal.com disappears from the calendar, so no reminder or review request goes out. A rescheduled clean moves in the calendar, and the reminder follows it.
+A clean Mann deletes from the calendar gets no reminder or review request. A clean moved to another time gets its reminder at the new time.
 
 ### Quotes (Residence Care, Small Office Cleaning, Realtors and property managers)
 
@@ -82,10 +82,6 @@ A clean that's cancelled in Cal.com disappears from the calendar, so no reminder
 |---|---|---|
 | Within 5 minutes of the quote form | **Quote reply** (always a draft) | The personal paragraph responds to what they described. The next step depends on the form: Residence Care and office link to the "Free walkthrough" booking; Realtors asks for the address, access and date so Mann can price it. |
 | 2 days after the quote reply was sent, if the client hasn't replied or booked | **Quote nudge** (once) | Short and polite, sent at 10am. |
-
-### If the booking calendar is switched off
-
-If `booking.calLink` is empty, a booking carries a requested date instead of "Picking a time on the calendar". The script then writes a draft that thanks the client and responds to their notes, but never confirms a time. That draft is marked **Needs you**. This is a fallback only; the design assumes Cal.com is on.
 
 ## Safety rules
 
@@ -98,7 +94,7 @@ If `booking.calLink` is empty, a booking carries a requested date instead of "Pi
 
    A rejected paragraph is dropped, and the email becomes a **Needs you** draft without it.
 4. **Claude can raise its hand.** It returns `needs_mann: true` with a reason when the notes ask for something it can't answer from the facts, or something outside the usual service. That email becomes a **Needs you** draft, and the reason is shown in the Sheet.
-5. **When a client writes back:** any email from a client's address after the first automated email pauses that client's nudges (pick-a-time and quote nudges). The Sheet row and the Gmail thread are marked **Needs you**, so Mann takes the conversation over. Booking reminders and the review request still go out, because they belong to a booked clean, not to the conversation.
+5. **When a client writes back:** any email from a client's address after the first automated email pauses that client's quote nudge. The Sheet row and the Gmail thread are marked **Needs you**, so Mann takes the conversation over. Booking reminders and the review request still go out, because they belong to a booked clean, not to the conversation.
 6. **Opting out:** if a client's email contains "unsubscribe" or a line that's just "stop", they're marked as opted out on every row with that email address. Only the client's own words count: quoted earlier emails, including our footer, are ignored. Mann can also tick **Opted out** by hand. Opted-out clients get no automated email of any kind, ever. Canada's anti-spam law (CASL) requires stopping within 10 business days; the script stops on its next run.
 7. **Every email** carries the existing `emails.footer`: who we are, mailing address, contact details and how to unsubscribe.
 8. **No double sends.** Every email the script makes is recorded in the Sheet before the next step, and each run holds a lock so two runs can't overlap.
@@ -140,7 +136,6 @@ Mann creates a blank Google Sheet with this name and opens Apps Script from insi
 - **Auto-send starts:** a date, set to the install date plus 14 days. Before it, every personal email is a draft.
 - **One setting per email type:** Off, Draft or Auto. Every type defaults to Auto, except the quote reply, which defaults to Draft. Auto only takes effect after the start date, and never for a **Needs you** email.
 - **Timings:**
-  - pick-a-time nudge: 3 hours;
   - quote nudge: 2 days, at 10am;
   - reminder: 6pm the day before;
   - review request: 11am the day after.
@@ -174,17 +169,17 @@ The pure parts carry no Google code, so they run in Node for testing. A build st
 
 ### Settings and wording stay in `js/config.js`
 
-- **A new `automation` section in `js/config.js`** holds the wording of every automated email, the walkthrough booking link and the quote reply's next step for each quote form. It sits beside the existing `emails` section, following the same `{placeholder}` style.
+- **A new `automation` section in `js/config.js`** holds the wording of every automated email, and the quote reply's next step for each quote form. It sits beside the existing `emails` section, following the same `{placeholder}` style.
 - **The confirmation emails keep their wording in `emails`,** with a subject line for each added in `emails.subjects`.
 - **A switch, `automation.aiReplies`,** turns the Claude paragraph on or off. The Privacy Policy's Anthropic line appears only while it's on. With it off, emails have no personal paragraph, and an email whose client wrote notes becomes a **Needs you** draft.
-- **`node tools/build.mjs` also writes `automation/site-config.json`.** It holds the parts the script needs: business details, the email footer, the confirmation and `automation` wording, FAQs, policies, service descriptions and the Cal.com links. It's published with the site, like `js/config.js` already is.
+- **`node tools/build.mjs` also writes `automation/site-config.json`.** It holds the parts the script needs: business details, the email footer, the confirmation and `automation` wording, FAQs, policies and service descriptions. It's published with the site, like `js/config.js` already is.
 - **The script fetches that file from the live site at most every 6 hours.** It keeps the last good copy in the Sheet, so a wording change in `js/config.js` reaches the emails without re-pasting the script. If the site can't be reached, the script keeps using its saved copy.
 - **Timings and switches live in the Sheet,** not in `js/config.js`, so Mann can change them instantly without a website update.
 
 ### Data flow on each 5-minute run
 
 1. **Take new leads** from the Incoming tab, add a Clients row for each, and clear the rows taken.
-2. **Find calendar events.** Look in Google Calendar from 2 days ago to 90 days ahead for events whose description contains a known `NR-` reference; Cal.com copies the booking notes, which include it. If there's no reference, match on the guest's email address instead; an event made after a booking request also counts as that request's booking, so a client who trims Cal.com's notes still gets their personal note. Events whose title contains "walkthrough" are quote walkthroughs, not cleans: they get no reminder, and they stop the quote nudge. This gives the booked time, notices cancellations and moves reminders when a clean is rescheduled. Events Mann adds by hand get reminders too, as long as they include the client's reference or email address.
+2. **Find calendar events.** Look in Google Calendar from 2 days ago to 90 days ahead. An event is matched to a booking by a `NR-` reference in its description, or by the client's email address as a guest; an event made after a booking request counts as that request's booking, which is what sends the personal note. Events whose title contains "walkthrough" are quote walkthroughs, not cleans: they get no reminder, and they stop the quote nudge. This gives the booked time, notices cancellations and moves reminders when a clean is rescheduled. Events Mann adds by hand get reminders too, as long as they include the client's reference or email address.
 3. **Find client replies and opt-outs.** Search Gmail for messages from known client addresses that arrived after the first automated email.
 4. **Plan** (pure), using what was found plus the settings and the current time in America/Toronto.
 5. **Do the work.**
@@ -205,7 +200,7 @@ Emails are sent from nestnrestcleaning@gmail.com. Personal emails use the sender
 - **The server-side refusal fallback is switched on.** If the model declines, the API automatically retries on a fallback model.
 - **The cost is roughly 3 cents per client.** Only the personal note and the quote reply call Claude, about once per client. The nudges, reminders and review requests use fixed wording and cost nothing. 50 clients a month comes to about $1.50.
 - **The API account is separate from Mann's Claude subscription.** It's created at console.anthropic.com with any email address (the business email is a natural fit) and paid for with prepaid credit, starting at about $5. Mann sets a monthly spending limit there, for example $10.
-- **Everything else is free:** Google Apps Script, Gmail, Sheets and Calendar on a free Gmail account, Cal.com's free plan, and GitHub Pages. FormSubmit is no longer needed.
+- **Everything else is free:** Google Apps Script, Gmail, Sheets and Calendar on a free Gmail account, and GitHub Pages. FormSubmit is no longer needed.
 - **On any failure** (an HTTP error, a refusal, invalid JSON or a failed check), the email is built without the paragraph, marked **Needs you**, and logged.
 
 ### Errors and limits
@@ -230,7 +225,7 @@ Emails are sent from nestnrestcleaning@gmail.com. Personal emails use the sender
 
 ## Setup (for `automation/README.md`)
 
-1. **Switch on Cal.com.** Follow the existing README steps, then add a "Free walkthrough" event (30 minutes) and paste its link into the `automation` settings.
+1. **Confirm cleans in Google Calendar,** with the client's email address as a guest; that's what the personal note, reminder and review request follow.
 2. **Get a Claude API key.** Sign up at console.anthropic.com (with the business email, or any other), add about $5 of credit, set a monthly spending limit, and create an API key.
 3. **Publish the website,** so the script can read `automation/site-config.json`. The forms keep using FormSubmit for now.
 4. **Paste in the script.** Signed in as nestnrestcleaning@gmail.com:
@@ -257,13 +252,13 @@ Emails are sent from nestnrestcleaning@gmail.com. Personal emails use the sender
   - `plan` with a fake clock: every timing, opt-outs, replies, cancellations, reschedules, sent and deleted drafts, the auto-send start date, and the kill switch;
   - `main` against an in-memory stand-in for Google: requests in, emails out, runs and installs.
 - **A browser test** (Playwright, run against the built site) submits the booking and quote forms with `delivery.provider` set to `"google"` and checks what they send. It runs again with `"formsubmit"` to check nothing changed there.
-- **Calendar matching:** one real test booking confirms that Cal.com's Google Calendar event contains the `NR-` reference.
+- **Calendar matching:** a test booking put on the calendar with the client as a guest gets its personal note.
 - **The live web address:** the setup's test requests confirm that the browser accepts the Google web app's answer.
 - **Live check:** the two-week draft period is the live test. Mann reads every personal email before anything sends on its own.
 
 ## Risks and open questions
 
 - **The browser and Google's web app:** forms send as plain text, so the browser doesn't need extra permission first, and Google's answer is readable by the page. This is the usual way websites use Apps Script, and it's confirmed with the setup's test requests. If it ever fails, the client gets the "email us instead" button, and switching back to FormSubmit is one setting.
-- **Cal.com's notes:** if they don't appear in the Google Calendar event description, matching falls back to the guest's email address. This is confirmed during the build.
+- **Calendar entries without the client as a guest** can't be matched to a booking; the guide tells Mann to add the guest.
 - **Prices in the confirmation** come from the website's own calculation, as they do today. Someone tampering with the page could only change the figures in their own confirmation, and Mann sees the same figures in the new-request email.
-- **Three emails at once:** a new booking gets three emails close together (the confirmation, Cal.com's and the personal note). The personal note is kept short so it reads as a human touch, not as noise.
+- **Three emails at once:** a new booking gets three emails close together (the confirmation and, later, the personal note). The personal note is kept short so it reads as a human touch, not as noise.

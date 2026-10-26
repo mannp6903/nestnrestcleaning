@@ -4,14 +4,13 @@ function composeEmail(kind, lead, ctx) {
   var site = ctx.site, A = site.automation, quote = lead.kind === "quote";
   var form = quote ? (A.quoteForms[lead.form] || A.quoteForms["default"]) : null;
   var tpl = kind === "quoteReply" ? { subject: form.subject, lines: A.quoteReply.lines } : A[kind];
-  var walk = site.links.walkthrough;
   var service = quote ? form.label.replace("{form}", lead.form) : lead.form.toLowerCase();
   var prep = site.services.filter(function (s) { return s.name === lead.form; })[0];
   var base = {
     firstName: lead.firstName, service: service, requested: lead.requested, referrer: lead.referrer, paragraph: ctx.paragraph || "",
     notice: site.policies.cancelNoticeHours, codeDays: site.policies.accessCodeDeleteDays,
     owner: site.business.ownerFirstName, ownerFull: site.business.owner, referral: site.referral, areaLabel: site.business.areaLabel,
-    calendarLink: site.links.calendar, reviewLink: site.links.review, walkthroughLink: walk
+    reviewLink: site.links.review
   };
   if (ctx.event) {
     base.day = ctx.clock.formatDay(ctx.event.start);
@@ -30,8 +29,8 @@ function composeEmail(kind, lead, ctx) {
   base.accessLine = fill(A.access[lead.access] || "");
   base.petsLine = fill(A.pets[lead.pets] || "");
   if (form) {
-    base.nextStep = fill(!walk && form.nextStepNoLink ? form.nextStepNoLink : form.nextStep);
-    base.nudgeStep = fill(!walk && form.nudgeStepNoLink ? form.nudgeStepNoLink : form.nudgeStep);
+    base.nextStep = fill(form.nextStep);
+    base.nudgeStep = fill(form.nudgeStep);
   }
   var lines = tpl.lines.map(fill).filter(function (l) { return l !== ""; });
   return {

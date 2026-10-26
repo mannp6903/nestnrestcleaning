@@ -3,12 +3,11 @@
 
 var CLIENT_HEADERS = ["Received", "Ref", "Type", "Service", "Name", "Email", "Phone", "Area", "Booked time", "Status", "Needs you", "Opted out",
   "First clean", "Review requested", "Last action", "Last email", "Data"];
-var KIND_LABELS = { welcome: "Personal note", pickTime: "Pick-a-time nudge", requestAck: "Booking request reply", quoteReply: "Quote reply",
+var KIND_LABELS = { welcome: "Personal note", requestAck: "Booking request reply", quoteReply: "Quote reply",
   quoteNudge: "Quote nudge", reminder: "Reminder", review: "Review request" };
-var DEFAULT_MODES = { welcome: "Auto", pickTime: "Auto", requestAck: "Draft", quoteReply: "Draft", quoteNudge: "Auto", reminder: "Auto", review: "Auto" };
+var DEFAULT_MODES = { welcome: "Auto", requestAck: "Draft", quoteReply: "Draft", quoteNudge: "Auto", reminder: "Auto", review: "Auto" };
 // Settings tab: label, setting name, default, lowest and highest allowed.
 var SETTING_NUMBERS = [
-  ["Pick-a-time nudge after (hours)", "pickTimeHours", 3, 1, 72],
   ["Quote nudge after (days)", "quoteNudgeDays", 2, 1, 30],
   ["Quote nudge time (hour, 0-23)", "quoteNudgeHour", 10, 0, 23],
   ["Reminder time, day before (hour, 0-23)", "reminderHour", 18, 0, 23],
@@ -27,7 +26,6 @@ function statusOf(lead, now) {
     if (emailSent(lead, "review")) return "Reviewed";
     if (lead.eventId && keys.some(function (k) { return k.indexOf("reminder:" + lead.eventId + ":") === 0 && emailSent(lead, k); })) return "Reminder sent";
     if (lead.eventStart) return "Booked";
-    if (emailSent(lead, "pickTime")) return "Nudged";
     if (lead.requested) return emailSent(lead, "requestAck") ? "Sent" : "New";
     return "Waiting for time";
   }
