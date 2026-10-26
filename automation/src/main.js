@@ -71,7 +71,7 @@ function receive(env, bodyText) {
     note(ref, "Refused a " + payload._form + " request: Gmail's daily email limit is used up");
     return answer({ success: "false", message: "Please email us" });
   }
-  keys.forEach(function (k, i) { env.cache.put(k, String(counts[i] + 1), 3600); });
+  keys.forEach(function (k, i) { env.cache.put(k, String(counts[i] + 1), k.indexOf("rl:email6h:") === 0 ? 21600 : 3600); });
   env.props.set("RL_DAY", day + ":" + (today + 1));
   var conf = confirmationEmail(payload, site), problem = leadProblem(payload, site), sent;
   if (conf.email && left < QUOTA_RESERVE) conf = { email: null, problem: "Confirmation not sent: Gmail's daily email limit is nearly used up." };

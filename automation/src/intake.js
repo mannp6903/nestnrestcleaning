@@ -3,7 +3,9 @@
    wording; a request only fills in short, link-free values. */
 
 var INTAKE_FORMS = ["booking", "quote", "gift", "review", "textPrice"];
-var RATE_LIMITS = { all: 30, perEmail: 3, perDay: 60 };
+var RATE_LIMITS = { all: 30, perEmail: 3, perEmail6h: 5, perDay: 60 };
+// Each form's subject line, as js/site.js writes it. Anything else isn't from our website.
+var SUBJECT_PREFIX = { booking: "New booking ", quote: "New quote request: ", gift: "New gift card request ", review: "New review: ", textPrice: "Text this price: " };
 var INTAKE_MAX = { fields: 40, value: 2000, subject: 200 };
 // The confirmation templates each form may use, and the longest value each may fill in.
 var CONFIRM_TEMPLATES = { booking: ["booking", "bookingCal"], quote: ["quote"], gift: ["gift"] };
@@ -12,7 +14,8 @@ var CONFIRM_MAX = { name: 60, ref: 12, summary: 400, items: 800, reply: 80 };
 function checkRequest(payload) {
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) return { ok: false, error: "Not a form request" };
   if (INTAKE_FORMS.indexOf(payload._form) === -1) return { ok: false, error: "Unknown form: " + String(payload._form).slice(0, 40) };
-  if (typeof payload._subject !== "string" || !payload._subject.trim() || payload._subject.length > INTAKE_MAX.subject) return { ok: false, error: "Missing or long subject" };
+  if (typeof payload._subject !== "string" || payload._subject.length > INTAKE_MAX.subject || payload._subject.indexOf(SUBJECT_PREFIX[payload._form]) !== 0 ||
+    /[\u0000-\u001f]/.test(payload._subject)) return { ok: false, error: "Missing or unexpected subject" };
   var keys = Object.keys(payload).filter(function (k) { return k.charAt(0) !== "_"; });
   if (keys.length > INTAKE_MAX.fields) return { ok: false, error: "Too many fields" };
   for (var i = 0; i < keys.length; i++) {
@@ -33,20 +36,22 @@ function requestFields(payload) {
 }
 
 function replyToOf(payload) {
+  // Strict on purpose: these addresses also go into Gmail searches.
   var e = String(payload._replyto || "").trim();
-  return e.length <= 254 && /^[^\s@<>,;]+@[^\s@<>,;]+\.[^\s@<>,;]+$/.test(e) ? e : "";
+  return e.length <= 254 && /^[A-Za-z0-9._%+'-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}$/.test(e) ? e : "";
 }
 
 function rateLimitKeys(payload, now) {
   var d = new Date(now), pad = function (n) { return (n < 10 ? "0" : "") + n; };
   var hour = d.getUTCFullYear() + pad(d.getUTCMonth() + 1) + pad(d.getUTCDate()) + pad(d.getUTCHours());
   var keys = ["rl:all:" + hour], email = replyToOf(payload).toLowerCase();
-  if (email) keys.push("rl:email:" + email + ":" + hour);
+  if (email) keys.push("rl:email:" + email + ":" + hour, "rl:email6h:" + email + ":" + hour.slice(0, 8) + pad(Math.floor(d.getUTCHours() / 6)));
   return keys;
 }
 
+// Hourly overall, hourly per address, and per address over six hours, so no one can be sent a stream of confirmations.
 function isOverLimit(counts) {
-  return (counts[0] || 0) >= RATE_LIMITS.all || (counts[1] || 0) >= RATE_LIMITS.perEmail;
+  return (counts[0] || 0) >= RATE_LIMITS.all || (counts[1] || 0) >= RATE_LIMITS.perEmail || (counts[2] || 0) >= RATE_LIMITS.perEmail6h;
 }
 
 function escapeHtml(s) {
@@ -93,6 +98,7 @@ function confirmationEmail(payload, site) {
     vals[k] = v;
   }
   var tpl = site.emails[c.tpl];
+  if (c.tpl === "bookingCal" && !site.links.calendar) return fail("the booking calendar link isn't set yet.");
   if (/\{ref\}/.test(tpl) && !/^(NR|GIFT)-[A-Z0-9]{4}$/.test(vals.ref)) return fail("the reference looked wrong.");
   vals.reply = site.replyPromises.indexOf(vals.reply) > -1 ? vals.reply : site.business.replyPromise;
   vals.contact = site.business.contact;

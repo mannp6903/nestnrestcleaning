@@ -274,3 +274,14 @@ test("an email that keeps failing is given up on after three tries", () => {
   assert.equal(lead.emails.welcome.state, "skipped");
   assert.match(lead.needsYou, /^Couldn't send Personal note: Drafts are down/);
 });
+
+test("one address can't be sent more than five confirmations in six hours", () => {
+  const { env, outbox, state } = installed();
+  let ok = 0;
+  for (let h = 0; h < 6; h++) {
+    state.now = T(`2026-10-26T${String(12 + h).padStart(2, "0")}:10:00Z`);
+    for (let i = 0; i < 2; i++) if (receive(env, body(R.booking)).success === "true") ok++;
+  }
+  assert.equal(ok, 5);
+  assert.equal(outbox.sent.filter((e) => e.to === "priya@example.com").length, 5);
+});

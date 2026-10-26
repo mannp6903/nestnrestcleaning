@@ -15,7 +15,11 @@ export function makeFakeEnv({ now, events = [], messages = [], claude = okParagr
     now: () => new Date(state.now),
     localParts: torontoParts,
     props: { get: (k) => (k in state.props ? state.props[k] : null), set: (k, v) => { state.props[k] = String(v); } },
-    cache: { get: (k) => (k in state.cache ? state.cache[k] : null), put: (k, v) => { state.cache[k] = String(v); } },
+    // Entries expire like CacheService's do.
+    cache: {
+      get: (k) => (k in state.cache && state.now < state.cache[k].until ? state.cache[k].value : null),
+      put: (k, v, seconds) => { state.cache[k] = { value: String(v), until: new Date(state.now.getTime() + (seconds || 600) * 1000) }; }
+    },
     http: {
       fetch(url, options) {
         if (url === globalThis.SITE_CONFIG_URL) return state.configStatus === 200 ? { status: 200, body: JSON.stringify(site) } : { status: state.configStatus, body: "Not found" };

@@ -30,12 +30,14 @@ test("malformed requests are refused", () => {
 });
 
 test("rate limit keys and limits", () => {
-  assert.deepEqual(plain(rateLimitKeys(R.booking, at)), ["rl:all:2026102618", "rl:email:priya@example.com:2026102618"]);
+  assert.deepEqual(plain(rateLimitKeys(R.booking, at)), ["rl:all:2026102618", "rl:email:priya@example.com:2026102618", "rl:email6h:priya@example.com:2026102603"]);
   assert.deepEqual(plain(rateLimitKeys(R.review, at)), ["rl:all:2026102618"]);
   assert.equal(isOverLimit([29, 2]), false);
   assert.equal(isOverLimit([30, 0]), true);
   assert.equal(isOverLimit([0, 3]), true);
   assert.equal(isOverLimit([5]), false);
+  assert.equal(isOverLimit([0, 0, 4]), false);
+  assert.equal(isOverLimit([0, 0, 5]), true);
 });
 
 test("Mann's new-request email reads back to the same fields", () => {
@@ -192,4 +194,26 @@ test("confirmation values reject bare domains and phone numbers", () => {
     r._confirm.vals.summary = summary;
     assert.equal(confirmationEmail(r, site).email, null, summary);
   }
+});
+
+test("email addresses are strict, so they can't change a Gmail search", () => {
+  const r = (e) => replyToOf({ _replyto: e });
+  assert.equal(r("o'brien+tag@example.co.uk"), "o'brien+tag@example.co.uk");
+  for (const e of ["x)OR(in:anywhere@a.bc", "a b@c.de", "a@b", "a@b.c\nBcc:x@y.zz", '"q"@x.com']) assert.equal(r(e), "", e);
+});
+
+test("subjects must match their form and stay on one line", () => {
+  const bad = (subject, form = "booking") => { const x = R.copy(R[form]); x._subject = subject; return checkRequest(x).ok; };
+  assert.equal(bad("Your account is suspended"), false);
+  assert.equal(bad("New booking NR-AB12\nBcc: x@y.z"), false);
+  assert.equal(bad("New quote request: Residence Care", "booking"), false);
+  assert.equal(bad("New quote request: Residence Care", "quote"), true);
+  assert.equal(bad("New gift card request GIFT-7QXZ: $150", "gift"), true);
+});
+
+test("a calendar confirmation needs the calendar link", () => {
+  const r = R.copy(R.booking);
+  r._confirm.tpl = "bookingCal";
+  assert.equal(confirmationEmail(r, Object.assign({}, site, { links: Object.assign({}, site.links, { calendar: "" }) })).email, null);
+  assert.ok(confirmationEmail(r, Object.assign({}, site, { links: Object.assign({}, site.links, { calendar: "https://cal.com/nr/home-clean" }) })).email.text.includes("https://cal.com/nr/home-clean"));
 });
