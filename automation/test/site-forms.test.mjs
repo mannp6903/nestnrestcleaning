@@ -7,6 +7,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
+import { site } from "./load.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const GOOGLE = "https://script.google.com/macros/s/TEST/exec";
@@ -48,6 +49,15 @@ async function openPage(browser, base, provider) {
   return { page, sent };
 }
 
+// What the website really sends must pass the script's own checks, join the client list, and get a confirmation.
+function acceptedByScript(body) {
+  assert.deepEqual({ ...checkRequest(body) }, { ok: true, spam: false });
+  assert.equal(leadProblem(body, site), "");
+  const { email, problem } = confirmationEmail(body, site);
+  assert.equal(problem, "");
+  assert.ok(email && email.to === body._replyto);
+}
+
 async function sendQuote(page, base) {
   await page.goto(base + "/services/residence-care/");
   await page.fill("#q-name", "Lee Chen");
@@ -79,6 +89,7 @@ test("the website's forms", { skip: !playwright && "Playwright isn't installed" 
       assert.equal(body.Service, "Residence Care");
       assert.equal(body.Notes, "Marble floors");
       for (const k of ["_autoresponse", "_template", "_captcha"]) assert.ok(!(k in body), k);
+      acceptedByScript(body);
       await page.close();
     });
 
@@ -110,6 +121,30 @@ test("the website's forms", { skip: !playwright && "Playwright isn't installed" 
       assert.ok(body._confirm.vals.items.length > 0 && body._confirm.vals.summary.length > 0);
       assert.equal(body.Notes, "The kitchen is the priority");
       assert.ok(!("_autoresponse" in body));
+      acceptedByScript(body);
+      await page.close();
+    });
+
+    await t.test("gift card form sends to the Google script", async () => {
+      const { page, sent } = await openPage(browser, base, "google");
+      await page.goto(base + "/gift/");
+      await page.fill("#g-name", "Ana Silva");
+      await page.fill("#g-phone", "647 555 0144");
+      await page.fill("#g-email", "ana@example.com");
+      await page.fill("#g-to", "Rosa");
+      await page.click("[data-gift-form] button[type=submit]");
+      await page.waitForFunction(() => document.querySelector("[data-gift-form]").hidden, null, { timeout: 5000 });
+      assert.equal(sent.length, 1);
+      const { contentType, body } = sent[0];
+      assert.match(contentType, /^text\/plain/);
+      assert.equal(body._form, "gift");
+      assert.equal(body._confirm.tpl, "gift");
+      assert.equal(body._confirm.vals.name, "Ana");
+      assert.equal(body._confirm.vals.ref, body.Reference);
+      assert.match(body._subject, /^New gift card request GIFT-[A-Z0-9]{4}: \$150$/);
+      assert.equal(body._replyto, "ana@example.com");
+      assert.ok(!("_autoresponse" in body));
+      acceptedByScript(body);
       await page.close();
     });
 

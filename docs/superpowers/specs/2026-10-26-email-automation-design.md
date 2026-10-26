@@ -104,6 +104,11 @@ If `booking.calLink` is empty, a booking carries a requested date instead of "Pi
 8. **No double sends.** Every email the script makes is recorded in the Sheet before the next step, and each run holds a lock so two runs can't overlap.
 9. **Kill switch:** unticking **Automation on** in the Sheet's Settings stops all automated emails immediately. Confirmations and Mann's new-request emails keep working, so no request is lost.
 10. **Nobody can use the web address to send their own email from the business account.** Every email's wording comes from `js/config.js`. Only short values with no links, bare web addresses or phone numbers are filled in, and the request limits stop floods. Floods matter because a free Gmail account can send only about 100 emails a day. When fewer than 15 sends are left for the day, confirmations pause and personal emails wait as drafts, keeping the rest for Mann's new-request emails.
+11. **Nothing sends on its own until the mailing address is set.** CASL requires it in every email; until `business.mailingAddress` is filled in, every personal email waits as a draft and Settings says why.
+12. **The paragraph never claims what the business doesn't offer:** insurance, background checks, licences, eco-friendly or non-toxic products. It also never mentions relative days like "tomorrow", and long numbers (usually door codes) are removed from notes before Claude sees them.
+13. **Opt-outs stick** across a client's later requests, and an "Opted out" tick Mann makes during a run is kept.
+14. **Website text never becomes a live formula in the Sheet:** text starting with `=`, `+`, `-` or `@` is stored as plain text.
+15. **Requests that never became bookings leave the Sheet after 12 months,** as the Privacy Policy promises. Opt-out records stay.
 
 ## The Google Sheet ("Nest & Rest clients")
 

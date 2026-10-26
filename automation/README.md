@@ -24,6 +24,8 @@ The design is in `docs/superpowers/specs/2026-10-26-email-automation-design.md`.
 
 ## Setup (about 30 minutes, once)
 
+0. **Add your mailing address.** Put it in `business.mailingAddress` in `js/config.js` (a PO box or mailbox service is fine). Canada's anti-spam law (CASL) requires it in every business email. Until it's set, the script won't send any personal email on its own: everything waits as a draft, and **Last error** in Settings says why.
+
 1. **Switch on the booking calendar.**
    - Follow the "Booking calendar (Cal.com)" steps in the main [README](../README.md).
    - Then create a second Cal.com event called "Free walkthrough", 30 minutes long, for quote clients. Keep the word "walkthrough" in its name: that's how the script tells walkthroughs from cleans.
@@ -93,6 +95,19 @@ The design is in `docs/superpowers/specs/2026-10-26-email-automation-design.md`.
 - **Limits:**
   - The script takes up to 60 form requests a day, and 3 an hour from one email address. Beyond that, the website shows the "email us instead" button.
   - A free Gmail account sends to about 100 people a day. When fewer than 15 are left, confirmations pause and personal emails wait as drafts, so your new-request emails keep coming.
+
+## Keeping it legal and private
+
+- **"Confirmation not sent" at the top of a new-request email:** that client didn't get their written copy of the booking. Ontario's Consumer Protection Act expects them to have one, so reply with the details yourself.
+- **Keep the Sheet and its Apps Script project private.** They hold client details and your Claude key. Don't share them with edit access.
+- **Old requests:** the script removes requests that never became bookings from the Sheet after 12 months, as your Privacy Policy promises. Opt-out records stay, so those clients are never emailed again. Gmail keeps your new-request emails, so delete old ones too (search Gmail for `older_than:1y subject:"New quote request"`).
+- **Door and lockbox codes:** if a client emails you one, delete it within 7 days of their last visit, as your Privacy Policy promises. The script never asks for codes by email, and strips long numbers from notes before Claude sees them.
+- **Claude's paragraph:** read the drafts during the first two weeks. The paragraph is checked before use, and is thrown out (the email then waits for you) if it mentions:
+  - a price, a date, a link or contact details;
+  - promises like discounts or refunds;
+  - claims your business doesn't make, such as insurance, background checks or eco-friendly products.
+- **Out-of-date drafts:** if a booking is cancelled, delete its waiting draft.
+- **Get advice:** have a lawyer look over your Privacy Policy and Service Policies, as the main README already suggests.
 
 ## Changing the wording
 

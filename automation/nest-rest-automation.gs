@@ -881,7 +881,7 @@ function run(env) {
     env.sheet.readLeadRows().forEach(function (row) {
       try {
         var current = rowToLead(row);
-        if (current.optedOut) leads.forEach(function (l) { if (l.ref === current.ref) l.optedOut = true; });
+        if (current.optedOut) leads.forEach(function (l) { if (current.sourceMessageId ? l.sourceMessageId === current.sourceMessageId : l.ref === current.ref) l.optedOut = true; });
       } catch (e) { /* unreadable rows are kept as they are */ }
     });
     env.sheet.writeLeadRows(leads.map(function (l) { return leadToRow(l, now, clock); }).concat(unreadable));
