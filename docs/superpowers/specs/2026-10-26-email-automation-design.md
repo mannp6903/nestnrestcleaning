@@ -49,7 +49,8 @@ The script is published as a Google **web app**: a private web address that only
 1. **Checks it:**
    - It must be one of the site's five forms, with sensible sizes.
    - The hidden spam trap the forms already have must be empty. If it isn't, the script quietly accepts and drops the request, as FormSubmit does.
-   - No more than 30 requests an hour overall, and 3 an hour from one email address.
+   - No more than 30 requests an hour overall, 3 an hour from one email address, and 60 a day.
+   - A booking or quote only joins the client list if its service is one of ours and its name, date and referral fields are short and link-free. Personal emails only ever go to the checked reply-to address.
 2. **Emails Mann the request,** as a table of every field, with the same subject lines as today (for example "New booking NR-AB12: Deep Cleaning, …"). Hitting Reply goes to the client.
 3. **Emails the client their confirmation** (booking, quote or gift card), using the existing wording in `emails`.
    - For bookings, this is still the client's written copy of the agreement, as Ontario's Consumer Protection Act requires.
@@ -102,7 +103,7 @@ If `booking.calLink` is empty, a booking carries a requested date instead of "Pi
 7. **Every email** carries the existing `emails.footer`: who we are, mailing address, contact details and how to unsubscribe.
 8. **No double sends.** Every email the script makes is recorded in the Sheet before the next step, and each run holds a lock so two runs can't overlap.
 9. **Kill switch:** unticking **Automation on** in the Sheet's Settings stops all automated emails immediately. Confirmations and Mann's new-request emails keep working, so no request is lost.
-10. **Nobody can use the web address to send their own email from the business account.** Every email's wording comes from `js/config.js`. Only short, link-free values from the form are filled in, and the request limits stop floods. Floods matter because a free Gmail account can send only about 100 emails a day.
+10. **Nobody can use the web address to send their own email from the business account.** Every email's wording comes from `js/config.js`. Only short values with no links, bare web addresses or phone numbers are filled in, and the request limits stop floods. Floods matter because a free Gmail account can send only about 100 emails a day. When fewer than 15 sends are left for the day, confirmations pause and personal emails wait as drafts, keeping the rest for Mann's new-request emails.
 
 ## The Google Sheet ("Nest & Rest clients")
 
@@ -178,7 +179,7 @@ The pure parts carry no Google code, so they run in Node for testing. A build st
 ### Data flow on each 5-minute run
 
 1. **Take new leads** from the Incoming tab, add a Clients row for each, and clear the rows taken.
-2. **Find calendar events.** Look in Google Calendar from 2 days ago to 90 days ahead for events whose description contains a known `NR-` reference; Cal.com copies the booking notes, which include it. If there's no reference, match on the guest's email address instead. This gives the booked time, notices cancellations and moves reminders when a clean is rescheduled. Events Mann adds by hand get reminders too, as long as they include the client's reference or email address.
+2. **Find calendar events.** Look in Google Calendar from 2 days ago to 90 days ahead for events whose description contains a known `NR-` reference; Cal.com copies the booking notes, which include it. If there's no reference, match on the guest's email address instead; an event made after a booking request also counts as that request's booking, so a client who trims Cal.com's notes still gets their personal note. Events whose title contains "walkthrough" are quote walkthroughs, not cleans: they get no reminder, and they stop the quote nudge. This gives the booked time, notices cancellations and moves reminders when a clean is rescheduled. Events Mann adds by hand get reminders too, as long as they include the client's reference or email address.
 3. **Find client replies and opt-outs.** Search Gmail for messages from known client addresses that arrived after the first automated email.
 4. **Plan** (pure), using what was found plus the settings and the current time in America/Toronto.
 5. **Do the work.**

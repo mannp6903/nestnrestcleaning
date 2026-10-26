@@ -26,7 +26,7 @@ The design is in `docs/superpowers/specs/2026-10-26-email-automation-design.md`.
 
 1. **Switch on the booking calendar.**
    - Follow the "Booking calendar (Cal.com)" steps in the main [README](../README.md).
-   - Then create a second Cal.com event called "Free walkthrough", 30 minutes long, for quote clients.
+   - Then create a second Cal.com event called "Free walkthrough", 30 minutes long, for quote clients. Keep the word "walkthrough" in its name: that's how the script tells walkthroughs from cleans.
    - Paste the part of its link after `cal.com/` into `automation.walkthroughLink` in `js/config.js`, for example `"nestnrestcleaning/walkthrough"`.
 
 2. **Get a Claude API key.** This is separate from any Claude subscription.
@@ -68,6 +68,9 @@ The design is in `docs/superpowers/specs/2026-10-26-email-automation-design.md`.
      - within 5 minutes, a row appears in the **Clients** tab.
    - **Pick a time on Cal.com:** within 5 minutes, a "Personal note" draft appears in Gmail.
    - **A test quote and a gift card request:** check the same emails arrive.
+   - **In Settings:** **Automation on** is ticked.
+   - **Opted out:** tick it on your test row, wait 10 minutes, and check it's still ticked.
+   - **Phone notifications:** the new-booking email now comes from your own address. Check your phone told you about it. If it didn't, set the Gmail app's notifications for this account to **All**.
    - **If the site shows "email us instead":** set `delivery.provider` back to `"formsubmit"`, publish, and look at the **Log** tab.
 
 ## Day to day
@@ -87,6 +90,9 @@ The design is in `docs/superpowers/specs/2026-10-26-email-automation-design.md`.
   - **Timings:** the nudge delay and the reminder and review times.
   - **Last run and Last error:** show that it's working.
 - **Log tab:** anything that went wrong or was refused, newest at the bottom.
+- **Limits:**
+  - The script takes up to 60 form requests a day, and 3 an hour from one email address. Beyond that, the website shows the "email us instead" button.
+  - A free Gmail account sends to about 100 people a day. When fewer than 15 are left, confirmations pause and personal emails wait as drafts, so your new-request emails keep coming.
 
 ## Changing the wording
 
