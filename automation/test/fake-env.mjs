@@ -3,7 +3,7 @@ import { torontoParts, site } from "./load.mjs";
 
 const okParagraph = () => ({ status: 200, body: JSON.stringify({ stop_reason: "end_turn", content: [{ type: "text", text: JSON.stringify({ paragraph: "Thank you for the note about your cat. I'll start in the kitchen.", needs_mann: false, reason: "" }) }] }) });
 
-export function makeFakeEnv({ now, events = [], messages = [], claude = okParagraph } = {}) {
+export function makeFakeEnv({ now, events = [], messages = [], claude = okParagraph, site: served = site } = {}) {
   const state = {
     now: new Date(now), props: {}, cache: {}, leadRows: [], settingsRows: null, log: [], configCache: null, configStatus: 200,
     incoming: [], triggers: 0, labels: new Set(), labelled: [], html: {}, drafts: {}, sentInThread: {}, events, messages, failSend: null,
@@ -22,7 +22,7 @@ export function makeFakeEnv({ now, events = [], messages = [], claude = okParagr
     },
     http: {
       fetch(url, options) {
-        if (url === globalThis.SITE_CONFIG_URL) return state.configStatus === 200 ? { status: 200, body: JSON.stringify(site) } : { status: state.configStatus, body: "Not found" };
+        if (url === globalThis.SITE_CONFIG_URL) return state.configStatus === 200 ? { status: 200, body: JSON.stringify(served) } : { status: state.configStatus, body: "Not found" };
         if (url === "https://api.anthropic.com/v1/messages") {
           const payload = JSON.parse(options.payload);
           claudeCalls.push(payload);
@@ -61,6 +61,7 @@ export function makeFakeEnv({ now, events = [], messages = [], claude = okParagr
         if (state.failDraft) throw new Error("Drafts are down");
         const draftId = "d" + ++seq, threadId = "t" + seq;
         outbox.drafts.push({ draftId, threadId, ...email });
+        if (state.onDraft) state.onDraft();
         state.drafts[draftId] = threadId;
         return { draftId, threadId };
       },

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import "./load.mjs";
+import { site } from "./load.mjs";
 import { makeFakeEnv } from "./fake-env.mjs";
 import * as R from "./fixtures/requests.mjs";
 
@@ -10,9 +10,11 @@ const NOV2 = T("2026-11-02T15:00:00Z");
 const calEvent = { id: "e1", start: NOV2, end: NOV2, description: "Booking NR-AB12: Deep Cleaning", guests: ["priya@example.com"] };
 const body = (o) => JSON.stringify(o);
 const setting = (state, k) => state.settingsRows.find((r) => r[0] === k)[1];
+// The site settings once Mann has added the mailing address that Canada's anti-spam law requires in every email.
+const addressed = (() => { const x = JSON.parse(JSON.stringify(site)); x.business.mailingAddress = "PO Box 123, Scarborough, ON M1B 0A1"; return x; })();
 
 function installed(opts = {}) {
-  const f = makeFakeEnv({ now: INSTALL, ...opts });
+  const f = makeFakeEnv({ now: INSTALL, site: addressed, ...opts });
   f.env.props.set("ANTHROPIC_API_KEY", "sk-test");
   install(f.env);
   return f;
@@ -187,7 +189,7 @@ test("install twice keeps the settings and one timer", () => {
 });
 
 test("install warns when the Claude key is missing", () => {
-  const f = makeFakeEnv({ now: INSTALL });
+  const f = makeFakeEnv({ now: INSTALL, site: addressed });
   install(f.env);
   assert.equal(setting(f.state, "Last error"), "Add ANTHROPIC_API_KEY in Project Settings → Script Properties");
 });
@@ -284,4 +286,25 @@ test("one address can't be sent more than five confirmations in six hours", () =
   }
   assert.equal(ok, 5);
   assert.equal(outbox.sent.filter((e) => e.to === "priya@example.com").length, 5);
+});
+
+test("without a mailing address, nothing sends on its own and Mann is told why", () => {
+  const { env, outbox, state } = booked({ site });
+  env.sheet.writeSettingValue("Auto-send starts", "2026-10-26");
+  const sentBefore = outbox.sent.length;
+  run(env);
+  assert.equal(outbox.sent.length, sentBefore);
+  assert.equal(outbox.drafts.length, 1);
+  assert.match(String(setting(state, "Last error")), /mailing address/);
+  const f = makeFakeEnv({ now: INSTALL, site });
+  f.env.props.set("ANTHROPIC_API_KEY", "k");
+  install(f.env);
+  assert.match(String(setting(f.state, "Last error")), /mailing address/);
+});
+
+test("Mann's opt-out tick made during a run is kept", () => {
+  const { env, state } = booked();
+  state.onDraft = () => { if (state.leadRows[0]) state.leadRows[0][11] = true; };
+  run(env);
+  assert.equal(rowToLead(state.leadRows[0]).optedOut, true);
 });

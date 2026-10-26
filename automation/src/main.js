@@ -10,6 +10,15 @@ var PARAGRAPH_KINDS = ["welcome", "requestAck", "quoteReply"];
 // keeping the rest for Mann's new-request emails.
 var QUOTA_RESERVE = 15;
 var MAIN_RETRIES = 3;
+var NO_ADDRESS = "Add your mailing address to business.mailingAddress in js/config.js: Canada's anti-spam law needs it in every email. Until then, personal emails wait as drafts";
+
+// What's missing before the automation may send on its own.
+function setupProblems(env, site) {
+  var out = [];
+  if (!site.business.mailingAddress) out.push(NO_ADDRESS);
+  if (site.automation.aiReplies && !env.props.get("ANTHROPIC_API_KEY")) out.push("Add ANTHROPIC_API_KEY in Project Settings → Script Properties");
+  return out;
+}
 
 // The site's published settings, refreshed at most every 6 hours, with the last good copy kept in the Sheet.
 function loadSiteConfig(env, now) {
@@ -136,7 +145,16 @@ function run(env) {
       if (!leads.some(function (l) { return l.ref === lead.ref; })) leads.push(lead);
     } catch (e) { note("", "Couldn't read a queued request: " + e.message); }
   });
-  var save = function () { env.sheet.writeLeadRows(leads.map(function (l) { return leadToRow(l, now, clock); }).concat(unreadable)); };
+  var save = function () {
+    // An "Opted out" tick Mann made while this run was going is kept (CASL): re-read the column just before writing.
+    env.sheet.readLeadRows().forEach(function (row) {
+      try {
+        var current = rowToLead(row);
+        if (current.optedOut) leads.forEach(function (l) { if (l.ref === current.ref) l.optedOut = true; });
+      } catch (e) { /* unreadable rows are kept as they are */ }
+    });
+    env.sheet.writeLeadRows(leads.map(function (l) { return leadToRow(l, now, clock); }).concat(unreadable));
+  };
   if (incoming.length) {
     save();
     env.sheet.removeIncoming(incoming.length);
@@ -176,7 +194,7 @@ function run(env) {
         if (lead.needsYou) mode = "draft";
       }
       var email = composeEmail(t.kind, lead, { site: site, clock: clock, event: t.event, paragraph: paragraph });
-      if (mode === "auto" && env.gmail.remainingQuota() < QUOTA_RESERVE) mode = "draft";
+      if (mode === "auto" && (env.gmail.remainingQuota() < QUOTA_RESERVE || !site.business.mailingAddress)) mode = "draft";
       if (mode === "auto") {
         var s = env.gmail.send(email);
         lead.emails[t.key] = { state: "sent", at: new Date(s.sentAt).toISOString(), draftId: "", threadId: s.threadId };
@@ -204,6 +222,7 @@ function run(env) {
       }
     }
   });
+  if (!site.business.mailingAddress) errors.push(NO_ADDRESS);
   plan.needsYouThreads.forEach(function (th) {
     try { env.gmail.label(th, LABELS.needsYou); } catch (e) { note("", "Couldn't label a client's reply: " + e.message); }
   });
@@ -216,10 +235,7 @@ function install(env) {
   env.sheet.setup(CLIENT_HEADERS, defaultSettingsRows(now, clock));
   env.gmail.ensureLabels(Object.keys(LABELS).map(function (k) { return LABELS[k]; }));
   env.triggers.reset();
-  var problem = "";
-  try {
-    var site = loadSiteConfig(env, now);
-    if (site.automation.aiReplies && !env.props.get("ANTHROPIC_API_KEY")) problem = "Add ANTHROPIC_API_KEY in Project Settings → Script Properties";
-  } catch (e) { problem = e.message; }
-  env.sheet.writeSettingValue("Last error", problem);
+  var problems;
+  try { problems = setupProblems(env, loadSiteConfig(env, now)); } catch (e) { problems = [e.message]; }
+  env.sheet.writeSettingValue("Last error", problems.join("; "));
 }

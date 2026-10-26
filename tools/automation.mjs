@@ -20,7 +20,7 @@ export function buildSiteConfig(C) {
   const seen = new Set();
   const out = {
     business: {
-      name: B.name, owner: B.owner, ownerFirstName: B.ownerFirstName, email: B.email, phoneDisplay: B.phoneDisplay,
+      name: B.name, owner: B.owner, ownerFirstName: B.ownerFirstName, email: B.email, phoneDisplay: B.phoneDisplay, mailingAddress: B.mailingAddress || "",
       areaLabel: C.serviceArea.label, replyPromise: B.replyPromise,
       // How to reach us, worded as in the website's confirmation emails (autoReply in js/site.js).
       contact: B.phone ? (B.whatsapp ? "Call, text or WhatsApp " : "Call or text ") + B.phoneDisplay : "Email " + B.email

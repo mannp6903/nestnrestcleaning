@@ -189,6 +189,10 @@ function planRun(input) {
   var leads = input.leads, now = input.now, settings = input.settings;
   if (!settings.on) return { todo: [], needsYouThreads: [] };
   syncDrafts(leads, input.existingDraftIds, input.sentByThread);
+  // A client who said stop stays stopped, whichever request they send next.
+  var stopped = {};
+  leads.forEach(function (l) { if (l.optedOut && l.email) stopped[l.email.toLowerCase()] = true; });
+  leads.forEach(function (l) { if (l.email && stopped[l.email.toLowerCase()]) l.optedOut = true; });
   var assigned = assignEvents(leads, input.events), todo = [], reviewing = {};
   matchEvents(leads, input.events, now, assigned);
   var threads = applyMessages(leads, input.messages);

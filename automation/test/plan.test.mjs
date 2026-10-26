@@ -223,3 +223,11 @@ test("no reminder in the same evening as the personal note", () => {
   const noted = booking({ emails: { welcome: sent("2026-11-01T22:00:00Z") } }, "2026-11-01T21:50:00Z");
   assert.deepEqual(kinds(run([noted], "2026-11-01T23:00:00Z", { events })), []);
 });
+
+test("a client who opted out stays opted out when they send a new request", () => {
+  const a = booking({ ref: "NR-AAAA", optedOut: true }, "2026-10-01T12:00:00Z");
+  const b = booking({ ref: "NR-BBBB" });
+  const r = run([a, b], "2026-10-26T21:40:00Z");
+  assert.equal(b.optedOut, true);
+  assert.deepEqual(r.todo, []);
+});
