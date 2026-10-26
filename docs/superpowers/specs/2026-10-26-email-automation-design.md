@@ -154,7 +154,9 @@ Emails are sent from nestnrestcleaning@gmail.com with the sender name "Mann Pate
 - **The API key is stored in the script's private Script Properties,** never in the code. The repo is public and the site publishes every file.
 - **Model `claude-opus-5-5`, effort `low`,** since this is a short writing task. The answer comes back as structured JSON: `{ paragraph, needs_mann, reason }`.
 - **The server-side refusal fallback is switched on.** If the model declines, the API automatically retries on a fallback model.
-- **The cost is roughly 2 to 3 cents per email.** Mann sets a monthly spending limit in the Anthropic Console, for example $10.
+- **The cost is roughly 3 cents per client.** Only the personal note and the quote reply call Claude, about once per client. The nudges, reminders and review requests use fixed wording and cost nothing. 50 clients a month comes to about $1.50.
+- **The API account is separate from Mann's Claude subscription.** It's created at console.anthropic.com with any email address (the business email is a natural fit) and paid for with prepaid credit, starting at about $5. Mann sets a monthly spending limit there, for example $10.
+- **Everything else is free:** Google Apps Script, Gmail, Sheets and Calendar on a free Gmail account, FormSubmit, Cal.com's free plan, and GitHub Pages.
 - **On any failure** (an HTTP error, a refusal, invalid JSON or a failed check), the email is built without the paragraph, marked **Needs you**, and logged.
 
 ### Errors and limits
@@ -173,7 +175,7 @@ Emails are sent from nestnrestcleaning@gmail.com with the sender name "Mann Pate
 ## Setup (for `automation/README.md`)
 
 1. **Switch on Cal.com.** Follow the existing README steps, then add a "Free walkthrough" event (30 minutes) and paste its link into the `automation` settings.
-2. **Get a Claude API key.** Create it at console.anthropic.com, then set a monthly spending limit.
+2. **Get a Claude API key.** Sign up at console.anthropic.com (with the business email, or any other), add about $5 of credit, set a monthly spending limit, and create an API key.
 3. **Paste in the script.** Signed in as nestnrestcleaning@gmail.com, open script.google.com, make a new project, and paste in `automation/nest-rest-automation.gs`. Under Project Settings → Script Properties, add `ANTHROPIC_API_KEY`.
 4. **Install.** Choose **Install** and approve Google's permission screens. Install creates the Sheet, the labels and the 5-minute timer.
 5. **Test it.** Make one test booking and one test quote on the live site with a personal email address, and check the drafts that appear.
