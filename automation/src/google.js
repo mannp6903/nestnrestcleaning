@@ -28,6 +28,12 @@ function makeGoogleEnv() {
     if (email.replyTo) o.replyTo = email.replyTo;
     return o;
   }
+  // Checkboxes come from a validation rule: Range.insertCheckboxes() would also reset every box to unticked.
+  function checkbox() { return SpreadsheetApp.newDataValidation().requireCheckbox().build(); }
+  // A new tab has 1000 rows and getRange can't reach past the last one, so grow the tab first.
+  function ensureRows(sh, lastRow) {
+    if (lastRow > sh.getMaxRows()) sh.insertRowsAfter(sh.getMaxRows(), lastRow - sh.getMaxRows() + 100);
+  }
   function settingRow(sh, key) {
     var last = sh.getLastRow(), keys = last ? sh.getRange(1, 1, last, 1).getValues() : [];
     for (var i = 0; i < keys.length; i++) if (String(keys[i][0]).trim() === key) return i + 1;
@@ -62,8 +68,9 @@ function makeGoogleEnv() {
       writeLeadRows: function (rows) {
         var sh = tab(NR_CLIENTS), last = sh.getLastRow();
         if (rows.length) {
+          ensureRows(sh, rows.length + 1);
+          sh.getRange(2, CLIENT_HEADERS.indexOf("Opted out") + 1, rows.length, 1).setDataValidation(checkbox());
           sh.getRange(2, 1, rows.length, CLIENT_HEADERS.length).setValues(rows);
-          sh.getRange(2, CLIENT_HEADERS.indexOf("Opted out") + 1, rows.length, 1).insertCheckboxes();
         }
         if (last > rows.length + 1) sh.getRange(rows.length + 2, 1, last - rows.length - 1, CLIENT_HEADERS.length).clearContent();
       },
@@ -79,6 +86,7 @@ function makeGoogleEnv() {
       appendLog: function (entries) {
         if (!entries.length) return;
         var sh = tab(NR_LOG);
+        ensureRows(sh, sh.getLastRow() + entries.length);
         sh.getRange(sh.getLastRow() + 1, 1, entries.length, 3).setValues(entries);
         if (sh.getLastRow() > NR_LOG_KEEP + 500) sh.deleteRows(2, sh.getLastRow() - 1 - NR_LOG_KEEP);
       },
@@ -95,8 +103,11 @@ function makeGoogleEnv() {
         var clients = b.getSheetByName(NR_CLIENTS) || b.insertSheet(NR_CLIENTS, 0);
         clients.getRange(1, 1, 1, headers.length).setValues([headers]).setFontWeight("bold");
         clients.setFrozenRows(1);
-        // Plain text everywhere but the checkbox, so dates and links stay exactly as written.
-        clients.getRange(2, 1, clients.getMaxRows() - 1, headers.length).setNumberFormat("@");
+        // Plain text everywhere but the checkbox column, so dates and links stay exactly as written.
+        var box = headers.indexOf("Opted out") + 1, rest = clients.getMaxRows() - 1;
+        clients.getRange(2, 1, rest, box - 1).setNumberFormat("@");
+        clients.getRange(2, box + 1, rest, headers.length - box).setNumberFormat("@");
+        clients.getRange(2, box, rest, 1).setDataValidation(checkbox());
         clients.hideColumns(headers.indexOf("Data") + 1);
         var settings = b.getSheetByName(NR_SETTINGS) || b.insertSheet(NR_SETTINGS);
         settingsRows.forEach(function (r) {
@@ -104,8 +115,8 @@ function makeGoogleEnv() {
           var row = settings.getLastRow() + 1, cell = settings.getRange(row, 2);
           settings.getRange(row, 1).setValue(r[0]).setFontWeight("bold");
           if (typeof r[1] === "string") cell.setNumberFormat("@");
+          if (typeof r[1] === "boolean") cell.setDataValidation(checkbox());
           cell.setValue(r[1]);
-          if (typeof r[1] === "boolean") cell.insertCheckboxes();
           if (r[1] === "Off" || r[1] === "Draft" || r[1] === "Auto") cell.setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(["Off", "Draft", "Auto"]).build());
         });
         settings.setColumnWidth(1, 300);
