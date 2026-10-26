@@ -10,6 +10,8 @@ var PARAGRAPH_KINDS = ["welcome", "requestAck", "quoteReply"];
 // keeping the rest for Mann's new-request emails.
 var QUOTA_RESERVE = 15;
 var MAIN_RETRIES = 3;
+// The Privacy Policy deletes price and quote requests that don't become bookings within 12 months.
+var KEEP_UNBOOKED_DAYS = 365;
 var NO_ADDRESS = "Add your mailing address to business.mailingAddress in js/config.js: Canada's anti-spam law needs it in every email. Until then, personal emails wait as drafts";
 
 // What's missing before the automation may send on its own.
@@ -142,9 +144,22 @@ function run(env) {
   incoming.forEach(function (text) {
     try {
       var lead = leadFromIncoming(JSON.parse(text), clock);
-      if (!leads.some(function (l) { return l.ref === lead.ref; })) leads.push(lead);
+      if (leads.some(function (l) { return l.sourceMessageId && l.sourceMessageId === lead.sourceMessageId; })) return; // taken already
+      var same = leads.filter(function (l) { return l.ref === lead.ref; })[0];
+      if (same) {
+        // References are short, so two can match. A booking keeps its own (Cal.com's notes carry it) and the older row
+        // gets a suffix; a quote's reference is ours alone, so the new one gets it.
+        var n = 2, base = lead.ref;
+        while (leads.some(function (l) { return l.ref === base + "-" + n; })) n++;
+        if (lead.kind === "booking") same.ref = base + "-" + n; else lead.ref = base + "-" + n;
+        log.push([clock.formatStamp(now), base, "Two requests had this reference; one is now " + base + "-" + n]);
+      }
+      leads.push(lead);
     } catch (e) { note("", "Couldn't read a queued request: " + e.message); }
   });
+  var cutoff = now.getTime() - KEEP_UNBOOKED_DAYS * MAIN_DAY, before = leads.length;
+  leads = leads.filter(function (l) { return l.optedOut || l.eventStart || l.firstCleanAt || new Date(l.receivedAt).getTime() >= cutoff; });
+  if (leads.length < before) log.push([clock.formatStamp(now), "", "Removed " + (before - leads.length) + " request(s) older than 12 months that never became bookings, as the Privacy Policy promises"]);
   var save = function () {
     // An "Opted out" tick Mann made while this run was going is kept (CASL): re-read the column just before writing.
     env.sheet.readLeadRows().forEach(function (row) {
@@ -155,27 +170,32 @@ function run(env) {
     });
     env.sheet.writeLeadRows(leads.map(function (l) { return leadToRow(l, now, clock); }).concat(unreadable));
   };
-  if (incoming.length) {
-    save();
-    env.sheet.removeIncoming(incoming.length);
-  }
+  if (incoming.length || leads.length < before) save();
+  if (incoming.length) env.sheet.removeIncoming(incoming.length);
 
-  var events = env.calendar.events(new Date(now.getTime() - 2 * MAIN_DAY), new Date(now.getTime() + 90 * MAIN_DAY));
   // Replies and opt-outs only matter from clients the automation might still email.
   var watching = [];
   leads.forEach(function (l) {
     var e = (l.email || "").toLowerCase();
     if (e && !l.optedOut && isActiveLead(l, now) && watching.indexOf(e) === -1) watching.push(e);
   });
-  var messages = watching.length ? env.gmail.findClientMessages(new Date(now.getTime() - 3 * MAIN_DAY), watching) : [];
   var pending = [];
   leads.forEach(function (l) {
     Object.keys(l.emails).forEach(function (k) { if (l.emails[k].state === "draft") pending.push(l.emails[k]); });
   });
-  var draftIds = pending.length ? env.gmail.existingDraftIds() : [], sentByThread = {};
-  pending.forEach(function (e) {
-    if (draftIds.indexOf(e.draftId) === -1 && !sentByThread[e.threadId]) sentByThread[e.threadId] = env.gmail.sentDatesInThread(e.threadId);
-  });
+  var events, messages, draftIds = [], sentByThread = {};
+  try {
+    events = env.calendar.events(new Date(now.getTime() - 2 * MAIN_DAY), new Date(now.getTime() + 90 * MAIN_DAY));
+    messages = watching.length ? env.gmail.findClientMessages(new Date(now.getTime() - 3 * MAIN_DAY), watching) : [];
+    if (pending.length) draftIds = env.gmail.existingDraftIds();
+    pending.forEach(function (e) {
+      if (draftIds.indexOf(e.draftId) === -1 && !sentByThread[e.threadId]) sentByThread[e.threadId] = env.gmail.sentDatesInThread(e.threadId);
+    });
+  } catch (e) {
+    // Without the calendar or Gmail the plan could be wrong, so this run stops here and says why.
+    note("", "Couldn't read Calendar or Gmail: " + e.message);
+    return finish();
+  }
   var plan = planRun({ leads: leads, events: events, messages: messages, existingDraftIds: draftIds, sentByThread: sentByThread, settings: settings, now: now, clock: clock });
 
   plan.todo.forEach(function (t) {

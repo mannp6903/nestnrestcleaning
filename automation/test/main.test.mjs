@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { site } from "./load.mjs";
+import { site, clock } from "./load.mjs";
 import { makeFakeEnv } from "./fake-env.mjs";
 import * as R from "./fixtures/requests.mjs";
 
@@ -307,4 +307,50 @@ test("Mann's opt-out tick made during a run is kept", () => {
   state.onDraft = () => { if (state.leadRows[0]) state.leadRows[0][11] = true; };
   run(env);
   assert.equal(rowToLead(state.leadRows[0]).optedOut, true);
+});
+
+const rowFor = (req, at, patch = {}) => leadToRow(Object.assign(leadFromIncoming(incomingRecord(req, T(at), { messageId: "m-" + at, threadId: "t" }), clock), patch), T(at), clock);
+
+test("requests that never became bookings are removed after 12 months", () => {
+  const { env, state } = installed();
+  const oldQuote = R.copy(R.quote);
+  const client = R.copy(R.booking);
+  client.Reference = "NR-CCCC";
+  state.leadRows = [
+    rowFor(oldQuote, "2025-09-01T15:00:00Z"),
+    rowFor(client, "2025-08-01T15:00:00Z", { eventId: "e0", eventStart: "2025-08-05T15:00:00.000Z", firstCleanAt: "2025-08-05T15:00:00.000Z" }),
+    rowFor(R.quote, "2025-07-01T15:00:00Z", { optedOut: true, email: "stop@example.com" }),
+    rowFor(R.quote, "2026-06-01T15:00:00Z")
+  ];
+  state.now = T("2026-10-26T18:00:00Z");
+  run(env);
+  const refs = state.leadRows.map((r) => r[1]);
+  assert.equal(refs.length, 3);
+  assert.ok(refs.includes("NR-CCCC"));
+  assert.ok(!refs.includes("Q-250901110000"));
+  assert.ok(state.leadRows.some((r) => r[11] === true));
+  assert.ok(state.log.some((l) => /Removed 1 request/.test(l[2])));
+});
+
+test("two requests that end up with the same reference are both kept", () => {
+  const { env, state } = installed();
+  state.now = T("2026-10-26T18:32:00Z");
+  const second = R.copy(R.quote);
+  second._replyto = second.email = "kim@example.com";
+  receive(env, body(R.quote));
+  receive(env, body(second));
+  run(env);
+  const refs = state.leadRows.map((r) => r[1]);
+  assert.equal(refs.length, 2);
+  assert.notEqual(refs[0], refs[1]);
+  run(env);
+  assert.equal(state.leadRows.length, 2);
+});
+
+test("a calendar failure is reported in Settings instead of stopping silently", () => {
+  const { env, state } = booked();
+  env.calendar.events = () => { throw new Error("Calendar is down"); };
+  run(env);
+  assert.match(String(setting(state, "Last error")), /Calendar is down/);
+  assert.equal(state.incoming.length, 0);
 });
