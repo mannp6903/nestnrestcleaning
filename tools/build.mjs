@@ -19,6 +19,9 @@ vm.runInNewContext(fs.readFileSync(path.join(ROOT, "js/config.js"), "utf8"), san
 const C = sandbox.window.NR_CONFIG;
 const B = C.business;
 const SITE = C.siteUrl.replace(/\/$/, "");
+// The website's forms go to our Google script instead of FormSubmit (delivery.provider "google"; automation/README.md).
+const GFORMS = (C.delivery || {}).provider === "google";
+const FORMS_TO = GFORMS ? "Your request is sent to our Google account (our email and a private spreadsheet)" : "Your request is sent through FormSubmit to our Google email inbox";
 const BRAND_SHORT = "Nest & Rest";
 // Scripts are deferred on the live site so they never block the first paint. The preview inlines a flag between them, so it loads them in order instead.
 const DEFER = PREVIEW_DIR ? "" : " defer";
@@ -583,7 +586,7 @@ function quoteForm(L, { name, title = "Request a free quote", reply, fields, but
         <p class="form-error" data-q-error role="alert" hidden></p>
         <button type="submit" class="btn btn-primary btn-block">${esc(button)}</button>
         <p class="pricer-fine">Reply ${esc(reply)} · No obligation</p>
-        <p class="privacy-note">${note ? esc(note) + " " : ""}Your request is sent through FormSubmit to our Google email inbox, which may store data outside Canada. See our <a href="${L("privacy/")}">Privacy Policy</a>.</p>
+        <p class="privacy-note">${note ? esc(note) + " " : ""}${FORMS_TO}, which may store data outside Canada. See our <a href="${L("privacy/")}">Privacy Policy</a>.</p>
       </form>
       <div class="quote-done" data-quote-done hidden tabindex="-1"><p class="label">Request received</p><h2 data-qd-title>Thank you.</h2><p data-qd-text></p></div>`;
 }
@@ -927,7 +930,7 @@ urls.push(page({
                 ? `Next, you pick a time on ${esc(B.ownerFirstName)}'s calendar and it's confirmed straight away. Nothing to pay until it's done. Free to change up to ${C.policies.cancelNoticeHours} hours before. ${LATE_FEE_LINE}`
                 : `This is a booking request. ${esc(B.ownerFirstName)} confirms the time and final price with you before the clean. Nothing to pay until it's done. Free to change up to ${C.policies.cancelNoticeHours} hours before. ${LATE_FEE_LINE}`}</span></p>
               <p class="privacy-note span-2">Your booking is with ${esc(B.name)}, owned and operated by ${esc(B.owner)}, ${ADDR ? esc(ADDR) : `${esc(B.base)}, Ontario`}. ${PHONE ? `<a data-tel href="tel:${B.phone}">${esc(B.phoneDisplay)}</a> · ` : ""}<a data-mailto href="mailto:${B.email}">${esc(B.email)}</a></p>
-              <p class="privacy-note span-2">By sending, you agree to our <a href="${L("policies/")}">Service Policies</a>. We use your details only to arrange your clean. Your request is sent through FormSubmit to our Google email inbox${CAL ? ", and the time you pick is booked on Cal.com, our booking calendar. Both" : ", which"} may store data outside Canada. See our <a href="${L("privacy/")}">Privacy Policy</a>.</p>
+              <p class="privacy-note span-2">By sending, you agree to our <a href="${L("policies/")}">Service Policies</a>. We use your details only to arrange your clean. ${FORMS_TO}${CAL ? ", and the time you pick is booked on Cal.com, our booking calendar. Both" : ", which"} may store data outside Canada. See our <a href="${L("privacy/")}">Privacy Policy</a>.</p>
               <input type="text" name="_honey" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
             </div>
             <p class="form-error" data-form-error role="alert" hidden></p>
@@ -1502,7 +1505,7 @@ if (gift && gift.active) {
         <p class="form-error" data-gift-error role="alert" hidden></p>
         <button type="submit" class="btn btn-primary btn-block">Request gift card</button>
         <p class="pricer-fine">Nothing to pay now. We text you to confirm and send an Interac e-Transfer request.</p>
-        <p class="privacy-note">Your request is sent through FormSubmit to our Google email inbox, which may store data outside Canada. See our <a href="${L("privacy/")}">Privacy Policy</a> and <a href="${L("policies/#gift")}">gift card terms</a>.</p>
+        <p class="privacy-note">${FORMS_TO}, which may store data outside Canada. See our <a href="${L("privacy/")}">Privacy Policy</a> and <a href="${L("policies/#gift")}">gift card terms</a>.</p>
       </form>
       <div class="quote-done" data-gift-done hidden tabindex="-1"><p class="label">Request received</p><h2 data-gd-title>Thank you.</h2><p data-gd-text></p><p class="ref">Reference <strong data-gd-ref></strong></p></div>
     </div>
@@ -1801,11 +1804,11 @@ legalPage({
     { id: "sharing", h: "Who we share it with", html: () => `<p>We share personal information only with service providers who help us run the business, and only what they need:</p>
       <ul>
         <li><strong>GitHub</strong> (GitHub, Inc.) hosts this website and keeps standard server logs, including IP addresses, for security.</li>
-        <li><strong>Google</strong> provides our email service, where booking, quote, gift card and review messages are stored.</li>
+        ${GFORMS ? `<li><strong>Google</strong> provides our email, calendar and spreadsheet services, and runs the small program that receives this website's forms and sends your confirmation emails.</li>` : `<li><strong>Google</strong> provides our email service, where booking, quote, gift card and review messages are stored.</li>`}
         ${CAL ? `<li><strong>Cal.com</strong> (cal.com) runs our booking calendar. When you pick a time, it receives your name, email, phone number and booking details, and emails your confirmation. It may store data outside Canada.</li>
         ` : ""}${GA ? `<li><strong>Google Analytics</strong> (Google LLC) measures how visitors use this website: the pages viewed, how they arrived (for example from our flyer or business card), the type of device and an approximate location. It doesn't receive anything you type into our forms, and it stores data in the United States.</li>
         ` : ""}${C.automation && C.automation.aiReplies ? `<li><strong>Anthropic</strong> (anthropic.com) provides Claude, an AI service that helps us write the personal part of our emails to you. It receives your first name, the service you asked about, your choices on our form and any notes you add, but not your email address, phone number or address. It may store data outside Canada.</li>
-        ` : ""}<li><strong>FormSubmit</strong> (formsubmit.co) delivers the website's forms to our email inbox, and sends your confirmation email when you give us your address.</li>
+        ` : ""}${GFORMS ? "" : `<li><strong>FormSubmit</strong> (formsubmit.co) delivers the website's forms to our email inbox, and sends your confirmation email when you give us your address.</li>`}
         ${B.whatsapp ? `<li><strong>WhatsApp</strong> (WhatsApp LLC, part of Meta Platforms) delivers and stores messages if you choose to contact us on WhatsApp.</li>
         ` : ""}<li><strong>Your bank or card payment provider</strong> processes payments you make by Interac e-Transfer or card.</li>
       </ul>

@@ -296,7 +296,7 @@
         fieldError(tmPhone, "");
         var p = price(st.service, st.beds, st.baths, st.home);
         tmSend.disabled = true; tmSend.textContent = "Sending…";
-        send({ _subject: "Text this price: " + money(p) + " to " + tmPhone.value.trim(), _template: "table", _captcha: "false", _honey: ($("[data-textme-honey]", tmBox) || {}).value || "",
+        send({ _form: "textPrice", _subject: "Text this price: " + money(p) + " to " + tmPhone.value.trim(), _template: "table", _captcha: "false", _honey: ($("[data-textme-honey]", tmBox) || {}).value || "",
           "Text this price to": tmPhone.value.trim(), "Quote": summary() + ", " + money(p), "Estimated time": "about " + hoursFor(st.service, st.beds, st.baths, st.home) + " hours", "Page": location.pathname
         }).then(function (res) {
           tmBox.classList.add("is-sent");
@@ -635,6 +635,8 @@
         // The customer's written copy: itemized price and change terms. With the calendar, Cal.com confirms the time separately.
         _autoresponse: email ? autoReply(CAL ? (C.emails || {}).bookingCal : (C.emails || {}).booking, { name: firstName, ref: r, summary: plain, items: itemsText(q), reply: B.replyPromise, phone: B.phoneDisplay,
           notice: C.policies.cancelNoticeHours, lateFee: C.policies.lateCancelFee, terms: C.siteUrl + "/policies/", calendar: "https://cal.com/" + calPath }) : undefined,
+        _form: "booking",
+        _confirm: email ? { tpl: CAL ? "bookingCal" : "booking", vals: { name: firstName, ref: r, summary: plain, items: itemsText(q) } } : undefined,
         _honey: $('[name="_honey"]', form).value,
         "Reference": r, "Service": q.s.name, "Home": homeLine(q),
         "Extras": q.addons.map(function (a) { return a.name; }).join(", ") || "None",
@@ -867,10 +869,17 @@
   /* ---------- Delivery ---------- */
   function phoneOk(v) { var d = String(v).replace(/\D/g, ""); return d.length === 10 || (d.length === 11 && d[0] === "1"); }
   function emailOk(v) { return !v || /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v); }
+  /* "google" posts to our Google script as plain text, so the browser sends it straight away (no CORS check, which the script
+     can't answer). The script writes the confirmation from its own copy of the wording, so only _confirm's short values go. */
   function send(data) {
     if (PREVIEW || !C.delivery || C.delivery.provider === "none") return Promise.resolve({ skipped: true });
+    var G = C.delivery.provider === "google", body = {};
+    Object.keys(data).forEach(function (k) {
+      if (data[k] === undefined || (G ? /^_(autoresponse|template|captcha)$/ : /^_(form|confirm)$/).test(k)) return;
+      body[k] = data[k];
+    });
     return fetch(C.delivery.endpoint, {
-      method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify(data)
+      method: "POST", headers: G ? { "Content-Type": "text/plain;charset=utf-8" } : { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify(body)
     }).then(function (r) {
       return r.json().catch(function () { return {}; }).then(function (j) {
         if (!r.ok || String(j.success) === "false") throw new Error(j.message || "Request failed");
@@ -905,7 +914,7 @@
       $$(checked, form).forEach(function (el) { if (!qCheck(el) && !first) first = el; });
       if (first) { err.textContent = "Please fix the highlighted fields."; err.hidden = false; first.focus(); return; }
       err.hidden = true;
-      var data = { _subject: "New quote request: " + name, _template: "table", _captcha: "false", "Service": name };
+      var data = { _form: "quote", _subject: "New quote request: " + name, _template: "table", _captcha: "false", "Service": name };
       $$("input, select, textarea", form).forEach(function (el) {
         if (el.name === "_honey") data._honey = el.value;
         else if (el.name) data[el.name] = el.value.trim() || "—";
@@ -913,6 +922,7 @@
       if (data.Email && data.Email !== "—") {
         data._replyto = data.email = data.Email;
         data._autoresponse = autoReply((C.emails || {}).quote, { name: String(data.Name).split(/\s+/)[0], reply: form.getAttribute("data-reply-time"), phone: B.phoneDisplay });
+        data._confirm = { tpl: "quote", vals: { name: String(data.Name).split(/\s+/)[0], reply: form.getAttribute("data-reply-time") } };
       }
       delete data.Email;
       var btn = $('button[type="submit"]', form);
@@ -972,7 +982,7 @@
       var r = "GIFT-" + Math.random().toString(36).slice(2, 6).toUpperCase();
       var amount = ($('input[name="amount"]:checked', form) || {}).value;
       var mine = $("#g-email").value.trim(), name = $("#g-name").value.trim();
-      var data = { _subject: "New gift card request " + r + ": " + money(+amount), _template: "table", _captcha: "false", _replyto: mine, email: mine,
+      var data = { _form: "gift", _confirm: { tpl: "gift", vals: { name: name.split(/\s+/)[0], ref: r } }, _subject: "New gift card request " + r + ": " + money(+amount), _template: "table", _captcha: "false", _replyto: mine, email: mine,
         _autoresponse: autoReply((C.emails || {}).gift, { name: name.split(/\s+/)[0], ref: r, reply: B.replyPromise, phone: B.phoneDisplay }),
         "Reference": r, "Amount": money(+amount), "Send": ($('input[name="send"]:checked', form) || {}).value };
       $$("input, textarea", form).forEach(function (el) {
@@ -1016,7 +1026,7 @@
       err.hidden = true;
       var btn = $('button[type="submit"]', form);
       btn.disabled = true;
-      send({ _subject: "New review: " + rating + " stars from " + nm, _template: "table", _captcha: "false", _honey: $('[name="_honey"]', form).value,
+      send({ _form: "review", _subject: "New review: " + rating + " stars from " + nm, _template: "table", _captcha: "false", _honey: $('[name="_honey"]', form).value,
         "Rating": rating + " / 5", "Name": nm, "Neighbourhood": $("#rv-area").value.trim(), "Service": $("#rv-service").value, "Review": tx, "Booked with": ct
       }).then(function (res) {
         form.hidden = true;
