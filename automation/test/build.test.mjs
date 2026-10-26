@@ -43,7 +43,7 @@ test("business details, contact line and reply promises", () => {
 
 test("the footer is filled in", () => {
   const site = buildSiteConfig(loadConfig());
-  assert.ok(site.footer.startsWith("This email is from Nest & Rest Cleaning, owned and operated by Mann Patel."), site.footer);
+  assert.ok(site.footer.startsWith("This email is from Nest & Rest Cleaning, owned and operated by Mann Patel, 356 Painted Post Drive, Scarborough, ON M1G 2M5."), site.footer);
   assert.ok(!site.footer.includes("{"));
 });
 

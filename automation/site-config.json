@@ -1,12 +1,12 @@
 {
- "version": "3170205a",
+ "version": "52282685",
  "business": {
   "name": "Nest & Rest Cleaning",
   "owner": "Mann Patel",
   "ownerFirstName": "Mann",
   "email": "nestnrestcleaning@gmail.com",
   "phoneDisplay": "",
-  "mailingAddress": "",
+  "mailingAddress": "356 Painted Post Drive, Scarborough, ON M1G 2M5",
   "areaLabel": "Scarborough & North York",
   "replyPromise": "within 2 hours during business hours",
   "contact": "Email nestnrestcleaning@gmail.com"
@@ -30,7 +30,7 @@
   "accessCodeDeleteDays": 7
  },
  "referral": "$25",
- "footer": "This email is from Nest & Rest Cleaning, owned and operated by Mann Patel. nestnrestcleaning@gmail.com · nestnrestcleaning.com. To stop emails from us, email nestnrestcleaning@gmail.com with \"unsubscribe\" and we'll stop within 10 business days.",
+ "footer": "This email is from Nest & Rest Cleaning, owned and operated by Mann Patel, 356 Painted Post Drive, Scarborough, ON M1G 2M5. nestnrestcleaning@gmail.com · nestnrestcleaning.com. To stop emails from us, email nestnrestcleaning@gmail.com with \"unsubscribe\" and we'll stop within 10 business days.",
  "emails": {
   "booking": "Hi {name}, thank you for your booking request with Nest & Rest Cleaning (reference {ref}). Here's what you asked for: {summary}. Your estimate: {items}. Mann will confirm your day and arrival window {reply}. There's nothing to pay until after your clean (Interac e-Transfer, card or cash). Changes are free up to {notice} hours before your arrival window. Later changes, or if we can't get in at the agreed time, may cost {lateFee}. Full terms: {terms} Questions? {contact}. — Mann Patel, Nest & Rest Cleaning",
   "quote": "Hi {name}, thank you for your quote request with Nest & Rest Cleaning. Mann will reply {reply} with your free quote. Questions in the meantime? {contact}. — Mann Patel, Nest & Rest Cleaning",

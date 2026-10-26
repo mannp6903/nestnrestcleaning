@@ -12,6 +12,7 @@ const body = (o) => JSON.stringify(o);
 const setting = (state, k) => state.settingsRows.find((r) => r[0] === k)[1];
 // The site settings once Mann has added the mailing address that Canada's anti-spam law requires in every email.
 const addressed = (() => { const x = JSON.parse(JSON.stringify(site)); x.business.mailingAddress = "PO Box 123, Scarborough, ON M1B 0A1"; return x; })();
+const unaddressed = (() => { const x = JSON.parse(JSON.stringify(site)); x.business.mailingAddress = ""; return x; })();
 
 function installed(opts = {}) {
   const f = makeFakeEnv({ now: INSTALL, site: addressed, ...opts });
@@ -289,14 +290,14 @@ test("one address can't be sent more than five confirmations in six hours", () =
 });
 
 test("without a mailing address, nothing sends on its own and Mann is told why", () => {
-  const { env, outbox, state } = booked({ site });
+  const { env, outbox, state } = booked({ site: unaddressed });
   env.sheet.writeSettingValue("Auto-send starts", "2026-10-26");
   const sentBefore = outbox.sent.length;
   run(env);
   assert.equal(outbox.sent.length, sentBefore);
   assert.equal(outbox.drafts.length, 1);
   assert.match(String(setting(state, "Last error")), /mailing address/);
-  const f = makeFakeEnv({ now: INSTALL, site });
+  const f = makeFakeEnv({ now: INSTALL, site: unaddressed });
   f.env.props.set("ANTHROPIC_API_KEY", "k");
   install(f.env);
   assert.match(String(setting(f.state, "Last error")), /mailing address/);

@@ -22,7 +22,7 @@ window.NR_CONFIG = {
     /* Your business mailing address, e.g. "PO Box 12345, Scarborough, ON M1B 0A1". A PO box or mailbox service is fine.
        Canada's anti-spam law (CASL) needs it in every business email and text, and Ontario's Consumer Protection Act
        needs it shown when customers book online. Once set, it appears in the footer, the policies, the booking page and every email. */
-    mailingAddress: "",
+    mailingAddress: "356 Painted Post Drive, Scarborough, ON M1G 2M5",
     base: "Scarborough, Toronto",
     region: "ON",
     hours: "Every day, 9am to 11pm",
