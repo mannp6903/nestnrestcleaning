@@ -142,6 +142,7 @@ test("booking requests, missing emails and quotes", () => {
   assert.equal(leadFromIncoming(incomingRecord(req, at, { messageId: "m", threadId: "t" }), clock).requested, "Tuesday, October 27, Morning (9am to 12pm)");
   const none = R.copy(R.booking);
   none.email = "not given";
+  delete none._replyto; // the website only sends a reply-to address when the client gave one
   assert.equal(leadFromIncoming(incomingRecord(none, at, { messageId: "m", threadId: "t" }), clock).email, "");
   const q = leadFromIncoming(incomingRecord(R.quote, at, { messageId: "m3", threadId: "t3" }), clock);
   assert.equal(q.kind, "quote");
@@ -158,4 +159,37 @@ test("notesFrom ignores the empty markers", () => {
   assert.equal(notesFrom({ Notes: "—" }), "");
   assert.equal(notesFrom({}), "");
   assert.equal(notesFrom({ Notes: " Hi " }), "Hi");
+});
+
+test("a lead only takes the client's checked reply-to address", () => {
+  const forged = R.copy(R.booking);
+  forged._replyto = "";
+  forged.email = "victim@example.org";
+  assert.equal(incomingRecord(forged, at, { messageId: "m", threadId: "t" }).fields.email, "");
+  const swapped = R.copy(R.booking);
+  swapped.email = "victim@example.org";
+  assert.equal(incomingRecord(swapped, at, { messageId: "m", threadId: "t" }).fields.email, "priya@example.com");
+});
+
+test("unknown services and links in names keep a request off the client list", () => {
+  assert.equal(leadProblem(R.booking, site), "");
+  assert.equal(leadProblem(R.quote, site), "");
+  assert.equal(leadProblem(R.gift, site), "");
+  const bad = (k, v) => { const r = R.copy(R.booking); r[k] = v; return leadProblem(r, site); };
+  assert.match(bad("Service", "refund at https://evil.example/login"), /^Not added to the client list/);
+  assert.match(bad("Name", "https://evil.example/claim Bob"), /^Not added to the client list/);
+  assert.match(bad("Referred by", "bit.ly/xyz"), /^Not added to the client list/);
+  assert.match(bad("Date", "Tuesday <b>now</b>"), /^Not added to the client list/);
+  assert.match(bad("Name", "x".repeat(81)), /^Not added to the client list/);
+  const realtor = R.copy(R.quote);
+  realtor.Service = "Realtors & property managers";
+  assert.equal(leadProblem(realtor, site), "");
+});
+
+test("confirmation values reject bare domains and phone numbers", () => {
+  for (const summary of ["ACCOUNT SUSPENDED. Verify at secure-paypal-login.co/verify", "claim at bit.ly/xyz", "or call 1 416 555 0199"]) {
+    const r = R.copy(R.booking);
+    r._confirm.vals.summary = summary;
+    assert.equal(confirmationEmail(r, site).email, null, summary);
+  }
 });

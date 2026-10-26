@@ -191,3 +191,22 @@ test("install warns when the Claude key is missing", () => {
   install(f.env);
   assert.equal(setting(f.state, "Last error"), "Add ANTHROPIC_API_KEY in Project Settings → Script Properties");
 });
+
+test("a forged request can't make the business email a stranger", () => {
+  const { env, outbox, state } = installed();
+  env.sheet.writeSettingValue("Auto-send starts", "2026-10-26");
+  const forged = R.copy(R.booking);
+  delete forged._replyto;
+  forged.email = "victim@example.org";
+  forged.Name = "https://evil.example/claim Bob";
+  forged.Service = "refund at https://evil.example/login";
+  state.now = T("2026-10-26T18:32:00Z");
+  assert.equal(receive(env, body(forged)).success, "true");
+  assert.equal(outbox.sent.length, 1);
+  assert.equal(outbox.sent[0].to, "nestnrestcleaning@gmail.com");
+  assert.match(outbox.sent[0].text, /^Not added to the client list/);
+  assert.equal(state.incoming.length, 0);
+  state.now = T("2026-10-26T22:00:00Z");
+  run(env);
+  assert.ok([...outbox.sent, ...outbox.drafts].every((e) => e.to !== "victim@example.org"));
+});

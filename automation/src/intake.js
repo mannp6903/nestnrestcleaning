@@ -89,7 +89,7 @@ function confirmationEmail(payload, site) {
   for (var k in CONFIRM_MAX) {
     var v = c.vals[k] == null ? "" : String(c.vals[k]).trim();
     if (v.length > CONFIRM_MAX[k]) return fail("the " + k + " was too long.");
-    if (/https?:|www\.|[<>]/i.test(v)) return fail("the " + k + " contained a link or markup.");
+    if (looksLikeLink(v) || PHONE_PATTERN.test(v)) return fail("the " + k + " contained a link, markup or a phone number.");
     vals[k] = v;
   }
   var tpl = site.emails[c.tpl];
@@ -116,11 +116,33 @@ function confirmationEmail(payload, site) {
   };
 }
 
+// Fields from a request that end up in personal emails. Each must be short and link-free, and the service one of ours,
+// so the public web address can't be used to send a stranger someone else's words.
+var LEAD_TEXT_FIELDS = ["Name", "Referred by", "Date", "Arrival window"];
+var LEAD_TEXT_MAX = 80;
+
+function leadProblem(payload, site) {
+  if (payload._form !== "booking" && payload._form !== "quote") return "";
+  var f = requestFields(payload), why = "";
+  var known = site.services.map(function (s) { return s.name; })
+    .concat(site.quoteServices.map(function (q) { return q.name; }), Object.keys(site.automation.quoteForms).filter(function (k) { return k !== "default"; }));
+  if (known.indexOf(f.Service) === -1) why = "the service wasn't one of ours";
+  LEAD_TEXT_FIELDS.forEach(function (k) {
+    var v = f[k] || "";
+    if (why) return;
+    if (v.length > LEAD_TEXT_MAX) why = "the " + k.toLowerCase() + " was too long";
+    else if (looksLikeLink(v)) why = "the " + k.toLowerCase() + " contained a link or markup";
+  });
+  return why ? "Not added to the client list: " + why + "." : "";
+}
+
 // Bookings and quotes wait in the Incoming tab for the next run. Notes and the address stay in Mann's email only.
+// Personal emails only ever go to the checked reply-to address, which the hourly limits also count.
 function incomingRecord(payload, receivedAt, notice) {
   if (payload._form !== "booking" && payload._form !== "quote") return null;
   var fields = requestFields(payload), hasNotes = notesFrom(fields) !== "";
   delete fields.Notes;
   delete fields.Address;
+  fields.email = replyToOf(payload);
   return { receivedAt: new Date(receivedAt).toISOString(), form: payload._form, subject: payload._subject.trim(), fields: fields, hasNotes: hasNotes, messageId: notice.messageId, threadId: notice.threadId };
 }

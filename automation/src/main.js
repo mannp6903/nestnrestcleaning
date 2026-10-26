@@ -61,16 +61,17 @@ function receive(env, bodyText) {
     return answer({ success: "false", message: "Too many requests. Please email us." });
   }
   keys.forEach(function (k, i) { env.cache.put(k, String(counts[i] + 1), 3600); });
-  var conf = confirmationEmail(payload, site), sent;
+  var conf = confirmationEmail(payload, site), problem = leadProblem(payload, site), sent;
   if (conf.problem) note(ref, conf.problem);
-  try { sent = env.gmail.send(notificationEmail(payload, site, conf.problem)); } catch (e) {
+  if (problem) note(ref, problem);
+  try { sent = env.gmail.send(notificationEmail(payload, site, [problem, conf.problem].filter(Boolean).join(" "))); } catch (e) {
     note(ref, "Couldn't email the new " + payload._form + " request: " + e.message);
     return answer({ success: "false", message: "Please email us" });
   }
   if (conf.email) {
     try { env.gmail.send(conf.email); } catch (e) { note(ref, "Couldn't send the client's confirmation: " + e.message); }
   }
-  var record = incomingRecord(payload, now, sent);
+  var record = problem ? null : incomingRecord(payload, now, sent);
   if (record) {
     try { env.sheet.appendIncoming(JSON.stringify(record)); } catch (e) { note(ref, "Couldn't queue the request for its personal email: " + e.message); }
   }

@@ -2,6 +2,9 @@
    promises come only from the fixed wording, so a paragraph that mentions any of them is thrown away. */
 
 var GUARD_MAX_WORDS = 90;
+// Anything a mail app might turn into a link: web addresses, bare domains like bit.ly/x, and markup.
+var LINK_PATTERN = /https?:|www\.|[<>]|\b[a-z0-9][a-z0-9-]*(\.[a-z0-9-]+)*\.[a-z]{2,}\b/i;
+var PHONE_PATTERN = /\d{3}[\s.)-]*\d{3}[\s.-]?\d{4}/;
 var GUARD_RULES = [
   [/\$/, "a price ($)"],
   [/%/, "a percent"],
@@ -9,10 +12,12 @@ var GUARD_RULES = [
   [/\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)s?\b/i, "a day of the week"],
   [/\b(january|february|march|april|june|july|august|september|october|november|december)\b|\bmay\s+\d/i, "a month"],
   [/[^\s@]+@[^\s@]+\.[^\s@]+/, "an email address"],
-  [/https?:\/\/|www\.|\b[\w-]+\.(com|ca|co|org|net|io)\b/i, "a link"],
-  [/\d{3}[\s.)-]*\d{3}[\s.-]?\d{4}/, "a phone number"],
+  [LINK_PATTERN, "a link"],
+  [PHONE_PATTERN, "a phone number"],
   [/\b(discount|coupon|promo|credit|refund|guarantee)/i, "a promise word"]
 ];
+
+function looksLikeLink(text) { return LINK_PATTERN.test(String(text || "")); }
 
 function checkParagraph(text) {
   var t = String(text || "").trim(), reasons = [];
