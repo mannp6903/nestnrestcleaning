@@ -5,6 +5,11 @@ var TZ = "America/Toronto";
 var NR_CLIENTS = "Clients", NR_SETTINGS = "Settings", NR_LOG = "Log", NR_INCOMING = "Incoming", NR_CONFIG = "Config";
 var NR_LOG_KEEP = 2000;
 
+// Text from the website starting with = + - or @ would become a live formula in the Sheet (and could fetch outside
+// addresses or leak data). A leading apostrophe keeps it as plain text; Sheets doesn't show the apostrophe.
+function plainCell(v) { return typeof v === "string" && /^[=+\-@]/.test(v) ? "'" + v : v; }
+function plainRow(row) { return row.map(plainCell); }
+
 function makeGoogleEnv() {
   var props = PropertiesService.getScriptProperties(), book = null, me = null;
   function sheetBook() {
@@ -70,7 +75,7 @@ function makeGoogleEnv() {
         if (rows.length) {
           ensureRows(sh, rows.length + 1);
           sh.getRange(2, CLIENT_HEADERS.indexOf("Opted out") + 1, rows.length, 1).setDataValidation(checkbox());
-          sh.getRange(2, 1, rows.length, CLIENT_HEADERS.length).setValues(rows);
+          sh.getRange(2, 1, rows.length, CLIENT_HEADERS.length).setValues(rows.map(plainRow));
         }
         if (last > rows.length + 1) sh.getRange(rows.length + 2, 1, last - rows.length - 1, CLIENT_HEADERS.length).clearContent();
       },
@@ -80,14 +85,14 @@ function makeGoogleEnv() {
       },
       writeSettingValue: function (key, value) {
         var sh = tab(NR_SETTINGS), row = settingRow(sh, key);
-        if (row) sh.getRange(row, 2).setValue(value);
-        else sh.appendRow([key, value]);
+        if (row) sh.getRange(row, 2).setValue(plainCell(value));
+        else sh.appendRow([key, plainCell(value)]);
       },
       appendLog: function (entries) {
         if (!entries.length) return;
         var sh = tab(NR_LOG);
         ensureRows(sh, sh.getLastRow() + entries.length);
-        sh.getRange(sh.getLastRow() + 1, 1, entries.length, 3).setValues(entries);
+        sh.getRange(sh.getLastRow() + 1, 1, entries.length, 3).setValues(entries.map(plainRow));
         if (sh.getLastRow() > NR_LOG_KEEP + 500) sh.deleteRows(2, sh.getLastRow() - 1 - NR_LOG_KEEP);
       },
       readConfigCache: function () { return String(tab(NR_CONFIG).getRange(1, 1).getValue() || "") || null; },

