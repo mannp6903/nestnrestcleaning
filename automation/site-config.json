@@ -1,11 +1,12 @@
 {
- "version": "7d74a951",
+ "version": "fb89f27d",
  "business": {
   "name": "Nest & Rest Cleaning",
   "owner": "Mann Patel",
   "ownerFirstName": "Mann",
   "email": "nestnrestcleaning@gmail.com",
   "phoneDisplay": "",
+  "mailingAddress": "",
   "areaLabel": "Scarborough & North York",
   "replyPromise": "within 2 hours during business hours",
   "contact": "Email nestnrestcleaning@gmail.com"
@@ -60,7 +61,7 @@
     "— {owner}"
    ]
   },
-  "referralLine": "Thank you for mentioning {referrer}. You get {referral} off this first clean, and once it's done and paid, {referrer} gets {referral} off their next one.",
+  "referralLine": "Thank you for mentioning {referrer}. If they're one of our clients, you'll get {referral} off this first clean, and they'll get {referral} off their next one once yours is done and paid.",
   "prep": {
    "regular": "I bring all the supplies and equipment. If you can, clear counters and floors of anything you'd like left exactly where it is.",
    "deep": "I bring all the supplies and equipment. A deep clean gets into the edges, so if you can, clear counters and the spaces along the baseboards before I arrive.",
@@ -100,7 +101,7 @@
   "access": {
    "I'll be home": "You said you'll be home, so I'll knock or ring when I arrive.",
    "Concierge or front desk": "You said the concierge or front desk will let me in. Please leave my name with them: {ownerFull} from Nest & Rest Cleaning.",
-   "Lockbox or key code": "You chose a lockbox or key code. If you haven't sent me the code yet, please reply with it. I delete it within {codeDays} days of your last scheduled visit.",
+   "Lockbox or key code": "You chose a lockbox or key code. Please don't email the code: I'll contact you to arrange it, and I delete it within {codeDays} days of your last scheduled visit.",
    "Let's discuss": "Please reply with how I should get in: someone at home, the concierge, or a lockbox or key code."
   },
   "pets": {

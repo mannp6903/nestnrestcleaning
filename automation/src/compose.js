@@ -26,9 +26,9 @@ function composeEmail(kind, lead, ctx) {
   };
   // Lines that carry placeholders of their own are filled first.
   base.referralLine = lead.referrer ? fill(A.referralLine) : "";
-  base.prepLine = prep && A.prep[prep.key] ? A.prep[prep.key] : "";
+  base.prepLine = prep && A.prep[prep.key] ? fill(A.prep[prep.key]) : "";
   base.accessLine = fill(A.access[lead.access] || "");
-  base.petsLine = A.pets[lead.pets] || "";
+  base.petsLine = fill(A.pets[lead.pets] || "");
   if (form) {
     base.nextStep = fill(!walk && form.nextStepNoLink ? form.nextStepNoLink : form.nextStep);
     base.nudgeStep = fill(!walk && form.nudgeStepNoLink ? form.nudgeStepNoLink : form.nudgeStep);

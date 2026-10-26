@@ -45,7 +45,7 @@ test("Claude only gets the first name, the service, form choices and notes", () 
   const d = clientDetailsFor(lead(), fields());
   assert.equal(d.firstName, "Priya");
   assert.equal(d.service, "Deep Cleaning");
-  assert.equal(d.notes, "We have a cat & the kitchen is the priority\nCode 4321");
+  assert.equal(d.notes, "We have a cat & the kitchen is the priority\nCode [number]");
   assert.equal(d.choices.Home, "2 bed, 1 bath condo");
   assert.equal(d.choices["Getting in"], "Lockbox or key code");
   assert.equal(d.choices.Pets, "Cat or other");
@@ -100,4 +100,27 @@ test("short links and an injected offer are caught", () => {
   assert.equal(injected.ok, false);
   assert.match(injected.reasons.join("; "), /percent/);
   assert.match(injected.reasons.join("; "), /link/);
+});
+
+test("claims the business doesn't make are rejected", () => {
+  for (const t of ["I'm fully insured, so don't worry.", "We're bonded and licensed.", "I only use eco-friendly products.", "Everything I use is non-toxic.",
+    "I'm police-checked.", "All our cleaners are background checked.", "I'm a certified cleaner.", "We're an award-winning team."]) {
+    const r = checkParagraph(t);
+    assert.equal(r.ok, false, t);
+    assert.match(r.reasons.join("; "), /claim/, t);
+  }
+  assert.equal(checkParagraph("Natural stone needs the right product, so I'll bring a gentle cleaner for your marble.").ok, true);
+});
+
+test("relative days are rejected too", () => {
+  for (const t of ["See you tomorrow!", "I can come tonight.", "How about this weekend?", "Let's aim for next week."]) assert.equal(checkParagraph(t).ok, false, t);
+});
+
+test("Claude is told which claims never to make, and never sees long numbers from the notes", () => {
+  const { options } = buildClaudeRequest("welcome", lead(), Object.assign(fields(), { Notes: "Lockbox 4417, unit 1203, buzz 12" }), site, "k");
+  const p = JSON.parse(options.payload);
+  assert.match(p.system, /insurance/);
+  assert.match(p.system, /eco-friendly/);
+  assert.ok(!options.payload.includes("4417") && !options.payload.includes("1203"));
+  assert.ok(options.payload.includes("buzz 12"));
 });

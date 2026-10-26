@@ -14,7 +14,10 @@ var GUARD_RULES = [
   [/[^\s@]+@[^\s@]+\.[^\s@]+/, "an email address"],
   [LINK_PATTERN, "a link"],
   [PHONE_PATTERN, "a phone number"],
-  [/\b(discount|coupon|promo|credit|refund|guarantee)/i, "a promise word"]
+  [/\b(discount|coupon|promo|credit|refund|guarantee)/i, "a promise word"],
+  [/\b(tomorrow|tonight|weekend|next week|this (morning|afternoon|evening))\b/i, "a day"],
+  // Claims the business doesn't make (js/config.js badges are off). Saying them would be misleading advertising.
+  [/\b(insur\w*|bonded|licen[cs]ed|certified|accredited|vetted|background[- ]?check\w*|police[- ]?check\w*|eco[- ]?friendly|non[- ]?toxic|organic|chemical[- ]?free|hypoallergenic|award)/i, "a claim we don't make"]
 ];
 
 function looksLikeLink(text) { return LINK_PATTERN.test(String(text || "")); }

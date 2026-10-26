@@ -137,7 +137,8 @@ window.NR_CONFIG = {
       lines: ["Hi {firstName},", "Thank you for booking with Nest & Rest Cleaning. I'll see you on {when} for your {service}.", "{paragraph}", "{referralLine}", "{prepLine}",
         "There's nothing to pay until after your clean. If your plans change, use the link in your Cal.com confirmation email to reschedule or cancel. It's free up to {notice} hours before.", "— {owner}"]
     },
-    referralLine: "Thank you for mentioning {referrer}. You get {referral} off this first clean, and once it's done and paid, {referrer} gets {referral} off their next one.",
+    // Conditional on purpose: the credit is only for people referred by a client (Service Policies, "Referral credit").
+    referralLine: "Thank you for mentioning {referrer}. If they're one of our clients, you'll get {referral} off this first clean, and they'll get {referral} off their next one once yours is done and paid.",
     prep: {
       regular: "I bring all the supplies and equipment. If you can, clear counters and floors of anything you'd like left exactly where it is.",
       deep: "I bring all the supplies and equipment. A deep clean gets into the edges, so if you can, clear counters and the spaces along the baseboards before I arrive.",
@@ -161,7 +162,7 @@ window.NR_CONFIG = {
     access: {
       "I'll be home": "You said you'll be home, so I'll knock or ring when I arrive.",
       "Concierge or front desk": "You said the concierge or front desk will let me in. Please leave my name with them: {ownerFull} from Nest & Rest Cleaning.",
-      "Lockbox or key code": "You chose a lockbox or key code. If you haven't sent me the code yet, please reply with it. I delete it within {codeDays} days of your last scheduled visit.",
+      "Lockbox or key code": "You chose a lockbox or key code. Please don't email the code: I'll contact you to arrange it, and I delete it within {codeDays} days of your last scheduled visit.",
       "Let's discuss": "Please reply with how I should get in: someone at home, the concierge, or a lockbox or key code."
     },
     pets: {

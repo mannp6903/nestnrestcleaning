@@ -17,7 +17,7 @@ test("personal note after booking", () => {
   assert.ok(e.text.startsWith("Hi Priya,\n\n"));
   assert.ok(e.text.includes("I'll see you on Monday, November 2 at 10am for your deep cleaning."));
   assert.ok(e.text.includes("\n\nP.\n\n"));
-  assert.ok(e.text.includes("Thank you for mentioning Sam O'Brien. You get $25 off this first clean"));
+  assert.ok(e.text.includes("Thank you for mentioning Sam O'Brien. If they're one of our clients, you'll get $25 off this first clean"));
   assert.ok(e.text.includes(site.automation.prep.deep));
   assert.ok(e.text.includes("It's free up to 24 hours before."));
   assert.ok(e.text.includes("— Mann"));
@@ -35,7 +35,7 @@ test("reminder", () => {
   const e = composeEmail("reminder", booking(), { site, clock, event, paragraph: "" });
   assert.equal(e.subject, "See you tomorrow, Priya");
   assert.ok(e.text.includes("I'll see you tomorrow, Monday, November 2 at 10am, for your deep cleaning."));
-  assert.ok(e.text.includes("I delete it within 7 days of your last scheduled visit."));
+  assert.ok(e.text.includes("Please don't email the code: I'll contact you to arrange it, and I delete it within 7 days of your last scheduled visit."));
   assert.ok(e.text.includes(site.automation.pets["Cat or other"]));
   const noPets = composeEmail("reminder", booking({ pets: "No pets", access: "Concierge or front desk" }), { site, clock, event, paragraph: "" });
   assert.ok(noPets.text.includes("Please leave my name with them: Mann Patel from Nest & Rest Cleaning."));
@@ -96,4 +96,11 @@ test("braces typed by a client are kept as text, not mistaken for a gap", () => 
   const e = composeEmail("welcome", booking({ referrer: "Sam {friend}", firstName: "{Pri}" }), { site, clock, event, paragraph: "" });
   assert.ok(e.text.includes("Thank you for mentioning Sam {friend}."));
   assert.ok(e.text.startsWith("Hi {Pri},"));
+});
+
+test("a gap in the preparation or pets wording is caught too", () => {
+  const s1 = withSite((x) => { x.automation.prep.deep = "Clear the {nope}."; });
+  assert.throws(() => composeEmail("welcome", booking(), { site: s1, clock, event, paragraph: "" }), /Unfilled placeholder \{nope\}/);
+  const s2 = withSite((x) => { x.automation.pets["Cat or other"] = "Hi {nope}"; });
+  assert.throws(() => composeEmail("reminder", booking(), { site: s2, clock, event, paragraph: "" }), /Unfilled placeholder \{nope\}/);
 });
