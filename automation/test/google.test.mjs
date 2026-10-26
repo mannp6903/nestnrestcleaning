@@ -98,3 +98,16 @@ test("the Log grows and is trimmed instead of failing", () => {
   assert.ok(log.getLastRow() <= 2501, String(log.getLastRow()));
   assert.equal(log.get(log.getLastRow(), 3), "entry 2999");
 });
+
+test("calendar events carry their title and when they were made", () => {
+  const { env } = fakeGoogle();
+  const start = new Date("2026-11-02T15:00:00Z"), made = new Date("2026-10-26T18:36:00Z");
+  globalThis.CalendarApp = { getDefaultCalendar: () => ({ getEvents: () => [{
+    getId: () => "e1", getStartTime: () => start, getEndTime: () => start, getDescription: () => "Booking NR-AB12", getTitle: () => "Home clean between Mann and Priya",
+    getDateCreated: () => made, getGuestList: () => [{ getEmail: () => "priya@example.com" }]
+  }] }) };
+  const [e] = env.calendar.events(new Date(0), new Date());
+  assert.equal(e.title, "Home clean between Mann and Priya");
+  assert.equal(e.created, made);
+  assert.deepEqual(e.guests, ["priya@example.com"]);
+});

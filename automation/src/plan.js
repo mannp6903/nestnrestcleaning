@@ -15,6 +15,9 @@ function planEmailOf(from) {
 
 function sameEmail(a, b) { return !!a && !!b && a.toLowerCase() === b.toLowerCase(); }
 function byStart(a, b) { return new Date(a.start) - new Date(b.start); }
+// Cal.com's "Free walkthrough" events are visits for a quote, not cleans: no reminder or review, but they count as booked.
+function isWalkthrough(ev) { return /walkthrough/i.test(ev.title || ""); }
+function hasGuest(ev, email) { return (ev.guests || []).some(function (g) { return sameEmail(String(g), email); }); }
 
 // The moment that is `days` calendar days after `date`'s Toronto day, at `hour` o'clock Toronto time.
 function dayOffsetAt(clock, date, days, hour) {
@@ -25,6 +28,7 @@ function dayOffsetAt(clock, date, days, hour) {
 function assignEvents(leads, events) {
   var out = {}, bookings = leads.filter(function (l) { return l.kind === "booking" && l.ref; });
   events.forEach(function (ev) {
+    if (isWalkthrough(ev)) return;
     var desc = ev.description || "";
     var owner = bookings.filter(function (l) { return desc.indexOf(l.ref) > -1; })[0];
     if (!owner) {
@@ -38,10 +42,17 @@ function assignEvents(leads, events) {
   return out;
 }
 
-function matchEvents(leads, events, now) {
+// The clean a booking request led to: the event carrying its reference or, when the client trimmed Cal.com's notes,
+// an event for their email address that was made after the request (not an older clean already on the calendar).
+function matchEvents(leads, events, now, assigned) {
   leads.forEach(function (l) {
     if (l.kind !== "booking" || !l.ref) return;
-    var ev = events.filter(function (e) { return (e.description || "").indexOf(l.ref) > -1; }).sort(byStart)[0];
+    var ev = events.filter(function (e) { return !isWalkthrough(e) && (e.description || "").indexOf(l.ref) > -1; }).sort(byStart)[0];
+    if (!ev) {
+      ev = ((assigned || {})[l.ref] || []).filter(function (e) {
+        return e.created && new Date(e.created) >= new Date(l.receivedAt).getTime() - 60000;
+      })[0];
+    }
     if (ev) {
       l.eventId = ev.id;
       l.eventStart = new Date(ev.start).toISOString();
@@ -125,17 +136,22 @@ function dueEmails(lead, ctx) {
       if (!has("requestAck")) out.push({ kind: "requestAck", key: "requestAck", event: null, at: now });
     } else if (lead.eventId) {
       if (new Date(lead.eventStart) > now && !has("welcome")) out.push({ kind: "welcome", key: "welcome", event: { id: lead.eventId, start: new Date(lead.eventStart) }, at: now });
+      var welcomeDue = out.length > 0;
     } else if (!has("welcome") && !has("pickTime") && !lead.clientRepliedAt) {
       var nudge = new Date(new Date(lead.receivedAt).getTime() + s.pickTimeHours * PLAN_HOUR), h = clock.local(nudge).hour;
       if (h >= 21) nudge = dayOffsetAt(clock, nudge, 1, 9);
       else if (h < 9) nudge = dayOffsetAt(clock, nudge, 0, 9);
       if (onTime(nudge)) out.push({ kind: "pickTime", key: "pickTime", event: null, at: nudge });
     }
-    var events = ctx.assigned[lead.ref] || [];
+    var events = ctx.assigned[lead.ref] || [], welcome = lead.emails.welcome;
     events.forEach(function (ev) {
       var start = new Date(ev.start), key = "reminder:" + ev.id + ":" + clock.dayKey(start);
       var at = dayOffsetAt(clock, start, -1, s.reminderHour);
-      if (!has(key) && now >= at && now < start) out.push({ kind: "reminder", key: key, event: ev, at: at });
+      // Once per clean, whichever of the client's requests it was sent under; and only on the day before ("See you tomorrow").
+      var sentBefore = ctx.leads.some(function (l) { return sameEmail(l.email, lead.email) && l.emails[key]; }) || has(key);
+      // Not straight after the personal note, which already gave the day and time.
+      var justNoted = ev.id === lead.eventId && (welcomeDue || (welcome && now - new Date(welcome.at) < 12 * PLAN_HOUR));
+      if (!sentBefore && !justNoted && now >= at && now < start && clock.dayKey(now) === clock.dayKey(at)) out.push({ kind: "reminder", key: key, event: ev, at: at });
     });
     var reviewed = ctx.leads.some(function (l) { return sameEmail(l.email, lead.email) && l.emails.review; });
     var first = events[0];
@@ -146,7 +162,8 @@ function dueEmails(lead, ctx) {
   } else {
     if (!has("quoteReply")) out.push({ kind: "quoteReply", key: "quoteReply", event: null, at: now });
     var reply = lead.emails.quoteReply;
-    var booked = ctx.leads.some(function (l) { return l.kind === "booking" && sameEmail(l.email, lead.email) && (l.eventId || (ctx.assigned[l.ref] || []).length); });
+    var booked = ctx.leads.some(function (l) { return l.kind === "booking" && sameEmail(l.email, lead.email) && (l.eventId || (ctx.assigned[l.ref] || []).length); }) ||
+      (ctx.events || []).some(function (e) { return hasGuest(e, lead.email); });
     if (reply && reply.state === "sent" && !has("quoteNudge") && !lead.clientRepliedAt && !booked) {
       var nudgeAt = dayOffsetAt(clock, new Date(reply.at), s.quoteNudgeDays, s.quoteNudgeHour);
       if (onTime(nudgeAt)) out.push({ kind: "quoteNudge", key: "quoteNudge", event: null, at: nudgeAt });
@@ -172,14 +189,14 @@ function planRun(input) {
   var leads = input.leads, now = input.now, settings = input.settings;
   if (!settings.on) return { todo: [], needsYouThreads: [] };
   syncDrafts(leads, input.existingDraftIds, input.sentByThread);
-  matchEvents(leads, input.events, now);
-  var threads = applyMessages(leads, input.messages);
   var assigned = assignEvents(leads, input.events), todo = [], reviewing = {};
+  matchEvents(leads, input.events, now, assigned);
+  var threads = applyMessages(leads, input.messages);
   leads.forEach(function (l) {
     if (l.optedOut || !l.email) return;
     var events = assigned[l.ref] || [];
     if (!isActiveLead(l, now) && !events.length) return;
-    dueEmails(l, { leads: leads, assigned: assigned, settings: settings, now: now, clock: input.clock }).forEach(function (d) {
+    dueEmails(l, { leads: leads, assigned: assigned, events: input.events, settings: settings, now: now, clock: input.clock }).forEach(function (d) {
       if (d.kind === "review") {
         if (reviewing[l.email.toLowerCase()]) return;
         reviewing[l.email.toLowerCase()] = true;

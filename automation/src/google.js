@@ -167,7 +167,10 @@ function makeGoogleEnv() {
     calendar: {
       events: function (from, to) {
         return CalendarApp.getDefaultCalendar().getEvents(from, to).map(function (e) {
-          return { id: e.getId(), start: e.getStartTime(), end: e.getEndTime(), description: e.getDescription() || "", guests: e.getGuestList().map(function (g) { return g.getEmail(); }) };
+          return {
+            id: e.getId(), title: e.getTitle() || "", start: e.getStartTime(), end: e.getEndTime(), created: e.getDateCreated(),
+            description: e.getDescription() || "", guests: e.getGuestList().map(function (g) { return g.getEmail(); })
+          };
         });
       }
     },

@@ -182,3 +182,44 @@ test("nothing for opted-out leads, leads without email, or when automation is of
   assert.deepEqual(run([booking()], "2026-10-26T21:32:00Z", { settings: settings({ on: false }) }).todo, []);
   assert.deepEqual(run([quote({}, "2026-05-01T12:00:00Z")], "2026-10-26T21:32:00Z").todo, []);
 });
+
+const evx = (id, start, opts = {}) => ({ id, start: T(start), end: T(start), description: opts.description || "", guests: opts.guests || [], title: opts.title || "", created: opts.created ? T(opts.created) : null });
+
+test("a reminder already sent isn't sent again when the clean moves to a newer request", () => {
+  const a = booking({ ref: "NR-AAAA", emails: { welcome: sent("2026-10-02T12:00:00Z"), "reminder:e2:2026-11-05": sent("2026-11-04T23:00:00Z") } }, "2026-10-01T12:00:00Z");
+  const b = booking({ ref: "NR-BBBB" }, "2026-11-04T23:30:00Z");
+  const events = [evx("e2", "2026-11-05T15:00:00Z", { title: "Home clean", guests: ["priya@example.com"], created: "2026-10-20T12:00:00Z" })];
+  assert.deepEqual(kinds(run([a, b], "2026-11-04T23:40:00Z", { events })), []);
+});
+
+test("a booking matched only by email counts as booked", () => {
+  const lead = booking();
+  const picked = [evx("e5", NOV2, { title: "Home clean", guests: ["priya@example.com"], created: "2026-10-26T18:36:00Z" })];
+  assert.deepEqual(kinds(run([lead], "2026-10-26T18:40:00Z", { events: picked })), ["welcome"]);
+  assert.deepEqual(kinds(run([booking()], "2026-10-26T21:40:00Z", { events: picked })), ["welcome"]);
+  // An older clean on the calendar isn't taken for this new request.
+  const older = [evx("e6", NOV2, { title: "Home clean", guests: ["priya@example.com"], created: "2026-10-20T12:00:00Z" })];
+  assert.deepEqual(kinds(run([booking()], "2026-10-26T21:40:00Z", { events: older })), ["pickTime"]);
+});
+
+test("walkthroughs aren't cleans, and a booked walkthrough stops the quote nudge", () => {
+  const walk = (email) => evx("w1", "2026-10-28T15:00:00Z", { title: "Free walkthrough between Mann Patel and Lee Chen", guests: [email], created: "2026-10-26T19:00:00Z" });
+  const q = quote({ emails: { quoteReply: sent("2026-10-26T18:40:00Z") } });
+  assert.deepEqual(kinds(run([q], "2026-10-28T14:00:00Z", { events: [walk("lee@example.com")] })), []);
+  const b = booking({ emails: { welcome: sent("2026-10-26T19:00:00Z") } });
+  assert.deepEqual(kinds(run([b], "2026-10-27T23:00:00Z", { events: [walk("priya@example.com")] })), []);
+});
+
+test("reminders only go out on the day before", () => {
+  const lead = booking({ emails: { welcome: sent("2026-10-26T19:00:00Z") } });
+  const events = [ev("e1", NOV2, "Booking NR-AB12")];
+  assert.deepEqual(kinds(run([lead], "2026-11-02T13:00:00Z", { events })), []);
+});
+
+test("no reminder in the same evening as the personal note", () => {
+  const late = booking({}, "2026-11-01T23:50:00Z");
+  const events = [evx("e7", "2026-11-02T14:00:00Z", { description: "Booking NR-AB12" })];
+  assert.deepEqual(kinds(run([late], "2026-11-02T00:00:00Z", { events })), ["welcome"]);
+  const noted = booking({ emails: { welcome: sent("2026-11-01T22:00:00Z") } }, "2026-11-01T21:50:00Z");
+  assert.deepEqual(kinds(run([noted], "2026-11-01T23:00:00Z", { events })), []);
+});
