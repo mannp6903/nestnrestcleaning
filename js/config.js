@@ -12,10 +12,12 @@ window.NR_CONFIG = {
     tagline: "We clean. You rest.",
     owner: "Mann Patel",
     ownerFirstName: "Mann",
-    phoneDisplay: "647 978 6903",
-    phone: "+16479786903",
+    /* Your phone number: phoneDisplay as people see it (e.g. "647 555 0123"), phone with +1 (e.g. "+16475550123").
+       Leave both "" to keep your number private: every call and text button is hidden and the site points people to email instead. */
+    phoneDisplay: "",
+    phone: "",
     // WhatsApp number in international format, digits only. Leave "" to hide every WhatsApp button.
-    whatsapp: "16479786903",
+    whatsapp: "",
     email: "nestnrestcleaning@gmail.com",
     /* Your business mailing address, e.g. "PO Box 12345, Scarborough, ON M1B 0A1". A PO box or mailbox service is fine.
        Canada's anti-spam law (CASL) needs it in every business email and text, and Ontario's Consumer Protection Act
@@ -101,15 +103,16 @@ window.NR_CONFIG = {
   },
 
   /* Confirmation emails sent to the customer by FormSubmit when they give an email address.
-     {name}, {ref}, {summary}, {items}, {reply}, {phone}, {notice}, {lateFee}, {terms} and {calendar} are filled in automatically.
+     {name}, {ref}, {summary}, {items}, {reply}, {contact}, {notice}, {lateFee}, {terms} and {calendar} are filled in automatically.
      Booking emails are the customer's written copy of the agreement, so keep the price, the change terms and the link to the policies.
+     {contact} is how to reach us: your phone number while it's set in business.phone, otherwise your email address.
      The footer is added to every email: it says who we are and how to stop emails, as CASL requires. */
   emails: {
-    booking: "Hi {name}, thank you for your booking request with Nest & Rest Cleaning (reference {ref}). Here's what you asked for: {summary}. Your estimate: {items}. Mann will confirm your day and arrival window {reply}. There's nothing to pay until after your clean (Interac e-Transfer, card or cash). Changes are free up to {notice} hours before your arrival window. Later changes, or if we can't get in at the agreed time, may cost {lateFee}. Full terms: {terms} Questions? Call, text or WhatsApp {phone}. — Mann Patel, Nest & Rest Cleaning",
-    bookingCal: "Hi {name}, thank you for booking with Nest & Rest Cleaning (reference {ref}). Your booking: {summary}. Your estimate: {items}. Your time is confirmed when you pick it on our calendar, and Cal.com emails that confirmation separately, with links to reschedule or cancel. Haven't picked a time yet? Pick one here: {calendar} There's nothing to pay until after your clean (Interac e-Transfer, card or cash). Changes are free up to {notice} hours before your booking. Later changes, or if we can't get in at the agreed time, may cost {lateFee}. Full terms: {terms} Questions? Call, text or WhatsApp {phone}. — Mann Patel, Nest & Rest Cleaning",
-    quote: "Hi {name}, thank you for your quote request with Nest & Rest Cleaning. Mann will reply {reply} with your free quote. Questions in the meantime? Call, text or WhatsApp {phone}. — Mann Patel, Nest & Rest Cleaning",
-    gift: "Hi {name}, thank you for your gift request with Nest & Rest Cleaning (reference {ref}). Mann will text you {reply} to confirm the details and send an Interac e-Transfer request. Your gift card is emailed as soon as it's paid. Questions? Call, text or WhatsApp {phone}. — Mann Patel, Nest & Rest Cleaning",
-    footer: "This email is from Nest & Rest Cleaning, owned and operated by {owner}{address}. {phone} · {email} · {site}. To stop emails from us, email {email} with \"unsubscribe\" and we'll stop within 10 business days."
+    booking: "Hi {name}, thank you for your booking request with Nest & Rest Cleaning (reference {ref}). Here's what you asked for: {summary}. Your estimate: {items}. Mann will confirm your day and arrival window {reply}. There's nothing to pay until after your clean (Interac e-Transfer, card or cash). Changes are free up to {notice} hours before your arrival window. Later changes, or if we can't get in at the agreed time, may cost {lateFee}. Full terms: {terms} Questions? {contact}. — Mann Patel, Nest & Rest Cleaning",
+    bookingCal: "Hi {name}, thank you for booking with Nest & Rest Cleaning (reference {ref}). Your booking: {summary}. Your estimate: {items}. Your time is confirmed when you pick it on our calendar, and Cal.com emails that confirmation separately, with links to reschedule or cancel. Haven't picked a time yet? Pick one here: {calendar} There's nothing to pay until after your clean (Interac e-Transfer, card or cash). Changes are free up to {notice} hours before your booking. Later changes, or if we can't get in at the agreed time, may cost {lateFee}. Full terms: {terms} Questions? {contact}. — Mann Patel, Nest & Rest Cleaning",
+    quote: "Hi {name}, thank you for your quote request with Nest & Rest Cleaning. Mann will reply {reply} with your free quote. Questions in the meantime? {contact}. — Mann Patel, Nest & Rest Cleaning",
+    gift: "Hi {name}, thank you for your gift request with Nest & Rest Cleaning (reference {ref}). Mann will text you {reply} to confirm the details and send an Interac e-Transfer request. Your gift card is emailed as soon as it's paid. Questions? {contact}. — Mann Patel, Nest & Rest Cleaning",
+    footer: "This email is from Nest & Rest Cleaning, owned and operated by {owner}{address}. {email} · {site}. To stop emails from us, email {email} with \"unsubscribe\" and we'll stop within 10 business days."
   },
 
   homeTypes: {
@@ -377,7 +380,7 @@ window.NR_CONFIG = {
     { q: "What if something is missed?", a: "Tell us within 24 hours and we'll come back and re-clean those areas, free of charge.", on: ["home", "regular", "deep", "move", "detail", "residence", "area"] },
     { q: "Do you bring supplies and equipment?", a: "Yes. We bring cloths, mops, a vacuum and our products. If you'd like us to use your own products, or need fragrance-free, add it to your booking notes.", on: ["home", "regular", "deep", "detail", "office"] },
     { q: "Do I need to be home?", a: "No. You can leave access with a concierge, lockbox or key code. Choose how we get in when you book and we'll confirm the details by text.", on: ["home", "regular", "deep", "area"] },
-    { q: "Can I reschedule or cancel?", a: "Yes. Text us at least 24 hours before your arrival window and there's no charge.", on: ["home", "regular", "deep", "move", "detail", "office", "area"] },
+    { q: "Can I reschedule or cancel?", a: "Yes. Let us know at least 24 hours before your arrival window and there's no charge.", on: ["home", "regular", "deep", "move", "detail", "office", "area"] },
     { q: "Are pets OK?", a: "Absolutely. Tell us about them when you book. For heavy shedding, add the pet hair extra so we schedule enough time.", on: ["home", "regular", "deep"] },
     { q: "Why do you wear house shoes?", a: "Street shoes carry grit and salt, especially in a Toronto winter. We change into indoor-only shoes at your door, so your floors only meet clean soles.", on: ["home", "residence"] },
     { q: "Should I book a deep clean first?", a: "If your home hasn't had a professional clean in the last few months, yes. A deep clean resets the build-up so every regular visit after it stays quick and consistent.", on: ["regular", "deep", "pricing"] },
@@ -389,11 +392,11 @@ window.NR_CONFIG = {
     { q: "How long does a residence walkthrough take?", a: "Usually 20 to 30 minutes. We walk each room with you, note surfaces and priorities, and send a written care plan and quote afterwards.", on: ["residence"] },
     { q: "Can you clean outside business hours?", a: "Tell us what suits your business in the quote form. We'll confirm the times we can offer in your quote.", on: ["office"] },
     { q: "Do I need a contract?", a: "No contract is needed to start. Most offices begin with a single visit, then choose a schedule.", on: ["office"] },
-    { q: "Which areas do you serve?", a: "Scarborough and North York. Enter your postal code on the site to check. If you're just outside these areas, call or text and we'll tell you honestly whether we can help.", on: ["home", "area", "residence", "office", "realtors"] },
-    { q: "Can I message you on WhatsApp?", a: "Yes. WhatsApp, text or call 647 978 6903, whichever is easiest. Mann replies within 2 hours during business hours.", on: ["home", "area"] },
+    { q: "Which areas do you serve?", a: "Scarborough and North York. Enter your postal code on the site to check. If you're just outside these areas, get in touch and we'll tell you honestly whether we can help.", on: ["home", "area", "residence", "office", "realtors"] },
+    { q: "How do I get in touch?", a: "Email nestnrestcleaning@gmail.com, or send your details through the booking form. Mann replies within 2 hours during business hours.", on: ["home", "area"] },
     { q: "Do gift cards expire?", a: "No. Nest & Rest gift cards never expire, and they can be used toward any service. Any balance left after a clean stays on the card.", on: ["gift"] },
     { q: "How do I pay for a gift card?", a: "Send the form and we'll text you to confirm the details and send an Interac e-Transfer request. Your gift card is emailed as soon as it's paid.", on: ["gift"] },
-    { q: "How does the person I'm gifting book?", a: "They book online, by text or on WhatsApp like anyone else and mention the code on their gift card. We take the gift value off their price after the clean.", on: ["gift"] },
+    { q: "How does the person I'm gifting book?", a: "They book online like anyone else and mention the code on their gift card. We take the gift value off their price after the clean.", on: ["gift"] },
     { q: "Can the gift be for someone outside Scarborough or North York?", a: "The clean has to be in Scarborough or North York. If you're not sure, enter their postal code on the gift page to check.", on: ["gift"] },
     { q: "Can you clean before listing photos or a showing?", a: "Yes. Tell us the date of your photos or first showing and we'll aim to clean the day before. Evenings and weekends are available.", on: ["realtors"] },
     { q: "Does someone need to be there?", a: "No. A lockbox or the concierge works well. We confirm the code by text and delete it after the clean.", on: ["realtors"] },

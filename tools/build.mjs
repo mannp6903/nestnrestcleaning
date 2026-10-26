@@ -44,6 +44,8 @@ const hoodPath = (h) => `areas/${h.district}/${h.slug}/`;
 const hoodByName = (name) => hoodPages.find((h) => h.name === name);
 const waLink = (msg) => B.whatsapp ? `https://wa.me/${B.whatsapp}?text=${encodeURIComponent(msg)}` : "";
 const WA_HELLO = `Hi ${B.ownerFirstName}, I'd like to ask about a clean.`;
+// Phone number: leave business.phone "" in js/config.js to keep it private. Every call and text link is then left out and email takes its place.
+const PHONE = !!B.phone;
 const founding = C.offers.founding;
 const spotsLeft = founding ? Math.max(0, founding.spots - (founding.claimed || 0)) : 0;
 // Live calendar: with a Cal.com link in booking.calLink, booking ends with picking a confirmed time.
@@ -150,7 +152,7 @@ function header(L, opts = {}) {
   <div class="wrap header-row">
     <a class="brand" href="${L("")}" aria-label="${esc(B.name)}, home">${logoImg(L)}</a>
     <div class="header-actions">
-      <a class="header-call" data-tel href="tel:${B.phone}">${ic("i-phone")}<span class="sr-only">Call <span data-phone-text>${esc(B.phoneDisplay)}</span></span></a>
+      ${PHONE ? `<a class="header-call" data-tel href="tel:${B.phone}">${ic("i-phone")}<span class="sr-only">Call <span data-phone-text>${esc(B.phoneDisplay)}</span></span></a>` : ""}
       ${themeBtn()}
     </div>
   </div>
@@ -167,7 +169,7 @@ function header(L, opts = {}) {
       <a href="${L("vision/")}">Our vision</a>
     </nav>
     <div class="header-actions">
-      <a class="header-phone" data-tel href="tel:${B.phone}">${ic("i-phone")}<span class="sr-only">Call <span data-phone-text>${esc(B.phoneDisplay)}</span></span></a>
+      ${PHONE ? `<a class="header-phone" data-tel href="tel:${B.phone}">${ic("i-phone")}<span class="sr-only">Call <span data-phone-text>${esc(B.phoneDisplay)}</span></span></a>` : ""}
       ${B.whatsapp ? `<a class="header-wa" data-wa href="${esc(waLink(WA_HELLO))}" target="_blank" rel="noopener" aria-label="WhatsApp ${esc(B.ownerFirstName)}" data-track="whatsapp_click">${ic("i-wa")}</a>` : ""}
       ${themeBtn()}
       <a class="btn btn-primary header-book" href="${L("book/")}" data-track="book_click"><span class="hb-long">Book your clean</span><span class="hb-short">Book now</span></a>
@@ -194,7 +196,8 @@ function header(L, opts = {}) {
     <div class="menu-cta">
       <a class="btn btn-primary btn-block" href="${L("book/")}">Book your clean</a>
       ${B.whatsapp ? `<a class="btn btn-wa btn-block" data-wa href="${esc(waLink(WA_HELLO))}" target="_blank" rel="noopener">${ic("i-wa")} WhatsApp ${esc(B.ownerFirstName)}</a>` : ""}
-      <a class="btn btn-ghost btn-block" data-tel href="tel:${B.phone}">Call or text <span class="nowrap">${esc(B.phoneDisplay)}</span></a>
+      ${PHONE ? `<a class="btn btn-ghost btn-block" data-tel href="tel:${B.phone}">Call or text <span class="nowrap">${esc(B.phoneDisplay)}</span></a>`
+        : `<a class="btn btn-ghost btn-block" data-mailto href="mailto:${B.email}">Email ${esc(B.ownerFirstName)}</a>`}
     </div>
     ${socialLinks("social-menu")}
   </div>
@@ -267,7 +270,7 @@ function footer(L) {
         <div>
           <p class="label">Contact</p>
           <ul>
-            <li><a data-tel href="tel:${B.phone}" data-phone-text>${esc(B.phoneDisplay)}</a></li>
+            ${PHONE ? `<li><a data-tel href="tel:${B.phone}" data-phone-text>${esc(B.phoneDisplay)}</a></li>` : ""}
             ${B.whatsapp ? `<li><a data-wa href="${esc(waLink(WA_HELLO))}" target="_blank" rel="noopener">WhatsApp</a></li>` : ""}
             <li><a data-mailto href="mailto:${B.email}" data-email-text>${esc(B.email)}</a></li>
             <li><span data-hours>${esc(B.hours)}</span></li>
@@ -290,12 +293,13 @@ function footer(L) {
 }
 
 // Phones get Call and Text; large screens, where sms: links do nothing, get Email instead. WhatsApp works on both.
+// While the phone number is private, everyone gets Email.
 function actionBar(L) {
   return `<nav class="action-bar" aria-label="Quick contact" data-action-bar>
-  <a class="ab-link ab-phone" data-tel href="tel:${B.phone}" data-track="call_click">${ic("i-phone")}<span>Call</span></a>
-  <a class="ab-link ab-phone" data-sms href="sms:${B.phone}" data-track="text_click">${ic("i-sms")}<span>Text</span></a>
+  ${PHONE ? `<a class="ab-link ab-phone" data-tel href="tel:${B.phone}" data-track="call_click">${ic("i-phone")}<span>Call</span></a>
+  <a class="ab-link ab-phone" data-sms href="sms:${B.phone}" data-track="text_click">${ic("i-sms")}<span>Text</span></a>` : ""}
   ${B.whatsapp ? `<a class="ab-link ab-wa" data-wa href="${esc(waLink(WA_HELLO))}" target="_blank" rel="noopener" data-track="whatsapp_click">${ic("i-wa")}<span>WhatsApp</span></a>` : ""}
-  <a class="ab-link ab-desk" data-mailto href="mailto:${B.email}" data-track="email_click">${ic("i-mail")}<span>Email</span></a>
+  <a class="ab-link${PHONE ? " ab-desk" : ""}" data-mailto href="mailto:${B.email}" data-track="email_click">${ic("i-mail")}<span>Email</span></a>
   <a class="btn btn-primary ab-book" href="${L("book/")}" data-track="book_click"><span class="ab-long">Book your clean</span><span class="ab-short">Book now</span></a>
 </nav>`;
 }
@@ -432,7 +436,7 @@ function faqBlock(tag, title = "Questions, answered.", cls = "") {
     <div class="split-head">
       <p class="label">Questions</p>
       <h2>${esc(title)}</h2>
-      <p class="muted">Anything else? Call or text <a data-tel href="tel:${B.phone}" data-phone-text>${esc(B.phoneDisplay)}</a>${B.whatsapp ? `, or <a data-wa href="${esc(waLink(WA_HELLO))}" target="_blank" rel="noopener">message on WhatsApp</a>` : ""}.</p>
+      <p class="muted">Anything else? ${PHONE ? `Call or text <a data-tel href="tel:${B.phone}" data-phone-text>${esc(B.phoneDisplay)}</a>` : `Email <a data-mailto href="mailto:${B.email}">${esc(B.email)}</a>`}${B.whatsapp ? `, or <a data-wa href="${esc(waLink(WA_HELLO))}" target="_blank" rel="noopener">message on WhatsApp</a>` : ""}.</p>
     </div>
     <div class="faq">
       ${list.map((f) => `<details><summary><span>${esc(f.q)}</span>${ic("i-plus")}</summary><p>${esc(f.a)}</p></details>`).join("")}
@@ -451,7 +455,8 @@ function finalCta(L, title = "Come home to it.", text = "Book in two minutes. No
     <div class="cta-row">
       <a class="btn btn-light" href="${L("book/")}" data-track="book_click">Book your clean</a>
       ${B.whatsapp ? `<a class="btn btn-wa" data-wa href="${esc(waLink(WA_HELLO))}" target="_blank" rel="noopener" data-track="whatsapp_click">${ic("i-wa")} WhatsApp</a>` : ""}
-      <a class="btn btn-ghost-light" data-tel href="tel:${B.phone}">Call <span class="nowrap">${esc(B.phoneDisplay)}</span></a>
+      ${PHONE ? `<a class="btn btn-ghost-light" data-tel href="tel:${B.phone}">Call <span class="nowrap">${esc(B.phoneDisplay)}</span></a>`
+        : `<a class="btn btn-ghost-light" data-mailto href="mailto:${B.email}" data-track="email_click">Email ${esc(B.ownerFirstName)}</a>`}
     </div>
   </div>
 </section>`;
@@ -471,7 +476,7 @@ function businessSchema() {
     "@context": "https://schema.org", "@type": "HouseCleaningService", "@id": SITE + "/#business",
     name: B.name, slogan: B.tagline, description: "Home cleaning in Scarborough and North York, Toronto: regular, deep, move-in and move-out cleaning with a clear price before you book and payment after the clean.",
     url: SITE + "/", logo: SITE + "/assets/logo.png", image: [SITE + "/assets/og-image.jpg", SITE + "/assets/icon-512.png"],
-    telephone: B.phone, email: B.email, priceRange: "$$", currenciesAccepted: C.currency, paymentAccepted: "Cash, Credit Card, Debit Card, Interac e-Transfer",
+    ...(PHONE ? { telephone: B.phone } : {}), email: B.email, priceRange: "$$", currenciesAccepted: C.currency, paymentAccepted: "Cash, Credit Card, Debit Card, Interac e-Transfer",
     founder: { "@type": "Person", name: B.owner, jobTitle: "Founder & Owner", image: SITE + "/assets/founder-mann-patel.jpg" },
     address: { "@type": "PostalAddress", addressLocality: "Toronto", addressRegion: B.region, addressCountry: "CA" },
     areaServed: C.areas.map(placeSchema),
@@ -836,7 +841,7 @@ urls.push(page({
             </div>`;
     return `
 <section class="book">
-  <noscript><div class="wrap"><p class="form-error">Booking needs JavaScript. Please call or text <a href="tel:${B.phone}">${esc(B.phoneDisplay)}</a> and we'll book you in.</p></div></noscript>
+  <noscript><div class="wrap"><p class="form-error">Booking needs JavaScript. Please ${PHONE ? `call or text <a href="tel:${B.phone}">${esc(B.phoneDisplay)}</a>` : `email <a href="mailto:${B.email}">${esc(B.email)}</a>`} and we'll book you in.</p></div></noscript>
   <div class="wrap">
     <div class="book-head">
       <div>
@@ -920,7 +925,7 @@ urls.push(page({
               <p class="consent-line span-2">${ic("i-check")}<span>${CAL
                 ? `Next, you pick a time on ${esc(B.ownerFirstName)}'s calendar and it's confirmed straight away. Nothing to pay until it's done. Free to change up to ${C.policies.cancelNoticeHours} hours before. ${LATE_FEE_LINE}`
                 : `This is a booking request. ${esc(B.ownerFirstName)} confirms the time and final price with you before the clean. Nothing to pay until it's done. Free to change up to ${C.policies.cancelNoticeHours} hours before. ${LATE_FEE_LINE}`}</span></p>
-              <p class="privacy-note span-2">Your booking is with ${esc(B.name)}, owned and operated by ${esc(B.owner)}, ${ADDR ? esc(ADDR) : `${esc(B.base)}, Ontario`}. <a data-tel href="tel:${B.phone}">${esc(B.phoneDisplay)}</a> · <a data-mailto href="mailto:${B.email}">${esc(B.email)}</a></p>
+              <p class="privacy-note span-2">Your booking is with ${esc(B.name)}, owned and operated by ${esc(B.owner)}, ${ADDR ? esc(ADDR) : `${esc(B.base)}, Ontario`}. ${PHONE ? `<a data-tel href="tel:${B.phone}">${esc(B.phoneDisplay)}</a> · ` : ""}<a data-mailto href="mailto:${B.email}">${esc(B.email)}</a></p>
               <p class="privacy-note span-2">By sending, you agree to our <a href="${L("policies/")}">Service Policies</a>. We use your details only to arrange your clean. Your request is sent through FormSubmit to our Google email inbox${CAL ? ", and the time you pick is booked on Cal.com, our booking calendar. Both" : ", which"} may store data outside Canada. See our <a href="${L("privacy/")}">Privacy Policy</a>.</p>
               <input type="text" name="_honey" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
             </div>
@@ -952,7 +957,7 @@ urls.push(page({
           <div class="done-actions">
             <button type="button" class="btn btn-primary" data-ics>${ic("i-cal")} Add to calendar</button>
             ${B.whatsapp ? `<a class="btn btn-wa" data-wa-booking href="#" target="_blank" rel="noopener">${ic("i-wa")} Send on WhatsApp</a>` : ""}
-            <a class="btn btn-ghost" data-sms-booking href="#">${ic("i-sms")} Text us these details</a>
+            ${PHONE ? `<a class="btn btn-ghost" data-sms-booking href="#">${ic("i-sms")} Text us these details</a>` : ""}
           </div>
           <div class="done-refer">
             <p><strong>Know someone who'd love this?</strong> When a friend books their first clean, you both get $<span data-referral>${C.offers.referral}</span> off. Ask them to give us your first and last name when they book. <a href="${L("policies/#referral")}">Terms</a></p>
@@ -1098,7 +1103,7 @@ for (const k of quoteKeys) {
   </div>
 </section>
 ${fq.html}
-${finalCta(L, "Prefer to talk it through?", "Call, text or WhatsApp and we'll answer your questions directly.")}`
+${PHONE ? finalCta(L, "Prefer to talk it through?", "Call, text or WhatsApp and we'll answer your questions directly.") : finalCta(L, "Questions first?", "Email us and we'll answer them directly.")}`
   }));
 }
 
@@ -1426,9 +1431,9 @@ ${finalCta(L, `Book your ${h.name} clean.`)}`
     ${photo(L, "kitchen", { sizes: "(min-width: 960px) 380px, 92vw", cls: "ideal-photo" })}
     <div class="split-head">
       <p class="label">How it works</p>
-      <h2>One text, and it's handled.</h2>
+      <h2>One ${PHONE ? "text" : "message"}, and it's handled.</h2>
       <ol class="steps-3 steps-col">
-        <li><h3>Send the address and date</h3><p>By the form, text or WhatsApp. We confirm a time ${esc(B.replyPromise)}.</p></li>
+        <li><h3>Send the address and date</h3><p>${PHONE ? "By the form, text or WhatsApp" : "By the form or email"}. We confirm a time ${esc(B.replyPromise)}.</p></li>
         <li><h3>Leave access</h3><p>Lockbox, concierge or key pickup. Codes are deleted after the clean.</p></li>
         <li><h3>Get a receipt</h3><p>Pay after the clean by e-Transfer or card, with a receipt for that property.</p></li>
       </ol>
@@ -1684,7 +1689,7 @@ ${finalCta(L)}`
       <p class="lede">${esc(V.join)}</p>
       <div class="cta-row">
         <a class="btn btn-primary" href="mailto:${B.email}?subject=${encodeURIComponent("Working with " + B.name)}" data-track="join_click">Email ${esc(B.ownerFirstName)}</a>
-        <a class="btn btn-ghost" data-tel href="tel:${B.phone}">Call or text <span data-phone-text>${esc(B.phoneDisplay)}</span></a>
+        ${PHONE ? `<a class="btn btn-ghost" data-tel href="tel:${B.phone}">Call or text <span data-phone-text>${esc(B.phoneDisplay)}</span></a>` : ""}
       </div>
     </div>
   </div>
@@ -1757,7 +1762,7 @@ function legalPage({ slug, title, h1, description, intro, sections }) {
 </section>`
   }));
 }
-const contactLine = `<a data-mailto href="mailto:${B.email}">${esc(B.email)}</a> or <a data-tel href="tel:${B.phone}">${esc(B.phoneDisplay)}</a>`;
+const contactLine = `<a data-mailto href="mailto:${B.email}">${esc(B.email)}</a>${PHONE ? ` or <a data-tel href="tel:${B.phone}">${esc(B.phoneDisplay)}</a>` : ""}`;
 
 legalPage({
   slug: "privacy", title: "Privacy Policy", h1: "Privacy Policy",
@@ -1799,8 +1804,8 @@ legalPage({
         ${CAL ? `<li><strong>Cal.com</strong> (cal.com) runs our booking calendar. When you pick a time, it receives your name, email, phone number and booking details, and emails your confirmation. It may store data outside Canada.</li>
         ` : ""}${GA ? `<li><strong>Google Analytics</strong> (Google LLC) measures how visitors use this website: the pages viewed, how they arrived (for example from our flyer or business card), the type of device and an approximate location. It doesn't receive anything you type into our forms, and it stores data in the United States.</li>
         ` : ""}<li><strong>FormSubmit</strong> (formsubmit.co) delivers the website's forms to our email inbox, and sends your confirmation email when you give us your address.</li>
-        <li><strong>WhatsApp</strong> (WhatsApp LLC, part of Meta Platforms) delivers and stores messages if you choose to contact us on WhatsApp.</li>
-        <li><strong>Your bank or card payment provider</strong> processes payments you make by Interac e-Transfer or card.</li>
+        ${B.whatsapp ? `<li><strong>WhatsApp</strong> (WhatsApp LLC, part of Meta Platforms) delivers and stores messages if you choose to contact us on WhatsApp.</li>
+        ` : ""}<li><strong>Your bank or card payment provider</strong> processes payments you make by Interac e-Transfer or card.</li>
       </ul>
       <p>We may also disclose information if the law requires it, for example in response to a valid court order.</p>` },
     { id: "abroad", h: "Storage outside Canada", html: () => `<p>Some of our service providers store or process information outside Canada, including in the United States. While it is there, it is subject to the laws of that country and may be accessed by its courts, law enforcement and national security authorities. We choose established providers and share only what each one needs.</p>` },
@@ -1829,7 +1834,7 @@ legalPage({
 legalPage({
   slug: "policies", title: "Service Policies", h1: "Service Policies",
   description: `Booking, pricing, payment, cancellation, gift card and satisfaction policies for ${B.name}.`,
-  intro: `Clear terms, so there are no surprises. These apply to every clean we do. If anything here is unclear, call, text or WhatsApp ${esc(B.phoneDisplay)}.`,
+  intro: `Clear terms, so there are no surprises. These apply to every clean we do. If anything here is unclear, ${PHONE ? `call, text or WhatsApp ${esc(B.phoneDisplay)}` : `email ${esc(B.email)}`}.`,
   sections: [
     { id: "area", h: "Where we clean", html: () => `<p>We clean homes and small offices in Scarborough and North York, Toronto. We confirm your postal code before every booking.</p>` },
     { id: "booking", h: "Booking and confirmation", html: () => CAL
@@ -1845,7 +1850,7 @@ legalPage({
     { id: "gift", h: "Gift cards", html: () => `<p>Gift cards are issued once paid. They never expire, can be used toward any service in our service area, and any balance left after a clean stays on the card.</p>` },
     { id: "referral", h: "Referral credit", html: () => { const r = money(C.offers.referral); return `<p>When someone you refer books their first clean with us, you each get ${r} off:</p>
       <ul>
-        <li>Your friend gets ${r} off their first clean. When they book, they give us your first and last name in the "Referred by" box on the booking form, or by phone, text or WhatsApp.</li>
+        <li>Your friend gets ${r} off their first clean. When they book, they give us your first and last name in the "Referred by" box on the booking form, or by ${PHONE ? "phone, text or WhatsApp" : "email"}.</li>
         <li>You get ${r} off your next clean, once their first clean is done and paid.</li>
         <li>Their home must be new to ${esc(B.name)} and in our service area. There's one credit for each household you refer.</li>
         ${founding && founding.active ? `<li>Discounts on a first visit aren't combined, so a founding household gets whichever is larger: ${founding.percent}% off or ${r} off. You still get your ${r}.</li>` : ""}

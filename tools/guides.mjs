@@ -170,7 +170,7 @@ ${cta(L)}`
 <p>Before guests, after a busy stretch, or to try us out. If it's been a while since your last professional clean, book a <a href="${L("services/deep-cleaning/")}">deep clean</a> first.</p>
 
 <h2>Change it whenever life changes</h2>
-<p>Plans aren't contracts. Pause, skip or change your schedule with ${C.policies.cancelNoticeHours} hours' notice, by text or WhatsApp.</p>
+<p>Plans aren't contracts. Pause, skip or change your schedule with ${C.policies.cancelNoticeHours} hours' notice, by ${B.phone ? "text or WhatsApp" : "email"}.</p>
 ${cta(L, "Choose your plan")}`
     }
   ];

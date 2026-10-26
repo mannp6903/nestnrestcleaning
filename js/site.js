@@ -34,10 +34,13 @@
     toast.t = setTimeout(function () { t.hidden = true; }, 3000);
   }
   function waHref(msg) { return B.whatsapp ? "https://wa.me/" + B.whatsapp + "?text=" + encodeURIComponent(msg) : ""; }
+  // How to reach us: by phone while business.phone is set, otherwise by email (the number can be kept private).
+  var REACH = B.phone ? "call or text " + B.phoneDisplay : "email " + B.email;
   function fillTpl(t, vals) { return String(t || "").replace(/\{(\w+)\}/g, function (m, k) { return vals[k] != null ? vals[k] : m; }); }
   // Every confirmation email ends with who we are and how to stop emails (CASL), from config.emails.footer.
   function autoReply(tpl, vals) {
     var E = C.emails || {};
+    vals.contact = B.phone ? (B.whatsapp ? "Call, text or WhatsApp " : "Call or text ") + B.phoneDisplay : "Email " + B.email;
     var foot = fillTpl(E.footer, { owner: B.owner, address: B.mailingAddress ? ", " + B.mailingAddress : "", phone: B.phoneDisplay, email: B.email, site: C.siteUrl.replace(/^https?:\/\//, "") });
     return fillTpl(tpl, vals) + (E.footer ? "\n\n" + foot : "");
   }
@@ -54,7 +57,7 @@
   }
   function nextOpenText() {
     var d = openDates(1)[0];
-    if (!d) return "call or text us";
+    if (!d) return B.phone ? "call or text us" : "email us";
     var days = Math.round((new Date(d).setHours(0, 0, 0, 0) - new Date().setHours(0, 0, 0, 0)) / 86400000);
     var label = new Intl.DateTimeFormat("en-CA", { weekday: "short", month: "short", day: "numeric" }).format(d);
     return days === 0 ? "today, " + label : days === 1 ? "tomorrow, " + label : label;
@@ -102,8 +105,8 @@
   function fillCommon() {
     $$("[data-phone-text]").forEach(function (el) { el.textContent = B.phoneDisplay; });
     $$("[data-email-text]").forEach(function (el) { el.textContent = B.email; });
-    $$("[data-tel]").forEach(function (el) { el.href = "tel:" + B.phone; });
-    $$("[data-sms]").forEach(function (el) { el.href = "sms:" + B.phone; });
+    $$("[data-tel]").forEach(function (el) { if (B.phone) el.href = "tel:" + B.phone; else el.hidden = true; });
+    $$("[data-sms]").forEach(function (el) { if (B.phone) el.href = "sms:" + B.phone; else el.hidden = true; });
     $$("[data-mailto]").forEach(function (el) { el.href = "mailto:" + B.email; });
     $$("[data-wa]").forEach(function (el) { if (B.whatsapp) { if (!/wa\.me/.test(el.href)) el.href = waHref("Hi " + B.ownerFirstName + ", I'd like to ask about a clean."); } else el.hidden = true; });
     $$("[data-next-open]").forEach(function (el) { el.textContent = nextOpenText(); });
@@ -224,7 +227,7 @@
   function zoneMessage(z) {
     if (!z) return { cls: "no", text: "Enter a postal code like M1B 2K3." };
     if (z.area) return { cls: "ok", text: "Yes, we clean in " + z.fsa + " (" + z.area + ")." };
-    return { cls: "no", text: "Sorry, " + z.fsa + " is outside our area. We clean in Scarborough and North York only. If you're close by, call or text " + B.phoneDisplay + "." };
+    return { cls: "no", text: "Sorry, " + z.fsa + " is outside our area. We clean in Scarborough and North York only. If you're close by, " + REACH + "." };
   }
   function bindPostalChecks() {
     $$("[data-pc-form]").forEach(function (form) {
@@ -304,7 +307,9 @@
           track("generate_lead", { form: "text_me_price", service: st.service, value: p, currency: C.currency }, true);
           tmBox.innerHTML = '<p class="field-note"><strong>Sent.</strong> ' + esc(B.ownerFirstName) + " will text " + esc(money(p)) + " to " + esc(tmPhone.value.trim()) + " " + esc(B.replyPromise) + ".</p>";
         }).catch(function () {
-          tmNote.innerHTML = 'That didn\'t send. Please <a href="sms:' + B.phone + "?&body=" + encodeURIComponent("Hi, please text me a price for " + summary() + " (" + money(p) + ").") + '">text us</a> instead.';
+          var ask = "Hi, please text me a price for " + summary() + " (" + money(p) + ").";
+          tmNote.innerHTML = B.phone ? 'That didn\'t send. Please <a href="sms:' + B.phone + "?&body=" + encodeURIComponent(ask) + '">text us</a> instead.'
+            : 'That didn\'t send. Please <a href="mailto:' + B.email + "?subject=" + encodeURIComponent("Price request") + "&body=" + encodeURIComponent(ask) + '">email us</a> instead.';
           tmSend.disabled = false; tmSend.textContent = "Send";
         });
       };
@@ -469,7 +474,7 @@
       if (!c) return true;
       var ok = c[0](el.value), msg = "";
       if (!ok) {
-        if (el.id === "f-postal") msg = fullPostalOk(el.value) ? "We clean in Scarborough and North York only. If you're close by, call or text " + B.phoneDisplay + "." : "Enter a full postal code, like M1B 2K3.";
+        if (el.id === "f-postal") msg = fullPostalOk(el.value) ? "We clean in Scarborough and North York only. If you're close by, " + REACH + "." : "Enter a full postal code, like M1B 2K3.";
         else msg = c[1];
       }
       fieldError(el, msg);
@@ -653,7 +658,7 @@
         store(DRAFT_KEY, null);
       }).catch(function () {
         var err = $("[data-form-error]");
-        err.innerHTML = "We couldn't send your request online. Please <a href=\"sms:" + B.phone + "?&body=" + encodeURIComponent(text(r)) + "\">text it to us</a> or <a href=\"mailto:" + B.email +
+        err.innerHTML = "We couldn't send your request online. Please " + (B.phone ? "<a href=\"sms:" + B.phone + "?&body=" + encodeURIComponent(text(r)) + "\">text it to us</a> or " : "") + "<a href=\"mailto:" + B.email +
           "?subject=" + encodeURIComponent("Booking request " + r) + "&body=" + encodeURIComponent(text(r)) + "\">email it</a>. Your details are filled in.";
         err.hidden = false;
       }).then(function () { btn.disabled = false; btn.innerHTML = btnLabel; });
@@ -691,7 +696,8 @@
           (state.flex ? "the earliest opening" : longDate(state.date) + (slot ? ", " + slot.label.toLowerCase() : "")) + "." + (info.email ? " A confirmation is on its way to " + info.email + "." : "") + " Nothing to pay until after your clean.";
       }
       var msg = text(info.r, booked ? when : null);
-      $("[data-sms-booking]").href = "sms:" + B.phone + "?&body=" + encodeURIComponent(msg);
+      var smsb = $("[data-sms-booking]");
+      if (smsb) smsb.href = "sms:" + B.phone + "?&body=" + encodeURIComponent(msg);
       var wab = $("[data-wa-booking]");
       if (wab) wab.href = waHref(msg);
       // A calendar booking already comes with its own calendar invite.
@@ -772,7 +778,7 @@
         "DTSTART;TZID=America/Toronto:" + d + "T" + pad(start) + "0000",
         "DTEND;TZID=America/Toronto:" + d + "T" + pad(Math.min(23, start + Math.ceil(last.hours + 3))) + "0000",
         "SUMMARY:Nest & Rest: " + last.service + " (requested)", "LOCATION:" + last.address.replace(/[,;]/g, "\\$&"),
-        "DESCRIPTION:Booking request " + last.ref + ". We'll confirm by text. " + B.phoneDisplay, "STATUS:TENTATIVE", "END:VEVENT", "END:VCALENDAR"].join("\r\n");
+        "DESCRIPTION:Booking request " + last.ref + ". We'll confirm by text. " + (B.phone ? B.phoneDisplay : B.email), "STATUS:TENTATIVE", "END:VEVENT", "END:VCALENDAR"].join("\r\n");
       var a = document.createElement("a");
       a.href = URL.createObjectURL(new Blob([ics], { type: "text/calendar" }));
       a.download = "nest-and-rest-" + last.ref + ".ics";
@@ -885,7 +891,7 @@
       if (el.hasAttribute("data-email") && !emailOk(v)) m = "Check your email address, or leave it blank.";
       if (el.hasAttribute("data-postal")) {
         if (!fullPostalOk(v)) m = "Enter a full postal code, like M1B 2K3.";
-        else if (!(zoneFor(v) || {}).area) m = "We clean in Scarborough and North York only. If you're close by, call or text " + B.phoneDisplay + ".";
+        else if (!(zoneFor(v) || {}).area) m = "We clean in Scarborough and North York only. If you're close by, " + REACH + ".";
       }
       fieldError(el, m);
       return !m;
@@ -920,14 +926,14 @@
           $("[data-qd-text]").textContent = "On the live site, " + B.ownerFirstName + " receives this quote request by email.";
         } else {
           $("[data-qd-title]").textContent = "Thank you, " + String(data.Name).split(/\s+/)[0] + ".";
-          $("[data-qd-text]").textContent = B.ownerFirstName + " will reply " + form.getAttribute("data-reply-time") + ". Questions in the meantime? Call or text " + B.phoneDisplay + ".";
+          $("[data-qd-text]").textContent = B.ownerFirstName + " will reply " + form.getAttribute("data-reply-time") + ". Questions in the meantime? " + (B.phone ? "Call or text " + B.phoneDisplay : "Email " + B.email) + ".";
         }
         done.hidden = false;
         done.focus();
       }).catch(function () {
         var body = Object.keys(data).filter(function (k) { return k[0] !== "_"; }).map(function (k) { return k + ": " + data[k]; }).join("\n");
         err.innerHTML = "We couldn't send that online. Please <a href=\"mailto:" + B.email + "?subject=" + encodeURIComponent("Quote request: " + name) +
-          "&body=" + encodeURIComponent(body) + "\">email it to us</a> or call " + esc(B.phoneDisplay) + ".";
+          "&body=" + encodeURIComponent(body) + "\">email it to us</a>" + (B.phone ? " or call " + esc(B.phoneDisplay) : "") + ".";
         err.hidden = false;
       }).then(function () { btn.disabled = false; btn.textContent = "Request a free quote"; });
     });
@@ -990,7 +996,7 @@
         done.hidden = false;
         done.focus();
       }).catch(function () {
-        err.innerHTML = "We couldn't send that online. Please <a href=\"mailto:" + B.email + "?subject=" + encodeURIComponent("Gift card request " + r) + "&body=" + encodeURIComponent("Gift amount: " + money(+amount) + "\nFor: " + $("#g-to").value) + "\">email us</a> or call " + esc(B.phoneDisplay) + ".";
+        err.innerHTML = "We couldn't send that online. Please <a href=\"mailto:" + B.email + "?subject=" + encodeURIComponent("Gift card request " + r) + "&body=" + encodeURIComponent("Gift amount: " + money(+amount) + "\nFor: " + $("#g-to").value) + "\">email us</a>" + (B.phone ? " or call " + esc(B.phoneDisplay) : "") + ".";
         err.hidden = false;
       }).then(function () { btn.disabled = false; btn.textContent = "Request gift card"; });
     });

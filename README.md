@@ -33,6 +33,7 @@ All settings are in `js/config.js`. Prices and contact details update on every p
 - **Next opening:** the site shows the next day you can be booked. `booking.leadDays` is how many days' notice you need (1 = tomorrow). Add any day you're full or away to `booking.blockedDates` as `"YYYY-MM-DD"`; the booking calendar and "Next opening" both skip it.
 - **Mailing address:** paste one into `business.mailingAddress` (a PO box or mailbox service is fine) and run the build. Canada's anti-spam law (CASL) needs it in every business email and text, and Ontario's Consumer Protection Act needs it shown when customers book online. It then appears in the footer, the policies, the booking page and every confirmation email.
 - **Referral credit:** the amount is `offers.referral`; the terms are in the "Referral credit" section of the Service Policies (`tools/build.mjs`). New clients give the referring client's first and last name in the optional "Referred by" box on the booking form, and it arrives as "Referred by" in your booking email.
+- **Phone number:** private for now. `business.phoneDisplay` and `business.phone` are both `""`, so the site shows no call or text buttons, leaves the number out of Google's business data and the confirmation emails, and points people to email instead. To show it again, set `phoneDisplay` (e.g. `"647 555 0123"`) and `phone` (e.g. `"+16475550123"`) and run `node tools/build.mjs`.
 - **WhatsApp:** `business.whatsapp` is the WhatsApp number (digits only, with the 1). Leave it `""` to hide every WhatsApp button.
 - **Confirmation emails:** customers who give an email get an automatic confirmation from FormSubmit. The wording is in `emails` (booking, bookingCal, quote, gift). Booking emails are the customer's written copy of the agreement (Ontario's Consumer Protection Act), so keep the itemized price, the change terms and the link to the policies in them. `emails.footer` is added to every email with who we are and how to stop emails, as CASL requires.
 - **Gift a clean:** amounts and wording are in `offers.gift`. The home-page banner only shows in `bannerMonths` (November and December).
@@ -53,7 +54,7 @@ All settings are in `js/config.js`. Prices and contact details update on every p
 
 Everything is emailed to `nestnrestcleaning@gmail.com` through [FormSubmit](https://formsubmit.co), including "Text me this price" requests from the price box.
 After any change of email address, send one test booking and click **Activate** in the FormSubmit email.
-If sending fails, the customer gets text, WhatsApp and email buttons with their details filled in.
+If sending fails, the customer gets an email button with their details filled in (plus text and WhatsApp buttons while those numbers are set).
 
 ## Booking calendar (Cal.com)
 
@@ -69,7 +70,7 @@ Cal.com emails both of you the confirmation, with reschedule and cancel links.
 6. Open your event link in a private browser window first: it must show your calendar with times, not "404" or a list of events. Then paste the part after `cal.com/` (for example `nestnrestcleaning/home-clean`) into `booking.calLink` in `js/config.js`, run `node tools/build.mjs`, and push.
 7. Make one test booking on the live site, then cancel it from the confirmation email.
 
-8. In the event's description, paste: *"Your booking is with Nest & Rest Cleaning, owned and operated by Mann Patel, [your mailing address], 647 978 6903, nestnrestcleaning@gmail.com. Nothing to pay until after your clean. Free to change up to 24 hours before; later changes, or if we can't get in, may cost up to 50% of the estimated price. Full terms: nestnrestcleaning.com/policies/"* Cal.com's emails then carry who you are and your terms too.
+8. In the event's description, paste: *"Your booking is with Nest & Rest Cleaning, owned and operated by Mann Patel, [your mailing address], nestnrestcleaning@gmail.com. Nothing to pay until after your clean. Free to change up to 24 hours before; later changes, or if we can't get in, may cost up to 50% of the estimated price. Full terms: nestnrestcleaning.com/policies/"* Cal.com's emails then carry who you are and your terms too.
 
 With the calendar on, block days off in Cal.com or Google Calendar; `booking.blockedDates` then only changes the "Next opening" line.
 To go back to booking requests, set `calLink` to `""` and run the build again.
@@ -78,9 +79,9 @@ To go back to booking requests, set `calLink` to `""` and run the build again.
 
 Canada's anti-spam law covers business texts and emails, even ones a customer asked for. Each one must say who you are, how to reach you, and how to opt out, and you must stop within 10 business days of a request. Templates:
 
-- **A price someone asked for:** "Hi Priya, it's Mann from Nest & Rest Cleaning. A deep clean for your 2-bed condo is $285 ($228 for your first visit). Book: nestnrestcleaning.com/book — Mann, Nest & Rest Cleaning, 647 978 6903. Our details: nestnrestcleaning.com/policies/#contact. Reply STOP to opt out."
+- **A price someone asked for:** "Hi Priya, it's Mann from Nest & Rest Cleaning. A deep clean for your 2-bed condo is $285 ($228 for your first visit). Book: nestnrestcleaning.com/book — Mann, Nest & Rest Cleaning, nestnrestcleaning@gmail.com. Our details: nestnrestcleaning.com/policies/#contact. Reply STOP to opt out."
 - **Confirming a booking:** "Hi Priya, it's Mann from Nest & Rest Cleaning. You're booked for Tue Oct 27, 10am: deep clean, about $228, paid after the clean. Free to change up to 24 hours before. Terms: nestnrestcleaning.com/policies/ — Reply STOP to opt out."
-- **Asking for a review** (only to people you've cleaned for in the last 2 years): "Hi Priya, it's Mann from Nest & Rest Cleaning. Thank you for having me today! If you have a minute, I'd love your honest review: nestnrestcleaning.com/review/ — 647 978 6903. Reply STOP to opt out."
+- **Asking for a review** (only to people you've cleaned for in the last 2 years): "Hi Priya, it's Mann from Nest & Rest Cleaning. Thank you for having me today! If you have a minute, I'd love your honest review: nestnrestcleaning.com/review/ — nestnrestcleaning@gmail.com. Reply STOP to opt out."
 
 Keep a note of anyone who opts out and don't message them again. No promotional messages (offers, discounts, "book again") without the person's clear yes first.
 
