@@ -76,9 +76,13 @@ If `booking.calLink` is empty, a booking email carries a requested date instead 
 
 ## The Google Sheet ("Nest & Rest clients")
 
-The Install step creates it in Mann's Google Drive.
+Mann creates a blank Google Sheet with this name and opens Apps Script from inside it (Extensions → Apps Script). That ties the script to the Sheet, which is what lets the Sheet show a **Nest & Rest** menu. The Install step then sets up the tabs.
 
-**Clients tab:** one row per request. Columns: received, reference (`NR-XXXX`, or `Q-` plus a timestamp for quotes), type (booking or quote), service, name, email, phone, area, booked time, status, needs-you reason, opted out (checkbox), first clean done (date), review requested (date), Gmail thread link, and last action.
+**Clients tab:** one row per request. Columns: received, reference (`NR-XXXX`, or `Q-` plus a timestamp for quotes), type (booking or quote), service, name, email, phone, area, booked time, status, needs-you reason, opted out (checkbox), first clean done (date), review requested (date), last action, and a link to the last automated email.
+
+**Mann can edit two of those columns: "Needs you" and "Opted out".** Clearing "Needs you" tells the script Mann has dealt with it. Every other column is rewritten by the script.
+
+**The Sheet never stores a client's notes or address.** Notes can contain lockbox or door codes, and the Privacy Policy promises to delete those within days. When the script needs the notes to write the personal paragraph, it reads them again from the original FormSubmit email.
 
 **Status values:**
 - New
@@ -119,6 +123,8 @@ A custom **Nest & Rest** menu in the Sheet offers **Run now**, **Pause everythin
 | `automation/src/parse.js` | Turns a FormSubmit email (subject plus HTML table) into a lead: kind, service and every form field. | Nothing (pure) |
 | `automation/src/compose.js` | Builds each email (subject plus plain text, with a matching simple HTML version) from config wording, the lead and the optional paragraph. Fails loudly if any `{placeholder}` is left unfilled. | Nothing (pure) |
 | `automation/src/guard.js` | The paragraph checks in safety rule 3. | Nothing (pure) |
+| `automation/src/time.js` | Toronto dates and times (including the November daylight-saving change) and the "Tuesday, October 27" and "10am" formats. | Nothing (pure; the time-zone lookup is passed in) |
+| `automation/src/sheet.js` | Turns leads into Sheet rows and back, reads the Settings tab, and works out each row's status. | Nothing (pure) |
 | `automation/src/plan.js` | Given the Sheet rows, the calendar events, the client replies, the settings and the current time, decides what's due: which emails to draft or send, and which statuses to change. | Nothing (pure) |
 | `automation/src/claude.js` | Builds the Claude request from the lead and the facts, and reads the structured answer. | Apps Script `UrlFetchApp` (only the call itself) |
 | `automation/src/google.js` | The Gmail, Calendar, Sheet, triggers and menu parts of Apps Script. | Apps Script services |
@@ -129,6 +135,7 @@ The pure parts carry no Google code, so they run in Node for testing. A build st
 ### Settings and wording stay in `js/config.js`
 
 - **A new `automation` section in `js/config.js`** holds the wording of every automated email, the walkthrough booking link and the quote reply's next step for each quote form. It sits beside the existing `emails` section, following the same `{placeholder}` style.
+- **A switch, `automation.aiReplies`,** turns the Claude paragraph on or off. The Privacy Policy's Anthropic line appears only while it's on. With it off, emails have no personal paragraph, and an email whose client wrote notes becomes a **Needs you** draft.
 - **`node tools/build.mjs` also writes `automation/site-config.json`.** It holds the parts the script needs: business details, the email footer, the `automation` wording, FAQs, policies, service descriptions and the Cal.com links. It's published with the site, like `js/config.js` already is.
 - **The script fetches that file from the live site at most every 6 hours.** It keeps the last good copy in the Sheet, so a wording change in `js/config.js` reaches the emails without re-pasting the script. If the site can't be reached, the script keeps using its saved copy.
 - **Timings and switches live in the Sheet,** not in `js/config.js`, so Mann can change them instantly without a website update.
@@ -141,7 +148,8 @@ The pure parts carry no Google code, so they run in Node for testing. A build st
 4. **Plan** (pure), using what was found plus the settings and the current time in America/Toronto.
 5. **Do the work.**
    - For each email that needs a paragraph, call Claude, then run the checks.
-   - Each lead's first email starts a new Gmail thread to the client, with a clear subject such as "Your deep clean on Tuesday, October 27". It doesn't reply to the FormSubmit email, whose subject would look like "Re: New booking NR-AB12…". Later emails reply in that same thread, so the client sees one conversation.
+   - Every automated email is its own new email to the client, with a clear subject of its own, such as "Your deep cleaning on Tuesday, October 27" or "See you tomorrow, Priya". It never replies to the FormSubmit email, whose subject would look like "Re: New booking NR-AB12…".
+   - Later emails don't reply inside the first one's conversation. Apps Script can only reply to the sender of a message, and in our own conversation the sender is us, so a reply would come back to Mann. Separate reminder and review emails are normal for a business anyway.
    - Emails go out as Draft or Auto, according to the settings.
    - Each email's thread is labelled `Nest auto/draft ready`, `Nest auto/sent` or `Nest auto/needs you`, and the Sheet row is updated.
 6. **Notice sent drafts.** If a draft has disappeared and the thread contains a sent message, the email counts as sent, and its follow-up timer starts from then. If the draft was deleted without being sent, it's marked "Skipped" and no follow-up goes out.
@@ -169,15 +177,19 @@ Emails are sent from nestnrestcleaning@gmail.com with the sender name "Mann Pate
 ### Privacy
 
 - The Privacy Policy (in `tools/build.mjs`) gets a line naming Anthropic as a service provider that helps draft replies using the details clients send. Google (Gmail, Sheets, Calendar) and Cal.com are already where this data lives.
-- The Sheet stays private in Mann's Drive.
+- The Sheet stays private in Mann's Drive, and holds no notes or addresses.
+- Claude receives only the client's first name, the service, the form choices (such as home size, pets and surfaces) and their notes. It never receives their email address, phone number, address or postal code.
 - No client data is ever committed to the repo. Test emails are made up.
 
 ## Setup (for `automation/README.md`)
 
 1. **Switch on Cal.com.** Follow the existing README steps, then add a "Free walkthrough" event (30 minutes) and paste its link into the `automation` settings.
 2. **Get a Claude API key.** Sign up at console.anthropic.com (with the business email, or any other), add about $5 of credit, set a monthly spending limit, and create an API key.
-3. **Paste in the script.** Signed in as nestnrestcleaning@gmail.com, open script.google.com, make a new project, and paste in `automation/nest-rest-automation.gs`. Under Project Settings → Script Properties, add `ANTHROPIC_API_KEY`.
-4. **Install.** Choose **Install** and approve Google's permission screens. Install creates the Sheet, the labels and the 5-minute timer.
+3. **Paste in the script.** Publish the website first, so the script can read `automation/site-config.json` from it. Then, signed in as nestnrestcleaning@gmail.com:
+   - make a blank Google Sheet named "Nest & Rest clients";
+   - open Extensions → Apps Script, and replace the starter code with `automation/nest-rest-automation.gs`;
+   - under Project Settings → Script Properties, add `ANTHROPIC_API_KEY`.
+4. **Install.** Reload the Sheet, choose **Nest & Rest → Install / repair**, and approve Google's permission screens. Install sets up the tabs, the labels and the 5-minute timer.
 5. **Test it.** Make one test booking and one test quote on the live site with a personal email address, and check the drafts that appear.
 
 ## Testing
