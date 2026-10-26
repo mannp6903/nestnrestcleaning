@@ -39,7 +39,8 @@ window.NR_CONFIG = {
 
   /* Where booking requests, quotes and reviews are delivered.
      "formsubmit" emails each one to the address below through formsubmit.co (free, no account).
-     The first request sends a one-time activation email to that inbox: click "Activate". */
+     The first request sends a one-time activation email to that inbox: click "Activate".
+     "google" sends each form to our Google script (the web app in automation/README.md), which emails Mann and the customer and keeps the client list. */
   delivery: {
     provider: "formsubmit",
     endpoint: "https://formsubmit.co/ajax/nestnrestcleaning@gmail.com"
@@ -102,7 +103,7 @@ window.NR_CONFIG = {
     calLink: ""
   },
 
-  /* Confirmation emails sent to the customer by FormSubmit when they give an email address.
+  /* Confirmation emails sent to the customer when they give an email address: by FormSubmit, or by our Google script when delivery.provider is "google".
      {name}, {ref}, {summary}, {items}, {reply}, {contact}, {notice}, {lateFee}, {terms} and {calendar} are filled in automatically.
      Booking emails are the customer's written copy of the agreement, so keep the price, the change terms and the link to the policies.
      {contact} is how to reach us: your phone number while it's set in business.phone, otherwise your email address.
@@ -112,7 +113,93 @@ window.NR_CONFIG = {
     bookingCal: "Hi {name}, thank you for booking with Nest & Rest Cleaning (reference {ref}). Your booking: {summary}. Your estimate: {items}. Your time is confirmed when you pick it on our calendar, and Cal.com emails that confirmation separately, with links to reschedule or cancel. Haven't picked a time yet? Pick one here: {calendar} There's nothing to pay until after your clean (Interac e-Transfer, card or cash). Changes are free up to {notice} hours before your booking. Later changes, or if we can't get in at the agreed time, may cost {lateFee}. Full terms: {terms} Questions? {contact}. — Mann Patel, Nest & Rest Cleaning",
     quote: "Hi {name}, thank you for your quote request with Nest & Rest Cleaning. Mann will reply {reply} with your free quote. Questions in the meantime? {contact}. — Mann Patel, Nest & Rest Cleaning",
     gift: "Hi {name}, thank you for your gift request with Nest & Rest Cleaning (reference {ref}). Mann will text you {reply} to confirm the details and send an Interac e-Transfer request. Your gift card is emailed as soon as it's paid. Questions? {contact}. — Mann Patel, Nest & Rest Cleaning",
-    footer: "This email is from Nest & Rest Cleaning, owned and operated by {owner}{address}. {email} · {site}. To stop emails from us, email {email} with \"unsubscribe\" and we'll stop within 10 business days."
+    footer: "This email is from Nest & Rest Cleaning, owned and operated by {owner}{address}. {email} · {site}. To stop emails from us, email {email} with \"unsubscribe\" and we'll stop within 10 business days.",
+    subjects: {
+      booking: "Your booking request with Nest & Rest Cleaning ({ref})",
+      bookingCal: "Your booking with Nest & Rest Cleaning ({ref})",
+      quote: "Your quote request with Nest & Rest Cleaning",
+      gift: "Your gift card request with Nest & Rest Cleaning ({ref})"
+    }
+  },
+
+  /* Personal emails sent by the email automation. Setup: automation/README.md.
+     Each entry in lines is one paragraph. {placeholders} are filled in from the booking or quote; a line that ends up empty is left out.
+     {paragraph} is the personal paragraph Claude writes from the client's form and notes, while aiReplies is true.
+     Every email also gets emails.footer. After a change, run `node tools/build.mjs` and publish: the automation picks it up within 6 hours. */
+  automation: {
+    // Claude writes one personal paragraph per booking or quote (about 3 cents each). false: no paragraph, and emails whose client wrote notes wait as drafts.
+    aiReplies: true,
+    // Your Cal.com "Free walkthrough" event, the part after cal.com/ (e.g. "nestnrestcleaning/walkthrough"). "" asks quote clients to reply with times instead.
+    walkthroughLink: "",
+    senderName: "Mann Patel, Nest & Rest Cleaning",
+    welcome: {
+      subject: "Your {service} on {day}",
+      lines: ["Hi {firstName},", "Thank you for booking with Nest & Rest Cleaning. I'll see you on {when} for your {service}.", "{paragraph}", "{referralLine}", "{prepLine}",
+        "There's nothing to pay until after your clean. If your plans change, use the link in your Cal.com confirmation email to reschedule or cancel. It's free up to {notice} hours before.", "— {owner}"]
+    },
+    referralLine: "Thank you for mentioning {referrer}. You get {referral} off this first clean, and once it's done and paid, {referrer} gets {referral} off their next one.",
+    prep: {
+      regular: "I bring all the supplies and equipment. If you can, clear counters and floors of anything you'd like left exactly where it is.",
+      deep: "I bring all the supplies and equipment. A deep clean gets into the edges, so if you can, clear counters and the spaces along the baseboards before I arrive.",
+      move: "I bring all the supplies and equipment. For a move-in or move-out clean, the home should be empty, with the power and water still on.",
+      detail: "I bring all the supplies and equipment. If you can, clear the kitchen counters and bathroom surfaces before I arrive."
+    },
+    pickTime: {
+      subject: "Pick a time for your {service}",
+      lines: ["Hi {firstName},", "Thank you for sending your details for a {service}. It looks like you didn't get to pick a time on the calendar, so here it is again: {calendarLink}",
+        "If none of the times suit you, reply with a day and time that works and I'll do my best to fit you in.", "— {owner}"]
+    },
+    requestAck: {
+      subject: "Your {service} request",
+      lines: ["Hi {firstName},", "Thank you for your booking request. You asked for {requested}.", "{paragraph}", "I'll confirm your day and arrival window shortly.", "— {owner}"]
+    },
+    reminder: {
+      subject: "See you tomorrow, {firstName}",
+      lines: ["Hi {firstName},", "A quick reminder that I'll see you tomorrow, {when}, for your {service}.", "{accessLine}", "{petsLine}",
+        "There's nothing to pay until after your clean, by Interac e-Transfer, card or cash. Need to change something? Reply to this email.", "— {owner}"]
+    },
+    access: {
+      "I'll be home": "You said you'll be home, so I'll knock or ring when I arrive.",
+      "Concierge or front desk": "You said the concierge or front desk will let me in. Please leave my name with them: {ownerFull} from Nest & Rest Cleaning.",
+      "Lockbox or key code": "You chose a lockbox or key code. If you haven't sent me the code yet, please reply with it. I delete it within {codeDays} days of your last scheduled visit.",
+      "Let's discuss": "Please reply with how I should get in: someone at home, the concierge, or a lockbox or key code."
+    },
+    pets: {
+      "Dog": "Your dog is welcome. If they're anxious or protective, please keep them in a separate room while I work.",
+      "Cat or other": "Your pets are welcome. If any are anxious or protective, please keep them in a separate room while I work."
+    },
+    review: {
+      subject: "How did your clean go?",
+      lines: ["Hi {firstName},", "Thank you for having me yesterday. I hope you're enjoying a clean home.",
+        "If you have a minute, I'd love your honest review. It helps other families in {areaLabel} find a cleaner they can trust: {reviewLink}",
+        "If anything wasn't right, just reply to this email and tell me.", "— {owner}"]
+    },
+    quoteReply: {
+      lines: ["Hi {firstName},", "Thank you for asking about {service} with Nest & Rest Cleaning.", "{paragraph}", "{nextStep}", "— {owner}"]
+    },
+    quoteNudge: {
+      subject: "Following up on your quote",
+      lines: ["Hi {firstName},", "I'm just checking that my note about {service} reached you.", "{nudgeStep}", "If now isn't the right time, no problem. I won't follow up again.", "— {owner}"]
+    },
+    // One entry per quote form, by the form's name. "default" covers any new form.
+    quoteForms: {
+      "Residence Care": { label: "Residence Care", subject: "Your free quote for Residence Care",
+        nextStep: "The next step is a free 30-minute walkthrough, so I can see your home and write your care plan. Pick a time that suits you: {walkthroughLink}",
+        nextStepNoLink: "The next step is a free 30-minute walkthrough, so I can see your home and write your care plan. Reply with two or three times that suit you.",
+        nudgeStep: "If you'd like to go ahead, pick a walkthrough time here: {walkthroughLink}",
+        nudgeStepNoLink: "If you'd like to go ahead, reply with two or three times that suit you for a walkthrough." },
+      "Small Office Cleaning": { label: "office cleaning", subject: "Your free quote for office cleaning",
+        nextStep: "The next step is a free 30-minute walkthrough of your space, so I can give you an exact price. Pick a time that suits you: {walkthroughLink}",
+        nextStepNoLink: "The next step is a free 30-minute walkthrough of your space, so I can give you an exact price. Reply with two or three times that suit you.",
+        nudgeStep: "If you'd like to go ahead, pick a walkthrough time here: {walkthroughLink}",
+        nudgeStepNoLink: "If you'd like to go ahead, reply with two or three times that suit you for a walkthrough." },
+      "Realtors & property managers": { label: "cleaning your property", subject: "Your cleaning quote",
+        nextStep: "To send you an exact price, could you reply with the property address, how I'll get in (lockbox, concierge or someone on site) and the date you need it done?",
+        nudgeStep: "If you'd like a price, just reply with the property address and the date you need it done." },
+      default: { label: "{form}", subject: "Your free quote",
+        nextStep: "Reply with any questions or details, and I'll send your quote.",
+        nudgeStep: "If you'd like a quote, just reply with a few details about what you need." }
+    }
   },
 
   homeTypes: {

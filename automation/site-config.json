@@ -1,0 +1,334 @@
+{
+ "version": "7d74a951",
+ "business": {
+  "name": "Nest & Rest Cleaning",
+  "owner": "Mann Patel",
+  "ownerFirstName": "Mann",
+  "email": "nestnrestcleaning@gmail.com",
+  "phoneDisplay": "",
+  "areaLabel": "Scarborough & North York",
+  "replyPromise": "within 2 hours during business hours",
+  "contact": "Email nestnrestcleaning@gmail.com"
+ },
+ "replyPromises": [
+  "within 2 hours during business hours",
+  "within one business day"
+ ],
+ "links": {
+  "site": "https://nestnrestcleaning.com",
+  "book": "https://nestnrestcleaning.com/book/",
+  "review": "https://nestnrestcleaning.com/review/",
+  "policies": "https://nestnrestcleaning.com/policies/",
+  "calendar": "",
+  "walkthrough": ""
+ },
+ "policies": {
+  "effectiveDate": "October 25, 2026",
+  "cancelNoticeHours": 24,
+  "lateCancelFee": "up to 50% of the estimated price",
+  "recleanWindowHours": 24,
+  "damageReportHours": 48,
+  "accessCodeDeleteDays": 7
+ },
+ "referral": "$25",
+ "footer": "This email is from Nest & Rest Cleaning, owned and operated by Mann Patel. nestnrestcleaning@gmail.com · nestnrestcleaning.com. To stop emails from us, email nestnrestcleaning@gmail.com with \"unsubscribe\" and we'll stop within 10 business days.",
+ "emails": {
+  "booking": "Hi {name}, thank you for your booking request with Nest & Rest Cleaning (reference {ref}). Here's what you asked for: {summary}. Your estimate: {items}. Mann will confirm your day and arrival window {reply}. There's nothing to pay until after your clean (Interac e-Transfer, card or cash). Changes are free up to {notice} hours before your arrival window. Later changes, or if we can't get in at the agreed time, may cost {lateFee}. Full terms: {terms} Questions? {contact}. — Mann Patel, Nest & Rest Cleaning",
+  "bookingCal": "Hi {name}, thank you for booking with Nest & Rest Cleaning (reference {ref}). Your booking: {summary}. Your estimate: {items}. Your time is confirmed when you pick it on our calendar, and Cal.com emails that confirmation separately, with links to reschedule or cancel. Haven't picked a time yet? Pick one here: {calendar} There's nothing to pay until after your clean (Interac e-Transfer, card or cash). Changes are free up to {notice} hours before your booking. Later changes, or if we can't get in at the agreed time, may cost {lateFee}. Full terms: {terms} Questions? {contact}. — Mann Patel, Nest & Rest Cleaning",
+  "quote": "Hi {name}, thank you for your quote request with Nest & Rest Cleaning. Mann will reply {reply} with your free quote. Questions in the meantime? {contact}. — Mann Patel, Nest & Rest Cleaning",
+  "gift": "Hi {name}, thank you for your gift request with Nest & Rest Cleaning (reference {ref}). Mann will text you {reply} to confirm the details and send an Interac e-Transfer request. Your gift card is emailed as soon as it's paid. Questions? {contact}. — Mann Patel, Nest & Rest Cleaning",
+  "subjects": {
+   "booking": "Your booking request with Nest & Rest Cleaning ({ref})",
+   "bookingCal": "Your booking with Nest & Rest Cleaning ({ref})",
+   "quote": "Your quote request with Nest & Rest Cleaning",
+   "gift": "Your gift card request with Nest & Rest Cleaning ({ref})"
+  }
+ },
+ "automation": {
+  "aiReplies": true,
+  "walkthroughLink": "",
+  "senderName": "Mann Patel, Nest & Rest Cleaning",
+  "welcome": {
+   "subject": "Your {service} on {day}",
+   "lines": [
+    "Hi {firstName},",
+    "Thank you for booking with Nest & Rest Cleaning. I'll see you on {when} for your {service}.",
+    "{paragraph}",
+    "{referralLine}",
+    "{prepLine}",
+    "There's nothing to pay until after your clean. If your plans change, use the link in your Cal.com confirmation email to reschedule or cancel. It's free up to {notice} hours before.",
+    "— {owner}"
+   ]
+  },
+  "referralLine": "Thank you for mentioning {referrer}. You get {referral} off this first clean, and once it's done and paid, {referrer} gets {referral} off their next one.",
+  "prep": {
+   "regular": "I bring all the supplies and equipment. If you can, clear counters and floors of anything you'd like left exactly where it is.",
+   "deep": "I bring all the supplies and equipment. A deep clean gets into the edges, so if you can, clear counters and the spaces along the baseboards before I arrive.",
+   "move": "I bring all the supplies and equipment. For a move-in or move-out clean, the home should be empty, with the power and water still on.",
+   "detail": "I bring all the supplies and equipment. If you can, clear the kitchen counters and bathroom surfaces before I arrive."
+  },
+  "pickTime": {
+   "subject": "Pick a time for your {service}",
+   "lines": [
+    "Hi {firstName},",
+    "Thank you for sending your details for a {service}. It looks like you didn't get to pick a time on the calendar, so here it is again: {calendarLink}",
+    "If none of the times suit you, reply with a day and time that works and I'll do my best to fit you in.",
+    "— {owner}"
+   ]
+  },
+  "requestAck": {
+   "subject": "Your {service} request",
+   "lines": [
+    "Hi {firstName},",
+    "Thank you for your booking request. You asked for {requested}.",
+    "{paragraph}",
+    "I'll confirm your day and arrival window shortly.",
+    "— {owner}"
+   ]
+  },
+  "reminder": {
+   "subject": "See you tomorrow, {firstName}",
+   "lines": [
+    "Hi {firstName},",
+    "A quick reminder that I'll see you tomorrow, {when}, for your {service}.",
+    "{accessLine}",
+    "{petsLine}",
+    "There's nothing to pay until after your clean, by Interac e-Transfer, card or cash. Need to change something? Reply to this email.",
+    "— {owner}"
+   ]
+  },
+  "access": {
+   "I'll be home": "You said you'll be home, so I'll knock or ring when I arrive.",
+   "Concierge or front desk": "You said the concierge or front desk will let me in. Please leave my name with them: {ownerFull} from Nest & Rest Cleaning.",
+   "Lockbox or key code": "You chose a lockbox or key code. If you haven't sent me the code yet, please reply with it. I delete it within {codeDays} days of your last scheduled visit.",
+   "Let's discuss": "Please reply with how I should get in: someone at home, the concierge, or a lockbox or key code."
+  },
+  "pets": {
+   "Dog": "Your dog is welcome. If they're anxious or protective, please keep them in a separate room while I work.",
+   "Cat or other": "Your pets are welcome. If any are anxious or protective, please keep them in a separate room while I work."
+  },
+  "review": {
+   "subject": "How did your clean go?",
+   "lines": [
+    "Hi {firstName},",
+    "Thank you for having me yesterday. I hope you're enjoying a clean home.",
+    "If you have a minute, I'd love your honest review. It helps other families in {areaLabel} find a cleaner they can trust: {reviewLink}",
+    "If anything wasn't right, just reply to this email and tell me.",
+    "— {owner}"
+   ]
+  },
+  "quoteReply": {
+   "lines": [
+    "Hi {firstName},",
+    "Thank you for asking about {service} with Nest & Rest Cleaning.",
+    "{paragraph}",
+    "{nextStep}",
+    "— {owner}"
+   ]
+  },
+  "quoteNudge": {
+   "subject": "Following up on your quote",
+   "lines": [
+    "Hi {firstName},",
+    "I'm just checking that my note about {service} reached you.",
+    "{nudgeStep}",
+    "If now isn't the right time, no problem. I won't follow up again.",
+    "— {owner}"
+   ]
+  },
+  "quoteForms": {
+   "Residence Care": {
+    "label": "Residence Care",
+    "subject": "Your free quote for Residence Care",
+    "nextStep": "The next step is a free 30-minute walkthrough, so I can see your home and write your care plan. Pick a time that suits you: {walkthroughLink}",
+    "nextStepNoLink": "The next step is a free 30-minute walkthrough, so I can see your home and write your care plan. Reply with two or three times that suit you.",
+    "nudgeStep": "If you'd like to go ahead, pick a walkthrough time here: {walkthroughLink}",
+    "nudgeStepNoLink": "If you'd like to go ahead, reply with two or three times that suit you for a walkthrough."
+   },
+   "Small Office Cleaning": {
+    "label": "office cleaning",
+    "subject": "Your free quote for office cleaning",
+    "nextStep": "The next step is a free 30-minute walkthrough of your space, so I can give you an exact price. Pick a time that suits you: {walkthroughLink}",
+    "nextStepNoLink": "The next step is a free 30-minute walkthrough of your space, so I can give you an exact price. Reply with two or three times that suit you.",
+    "nudgeStep": "If you'd like to go ahead, pick a walkthrough time here: {walkthroughLink}",
+    "nudgeStepNoLink": "If you'd like to go ahead, reply with two or three times that suit you for a walkthrough."
+   },
+   "Realtors & property managers": {
+    "label": "cleaning your property",
+    "subject": "Your cleaning quote",
+    "nextStep": "To send you an exact price, could you reply with the property address, how I'll get in (lockbox, concierge or someone on site) and the date you need it done?",
+    "nudgeStep": "If you'd like a price, just reply with the property address and the date you need it done."
+   },
+   "default": {
+    "label": "{form}",
+    "subject": "Your free quote",
+    "nextStep": "Reply with any questions or details, and I'll send your quote.",
+    "nudgeStep": "If you'd like a quote, just reply with a few details about what you need."
+   }
+  }
+ },
+ "services": [
+  {
+   "key": "regular",
+   "name": "Regular Home Cleaning",
+   "intro": "A thorough, consistent clean of every room you live in: kitchen, bathrooms, bedrooms and living areas, done the same careful way every visit. Book every two weeks and you can stop thinking about it."
+  },
+  {
+   "key": "deep",
+   "name": "Deep Cleaning",
+   "intro": "Everything in a regular clean, plus the detail work that builds up over months: baseboards, door frames, grout, fixtures, vents, and behind and under what can be moved. It is the visit we recommend before starting a regular plan."
+  },
+  {
+   "key": "move",
+   "name": "Move-In / Move-Out Cleaning",
+   "intro": "A complete clean of an empty home, inside every cabinet, drawer and closet, with the fridge and oven included. Built for landlord walk-throughs, new owners and the first night in a new place."
+  },
+  {
+   "key": "detail",
+   "name": "Kitchen & Bath Detailing",
+   "intro": "A focused deep clean of the kitchen and bathrooms only: degreasing, descaling, grout and fixtures. Ideal between regular cleans, or before hosting."
+  }
+ ],
+ "quoteServices": [
+  {
+   "name": "Residence Care",
+   "intro": "For homes over about 3,000 square feet, or homes with natural stone, marble, hardwood and glass that need the right product on the right surface. We start with a walkthrough, write a room-by-room care plan, and keep the same cleaner on your home whenever possible.",
+   "includes": [
+    "In-person walkthrough before the first visit",
+    "Written room-by-room care plan",
+    "Surface-appropriate products for stone, marble, wood and glass",
+    "The same cleaner each visit whenever possible",
+    "Flexible scheduling around your household",
+    "Discreet, house-shoes-only service"
+   ]
+  },
+  {
+   "name": "Small Office Cleaning",
+   "intro": "Reliable cleaning for small offices, clinics, studios and shops, scheduled around your opening hours. Free quote, no contract needed to start.",
+   "includes": [
+    "Desks, shelves and electronics dusted",
+    "Washrooms cleaned top to bottom",
+    "Kitchenette or break room cleaned",
+    "High-touch points: handles, switches, phones",
+    "Floors vacuumed and mopped",
+    "Bins emptied and liners replaced"
+   ]
+  }
+ ],
+ "extras": [
+  "Inside oven",
+  "Inside fridge",
+  "Inside kitchen cabinets",
+  "Interior windows",
+  "Wall spot cleaning",
+  "Laundry, wash and fold",
+  "Balcony or patio",
+  "Heavy pet hair"
+ ],
+ "faqs": [
+  {
+   "q": "How is my price calculated?",
+   "a": "Your price is based on the service, the number of bedrooms and bathrooms, the type of home and any extras you add. You see it before you book. If your home needs much more or less time than expected, we tell you before we start, never after."
+  },
+  {
+   "q": "Do I pay when I book?",
+   "a": "No. There's no deposit. You pay after the clean by Interac e-Transfer, credit or debit card, or cash."
+  },
+  {
+   "q": "What if something is missed?",
+   "a": "Tell us within 24 hours and we'll come back and re-clean those areas, free of charge."
+  },
+  {
+   "q": "Do you bring supplies and equipment?",
+   "a": "Yes. We bring cloths, mops, a vacuum and our products. If you'd like us to use your own products, or need fragrance-free, add it to your booking notes."
+  },
+  {
+   "q": "Do I need to be home?",
+   "a": "No. You can leave access with a concierge, lockbox or key code. Choose how we get in when you book and we'll confirm the details by text."
+  },
+  {
+   "q": "Can I reschedule or cancel?",
+   "a": "Yes. Let us know at least 24 hours before your arrival window and there's no charge."
+  },
+  {
+   "q": "Are pets OK?",
+   "a": "Absolutely. Tell us about them when you book. For heavy shedding, add the pet hair extra so we schedule enough time."
+  },
+  {
+   "q": "Why do you wear house shoes?",
+   "a": "Street shoes carry grit and salt, especially in a Toronto winter. We change into indoor-only shoes at your door, so your floors only meet clean soles."
+  },
+  {
+   "q": "Should I book a deep clean first?",
+   "a": "If your home hasn't had a professional clean in the last few months, yes. A deep clean resets the build-up so every regular visit after it stays quick and consistent."
+  },
+  {
+   "q": "Are supplies included in the price?",
+   "a": "Yes. Every price includes our products and equipment: cloths, mops, a vacuum and cleaning products. There's nothing extra to buy."
+  },
+  {
+   "q": "Why do townhouses and houses cost more?",
+   "a": "A townhouse or house usually has stairs, more floor area and more entrances than a condo with the same number of bedrooms, so it takes longer to clean. The price box adjusts for this automatically."
+  },
+  {
+   "q": "Do regular plans cost less?",
+   "a": "Yes. Visits every week, every 2 weeks or every 4 weeks cost less than a one-time clean, and you can pause or change your plan with 24 hours' notice."
+  },
+  {
+   "q": "Is the oven and fridge included in a move-out clean?",
+   "a": "Yes. Inside the fridge, oven, cabinets, drawers and closets are all included in a move-in or move-out clean."
+  },
+  {
+   "q": "Does the home need to be empty?",
+   "a": "For a move-in or move-out clean, it's best if furniture and boxes are out so we can reach every surface. If some items remain, mention it in your notes."
+  },
+  {
+   "q": "How long does a residence walkthrough take?",
+   "a": "Usually 20 to 30 minutes. We walk each room with you, note surfaces and priorities, and send a written care plan and quote afterwards."
+  },
+  {
+   "q": "Can you clean outside business hours?",
+   "a": "Tell us what suits your business in the quote form. We'll confirm the times we can offer in your quote."
+  },
+  {
+   "q": "Do I need a contract?",
+   "a": "No contract is needed to start. Most offices begin with a single visit, then choose a schedule."
+  },
+  {
+   "q": "Which areas do you serve?",
+   "a": "Scarborough and North York. Enter your postal code on the site to check. If you're just outside these areas, get in touch and we'll tell you honestly whether we can help."
+  },
+  {
+   "q": "How do I get in touch?",
+   "a": "Email nestnrestcleaning@gmail.com, or send your details through the booking form. Mann replies within 2 hours during business hours."
+  },
+  {
+   "q": "Do gift cards expire?",
+   "a": "No. Nest & Rest gift cards never expire, and they can be used toward any service. Any balance left after a clean stays on the card."
+  },
+  {
+   "q": "How do I pay for a gift card?",
+   "a": "Send the form and we'll text you to confirm the details and send an Interac e-Transfer request. Your gift card is emailed as soon as it's paid."
+  },
+  {
+   "q": "How does the person I'm gifting book?",
+   "a": "They book online like anyone else and mention the code on their gift card. We take the gift value off their price after the clean."
+  },
+  {
+   "q": "Can the gift be for someone outside Scarborough or North York?",
+   "a": "The clean has to be in Scarborough or North York. If you're not sure, enter their postal code on the gift page to check."
+  },
+  {
+   "q": "Can you clean before listing photos or a showing?",
+   "a": "Yes. Tell us the date of your photos or first showing and we'll aim to clean the day before. Evenings and weekends are available."
+  },
+  {
+   "q": "Does someone need to be there?",
+   "a": "No. A lockbox or the concierge works well. We confirm the code by text and delete it after the clean."
+  },
+  {
+   "q": "How does payment work for multiple properties?",
+   "a": "You pay after each clean by Interac e-Transfer, credit or debit card. Each property gets its own receipt, so it's easy to bill back to an owner or seller."
+  }
+ ]
+}

@@ -7,6 +7,7 @@ import vm from "node:vm";
 import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
 import guideList from "./guides.mjs";
+import { buildAutomation } from "./automation.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const args = process.argv.slice(2);
@@ -1803,6 +1804,7 @@ legalPage({
         <li><strong>Google</strong> provides our email service, where booking, quote, gift card and review messages are stored.</li>
         ${CAL ? `<li><strong>Cal.com</strong> (cal.com) runs our booking calendar. When you pick a time, it receives your name, email, phone number and booking details, and emails your confirmation. It may store data outside Canada.</li>
         ` : ""}${GA ? `<li><strong>Google Analytics</strong> (Google LLC) measures how visitors use this website: the pages viewed, how they arrived (for example from our flyer or business card), the type of device and an approximate location. It doesn't receive anything you type into our forms, and it stores data in the United States.</li>
+        ` : ""}${C.automation && C.automation.aiReplies ? `<li><strong>Anthropic</strong> (anthropic.com) provides Claude, an AI service that helps us write the personal part of our emails to you. It receives your first name, the service you asked about, your choices on our form and any notes you add, but not your email address, phone number or address. It may store data outside Canada.</li>
         ` : ""}<li><strong>FormSubmit</strong> (formsubmit.co) delivers the website's forms to our email inbox, and sends your confirmation email when you give us your address.</li>
         ${B.whatsapp ? `<li><strong>WhatsApp</strong> (WhatsApp LLC, part of Meta Platforms) delivers and stores messages if you choose to contact us on WhatsApp.</li>
         ` : ""}<li><strong>Your bank or card payment provider</strong> processes payments you make by Interac e-Transfer or card.</li>
@@ -1893,6 +1895,8 @@ ${urls.map((u) => `  <url><loc>${u}</loc><lastmod>${TODAY}</lastmod></url>`).joi
 </urlset>
 `);
   fs.writeFileSync(path.join(OUT, "robots.txt"), `User-agent: *\nAllow: /\nSitemap: ${SITE}/sitemap.xml\n`);
+  // The email automation's published settings (automation/README.md).
+  buildAutomation(C, OUT);
 }
 
 console.log(`Built ${urls.length} pages into ${OUT}`);
