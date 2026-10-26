@@ -80,3 +80,23 @@ test("buildAutomation writes site-config.json", () => {
   assert.equal(written.version, buildSiteConfig(C).version);
   assert.match(written.version, /^[0-9a-f]{8}$/);
 });
+
+test("buildAutomation writes one pasteable Apps Script file", () => {
+  const C = loadConfig();
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "nr-auto-"));
+  buildAutomation(C, dir);
+  const bundle = fs.readFileSync(path.join(dir, "automation/nest-rest-automation.gs"), "utf8");
+  assert.doesNotThrow(() => new vm.Script(bundle));
+  assert.ok(bundle.startsWith("/* Nest & Rest Cleaning: email automation."));
+  assert.ok(bundle.includes('var SITE_CONFIG_URL = "https://nestnrestcleaning.com/automation/site-config.json";'));
+  for (const fn of ["doPost", "doGet", "onOpen", "runAutomation", "installAutomation", "pauseAutomation", "makeGoogleEnv"]) {
+    assert.ok(bundle.includes("function " + fn + "("), fn);
+  }
+  for (const banned of ["import ", "export ", "require(", "Intl."]) assert.ok(!bundle.includes(banned), banned);
+  // Google's services are only touched inside functions, so the file loads anywhere.
+  const ctx = vm.createContext({});
+  vm.runInContext(bundle, ctx);
+  assert.equal(vm.runInContext("typeof receive", ctx), "function");
+  assert.equal(vm.runInContext("typeof makeClock", ctx), "function");
+  assert.equal(vm.runInContext("typeof doPost", ctx), "function");
+});
