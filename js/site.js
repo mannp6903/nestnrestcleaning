@@ -5,7 +5,10 @@
   var C = window.NR_CONFIG;
   var B = C.business;
   var PREVIEW = !!C.preview;
-  var DRAFT_KEY = "nr-booking-v2";
+  // Home choices (service, size, extras) are kept on this device for a return visit.
+  // Personal details (name, contact, address, notes) are kept only for this browser tab.
+  var QUOTE_KEY = "nr-quote-v1", DETAILS_KEY = "nr-details-v1", OLD_DRAFT_KEY = "nr-booking-v2", DRAFT_DAYS = 14;
+  var QUOTE_FIELDS = ["service", "homeType", "beds", "baths", "addons", "checks", "freq"];
   var host = document.querySelector("[data-page]");
   var PAGE = host ? host.getAttribute("data-page") : "";
   var ROOT = host ? host.getAttribute("data-root") || "" : "";
@@ -13,17 +16,66 @@
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
   var money = function (n) { return "$" + Math.round(n).toLocaleString("en-CA"); };
+  // Amounts that can carry HST show cents only when there are some.
+  var moneyC = function (n) {
+    var c = Math.round(n * 100);
+    return c % 100 ? "$" + (c / 100).toLocaleString("en-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : money(c / 100);
+  };
   var roundTo = function (n, s) { return Math.round(n / s) * s; };
+  // One rounding rule everywhere: a discounted price is rounded to the nearest dollar,
+  // and the discount line is the difference, so the lines always add up to the total.
+  function afterDiscount(amount, pct) { return Math.round(amount * (100 - pct) / 100); }
+  function taxOf(n) { return Math.round(n * (C.taxRate || 0) * 100) / 100; }
+  var TAX_TEXT = C.taxRate ? "Prices are before " + Math.round(C.taxRate * 100) + "% HST" : "No HST charged";
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
       return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
     });
   }
-  function store(key, val) {
+  // session: true keeps the value for this browser tab only.
+  function store(key, val, session) {
     try {
-      if (val === undefined) return JSON.parse(localStorage.getItem(key) || "null");
-      if (val === null) localStorage.removeItem(key); else localStorage.setItem(key, JSON.stringify(val));
+      var s = session ? sessionStorage : localStorage;
+      if (val === undefined) return JSON.parse(s.getItem(key) || "null");
+      if (val === null) s.removeItem(key); else s.setItem(key, JSON.stringify(val));
     } catch (e) { return null; }
+  }
+  // The saved home choices, if any. Expired ones are deleted, not just ignored.
+  function quoteDraft() {
+    var d = store(QUOTE_KEY), old = store(OLD_DRAFT_KEY);
+    if (old) {
+      // Earlier versions kept personal details on the device. Keep only the home choices, then delete the rest.
+      if (!d && old.state && old.at) {
+        var keep = {};
+        QUOTE_FIELDS.forEach(function (k) { if (old.state[k] != null) keep[k] = old.state[k]; });
+        d = { state: keep, at: old.at };
+        store(QUOTE_KEY, d);
+      }
+      store(OLD_DRAFT_KEY, null);
+    }
+    if (d && !(d.at && Date.now() - d.at < DRAFT_DAYS * 86400000)) { store(QUOTE_KEY, null); d = null; }
+    return d && d.state ? d.state : null;
+  }
+  function saveQuoteDraft(st) {
+    var keep = {};
+    QUOTE_FIELDS.forEach(function (k) { if (st[k] != null) keep[k] = st[k]; });
+    store(QUOTE_KEY, { state: Object.assign(quoteDraft() || {}, keep), at: Date.now() });
+  }
+  function clearDrafts() {
+    store(QUOTE_KEY, null);
+    store(OLD_DRAFT_KEY, null);
+    store(DETAILS_KEY, null, true);
+  }
+
+  /* ---------- Scope: one rule for every extra ---------- */
+  function addonById(id) { return C.addons.filter(function (a) { return a.id === id; })[0]; }
+  // The checklist row an extra is linked to decides, per service: "included", "extra" (paid) or "none" (not offered).
+  function addonStatus(key, id) {
+    var a = addonById(id), s = C.services[key], row = null;
+    if (!a || !s || !a.task || !s.checklistColumn) return "extra";
+    C.checklist.some(function (r) { return r.tasks.some(function (t) { if (t[0] === a.task) { row = t; return true; } return false; }); });
+    var v = row ? row[s.checklistColumn] : "add";
+    return v === "yes" ? "included" : v === "add" ? "extra" : "none";
   }
   function toast(msg) {
     var t = $("[data-toast]");
@@ -45,12 +97,21 @@
     return fillTpl(tpl, vals) + (E.footer ? "\n\n" + foot : "");
   }
   function isoDay(d) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
-  // Days a booking can be made for: from booking.leadDays out, on open days, skipping booking.blockedDates.
+  // Today's date in Toronto, whatever time zone the visitor's device is in (noon, so a clock change never shifts the day).
+  function torontoToday() {
+    var now = new Date();
+    try {
+      var p = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Toronto", year: "numeric", month: "numeric", day: "numeric" }).formatToParts(now);
+      var g = function (t) { return +p.filter(function (x) { return x.type === t; })[0].value; };
+      return new Date(g("year"), g("month") - 1, g("day"), 12);
+    } catch (e) { return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12); }
+  }
+  // Days a clean can be requested for: from booking.leadDays out, on open days, skipping booking.blockedDates.
+  // These are days to ask for, not confirmed openings: Mann confirms every request.
   function openDates(n) {
-    var bk = C.booking || {}, blocked = bk.blockedDates || [], out = [], d = new Date();
-    d.setHours(12, 0, 0, 0);
+    var bk = C.booking || {}, blocked = bk.blockedDates || [], out = [], today = torontoToday();
     for (var i = Math.max(0, bk.leadDays == null ? 1 : bk.leadDays); i <= C.daysAhead + 14 && out.length < n; i++) {
-      var x = new Date(d.getTime() + i * 86400000);
+      var x = new Date(today.getFullYear(), today.getMonth(), today.getDate() + i, 12);
       if (C.openDays.indexOf(x.getDay()) > -1 && blocked.indexOf(isoDay(x)) === -1) out.push(x);
     }
     return out;
@@ -58,7 +119,8 @@
   function nextOpenText() {
     var d = openDates(1)[0];
     if (!d) return B.phone ? "call or text us" : "email us";
-    var days = Math.round((new Date(d).setHours(0, 0, 0, 0) - new Date().setHours(0, 0, 0, 0)) / 86400000);
+    var t = torontoToday();
+    var days = Math.round((new Date(d.getFullYear(), d.getMonth(), d.getDate()) - new Date(t.getFullYear(), t.getMonth(), t.getDate())) / 86400000);
     var label = new Intl.DateTimeFormat("en-CA", { weekday: "short", month: "short", day: "numeric" }).format(d);
     return days === 0 ? "today, " + label : days === 1 ? "tomorrow, " + label : label;
   }
@@ -94,11 +156,22 @@
       window.fbq("track", "PageView");
     }
   }
+  // Events carry categories and amounts only: never names, contact details, addresses, postal codes, codes or notes.
   function track(name, params, lead) {
     try {
       if (window.gtag) window.gtag("event", name, params || {});
       if (window.fbq) window.fbq(lead ? "track" : "trackCustom", lead ? "Lead" : name, params || {});
     } catch (e) { /* tracking must never break the page */ }
+  }
+  // quote_viewed: once a price has been on screen for a moment, and again only when the quote actually changes.
+  function quoteViewed(key, params) {
+    clearTimeout(quoteViewed.t);
+    quoteViewed.t = setTimeout(function () {
+      if (key === quoteViewed.last) return;
+      quoteViewed.last = key;
+      params.pricing_version = C.pricingVersion || "";
+      track("quote_viewed", params);
+    }, 1500);
   }
 
   /* ---------- Shared content from config ---------- */
@@ -129,10 +202,13 @@
       if (h) el.textContent = Math.round((h.factor - 1) * 100) + "%";
     });
 
+    $$("[data-tax-note]").forEach(function (el) { el.textContent = TAX_TEXT; });
+
     var f = C.offers.founding;
     var founding = $("[data-founding]");
     var left = f ? Math.max(0, f.spots - (f.claimed || 0)) : 0;
-    var spotsText = left > 0 ? left + " of " + f.spots + " founding spots left" : "Last founding spots";
+    // A live count only while the owner keeps it true (offers.founding.showSpotsLeft).
+    var spotsText = f && f.showSpotsLeft ? (left > 0 ? left + " of " + f.spots + " founding spots left" : "Last founding spots") : "For our first " + (f ? f.spots : "") + " households";
     if (founding && f && f.active) {
       $("[data-founding-pct]").textContent = f.percent;
       $("[data-founding-text]").textContent = f.text;
@@ -167,7 +243,7 @@
       var ex = price("regular", +plans.getAttribute("data-beds"), +plans.getAttribute("data-baths"), "condo");
       $$("[data-plan]", plans).forEach(function (p) {
         var fr = C.frequencies[p.getAttribute("data-plan")];
-        if (fr) $("[data-plan-price]", p).textContent = money(ex * (1 - fr.discount / 100));
+        if (fr) $("[data-plan-price]", p).textContent = money(afterDiscount(ex, fr.discount));
       });
     }
 
@@ -226,8 +302,9 @@
   }
   function zoneMessage(z) {
     if (!z) return { cls: "no", text: "Enter a postal code like M1B 2K3." };
-    if (z.area) return { cls: "ok", text: "Yes, we clean in " + z.fsa + " (" + z.area + ")." };
-    return { cls: "no", text: "Sorry, " + z.fsa + " is outside our area. We clean in Scarborough and North York only. If you're close by, " + REACH + "." };
+    // A postal-area match, not a check of the street address itself.
+    if (z.area) return { cls: "ok", text: "Yes, " + z.fsa + " is in our " + z.area + " area." };
+    return { cls: "no", text: "This postal area (" + z.fsa + ") is outside our usual coverage of Scarborough and North York. If you're close by, " + REACH + " to ask whether we can help." };
   }
   function bindPostalChecks() {
     $$("[data-pc-form]").forEach(function (form) {
@@ -238,9 +315,12 @@
         out.className = "pc-result " + m.cls;
         out.textContent = m.text;
         if (m.cls === "ok") {
-          var d = store(DRAFT_KEY) || {};
-          d.postal = formatPostal($("input", form).value);
-          store(DRAFT_KEY, d);
+          // Carried to the booking form in this tab only, like every personal detail.
+          var d = store(DETAILS_KEY, undefined, true) || {};
+          d.fields = d.fields || {};
+          d.fields["f-postal"] = formatPostal($("input", form).value);
+          d.at = Date.now();
+          store(DETAILS_KEY, d, true);
         }
       });
     });
@@ -251,12 +331,13 @@
     var form = $("[data-pricer]");
     if (!form) return;
     var st = { service: form.getAttribute("data-default-service") || "regular", home: "condo", beds: 1, baths: 1 };
-    var d = store(DRAFT_KEY);
-    if (d && d.state && PAGE === "home") {
-      ["service", "beds", "baths"].forEach(function (k) { if (d.state[k] != null) st[k] = d.state[k]; });
-      if (d.state.homeType) st.home = d.state.homeType;
+    var d = PAGE === "home" ? quoteDraft() : null;
+    if (d) {
+      if (C.services[d.service]) st.service = d.service;
+      if (C.homeTypes[d.homeType]) st.home = d.homeType;
+      ["beds", "baths"].forEach(function (k) { var n = parseInt(d[k], 10); if (n >= 1) st[k] = Math.min(k === "beds" ? 8 : 6, n); });
     }
-    var sel = $("[data-p-service]", form), homeSel = $("[data-p-home]", form);
+    var sel = $("[data-p-service]", form), homeSel = $("[data-p-home]", form), touched = false;
     sel.value = st.service; homeSel.value = st.home;
     var bedsBox = $("[data-p-beds]", form), bathsBox = $("[data-p-baths]", form);
 
@@ -271,10 +352,14 @@
       var p = price(st.service, st.beds, st.baths, st.home);
       $("[data-p-amount]", form).textContent = money(p);
       var f = C.offers.founding;
-      var first = f && f.active ? " · " + money(p * (1 - f.percent / 100)) + " first visit" : "";
+      var first = f && f.active ? " · " + money(afterDiscount(p, f.percent)) + " first visit" : "";
       $("[data-p-meta]", form).textContent = "Estimate · about " + hoursFor(st.service, st.beds, st.baths, st.home) + " hours" + first;
       var go = $("[data-p-go]", form);
       go.href = link("book/") + "?s=" + st.service + "&h=" + st.home + "&bd=" + st.beds + "&ba=" + st.baths;
+      var incl = $("[data-p-incl]", form);
+      if (incl) incl.href = link("services/" + C.services[st.service].slug + "/") + "#included";
+      // Counted once the visitor has changed something: the default price on page load isn't their quote yet.
+      if (touched) quoteViewed(["pricer", st.service, st.home, st.beds, st.baths].join("|"), { form: "pricer", service: st.service, home_type: st.home, value: p, currency: C.currency });
       var wa = $("[data-p-wa]", form);
       if (wa) wa.href = waHref("Hi " + B.ownerFirstName + ", I'd like " + summary() + " (" + money(p) + "). When's your next opening?");
     }
@@ -316,21 +401,19 @@
       tmSend.addEventListener("click", sendTm);
       tmPhone.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); sendTm(); } });
     }
-    sel.addEventListener("change", function () { st.service = sel.value; render(); });
-    homeSel.addEventListener("change", function () { st.home = homeSel.value; render(); });
+    sel.addEventListener("change", function () { st.service = sel.value; touched = true; render(); });
+    homeSel.addEventListener("change", function () { st.home = homeSel.value; touched = true; render(); });
     [[bedsBox, "beds", 8], [bathsBox, "baths", 6]].forEach(function (x) {
       x[0].addEventListener("click", function (e) {
         var b = e.target.closest("button");
         if (!b) return;
         st[x[1]] = Math.min(x[2], Math.max(1, st[x[1]] + (b.hasAttribute("data-inc") ? 1 : -1)));
+        touched = true;
         render();
       });
     });
     $("[data-p-go]", form).addEventListener("click", function () {
-      var dd = store(DRAFT_KEY) || {};
-      dd.state = Object.assign(dd.state || {}, { service: st.service, homeType: st.home, beds: st.beds, baths: st.baths, step: 1 });
-      dd.at = Date.now();
-      store(DRAFT_KEY, dd);
+      saveQuoteDraft({ service: st.service, homeType: st.home, beds: st.beds, baths: st.baths });
       track("pricer_continue", { service: st.service, value: price(st.service, st.beds, st.baths, st.home), currency: C.currency });
     });
     form.addEventListener("submit", function (e) { e.preventDefault(); });
@@ -341,20 +424,35 @@
   function bindBooking() {
     var form = $("#booking-form");
     if (!form) return;
-    var state = { step: 1, service: "regular", homeType: "condo", beds: 1, baths: 1, addons: [], freq: "once", date: null, flex: false, slot: null };
-    var fieldIds = ["f-name", "f-phone", "f-email", "f-address", "f-postal", "f-access", "f-referrer", "f-notes"];
+    var state = { step: 1, service: "regular", homeType: "condo", beds: 1, baths: 1, addons: [], checks: [], freq: "once", date: null, flex: false, slot: null };
+    var fieldIds = ["f-name", "f-phone", "f-email", "f-address", "f-postal", "f-access", "f-parking", "f-referrer", "f-notes"];
+    var radioNames = ["pets", "contactPref", "products"];
+    var boxIds = ["f-elevator", "f-register"];
     // The page decides the flow: built with a Cal.com link, it has no day-and-window step and ends on the calendar.
     var LAST = $$(".step", form).length;
     var datesBox = $("[data-dates]");
     var calStep = $("[data-cal-step]");
     var calPath = String((C.booking || {}).calLink || "").trim().replace(/^https?:\/\/(app\.)?cal\.com\//, "").replace(/^\/+|\/+$/g, "");
     var CAL = !!(calStep && calPath);
+    var CLOSES = parseInt(C.closes, 10) || 23;
+    var CLEANERS = (C.booking || {}).cleaners || 1;
+    // One reference per request. A retry after a failed send keeps it, so a request that arrives twice is easy to spot.
+    var ref = null;
+    var started = false;
 
     function availableDates() { return openDates(C.daysAhead); }
     var iso = isoDay;
-    function parseIso(s) { var p = s.split("-"); return new Date(+p[0], +p[1] - 1, +p[2]); }
+    function parseIso(s) { var p = s.split("-"); return new Date(+p[0], +p[1] - 1, +p[2], 12); }
     function longDate(s) { return new Intl.DateTimeFormat("en-CA", { weekday: "long", month: "long", day: "numeric" }).format(parseIso(s)); }
+    function shortDate(s) { return new Intl.DateTimeFormat("en-CA", { weekday: "short", month: "short", day: "numeric" }).format(parseIso(s)); }
     function slotById(id) { return C.timeSlots.filter(function (t) { return t.id === id; })[0]; }
+    // A window is offered only if a clean this long, arriving at the end of the window, finishes by closing time.
+    function slotFits(t, hours) { return !!t && (!!t.any || t.end == null || t.end + hours <= CLOSES); }
+    function hourLabel(h) { return h === 12 ? "noon" : h >= 24 ? "midnight" : h > 12 ? (h - 12) + "pm" : h + "am"; }
+    function cleanersText() { return CLEANERS === 1 ? "one cleaner" : CLEANERS + " cleaners"; }
+    function val(id) { var el = $("#" + id); return el ? el.value.trim() : ""; }
+    function radioVal(n) { return ($('input[name="' + n + '"]:checked', form) || {}).value || ""; }
+    function listJoin(a) { return a.length > 1 ? a.slice(0, -1).join(", ") + " and " + a[a.length - 1] : a.join(""); }
 
     var wd = new Intl.DateTimeFormat("en-CA", { weekday: "short" }), mo = new Intl.DateTimeFormat("en-CA", { month: "short" });
     if (datesBox) datesBox.innerHTML = availableDates().map(function (d) {
@@ -367,49 +465,141 @@
       var ht = C.homeTypes[state.homeType] || C.homeTypes.condo;
       var beds = state.service === "detail" ? 1 : state.beds;
       var base = price(state.service, beds, state.baths, state.homeType);
-      var incl = (C.includedAddons || {})[state.service] || [];
-      var addons = C.addons.filter(function (a) { return state.addons.indexOf(a.id) > -1 && incl.indexOf(a.id) === -1; });
+      // Only extras this service charges for are priced, however they were selected (a saved draft, an old link).
+      var addons = C.addons.filter(function (a) { return state.addons.indexOf(a.id) > -1 && addonStatus(state.service, a.id) === "extra"; });
+      var included = C.addons.filter(function (a) { return addonStatus(state.service, a.id) === "included"; });
       var addonTotal = addons.reduce(function (t, a) { return t + a.price; }, 0);
-      var z = zoneFor($("#f-postal").value);
       var subtotal = base + addonTotal;
-      var freq = s.recurring ? C.frequencies[state.freq] : C.frequencies.once;
+      var freq = s.recurring ? C.frequencies[state.freq] || C.frequencies.once : C.frequencies.once;
       var rec = freq ? freq.discount : 0;
       var f = C.offers.founding;
       var fp = f && f.active ? f.percent : 0;
+      // First-visit discounts aren't combined: the larger one applies.
       var firstPct = Math.max(fp, rec);
       var firstLabel = fp >= rec && fp > 0 ? f.label : (freq ? freq.label + " plan" : "");
-      var tax = C.taxRate || 0;
+      var firstNet = afterDiscount(subtotal, firstPct);
+      var repeatNet = rec ? afterDiscount(subtotal, rec) : null;
+      var hours = hoursFor(state.service, beds, state.baths, state.homeType, addons);
+      var checks = (C.homeChecks || []).filter(function (c) { return state.checks.indexOf(c.id) > -1; });
+      var quoteOnly = checks.filter(function (c) { return c.quote; })[0] || null;
+      var reasons = checks.filter(function (c) { return !c.quote; }).map(function (c) { return c.label.toLowerCase(); });
+      if (hours > 8) reasons.push("more than 8 hours on site");
       return {
-        s: s, ht: ht, beds: beds, base: base, addons: addons, subtotal: subtotal, freq: freq, zone: z,
-        firstPct: firstPct, firstLabel: firstLabel, firstDisc: subtotal * firstPct / 100,
-        first: subtotal * (1 - firstPct / 100) * (1 + tax),
-        repeat: rec ? subtotal * (1 - rec / 100) * (1 + tax) : null, tax: tax,
-        hours: hoursFor(state.service, beds, state.baths, state.homeType, addons)
+        s: s, ht: ht, beds: beds, base: base, addons: addons, included: included, subtotal: subtotal, freq: freq, zone: zoneFor($("#f-postal").value),
+        firstPct: firstPct, firstLabel: firstLabel, firstDisc: subtotal - firstNet, firstTax: taxOf(firstNet), first: firstNet + taxOf(firstNet),
+        repeat: repeatNet == null ? null : repeatNet + taxOf(repeatNet), tax: C.taxRate || 0,
+        hours: hours, checks: checks, quoteOnly: quoteOnly, reasons: reasons, review: reasons.length > 0
       };
     }
     function homeLine(q) {
       if (state.service === "detail") return q.ht.label + " · kitchen + " + state.baths + " bath" + (state.baths > 1 ? "s" : "");
       return q.ht.label + " · " + q.beds + " bed, " + state.baths + " bath";
     }
-    function renderSummary() {
-      var q = quote();
-      var html = "<div><dt><strong>" + esc(q.s.name) + "</strong><br>" + esc(homeLine(q)) + "</dt><dd>" + money(q.base) + "</dd></div>";
-      q.addons.forEach(function (a) { html += "<div><dt>" + esc(a.name) + "</dt><dd>+" + money(a.price) + "</dd></div>"; });
-      if (q.firstDisc > 0) html += '<div class="disc"><dt>' + esc(q.firstLabel) + " · " + q.firstPct + "%</dt><dd>−" + money(q.firstDisc) + "</dd></div>";
-      html += '<div class="total"><dt>' + (q.repeat ? "First visit" : "Estimated total") + "</dt><dd>" + money(q.first) + "</dd></div>";
-      if (q.repeat) html += '<div class="then"><dt>Then ' + esc(q.freq.label.toLowerCase()) + "</dt><dd>" + money(q.repeat) + "</dd></div>";
-      html += '<div class="then"><dt>Time on site</dt><dd>about ' + q.hours + " hrs</dd></div>";
-      $("[data-lines]").innerHTML = html;
-      $("[data-total]").textContent = money(q.first);
-      $("[data-sum-label]").textContent = q.firstDisc > 0 ? "First visit · " + q.firstPct + "% off" : "Your estimate";
-      $("[data-fine]").textContent = "Estimate in " + C.currency + (q.tax ? ", HST included" : "") + ". No payment now. We confirm the final price before we start.";
+    function priceText(q) {
+      if (q.quoteOnly) return "Priced by quote after a walkthrough.";
+      return moneyC(q.first) + (q.firstDisc > 0 ? " for your first visit (" + q.firstPct + "% off: " + q.firstLabel.toLowerCase() + ")" : "") +
+        (q.repeat ? ", then " + moneyC(q.repeat) + " a visit, " + q.freq.label.toLowerCase() : "") + ". " +
+        (q.tax ? "Includes HST." : "No HST charged.") + (q.review ? " " + B.ownerFirstName + " confirms the final price before the clean." : "");
     }
+    function whenLine() {
+      var t = slotById(state.slot);
+      var day = state.flex ? "Flexible: the earliest suitable day" : state.date ? longDate(state.date) : "";
+      if (!day) return "";
+      return day + (t ? ", " + (t.any ? "any arrival time" : t.label.toLowerCase() + " arrival (" + t.time + ")") : "");
+    }
+    function buildingText() {
+      if (val("f-access") !== "Concierge or front desk") return "";
+      var bits = [], pk = val("f-parking");
+      if (pk && pk !== "Not sure") bits.push(pk.toLowerCase());
+      if (($("#f-elevator") || {}).checked) bits.push("the service elevator needs booking");
+      if (($("#f-register") || {}).checked) bits.push("cleaners register with the concierge");
+      return bits.length ? ": " + bits.join(", ") : "";
+    }
+
+    function renderSummary() {
+      var q = quote(), t = slotById(state.slot);
+      var line = function (dt, dd, cls) { return "<div" + (cls ? ' class="' + cls + '"' : "") + "><dt>" + dt + "</dt><dd>" + dd + "</dd></div>"; };
+      var html = line("<strong>" + esc(q.s.name) + "</strong><br>" + esc(homeLine(q)), money(q.base));
+      q.addons.forEach(function (a) { html += line(esc(a.name), "+" + money(a.price)); });
+      q.included.forEach(function (a) { html += line(esc(a.name), "Included", "incl"); });
+      if (q.quoteOnly) html += line("Over about 3,000 sq ft", "By quote", "total");
+      else {
+        if (q.firstDisc > 0) html += line(esc(q.firstLabel) + " · " + q.firstPct + "%", "−" + money(q.firstDisc), "disc");
+        if (q.tax) html += line("HST", "+" + moneyC(q.firstTax));
+        html += line(q.repeat ? "First visit" : "Estimated total", moneyC(q.first), "total");
+        if (q.repeat) html += line("Then " + esc(q.freq.label.toLowerCase()), moneyC(q.repeat), "then");
+      }
+      if (!CAL && (state.date || state.flex)) html += line("Preferred day", esc(state.flex ? "Flexible" : shortDate(state.date)), "then");
+      if (!CAL && t) html += line("Arrival window", esc(t.any ? "Any time" : t.time), "then");
+      html += line("Time on site", "about " + q.hours + " hrs, " + (CLEANERS === 1 ? "1 cleaner" : CLEANERS + " cleaners"), "then");
+      if (q.review && !q.quoteOnly) html += line("Final price", esc(B.ownerFirstName) + " confirms", "then warn");
+      $("[data-lines]").innerHTML = html;
+      $("[data-total]").textContent = q.quoteOnly ? "Quote" : moneyC(q.first);
+      $("[data-sum-label]").textContent = q.quoteOnly ? "Larger home" : q.firstDisc > 0 ? "First visit · " + q.firstPct + "% off" : "Your estimate";
+      $("[data-fine]").textContent = "Estimate in " + C.currency + ". " + (q.tax ? "Includes " + Math.round(q.tax * 100) + "% HST. " : "No HST charged. ") +
+        "Nothing to pay now. " + (CAL ? "You pick a confirmed time in the last step." : B.ownerFirstName + " confirms your time and final price before the clean.");
+      renderReview(q);
+      if (!q.quoteOnly) quoteViewed(["book", state.service, state.homeType, q.beds, state.baths, q.addons.map(function (a) { return a.id; }).join("+"), state.freq].join("|"),
+        { form: "booking", service: state.service, home_type: state.homeType, frequency: state.freq, value: q.first, currency: C.currency });
+    }
+
+    // "Check your clean": every material detail, each with a way back to change it, before the request is sent.
+    var reviewHtml = "";
+    function renderReview(q) {
+      var box = $("[data-review]");
+      if (!box) return;
+      q = q || quote();
+      var acc = val("f-access");
+      var who = [val("f-name"), val("f-phone"), val("f-email")].filter(Boolean).join(" · ");
+      var where = [val("f-address"), normPostal(val("f-postal")).length === 6 ? formatPostal(val("f-postal")) : ""].filter(Boolean).join(", ");
+      var rows = [
+        ["Service", q.s.name + " · " + homeLine(q), 1, 'input[name="service"]:checked'],
+        q.checks.length ? ["Your home", listJoin(q.checks.map(function (c) { return c.label; })), 1, 'input[name="check"]'] : null,
+        ["Extras", (q.addons.length ? q.addons.map(function (a) { return a.name + " (+" + money(a.price) + ")"; }).join(", ") : "None") +
+          (q.included.length ? ". Included: " + listJoin(q.included.map(function (a) { return a.name.toLowerCase(); })) : ""), 1, "[data-addons] input:not(:disabled)"],
+        q.s.recurring ? ["Plan", q.freq.label, CAL ? 1 : 2, 'input[name="freq"]:checked'] : null,
+        CAL ? null : ["Preferred time", whenLine() || "Not chosen yet", 2, state.flex ? "[data-flex]" : "[data-dates] input:checked, [data-dates] input"],
+        ["Time on site", "About " + q.hours + " hours with " + cleanersText() + ", after arrival"],
+        ["Estimate", priceText(q)],
+        ["Contact", who || "Not added yet", LAST, "#f-name"],
+        ["Address", where || "Not added yet", LAST, "#f-address"],
+        ["Getting in", acc + buildingText() + (acc === "Lockbox or key code" ? ". " + B.ownerFirstName + " asks for the code by text once your clean is confirmed" : ""), LAST, "#f-access"],
+        ["Products", radioVal("products"), LAST, 'input[name="products"]:checked'],
+        ["Confirm by", radioVal("contactPref"), LAST, 'input[name="contactPref"]:checked']
+      ].filter(Boolean);
+      var html = rows.map(function (r) {
+        return "<div><dt>" + esc(r[0]) + "</dt><dd>" + esc(r[1]) + "</dd>" + (r[2] ? '<dd class="review-edit"><button type="button" class="link-btn" data-edit-step="' + r[2] +
+          '" data-edit-focus="' + esc(r[3]) + '">Edit<span class="sr-only"> ' + esc(r[0].toLowerCase()) + "</span></button></dd>" : "") + "</div>";
+      }).join("");
+      // Only when something changed: leaving a field fires "change", and replacing the list then would swallow a click on Edit.
+      if (html !== reviewHtml) { box.innerHTML = html; reviewHtml = html; }
+    }
+
+    // Extras this service includes or doesn't offer can't stay selected. Say what changed, rather than change it silently.
+    function normalizeAddons(notify) {
+      var s = C.services[state.service], msgs = [];
+      state.addons = state.addons.filter(function (id) {
+        var a = addonById(id), st = a ? addonStatus(state.service, id) : "none";
+        if (a && st === "included") msgs.push(a.name + " is included in " + s.name + ", so it's no longer charged as an extra.");
+        if (a && st === "none") msgs.push(a.name + " isn't part of " + s.name + ", so we've taken it off.");
+        return st === "extra";
+      });
+      if (!s.recurring) state.freq = "once";
+      var note = $("[data-scope-note]");
+      if (note && notify) note.textContent = msgs.join(" ");
+    }
+    function normalizeSlot(notify) {
+      var t = slotById(state.slot), hrs = quote().hours;
+      if (!t || slotFits(t, hrs)) return;
+      state.slot = null;
+      var note = $("[data-slot-note]");
+      if (note && notify) note.textContent = "Your clean is now too long to finish by " + hourLabel(CLOSES) + " after a " + t.label.toLowerCase() + " arrival, so please choose another window.";
+    }
+
     function sync() {
-      $$('input[name="service"]', form).forEach(function (i) { i.checked = i.value === state.service; });
-      $$('input[name="homeType"]', form).forEach(function (i) { i.checked = i.value === state.homeType; });
-      $$('input[name="freq"]', form).forEach(function (i) { i.checked = i.value === state.freq; });
-      $$('input[name="slot"]', form).forEach(function (i) { i.checked = i.value === state.slot; });
-      $$('input[name="date"]', form).forEach(function (i) { i.checked = i.value === state.date; });
+      ["service", "homeType", "freq", "slot", "date"].forEach(function (n) {
+        $$('input[name="' + n + '"]', form).forEach(function (i) { i.checked = i.value === state[n]; });
+      });
       if (datesBox) {
         $("[data-flex]").checked = state.flex;
         datesBox.classList.toggle("is-disabled", state.flex);
@@ -422,18 +612,50 @@
       $("[data-dec]", baths).disabled = state.baths <= 1;
       $("[data-inc]", baths).disabled = state.baths >= 6;
       beds.hidden = state.service === "detail";
-      var incl = (C.includedAddons || {})[state.service] || [];
-      $$("[data-addon]").forEach(function (chip) {
-        var id = chip.getAttribute("data-addon"), input = $("input", chip), on = incl.indexOf(id) > -1;
-        var a = C.addons.filter(function (x) { return x.id === id; })[0];
-        chip.classList.toggle("included", on);
-        input.disabled = on;
-        input.checked = on || state.addons.indexOf(id) > -1;
-        $("b", chip).textContent = on ? "included" : "+" + money(a.price);
+      var s = C.services[state.service];
+      var incl = [], none = [];
+      $$("[data-addon]", form).forEach(function (row) {
+        var id = row.getAttribute("data-addon"), input = $("input", row), st = addonStatus(state.service, id), a = addonById(id);
+        row.classList.toggle("is-included", st === "included");
+        row.classList.toggle("is-none", st === "none");
+        input.disabled = st !== "extra";
+        input.checked = st === "included" || (st === "extra" && state.addons.indexOf(id) > -1);
+        $("[data-addon-price]", row).textContent = st === "included" ? "Included" : st === "none" ? "Not offered" : "+" + money(a.price);
+        if (st === "included") incl.push(a.name.toLowerCase());
+        if (st === "none") none.push(a.name.toLowerCase());
       });
-      var recurring = C.services[state.service].recurring;
-      $("[data-freq-field]").hidden = !recurring;
-      if (!recurring) state.freq = "once";
+      var line = $("[data-scope-line]");
+      if (line) line.textContent = incl.length || none.length
+        ? s.name + (incl.length ? " includes " + listJoin(incl) + " at no extra cost." : ".") + (none.length ? " " + listJoin(none).replace(/^./, function (c) { return c.toUpperCase(); }) + (none.length > 1 ? " aren't" : " isn't") + " part of it." : "")
+        : "";
+      $$('input[name="check"]', form).forEach(function (i) { i.checked = state.checks.indexOf(i.value) > -1; });
+      var q = quote();
+      var notes = $("[data-check-notes]");
+      if (notes) notes.innerHTML = q.checks.filter(function (c) { return c.note; }).map(function (c) { return "<li>" + esc(c.note) + "</li>"; }).join("");
+      var route = $("[data-quote-route]");
+      if (route) {
+        route.hidden = !q.quoteOnly;
+        var ql = $("[data-quote-link]", route);
+        // The quote form opens with these home details filled in: no personal details travel in the link.
+        if (ql && q.quoteOnly) {
+          var qs = C.quoteServices[q.quoteOnly.quote];
+          var carry = "From the booking form: " + q.s.name + ", " + homeLine(q) + (q.addons.length ? ". Extras: " + q.addons.map(function (a) { return a.name; }).join(", ") : "") +
+            (s.recurring ? ". How often: " + q.freq.label : "") + ".";
+          if (qs) ql.href = link("services/" + qs.slug + "/") + "?notes=" + encodeURIComponent(carry);
+        }
+      }
+      $("[data-freq-field]").hidden = !s.recurring;
+      $$("[data-slot]", form).forEach(function (lab) {
+        var t = slotById(lab.getAttribute("data-slot")), ok = slotFits(t, q.hours), input = $("input", lab);
+        input.disabled = !ok;
+        lab.classList.toggle("is-off", !ok);
+        $("small", lab).textContent = ok ? t.time : "Too late to finish";
+      });
+      var jh = $("[data-job-hours]");
+      if (jh) jh.textContent = q.hours;
+      var acc = val("f-access"), bld = $("[data-building]"), cn = $("[data-code-note]");
+      if (bld) bld.hidden = acc !== "Concierge or front desk";
+      if (cn) cn.hidden = acc !== "Lockbox or key code";
     }
     function markDots(n) {
       $$("[data-dot]").forEach(function (li) {
@@ -474,59 +696,90 @@
       if (!c) return true;
       var ok = c[0](el.value), msg = "";
       if (!ok) {
-        if (el.id === "f-postal") msg = fullPostalOk(el.value) ? "We clean in Scarborough and North York only. If you're close by, " + REACH + "." : "Enter a full postal code, like M1B 2K3.";
+        if (el.id === "f-postal") msg = fullPostalOk(el.value) ? "This postal area is outside our usual coverage. If you're close by, " + REACH + " to ask whether we can help." : "Enter a full postal code, like M1B 2K3.";
         else msg = c[1];
       }
       fieldError(el, msg);
       return ok;
     }
+    // validation_failed carries the step, the field and a fixed code: never what was typed.
+    function failed(step, field, code) { track("validation_failed", { step: step, field: field, code: code }); }
     function validate(n) {
       var msg = "";
-      if (n === 1 && !checkField($("#f-postal"))) { msg = $("#err-f-postal").textContent; $("#f-postal").focus(); }
+      if (n === 1) {
+        var pc = $("#f-postal");
+        if (!checkField(pc)) { failed(1, "postal", fullPostalOk(pc.value) ? "outside_area" : "postal_format"); pc.focus(); return false; }
+        if (quote().quoteOnly) {
+          failed(1, "home", "needs_quote");
+          toast("Homes over about 3,000 sq ft are priced by quote. Use the Residence Care button, or untick that box.");
+          var ql = $("[data-quote-link]");
+          if (ql) ql.focus();
+          return false;
+        }
+      }
       if (n === 2 && datesBox) {
-        if (!state.date && !state.flex) msg = "Choose a day, or tick “I'm flexible”.";
-        else if (!state.slot) msg = "Choose an arrival window.";
+        if (!state.date && !state.flex) { msg = "Choose a preferred day, or tick “I'm flexible”."; failed(2, "date", "missing"); }
+        else if (!state.slot) { msg = "Choose a preferred arrival window, or “Any time”."; failed(2, "slot", "missing"); }
       }
       if (n === LAST) {
         var first = null;
-        ["f-name", "f-phone", "f-email", "f-address", "f-referrer"].forEach(function (id) { var el = $("#" + id); if (!checkField(el) && !first) first = el; });
+        ["f-name", "f-phone", "f-email", "f-address", "f-referrer"].forEach(function (id) {
+          var el = $("#" + id);
+          if (!checkField(el)) { failed(n, id.slice(2), "invalid"); if (!first) first = el; }
+        });
         if (first) { msg = "Please fix the highlighted fields."; first.focus(); }
       }
       if (msg) {
         var err = $("[data-form-error]");
         // The details step shows its message inline and focuses the first field to fix, so it needs no toast.
         if (n === LAST) { err.textContent = msg; err.hidden = false; return false; }
-        if (n === 1) return false;
         toast(msg);
         return false;
       }
       return true;
     }
     function save() {
+      var q = {};
+      QUOTE_FIELDS.forEach(function (k) { q[k] = state[k]; });
+      saveQuoteDraft(q);
       var fields = {};
-      fieldIds.forEach(function (id) { fields[id] = $("#" + id).value; });
-      fields.pets = ($('input[name="pets"]:checked', form) || {}).value;
-      fields.contactPref = ($('input[name="contactPref"]:checked', form) || {}).value;
-      store(DRAFT_KEY, { state: state, fields: fields, postal: $("#f-postal").value, at: Date.now() });
+      fieldIds.forEach(function (id) { var el = $("#" + id); if (el) fields[id] = el.value; });
+      radioNames.forEach(function (n) { fields[n] = radioVal(n); });
+      boxIds.forEach(function (id) { var el = $("#" + id); if (el) fields[id] = el.checked; });
+      store(DETAILS_KEY, { fields: fields, step: state.step, date: state.date, flex: state.flex, slot: state.slot, ref: ref, at: Date.now() }, true);
     }
     function restore() {
-      var d = store(DRAFT_KEY);
-      if (d && d.at && Date.now() - d.at < 14 * 86400000) {
-        if (d.state) Object.keys(state).forEach(function (k) { if (d.state[k] != null) state[k] = d.state[k]; });
-        var f = d.fields || {};
-        fieldIds.forEach(function (id) { if (f[id]) $("#" + id).value = f[id]; });
-        ["pets", "contactPref"].forEach(function (n) { var i = f[n] && $('input[name="' + n + '"][value="' + f[n] + '"]', form); if (i) i.checked = true; });
-        if (!$("#f-postal").value && d.postal) $("#f-postal").value = d.postal;
+      var qd = quoteDraft();
+      if (qd) QUOTE_FIELDS.forEach(function (k) { if (qd[k] != null) state[k] = qd[k]; });
+      var dd = store(DETAILS_KEY, undefined, true);
+      if (dd && dd.at && Date.now() - dd.at < DRAFT_DAYS * 86400000) {
+        ["step", "date", "flex", "slot"].forEach(function (k) { if (dd[k] != null) state[k] = dd[k]; });
+        if (typeof dd.ref === "string" && /^NR-[A-Z0-9]{4}$/.test(dd.ref)) ref = dd.ref;
+        var f = dd.fields || {};
+        fieldIds.forEach(function (id) { var el = $("#" + id); if (el && typeof f[id] === "string" && f[id]) el.value = f[id]; });
+        radioNames.forEach(function (n) { var i = f[n] && $('input[name="' + n + '"][value="' + String(f[n]).replace(/"/g, "") + '"]', form); if (i) i.checked = true; });
+        boxIds.forEach(function (id) { var el = $("#" + id); if (el && f[id] != null) el.checked = !!f[id]; });
       }
       var q = new URLSearchParams(location.search);
       if (q.get("s") && C.services[q.get("s")]) { state.service = q.get("s"); state.step = 1; }
       if (q.get("h") && C.homeTypes[q.get("h")]) state.homeType = q.get("h");
-      if (+q.get("bd")) state.beds = Math.min(8, +q.get("bd"));
-      if (+q.get("ba")) state.baths = Math.min(6, +q.get("ba"));
+      var bd = parseInt(q.get("bd"), 10), ba = parseInt(q.get("ba"), 10);
+      if (bd >= 1) state.beds = bd;
+      if (ba >= 1) state.baths = ba;
+      // Anything saved on the device or typed into the address bar is checked again before it's used.
       if (!C.services[state.service]) state.service = "regular";
+      if (!C.homeTypes[state.homeType]) state.homeType = "condo";
+      state.beds = Math.min(8, Math.max(1, parseInt(state.beds, 10) || 1));
+      state.baths = Math.min(6, Math.max(1, parseInt(state.baths, 10) || 1));
+      state.addons = Array.isArray(state.addons) ? state.addons.filter(function (id) { return !!addonById(id); }) : [];
+      state.checks = Array.isArray(state.checks) ? state.checks.filter(function (id) { return (C.homeChecks || []).some(function (c) { return c.id === id; }); }) : [];
+      if (!C.frequencies[state.freq]) state.freq = "once";
+      if (!slotById(state.slot)) state.slot = null;
+      state.flex = state.flex === true;
       if (state.date && availableDates().map(iso).indexOf(state.date) === -1) state.date = null;
+      state.step = parseInt(state.step, 10) || 1;
       if (state.step > LAST || state.step < 1) state.step = 1;
-      // Built for the calendar but no link set: send a request and we'll arrange the earliest opening.
+      // Built for the calendar but no link set: send a request and we'll arrange the earliest suitable time.
       if (calStep && !CAL) state.flex = true;
     }
     function onPostal() {
@@ -536,16 +789,25 @@
       out.textContent = m && m.cls === "ok" ? m.text : "";
       renderSummary();
     }
+    // booking_started: the first real interaction with the form, not just opening the page.
+    function start() {
+      if (started) return;
+      started = true;
+      track("booking_started", { service: state.service, source: /[?&]s=/.test(location.search) ? "price_box" : "direct" });
+    }
 
     form.addEventListener("change", function (e) {
       var t = e.target;
-      if (t.name === "service") { state.service = t.value; sync(); }
-      if (t.name === "homeType") state.homeType = t.value;
+      start();
+      if (t.name === "service") { state.service = t.value; normalizeAddons(true); normalizeSlot(true); }
+      if (t.name === "homeType") { state.homeType = t.value; normalizeSlot(true); }
       if (t.name === "freq") state.freq = t.value;
-      if (t.name === "slot") state.slot = t.value;
-      if (t.name === "date") { state.date = t.value; state.flex = false; sync(); }
-      if (t.hasAttribute("data-flex")) { state.flex = t.checked; if (state.flex) state.date = null; sync(); }
-      if (t.name === "addon") state.addons = $$('input[name="addon"]:checked:not(:disabled)', form).map(function (i) { return i.value; });
+      if (t.name === "slot") { state.slot = t.value; $("[data-slot-note]").textContent = ""; }
+      if (t.name === "date") { state.date = t.value; state.flex = false; }
+      if (t.hasAttribute("data-flex")) { state.flex = t.checked; if (state.flex) state.date = null; }
+      if (t.name === "addon") { state.addons = $$('input[name="addon"]:checked:not(:disabled)', form).map(function (i) { return i.value; }); normalizeSlot(true); }
+      if (t.name === "check") state.checks = $$('input[name="check"]:checked', form).map(function (i) { return i.value; });
+      sync();
       renderSummary();
       save();
     });
@@ -553,8 +815,10 @@
       if (checks[e.target.id] && e.target.value.trim()) checkField(e.target);
     });
     form.addEventListener("input", function (e) {
+      start();
       if (e.target.classList.contains("invalid")) checkField(e.target);
       if (e.target.id === "f-postal") onPostal();
+      else renderReview();
       clearTimeout(form.t);
       form.t = setTimeout(save, 400);
     });
@@ -564,12 +828,26 @@
       c.addEventListener("click", function (e) {
         var b = e.target.closest("button");
         if (!b) return;
+        start();
         state[key] = Math.min(key === "beds" ? 8 : 6, Math.max(1, state[key] + (b.hasAttribute("data-inc") ? 1 : -1)));
+        normalizeSlot(true);
         sync(); renderSummary(); save();
       });
     });
+    // Edit, from the review: back to the step that holds the detail, with every choice still in place.
+    form.addEventListener("click", function (e) {
+      var b = e.target.closest("[data-edit-step]");
+      if (!b) return;
+      var n = +b.getAttribute("data-edit-step");
+      if (n !== state.step) showStep(n, false);
+      var el = $(b.getAttribute("data-edit-focus"), form);
+      if (el) { el.focus({ preventScroll: true }); el.scrollIntoView({ block: "center" }); }
+      track("review_edit", { step: n });
+    });
     $("[data-next]").addEventListener("click", function () {
+      start();
       if (!validate(state.step)) return;
+      track("booking_step_completed", { step: state.step, service: state.service });
       if (state.step === 1) track("begin_checkout", { service: state.service, value: Math.round(quote().first), currency: C.currency });
       showStep(state.step + 1, true);
     });
@@ -578,108 +856,144 @@
       if (e.key === "Enter" && e.target.tagName === "INPUT" && state.step < LAST) { e.preventDefault(); $("[data-next]").click(); }
     });
     var sum = $("[data-summary]");
-    // Keep a focused field clear of the sticky Continue and price bars on phones.
+    // Keep whatever has focus (a field, an Edit link, the comparison) clear of the sticky Continue and price bars on phones.
     form.addEventListener("focusin", function (e) {
-      if (window.innerWidth < 960 && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) && e.target.getBoundingClientRect().bottom > window.innerHeight - 150) {
-        e.target.scrollIntoView({ block: "center", behavior: "instant" });
-      }
+      var el = e.target;
+      if (window.innerWidth >= 960 || el.closest(".step-nav")) return;
+      var box = (el.matches("input[type=radio], input[type=checkbox]") && el.closest("label")) || el;
+      if (box.getBoundingClientRect().bottom > window.innerHeight - 150) box.scrollIntoView({ block: "center", behavior: "instant" });
     });
     $("[data-summary-toggle]").addEventListener("click", function () {
       var open = !sum.classList.contains("open");
       sum.classList.toggle("open", open);
       this.setAttribute("aria-expanded", String(open));
     });
+    // A shared or public device: clear what's saved here and empty the form.
+    $$("[data-clear-details]", form).forEach(function (b) {
+      b.addEventListener("click", function () {
+        clearDrafts();
+        fieldIds.forEach(function (id) { var el = $("#" + id); if (el && el.tagName !== "SELECT") el.value = ""; });
+        var acc = $("#f-access"); if (acc) acc.selectedIndex = 0;
+        var pk = $("#f-parking"); if (pk) pk.selectedIndex = 0;
+        boxIds.forEach(function (id) { var el = $("#" + id); if (el) el.checked = false; });
+        radioNames.forEach(function (n) { var first = $('input[name="' + n + '"]', form); if (first) first.checked = true; });
+        $$(".invalid", form).forEach(function (el) { fieldError(el, ""); });
+        ref = null;
+        sync(); renderSummary();
+        toast("Your details are cleared from this device.");
+      });
+    });
 
     function itemsText(q) {
       var parts = [q.s.name + " (" + homeLine(q) + ") " + money(q.base)];
       q.addons.forEach(function (a) { parts.push(a.name + " +" + money(a.price)); });
+      if (q.included.length) parts.push("included: " + q.included.map(function (a) { return a.name.toLowerCase(); }).join(", "));
       if (q.firstDisc > 0) parts.push(q.firstLabel + " " + q.firstPct + "% off −" + money(q.firstDisc));
-      parts.push((q.repeat ? "first visit " : "estimated total ") + money(q.first) + (q.tax ? " including HST" : ", no HST charged"));
-      if (q.repeat) parts.push("then " + money(q.repeat) + " a visit, " + q.freq.label.toLowerCase());
+      parts.push((q.repeat ? "first visit " : "estimated total ") + moneyC(q.first) + (q.tax ? " including HST" : ", no HST charged"));
+      if (q.repeat) parts.push("then " + moneyC(q.repeat) + " a visit, " + q.freq.label.toLowerCase());
+      if (q.review) parts.push(B.ownerFirstName + " confirms the final price for: " + q.reasons.join(", "));
       return parts.join("; ");
     }
     function whenText() {
       if (CAL) return "Picking a time on the calendar";
-      return state.flex ? "Flexible: earliest opening" : longDate(state.date);
+      return state.flex ? "Flexible: earliest suitable day" : longDate(state.date);
     }
     // A booked calendar time, shown in Toronto time whatever the visitor's device says.
     function fmtStart(d) {
       return new Intl.DateTimeFormat("en-CA", { weekday: "long", month: "long", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/Toronto" }).format(d);
     }
-    function ref() { var c = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789", s = ""; for (var i = 0; i < 4; i++) s += c[Math.floor(Math.random() * c.length)]; return "NR-" + s; }
+    function newRef() { var c = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789", s = ""; for (var i = 0; i < 4; i++) s += c[Math.floor(Math.random() * c.length)]; return "NR-" + s; }
     function text(r, when) {
-      var q = quote(), slot = slotById(state.slot);
+      var q = quote();
       return [(CAL ? "Booking " : "Booking request ") + r, q.s.name + ", " + homeLine(q),
+        q.checks.length ? "Home: " + q.checks.map(function (c) { return c.label; }).join(", ") : "",
         q.addons.length ? "Extras: " + q.addons.map(function (a) { return a.name; }).join(", ") : "",
-        "When: " + (when || (state.flex ? "earliest opening" : longDate(state.date)) + (slot ? ", " + slot.label + " (" + slot.time + ")" : "")),
+        "When: " + (when || whenLine()),
         q.repeat ? "Plan: " + q.freq.label : "",
-        "Estimate: " + money(q.first) + (q.repeat ? ", then " + money(q.repeat) + "/visit" : ""),
-        "Name: " + $("#f-name").value, "Phone: " + $("#f-phone").value,
-        "Address: " + $("#f-address").value + ", " + formatPostal($("#f-postal").value),
-        $("#f-referrer").value.trim() ? "Referred by: " + $("#f-referrer").value.trim() : "",
-        $("#f-notes").value ? "Notes: " + $("#f-notes").value : ""].filter(Boolean).join("\n");
+        "Estimate: " + moneyC(q.first) + (q.repeat ? ", then " + moneyC(q.repeat) + "/visit" : ""),
+        "Name: " + val("f-name"), "Phone: " + val("f-phone"),
+        "Address: " + val("f-address") + ", " + formatPostal(val("f-postal")),
+        "Getting in: " + val("f-access") + buildingText(), "Products: " + radioVal("products"),
+        val("f-referrer") ? "Referred by: " + val("f-referrer") : "",
+        val("f-notes") ? "Notes: " + val("f-notes") : ""].filter(Boolean).join("\n");
     }
+    function mailHref(subject, body) { return "mailto:" + B.email + "?subject=" + encodeURIComponent(subject) + (body ? "&body=" + encodeURIComponent(body) : ""); }
     var last = null;
     form.addEventListener("submit", function (e) {
       e.preventDefault();
       if (!validate(LAST)) return;
-      var r = ref(), q = quote(), slot = slotById(state.slot), z = q.zone;
+      if (!ref) ref = newRef();
+      save();
+      var r = ref, q = quote(), slot = slotById(state.slot), z = q.zone;
       var when = whenText();
       var btn = $("[data-submit]"), btnLabel = btn.innerHTML;
       btn.disabled = true; btn.textContent = "Sending…";
-      var email = $("#f-email").value.trim(), firstName = $("#f-name").value.trim().split(/\s+/)[0];
-      var plain = q.s.name + ", " + homeLine(q) + "; " + when + (slot ? ", arrival " + slot.time : "") + "; estimate " + money(q.first) + (q.repeat ? ", then " + money(q.repeat) + " " + q.freq.label.toLowerCase() : "");
+      var email = val("f-email"), firstName = val("f-name").split(/\s+/)[0];
+      var plain = q.s.name + ", " + homeLine(q) + "; " + (CAL ? when : whenLine()) + "; estimate " + moneyC(q.first) + (q.repeat ? ", then " + moneyC(q.repeat) + " " + q.freq.label.toLowerCase() : "");
       send({
-        _subject: "New booking " + r + ": " + q.s.name + ", " + when,
+        _subject: (CAL ? "New booking " : "New booking request ") + r + ": " + q.s.name + ", " + when,
         _template: "table", _captcha: "false", _replyto: email || undefined,
-        // The customer's written copy: itemized price and change terms. With the calendar, Cal.com confirms the time separately.
+        // Best effort only: FormSubmit documents its auto-reply as unsupported for forms sent like this one,
+        // so the site never promises it. Mann's own reply is the customer's confirmation and written copy.
         _autoresponse: email ? autoReply(CAL ? (C.emails || {}).bookingCal : (C.emails || {}).booking, { name: firstName, ref: r, summary: plain, items: itemsText(q), reply: B.replyPromise, phone: B.phoneDisplay,
           notice: C.policies.cancelNoticeHours, lateFee: C.policies.lateCancelFee, terms: C.siteUrl + "/policies/", calendar: "https://cal.com/" + calPath }) : undefined,
         _honey: $('[name="_honey"]', form).value,
-        "Reference": r, "Service": q.s.name, "Home": homeLine(q),
-        "Extras": q.addons.map(function (a) { return a.name; }).join(", ") || "None",
-        "Plan": q.freq ? q.freq.label : "One time", "Date": when,
-        "Arrival window": slot ? slot.label + " (" + slot.time + ")" : "",
-        "Estimate, first visit": money(q.first), "Estimate, repeat visits": q.repeat ? money(q.repeat) : "n/a",
-        "Estimated time": "about " + q.hours + " hours",
-        "Name": $("#f-name").value.trim(), "Phone": $("#f-phone").value.trim(), email: email || "not given",
-        "Address": $("#f-address").value.trim(), "Postal code": formatPostal($("#f-postal").value) + (z && z.area ? " (" + z.area + ")" : ""),
-        "Getting in": $("#f-access").value, "Pets": ($('input[name="pets"]:checked', form) || {}).value,
-        "Referred by": $("#f-referrer").value.trim() || "None",
-        "Notes": $("#f-notes").value.trim() || "None", "Confirm by": ($('input[name="contactPref"]:checked', form) || {}).value
+        "Reference": r,
+        "Status": CAL ? "Details sent; the customer picks a time on the calendar next" : "Request: not confirmed until Mann agrees the day, window and price",
+        "Service": q.s.name, "Home": homeLine(q),
+        "Home notes": q.checks.map(function (c) { return c.label; }).join(", ") || "None",
+        "Extras": q.addons.map(function (a) { return a.name + " +" + money(a.price); }).join(", ") || "None",
+        "Included in this service": q.included.map(function (a) { return a.name; }).join(", ") || "None",
+        "Plan": q.freq ? q.freq.label : "One time",
+        "Preferred day": when,
+        "Preferred arrival window": CAL ? "" : slot ? (slot.any ? "Any time" : slot.label + " (" + slot.time + ")") : "",
+        "Estimate, first visit": moneyC(q.first) + (q.firstDisc > 0 ? " (" + q.firstLabel + " " + q.firstPct + "% off −" + money(q.firstDisc) + ")" : ""),
+        "Estimate, repeat visits": q.repeat ? moneyC(q.repeat) : "n/a",
+        "HST": q.tax ? moneyC(q.firstTax) + " on the first visit" : "Not charged",
+        "Price to confirm": q.review ? "Yes: " + q.reasons.join(", ") : "No",
+        "Estimated time": "about " + q.hours + " hours with " + cleanersText(),
+        "Pricing version": C.pricingVersion || "",
+        "Name": val("f-name"), "Phone": val("f-phone"), email: email || "not given",
+        "Address": val("f-address"), "Postal code": formatPostal(val("f-postal")) + (z && z.area ? " (" + z.area + ")" : ""),
+        "Getting in": val("f-access") + buildingText(), "Pets": radioVal("pets"), "Products": radioVal("products"),
+        "Referred by": val("f-referrer") || "None",
+        "Notes": val("f-notes") || "None", "Confirm by": radioVal("contactPref")
       }).then(function (res) {
         track("generate_lead", { form: "booking", service: state.service, value: Math.round(q.first), currency: C.currency }, true);
-        last = { ref: r, date: state.flex || CAL ? null : state.date, slot: slot, hours: q.hours, service: q.s.name, address: $("#f-address").value };
+        last = { ref: r, date: state.flex || CAL ? null : state.date, slot: slot, hours: q.hours, service: q.s.name, address: val("f-address") };
         var info = { r: r, q: q, slot: slot, email: email, firstName: firstName, skipped: !!(res && res.skipped),
-          how: { Text: "text", WhatsApp: "message", Call: "call", Email: "email" }[($('input[name="contactPref"]:checked', form) || {}).value] || "text" };
+          how: { Text: "text", WhatsApp: "message", Call: "call", Email: "email" }[radioVal("contactPref")] || "text" };
         form.hidden = true;
         if (CAL && !info.skipped) showCalendar(info);
         else showDone(info, false, null);
-        store(DRAFT_KEY, null);
+        // The request is in: personal details leave this device. The home choices stay, for booking again.
+        ref = null;
+        store(DETAILS_KEY, null, true);
       }).catch(function () {
+        track("request_not_confirmed", { service: state.service });
         var err = $("[data-form-error]");
-        err.innerHTML = "We couldn't send your request online. Please " + (B.phone ? "<a href=\"sms:" + B.phone + "?&body=" + encodeURIComponent(text(r)) + "\">text it to us</a> or " : "") + "<a href=\"mailto:" + B.email +
-          "?subject=" + encodeURIComponent("Booking request " + r) + "&body=" + encodeURIComponent(text(r)) + "\">email it</a>. Your details are filled in.";
+        err.innerHTML = "We couldn't confirm that your request reached us. Please " + (B.phone ? "<a href=\"sms:" + B.phone + "?&body=" + encodeURIComponent(text(r)) + "\">text it to us</a> or " : "") +
+          "<a href=\"" + mailHref("Booking request " + r, text(r)) + "\">email it</a>, with your details filled in. Or try again: your request keeps the same reference, " + esc(r) + ", so it can't become two bookings.";
         err.hidden = false;
       }).then(function () { btn.disabled = false; btn.innerHTML = btnLabel; });
     });
 
     function showDone(info, booked, start) {
       var q = info.q, slot = info.slot;
-      var when = booked ? (start ? fmtStart(start) : "The time you picked (see your confirmation email)")
-        : (state.flex ? "Earliest opening (we'll confirm)" : longDate(state.date)) + (slot ? ", arrival " + slot.time : "");
+      var when = booked ? (start ? fmtStart(start) : "The time you picked (see your Cal.com email)") : whenLine();
       $("[data-progress]").hidden = true;
       $("[data-summary]").hidden = true;
       $(".book-head h1").textContent = booked ? "You're booked" : "Request sent";
-      $("[data-done-label]").textContent = booked ? "Booking confirmed" : "Request received";
+      $("[data-done-label]").textContent = booked ? "Booking confirmed" : "Request sent · not confirmed yet";
       $("[data-ref]").textContent = info.r;
       var rows = [
-        ["When", when],
-        ["Where", $("#f-address").value.trim() + ", " + formatPostal($("#f-postal").value)],
-        ["Service", q.s.name + " · " + homeLine(q)],
-        $("#f-referrer").value.trim() ? ["Referred by", $("#f-referrer").value.trim() + ". We'll credit them once your clean is done and paid."] : null,
-        ["Estimate", money(q.first) + (q.firstDisc > 0 ? " (" + q.firstPct + "% off: " + q.firstLabel.toLowerCase() + ")" : "") + (q.repeat ? ", then " + money(q.repeat) + " " + q.freq.label.toLowerCase() : "") + ". Paid after the clean."],
-        ["Changes", (booked ? "Use the links in your confirmation email. " : "") + "Free up to " + C.policies.cancelNoticeHours + " hours before your " + (booked ? "booking" : "arrival window") + ". Later changes may cost " + C.policies.lateCancelFee + "."]
+        ["Status", booked ? "Confirmed for the time you picked." : "Waiting for " + B.ownerFirstName + " to confirm. Your time is held only once " + B.ownerFirstName + " confirms it with you."],
+        [booked ? "When" : "You asked for", when],
+        ["Where", val("f-address") + ", " + formatPostal(val("f-postal"))],
+        ["Service", q.s.name + " · " + homeLine(q) + (q.addons.length ? ". Extras: " + q.addons.map(function (a) { return a.name.toLowerCase(); }).join(", ") : "")],
+        val("f-referrer") ? ["Referred by", val("f-referrer") + ". We'll credit them once your clean is done and paid."] : null,
+        ["Estimate", priceText(q) + " Paid after the clean."],
+        ["Changes", (booked ? "Use the links in your Cal.com email. " : "") + "Free up to " + C.policies.cancelNoticeHours + " hours before your " + (booked ? "booking" : "arrival window") + ". Later changes may cost " + C.policies.lateCancelFee + "."]
       ];
       $("[data-done-list]").innerHTML = rows.filter(Boolean).map(function (x) { return "<div><dt>" + esc(x[0]) + "</dt><dd>" + esc(x[1]) + "</dd></div>"; }).join("");
       if (info.skipped) {
@@ -688,20 +1002,21 @@
       } else if (booked) {
         $("[data-done-title]").textContent = "You're booked, " + info.firstName + ".";
         var at = start ? fmtStart(start) : "";
-        $("[data-done-text]").textContent = (at ? at + (/\.$/.test(at) ? " " : ". ") : "") + "Your confirmation email has links to reschedule or cancel. " +
-          B.ownerFirstName + " will " + info.how + " you " + B.replyPromise + " to confirm the details. Nothing to pay until after your clean.";
+        $("[data-done-text]").textContent = (at ? at + (/\.$/.test(at) ? " " : ". ") : "") + "Cal.com emails your confirmation with links to reschedule or cancel. " +
+          B.ownerFirstName + " will " + info.how + " you " + B.replyPromise + " to go over the details. Nothing to pay until after your clean.";
       } else {
         $("[data-done-title]").textContent = "Thank you, " + info.firstName + ".";
-        $("[data-done-text]").textContent = B.ownerFirstName + " will " + info.how + " you " + B.replyPromise + " to confirm " +
-          (state.flex ? "the earliest opening" : longDate(state.date) + (slot ? ", " + slot.label.toLowerCase() : "")) + "." + (info.email ? " A confirmation is on its way to " + info.email + "." : "") + " Nothing to pay until after your clean.";
+        $("[data-done-text]").textContent = B.ownerFirstName + " has your request and will " + info.how + " you " + B.replyPromise + " to agree your day, arrival window and final price. Nothing to pay until after your clean.";
       }
       var msg = text(info.r, booked ? when : null);
       var smsb = $("[data-sms-booking]");
       if (smsb) smsb.href = "sms:" + B.phone + "?&body=" + encodeURIComponent(msg);
       var wab = $("[data-wa-booking]");
       if (wab) wab.href = waHref(msg);
-      // A calendar booking already comes with its own calendar invite.
-      $("[data-ics]").hidden = PREVIEW || booked || !last.date;
+      var chg = $("[data-change-mail]");
+      if (chg) chg.href = mailHref((booked ? "Change to booking " : "Change to booking request ") + info.r, "Reference: " + info.r + "\nWhat I'd like to change: ");
+      // A calendar booking already comes with its own calendar invite; a flexible request has no time to save yet.
+      $("[data-ics]").hidden = PREVIEW || booked || !last.date || !last.slot || !!last.slot.any;
       var done = $("[data-done]");
       done.hidden = false;
       done.focus();
@@ -726,18 +1041,19 @@
     }
     // Everything the customer already typed, so Cal.com's form is filled in and the slot is the right length.
     function calConfig(info) {
-      var q = info.q, digits = $("#f-phone").value.replace(/\D/g, "").slice(-10);
+      var q = info.q, digits = val("f-phone").replace(/\D/g, "").slice(-10);
       var notes = [
         "Booking " + info.r + ": " + q.s.name + ", " + homeLine(q),
+        q.checks.length ? "Home: " + q.checks.map(function (c) { return c.label; }).join(", ") : "",
         q.addons.length ? "Extras: " + q.addons.map(function (a) { return a.name; }).join(", ") : "",
         q.repeat ? "Plan: " + q.freq.label : "",
-        "Estimate: " + money(q.first) + (q.repeat ? ", then " + money(q.repeat) + "/visit" : "") + ", about " + q.hours + " hours",
-        "Address: " + $("#f-address").value.trim() + ", " + formatPostal($("#f-postal").value),
-        "Getting in: " + $("#f-access").value + ". Pets: " + (($('input[name="pets"]:checked', form) || {}).value || "No pets"),
-        $("#f-referrer").value.trim() ? "Referred by: " + $("#f-referrer").value.trim() : "",
-        $("#f-notes").value.trim() ? "Notes: " + $("#f-notes").value.trim() : ""
+        "Estimate: " + moneyC(q.first) + (q.repeat ? ", then " + moneyC(q.repeat) + "/visit" : "") + ", about " + q.hours + " hours",
+        "Address: " + val("f-address") + ", " + formatPostal(val("f-postal")),
+        "Getting in: " + val("f-access") + buildingText() + ". Pets: " + (radioVal("pets") || "No pets") + ". Products: " + radioVal("products"),
+        val("f-referrer") ? "Referred by: " + val("f-referrer") : "",
+        val("f-notes") ? "Notes: " + val("f-notes") : ""
       ].filter(Boolean).join("\n");
-      var cfg = { name: $("#f-name").value.trim(), notes: notes, attendeePhoneNumber: "+1" + digits, "metadata[ref]": info.r,
+      var cfg = { name: val("f-name"), notes: notes, attendeePhoneNumber: "+1" + digits, "metadata[ref]": info.r,
         duration: String(Math.min(480, Math.max(60, Math.ceil(q.hours) * 60))), layout: "month_view", theme: isDark() ? "dark" : "light" };
       if (info.email) cfg.email = info.email;
       return cfg;
@@ -770,15 +1086,15 @@
     }
 
     $("[data-ics]").addEventListener("click", function () {
-      if (!last || !last.date) return;
+      if (!last || !last.date || !last.slot || last.slot.any) return;
       var pad = function (n) { return String(n).padStart(2, "0"); };
-      var start = (last.slot && last.slot.start) || 9, d = last.date.replace(/-/g, "");
+      var start = last.slot.start || 9, d = last.date.replace(/-/g, "");
       var ics = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Nest & Rest Cleaning//Booking//EN", "BEGIN:VEVENT",
         "UID:" + last.ref + "@nestandrestcleaning", "DTSTAMP:" + new Date().toISOString().replace(/[-:]/g, "").split(".")[0] + "Z",
         "DTSTART;TZID=America/Toronto:" + d + "T" + pad(start) + "0000",
         "DTEND;TZID=America/Toronto:" + d + "T" + pad(Math.min(23, start + Math.ceil(last.hours + 3))) + "0000",
-        "SUMMARY:Nest & Rest: " + last.service + " (requested)", "LOCATION:" + last.address.replace(/[,;]/g, "\\$&"),
-        "DESCRIPTION:Booking request " + last.ref + ". We'll confirm by text. " + (B.phone ? B.phoneDisplay : B.email), "STATUS:TENTATIVE", "END:VEVENT", "END:VCALENDAR"].join("\r\n");
+        "SUMMARY:Nest & Rest: " + last.service + " (requested, not confirmed yet)", "LOCATION:" + last.address.replace(/[,;]/g, "\\$&"),
+        "DESCRIPTION:Booking request " + last.ref + ". Not confirmed until " + B.ownerFirstName + " agrees the time with you. " + (B.phone ? B.phoneDisplay : B.email), "STATUS:TENTATIVE", "END:VEVENT", "END:VCALENDAR"].join("\r\n");
       var a = document.createElement("a");
       a.href = URL.createObjectURL(new Blob([ics], { type: "text/calendar" }));
       a.download = "nest-and-rest-" + last.ref + ".ics";
@@ -787,6 +1103,9 @@
     });
 
     restore();
+    // A saved draft or an old link can't carry an extra this service includes or doesn't offer.
+    normalizeAddons(true);
+    normalizeSlot(false);
     sync();
     onPostal();
     renderSummary();
@@ -867,13 +1186,17 @@
   /* ---------- Delivery ---------- */
   function phoneOk(v) { var d = String(v).replace(/\D/g, ""); return d.length === 10 || (d.length === 11 && d[0] === "1"); }
   function emailOk(v) { return !v || /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v); }
+  // Only an explicit success from the form service counts as sent. An empty, unreadable or unexpected
+  // reply is treated as a failure, so the customer is never told "sent" without that confirmation.
   function send(data) {
     if (PREVIEW || !C.delivery || C.delivery.provider === "none") return Promise.resolve({ skipped: true });
     return fetch(C.delivery.endpoint, {
       method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify(data)
     }).then(function (r) {
-      return r.json().catch(function () { return {}; }).then(function (j) {
-        if (!r.ok || String(j.success) === "false") throw new Error(j.message || "Request failed");
+      return r.text().then(function (t) {
+        var j = null;
+        try { j = JSON.parse(t); } catch (e) { /* not JSON: handled below */ }
+        if (!r.ok || !j || String(j.success) !== "true") throw new Error((j && j.message) || "Not confirmed");
         return j;
       });
     });
@@ -884,6 +1207,10 @@
     var form = $("[data-quote-form]");
     if (!form) return;
     var name = form.getAttribute("data-quote-name");
+    // Arriving from the booking form (a home over about 3,000 sq ft): its home details are carried into the notes.
+    var carried = new URLSearchParams(location.search).get("notes");
+    var notesBox = $("#q-notes", form);
+    if (carried && notesBox && !notesBox.value) notesBox.value = carried.slice(0, 600);
     function qCheck(el) {
       var v = el.value.trim(), m = "";
       if (el.hasAttribute("data-required") && v.length < 2) m = "Add your " + el.name.toLowerCase() + ".";
@@ -991,7 +1318,7 @@
           $("[data-gd-text]").textContent = "On the live site, " + B.ownerFirstName + " receives this gift request by email.";
         } else {
           $("[data-gd-title]").textContent = "Thank you, " + name.split(/\s+/)[0] + ".";
-          $("[data-gd-text]").textContent = B.ownerFirstName + " will text you " + B.replyPromise + " to confirm and send an Interac e-Transfer request for " + money(+amount) + ". A confirmation is on its way to " + mine + ".";
+          $("[data-gd-text]").textContent = B.ownerFirstName + " will text you " + B.replyPromise + " to confirm and send an Interac e-Transfer request for " + money(+amount) + ". Your gift card is emailed to " + mine + " once it's paid.";
         }
         done.hidden = false;
         done.focus();
@@ -1028,6 +1355,17 @@
         err.innerHTML = "We couldn't send that online. Please <a href=\"mailto:" + B.email + "?subject=My%20review&body=" + encodeURIComponent(rating + " stars\n" + tx) + "\">email it to us</a>.";
         err.hidden = false;
       }).then(function () { btn.disabled = false; });
+    });
+  }
+
+  /* ---------- Clear saved details (help page) ---------- */
+  function bindClear() {
+    $$("[data-clear-details]").forEach(function (b) {
+      if (b.closest("#booking-form")) return;
+      b.addEventListener("click", function () {
+        clearDrafts();
+        toast("Your details are cleared from this device.");
+      });
     });
   }
 
@@ -1139,6 +1477,7 @@
   bindQuote();
   bindReview();
   bindGift();
+  bindClear();
   bindTheme();
   bindAnnounce();
   bindHeader();

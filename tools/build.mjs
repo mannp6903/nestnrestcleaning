@@ -55,7 +55,31 @@ const GA = !!(C.analytics && C.analytics.ga4Id);
 // The business mailing address (CASL and Ontario's Consumer Protection Act). Shown everywhere once it's set in config.
 const ADDR = (B.mailingAddress || "").trim();
 const LATE_FEE_LINE = `Later changes, or if we can't get in at the agreed time, may cost ${esc(C.policies.lateCancelFee)}.`;
-const guides = guideList({ C, B, esc, money, price, listJoin });
+// One rounding rule, the same as js/site.js: a discounted price is rounded to the nearest dollar.
+const afterDiscount = (amount, pct) => Math.round(amount * (100 - pct) / 100);
+const TAX_TEXT = C.taxRate ? `Prices are before ${Math.round(C.taxRate * 100)}% HST` : "No HST charged";
+const SHOW_SPOTS = !!(founding && founding.showSpotsLeft);
+// How long the booking form keeps home choices on a device (the same as DRAFT_DAYS in js/site.js).
+const DRAFT_DAYS = 14;
+const jobs = C.jobs || [];
+// FAQs about booking requests don't apply once the live calendar confirms times instantly.
+C.faqs = C.faqs.filter((f) => !(CAL && f.requestsOnly));
+
+/* ---------- scope: one rule for every extra ---------- */
+// The checklist row an extra is linked to decides, per service: "included", "extra" (paid) or "none" (not offered).
+// js/site.js applies the same rule in the booking form, so a page and the form can never disagree.
+const taskRow = (task) => C.checklist.flatMap((r) => r.tasks).find((t) => t[0] === task);
+for (const a of C.addons) {
+  if (a.task && !taskRow(a.task)) throw new Error(`Extra "${a.id}" points at checklist task "${a.task}", which isn't in the checklist in js/config.js.`);
+}
+function addonStatus(key, id) {
+  const a = C.addons.find((x) => x.id === id), s = C.services[key];
+  if (!a || !s || !a.task || !s.checklistColumn) return "extra";
+  const v = taskRow(a.task)[s.checklistColumn];
+  return v === "yes" ? "included" : v === "add" ? "extra" : "none";
+}
+const addonsWith = (key, status) => C.addons.filter((a) => addonStatus(key, a.id) === status);
+const guides = guideList({ C, B, esc, money, price, listJoin, afterDiscount });
 
 function price(key, beds, baths, home = "condo") {
   const s = C.services[key];
@@ -165,14 +189,14 @@ function header(L, opts = {}) {
       <a href="${L("#services")}">Services</a>
       <a href="${L("pricing/")}">Pricing</a>
       <a href="${L("#areas")}">Areas</a>
-      <a href="${L("guides/")}">Guides</a>
-      <a href="${L("vision/")}">Our vision</a>
+      <a href="${L("#how")}">How it works</a>
+      <a href="${L("help/")}">Help</a>
     </nav>
     <div class="header-actions">
       ${PHONE ? `<a class="header-phone" data-tel href="tel:${B.phone}">${ic("i-phone")}<span class="sr-only">Call <span data-phone-text>${esc(B.phoneDisplay)}</span></span></a>` : ""}
       ${B.whatsapp ? `<a class="header-wa" data-wa href="${esc(waLink(WA_HELLO))}" target="_blank" rel="noopener" aria-label="WhatsApp ${esc(B.ownerFirstName)}" data-track="whatsapp_click">${ic("i-wa")}</a>` : ""}
       ${themeBtn()}
-      <a class="btn btn-primary header-book" href="${L("book/")}" data-track="book_click"><span class="hb-long">Book your clean</span><span class="hb-short">Book now</span></a>
+      <a class="btn btn-primary header-book" href="${L("book/")}" data-track="book_click"><span class="hb-long">See my price</span><span class="hb-short">My price</span></a>
       <button class="menu-btn" type="button" aria-controls="menu" aria-expanded="false" aria-label="Open menu">${ic("i-menu")}</button>
     </div>
   </div>
@@ -187,6 +211,8 @@ function header(L, opts = {}) {
     <ul class="menu-list menu-list-sm">
       <li><a href="${L("pricing/")}">Pricing</a></li>
       <li><a href="${L("#areas")}">Areas we serve</a></li>
+      <li><a href="${L("#how")}">How booking works</a></li>
+      <li><a href="${L("help/")}">Help &amp; your booking</a></li>
       <li><a href="${L("gift/")}">Gift a clean</a></li>
       <li><a href="${L("realtors/")}">Realtors &amp; property managers</a></li>
       <li><a href="${L("guides/")}">Guides</a></li>
@@ -260,6 +286,7 @@ function footer(L) {
           <p class="label label-sm">Company</p>
           <ul>
             <li><a href="${L("pricing/")}">Pricing</a></li>
+            <li><a href="${L("help/")}">Help &amp; your booking</a></li>
             <li><a href="${L("gift/")}">Gift a clean</a></li>
             <li><a href="${L("realtors/")}">For realtors</a></li>
             <li><a href="${L("guides/")}">Guides</a></li>
@@ -306,7 +333,8 @@ function actionBar(L) {
 
 function offerNote() {
   if (!founding || !founding.active) return "";
-  return `<p class="pricer-offer" data-offer-note><span><strong>${founding.percent}% off</strong> your first visit</span><span class="spots" data-spots>${spotsLeft} of ${founding.spots} founding spots left</span></p>`;
+  const spots = SHOW_SPOTS ? `${spotsLeft} of ${founding.spots} founding spots left` : `For our first ${founding.spots} households`;
+  return `<p class="pricer-offer" data-offer-note><span><strong>${founding.percent}% off</strong> your first visit</span><span class="spots" data-spots>${spots}</span></p>`;
 }
 
 function pricer(L, defaultKey = "regular", heading = "Your price, in seconds") {
@@ -338,8 +366,9 @@ function pricer(L, defaultKey = "regular", heading = "Your price, in seconds") {
     ${stepper("p-baths", "Bathrooms", 1, "data-p-baths")}
   </div>
   <a class="btn btn-primary btn-block" href="${L("book/")}" data-p-go data-track="pricer_continue">Choose your time ${ic("i-arrow")}</a>
-  <p class="pricer-next">${ic("i-cal")}<span>${CAL ? "Bookings from" : "Next opening:"} <strong data-next-open>tomorrow</strong></span></p>
+  <p class="pricer-next">${ic("i-cal")}<span>${CAL ? "Bookings from" : "Earliest day to request:"} <strong data-next-open>tomorrow</strong></span></p>
   <div class="pricer-alt">
+    <a class="link-btn" data-p-incl href="${L("services/" + C.services[defaultKey].slug + "/")}#included">${ic("i-check")} What's included</a>
     <button type="button" class="link-btn" data-textme-open aria-expanded="false" aria-controls="textme-${defaultKey}">${ic("i-sms")} Text me this price</button>
     ${B.whatsapp ? `<a class="link-btn" data-p-wa href="${esc(waLink(WA_HELLO))}" target="_blank" rel="noopener" data-track="whatsapp_click">${ic("i-wa")} Ask on WhatsApp</a>` : ""}
   </div>
@@ -349,7 +378,7 @@ function pricer(L, defaultKey = "regular", heading = "Your price, in seconds") {
     <p class="field-hint" data-textme-note>${esc(B.ownerFirstName)} texts you this price once, ${esc(B.replyPromise)}. No spam.</p>
     <input type="text" name="_honey" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true" data-textme-honey>
   </div>
-  <p class="pricer-fine">No payment to book · Free re-clean guarantee</p>
+  <p class="pricer-fine"><span data-tax-note>${TAX_TEXT}</span> · No payment to book · Free re-clean guarantee</p>
 </form>`;
 }
 
@@ -390,7 +419,7 @@ function foundingCard(L) {
       <p class="founding-big"><span data-founding-pct>${founding.percent}</span>% off</p>
       <p class="founding-sub">Your first visit</p>
       <p data-founding-text>${esc(founding.text)}</p>
-      <p class="spots-bar" data-spots-wrap><span class="spots-track"><span class="spots-fill" data-spots-fill style="width:${Math.round(spotsLeft / founding.spots * 100)}%"></span></span><span data-spots>${spotsLeft} of ${founding.spots} founding spots left</span></p>
+      ${SHOW_SPOTS ? `<p class="spots-bar" data-spots-wrap><span class="spots-track"><span class="spots-fill" data-spots-fill style="width:${Math.round(spotsLeft / founding.spots * 100)}%"></span></span><span data-spots>${spotsLeft} of ${founding.spots} founding spots left</span></p>` : ""}
       <a class="btn btn-light" href="${L("book/")}" data-track="book_click">Claim your first visit</a>
     </div>`;
 }
@@ -473,7 +502,7 @@ const placeSchema = (a) => ({ "@type": "Place", name: a.name + ", Toronto, ON", 
 
 function businessSchema() {
   return {
-    "@context": "https://schema.org", "@type": "HouseCleaningService", "@id": SITE + "/#business",
+    "@context": "https://schema.org", "@type": "LocalBusiness", "@id": SITE + "/#business",
     name: B.name, slogan: B.tagline, description: "Home cleaning in Scarborough and North York, Toronto: regular, deep, move-in and move-out cleaning with a clear price before you book and payment after the clean.",
     url: SITE + "/", logo: SITE + "/assets/logo.png", image: [SITE + "/assets/og-image.jpg", SITE + "/assets/icon-512.png"],
     ...(PHONE ? { telephone: B.phone } : {}), email: B.email, priceRange: "$$", currenciesAccepted: C.currency, paymentAccepted: "Cash, Credit Card, Debit Card, Interac e-Transfer",
@@ -573,7 +602,7 @@ function quoteForm(L, { name, title = "Request a free quote", reply, fields, but
         <div class="form-grid">
           <div class="field"><label for="q-name">Your name</label><input id="q-name" name="Name" autocomplete="name" required data-required></div>
           <div class="field"><label for="q-phone">Phone</label><input id="q-phone" name="Phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="e.g. 647 555 0123" required data-phone></div>
-          <div class="field span-2"><label for="q-email">Email <span class="opt">optional, for your confirmation</span></label><input id="q-email" name="Email" type="email" inputmode="email" autocomplete="email" data-email></div>
+          <div class="field span-2"><label for="q-email">Email <span class="opt">optional, if you'd like replies by email</span></label><input id="q-email" name="Email" type="email" inputmode="email" autocomplete="email" data-email></div>
           ${fields.map(field).join("")}
           <div class="field"><label for="q-postal">Postal code</label><input id="q-postal" name="Postal code" autocomplete="postal-code" autocapitalize="characters" maxlength="7" placeholder="e.g. M1B 2K3" required data-postal></div>
           <div class="field span-2"><label for="q-notes">Anything else? <span class="opt">optional</span></label><textarea id="q-notes" name="Notes" rows="3"></textarea></div>
@@ -589,7 +618,7 @@ function quoteForm(L, { name, title = "Request a free quote", reply, fields, but
 
 function serviceCards(L, list, cls = "") {
   const shop = cls.includes("svc-grid-shop");
-  const first = founding && founding.active && spotsLeft > 0 ? (b) => money(b * (1 - founding.percent / 100)) : null;
+  const first = founding && founding.active && spotsLeft > 0 ? (b) => money(afterDiscount(b, founding.percent)) : null;
   return `<ul class="svc-grid${cls ? " " + cls : ""}">
       ${list.map((s) => shop ? `<li>
         <div class="svc-card svc-shop">
@@ -651,7 +680,7 @@ function plansGrid() {
         return `<div class="plan${f.recommended ? " plan-rec" : ""}" data-plan="${k}">
           ${f.recommended ? '<p class="plan-flag">Most popular</p>' : ""}
           <p class="plan-name">${esc(f.label)}</p>
-          <p class="plan-price"><b data-plan-price>${money(examplePrice * (1 - f.discount / 100))}</b><span>per visit</span></p>
+          <p class="plan-price"><b data-plan-price>${money(afterDiscount(examplePrice, f.discount))}</b><span>per visit</span></p>
           <p class="plan-save">${f.discount ? `Save ${f.discount}%` : "No commitment"}</p>
         </div>`;
       }).join("")}
@@ -709,17 +738,17 @@ ${gift && gift.active ? `<section class="gift-band" data-gift-banner data-months
   <div class="wrap">
     <div class="section-head">
       <p class="label">Booking</p>
-      <h2>${CAL ? "Booked in two minutes. Confirmed instantly." : "Booked in two minutes. Confirmed by text."}</h2>
+      <h2>${CAL ? "Booked in two minutes. Confirmed instantly." : `Request in two minutes. ${esc(B.ownerFirstName)} confirms.`}</h2>
     </div>
     <ol class="steps-3">
-      <li><h3>See your price</h3><p>From your home's size and the extras you choose. No estimate visit needed.</p></li>
+      <li><h3>See your price</h3><p>From your home's size and the extras you choose. No contact details and no estimate visit needed.</p></li>
       ${CAL
         ? `<li><h3>Pick a time</h3><p>Choose a real opening on ${esc(B.ownerFirstName)}'s calendar, any day of the week, evenings included.</p></li>
       <li><h3>You're confirmed</h3><p>Your time is confirmed straight away, by email. ${esc(B.ownerFirstName)} also texts you <span data-reply>${esc(B.replyPromise)}</span>. You pay after the clean.</p></li>`
-        : `<li><h3>Choose a time</h3><p>Any day of the week, evenings included. Next opening: <strong data-next-open>tomorrow</strong>.</p></li>
-      <li><h3>We confirm</h3><p>${esc(B.ownerFirstName)} confirms by text <span data-reply>${esc(B.replyPromise)}</span>, with a confirmation email if you add your address. You pay after the clean.</p></li>`}
+        : `<li><h3>Request your day</h3><p>Pick a preferred day and arrival window, or tell us you're flexible. Requests from <strong data-next-open>tomorrow</strong>, any day of the week.</p></li>
+      <li><h3>${esc(B.ownerFirstName)} confirms</h3><p>${esc(B.ownerFirstName)} replies <span data-reply>${esc(B.replyPromise)}</span> to agree your time and final price. Your time is held once it's confirmed. You pay after the clean.</p></li>`}
     </ol>
-    <div class="center-cta"><a class="btn btn-primary" href="${L("book/")}" data-track="book_click">Book your clean</a></div>
+    <div class="center-cta"><a class="btn btn-primary" href="${L("book/")}" data-track="book_click">Book your clean</a> <a class="text-link" href="${L("help/")}">What happens after you request ${ic("i-arrow")}</a></div>
   </div>
 </section>
 
@@ -789,6 +818,7 @@ ${gift && gift.active ? `<section class="gift-band" data-gift-banner data-months
   </div>
 </section>
 
+${jobsSection(jobs.slice(0, 3), "Recent cleans.", "")}
 <section class="section reviews" id="reviews" data-reviews hidden>
   <div class="wrap">
     <div class="section-head"><p class="label">Reviews</p><h2 data-reviews-title>What clients say.</h2><p class="muted" data-reviews-sub></p></div>
@@ -832,13 +862,16 @@ ${finalCta(L)}
 urls.push(page({
   depth: 1, pathOut: "book/index.html", pageType: "book", minimal: true, noBar: true,
   title: `Book a Clean | ${B.name}`,
-  description: "Book your home cleaning online in about two minutes. See your price, choose a day and arrival window, and pay after the clean.",
+  description: CAL
+    ? "Book your home cleaning online in about two minutes. See your price, pick a time on our calendar, and pay after the clean."
+    : "Request your home cleaning online in about two minutes. See your price, choose a preferred day and arrival window, and pay after the clean.",
   body: (L) => {
     const freqField = `<div class="field" data-freq-field><span class="field-label" id="freq-label">How often</span>
               <div class="freq-grid" role="radiogroup" aria-labelledby="freq-label">
                 ${Object.keys(C.frequencies).map((k) => { const f = C.frequencies[k]; return `<label class="choice"><input type="radio" name="freq" value="${k}"><span class="choice-body"><strong>${esc(f.label)}</strong><span class="choice-desc">${f.discount ? `Save ${f.discount}%` : "No commitment"}</span></span></label>`; }).join("")}
               </div>
             </div>`;
+    const quoteNames = quoteKeys.map((k) => C.quoteServices[k]);
     return `
 <section class="book">
   <noscript><div class="wrap"><p class="form-error">Booking needs JavaScript. Please ${PHONE ? `call or text <a href="tel:${B.phone}">${esc(B.phoneDisplay)}</a>` : `email <a href="mailto:${B.email}">${esc(B.email)}</a>`} and we'll book you in.</p></div></noscript>
@@ -846,7 +879,7 @@ urls.push(page({
     <div class="book-head">
       <div>
         <h1>Book your clean</h1>
-        <p class="book-sub">${ic("i-cal")} ${CAL ? "Bookings from" : "Next opening:"} <strong data-next-open>tomorrow</strong></p>
+        <p class="book-sub">${ic("i-cal")} <span>${CAL ? "Bookings from" : "Earliest day to request:"} <strong data-next-open>tomorrow</strong>${CAL ? "" : `. ${esc(B.ownerFirstName)} confirms every booking.`}</span></p>
       </div>
       <ol class="progress" data-progress aria-label="Booking steps">
         ${(CAL ? ["Your home", "Your details", "Pick a time"] : ["Your home", "Plan &amp; time", "Your details"]).map((t, i) => `<li data-dot="${i + 1}"><span>${t}</span></li>`).join("\n        ")}
@@ -862,38 +895,62 @@ urls.push(page({
               <div class="choice-grid" role="radiogroup" aria-labelledby="svc-label">
                 ${svcKeys.map((k) => { const s = C.services[k]; return `<label class="choice"><input type="radio" name="service" value="${k}"><span class="choice-body"><strong>${esc(s.name)}</strong><span class="choice-from">from <b data-from="${k}">${money(s.base)}</b></span><span class="choice-desc">${esc(s.short)}</span></span></label>`; }).join("")}
               </div>
-              <p class="field-note">Larger home or an office? <a href="${L("services/residence-care/")}">Residence Care</a> and <a href="${L("services/office-cleaning/")}">office cleaning</a> are by quote.</p>
+              <p class="scope-line" data-scope-line></p>
+              <details class="compare-box">
+                <summary>${ic("i-plus")}<span>Not sure? Compare what each clean includes</span></summary>
+                <p class="field-note">Room by room. Extras are added on top at the prices below. Kitchen &amp; Bath Detailing covers the kitchen and bathrooms only, at the deep-clean standard.</p>
+                ${compareTable()}
+              </details>
+              <p class="field-note">Larger home or an office? ${quoteNames.map((q) => `<a href="${L("services/" + q.slug + "/")}">${esc(q.name)}</a>`).join(" and ")} are by quote.</p>
             </div>
             <div class="field"><span class="field-label" id="home-label">Type of home</span>
               <div class="seg seg-home" role="radiogroup" aria-labelledby="home-label">
                 ${Object.keys(C.homeTypes).map((k) => `<label><input type="radio" name="homeType" value="${k}"><span>${esc(C.homeTypes[k].label)}</span></label>`).join("")}
               </div>
             </div>
-            <div class="pricer-row">
-              ${stepper("b-beds", "Bedrooms", 1, 'data-counter="beds"')}
-              ${stepper("b-baths", "Bathrooms", 1, 'data-counter="baths"')}
-            </div>
-            <div class="field"><span class="field-label">Extras <span class="opt">optional</span></span>
-              <div class="chips">
-                ${C.addons.map((a) => `<label class="chip" data-addon="${a.id}"><input type="checkbox" name="addon" value="${a.id}"><span>${esc(a.name)} <b>+${money(a.price)}</b></span></label>`).join("")}
+            <div class="field">
+              <div class="pricer-row">
+                ${stepper("b-beds", "Bedrooms", 1, 'data-counter="beds"')}
+                ${stepper("b-baths", "Bathrooms", 1, 'data-counter="baths"')}
               </div>
+              <small class="field-hint">A studio counts as 1 bedroom. Count full bathrooms, with a tub or shower.</small>
+            </div>
+            ${(C.homeChecks || []).length ? `<div class="field"><span class="field-label" id="checks-label">Anything unusual about your home? <span class="opt">optional</span></span>
+              <div class="check-list" role="group" aria-labelledby="checks-label" data-checks>
+                ${C.homeChecks.map((c) => `<label class="check"><input type="checkbox" name="check" value="${esc(c.id)}"> <span>${esc(c.label)}</span></label>`).join("")}
+              </div>
+              <ul class="check-notes" data-check-notes aria-live="polite"></ul>
+              <div class="quote-route" data-quote-route hidden>
+                <p><strong>Homes this size are priced by quote.</strong> ${esc(B.ownerFirstName)} starts with a walkthrough and a written care plan, so the price fits the home.</p>
+                <a class="btn btn-teal btn-sm" data-quote-link href="${L("services/residence-care/")}">Get a Residence Care quote ${ic("i-arrow")}</a>
+                <small class="field-hint">Your home details are carried over. Nothing is sent until you send the quote form.</small>
+              </div>
+            </div>` : ""}
+            <div class="field"><span class="field-label" id="extras-label">Extras <span class="opt">optional</span></span>
+              <div class="extras" role="group" aria-labelledby="extras-label" data-addons>
+                ${C.addons.map((a) => `<label class="extra" data-addon="${a.id}"><input type="checkbox" name="addon" value="${a.id}"><span class="extra-box" aria-hidden="true">${ic("i-check")}</span><span class="extra-body"><span class="extra-name">${esc(a.name)}</span>${a.limit ? `<small class="extra-limit">${esc(a.limit)}</small>` : ""}</span><b class="extra-price" data-addon-price>+${money(a.price)}</b></label>`).join("")}
+              </div>
+              <p class="scope-note" data-scope-note role="status"></p>
             </div>
             ${CAL ? freqField : ""}
           </fieldset>
 
           ${CAL ? "" : `<fieldset class="step" data-step="2" hidden>
-            <legend>Plan &amp; time</legend>
+            <legend>Plan &amp; preferred time</legend>
             ${freqField}
-            <div class="field"><span class="field-label" id="date-label">Day</span>
-              <p class="field-note">Next opening: <strong data-next-open>tomorrow</strong>. Every day of the week, evenings included.</p>
+            <div class="field"><span class="field-label" id="date-label">Preferred day</span>
+              <p class="field-note">Choose your preferred day. ${esc(B.ownerFirstName)} will confirm availability. Requests from <strong data-next-open>tomorrow</strong>, any day of the week.</p>
               <div class="date-strip" role="radiogroup" aria-labelledby="date-label" data-dates></div>
-              <label class="check"><input type="checkbox" id="flex-date" data-flex> I'm flexible: offer me the earliest opening</label>
+              <label class="check"><input type="checkbox" id="flex-date" data-flex> <span>I'm flexible. Please offer the earliest suitable appointment.</span></label>
             </div>
-            <div class="field"><span class="field-label" id="slot-label">Arrival window</span>
-              <div class="seg seg-slots" role="radiogroup" aria-labelledby="slot-label">
-                ${C.timeSlots.map((t) => `<label><input type="radio" name="slot" value="${t.id}"><span>${esc(t.label)}<small>${esc(t.time)}</small></span></label>`).join("")}
+            <div class="field"><span class="field-label" id="slot-label">Preferred arrival window</span>
+              <p class="field-note">Your clean takes about <strong data-job-hours>2</strong> hours on site after arrival, with ${(C.booking || {}).cleaners > 1 ? `${C.booking.cleaners} cleaners` : "one cleaner"}. Windows too late to finish by ${Number(C.closes.split(":")[0]) > 12 ? Number(C.closes.split(":")[0]) - 12 + "pm" : C.closes} are greyed out.</p>
+              <div class="slot-grid" role="radiogroup" aria-labelledby="slot-label">
+                ${C.timeSlots.map((t) => `<label class="slot" data-slot="${t.id}"><input type="radio" name="slot" value="${t.id}"><span><strong>${esc(t.label)}</strong><small>${esc(t.time)}</small></span></label>`).join("")}
               </div>
+              <p class="field-hint" data-slot-note aria-live="polite"></p>
             </div>
+            <p class="consent-line">${ic("i-check")}<span>This is a request, not a booked time. Your time is held only after ${esc(B.ownerFirstName)} confirms it with you.</span></p>
           </fieldset>`}
 
           <fieldset class="step" data-step="${CAL ? 2 : 3}" hidden>
@@ -902,9 +959,17 @@ urls.push(page({
             <div class="form-grid">
               <div class="field"><label for="f-name">Full name</label><input id="f-name" name="name" autocomplete="name" required></div>
               <div class="field"><label for="f-phone">Mobile</label><input id="f-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="e.g. 647 555 0123" required></div>
-              <div class="field span-2"><label for="f-email">Email <span class="opt">optional, we'll send your confirmation here</span></label><input id="f-email" name="email" type="email" inputmode="email" autocomplete="email"></div>
+              <div class="field span-2"><label for="f-email">Email <span class="opt">optional, if you'd like replies by email</span></label><input id="f-email" name="email" type="email" inputmode="email" autocomplete="email"></div>
               <div class="field span-2"><label for="f-address">Street address and unit</label><input id="f-address" name="address" autocomplete="street-address" required></div>
-              <div class="field span-2"><label for="f-access">Getting in</label><div class="select-wrap"><select id="f-access" name="access"><option>I'll be home</option><option>Concierge or front desk</option><option>Lockbox or key code</option><option>Let's discuss</option></select>${ic("i-chev")}</div></div>
+              <div class="field span-2"><label for="f-access">Getting in</label><div class="select-wrap"><select id="f-access" name="access"><option>I'll be home</option><option>Concierge or front desk</option><option>Lockbox or key code</option><option>Let's discuss</option></select>${ic("i-chev")}</div>
+                <p class="field-hint" data-code-note hidden>No codes here, please. ${esc(B.ownerFirstName)} asks for the code by text once your clean is confirmed.</p>
+              </div>
+              <div class="field span-2 building" data-building hidden>
+                <p class="field-label">Your building <span class="opt">optional, so the visit starts on time</span></p>
+                <div class="field"><label for="f-parking">Parking for the cleaner</label><div class="select-wrap"><select id="f-parking" name="parking"><option>Not sure</option><option>Visitor parking</option><option>Street or paid parking nearby</option><option>No parking: let's discuss</option></select>${ic("i-chev")}</div></div>
+                <label class="check"><input type="checkbox" id="f-elevator" name="elevator"> <span>The service elevator needs booking</span></label>
+                <label class="check"><input type="checkbox" id="f-register" name="register"> <span>Cleaners must be registered with the concierge</span></label>
+              </div>
               <div class="field span-2"><span class="field-label" id="pets-label">Pets</span>
                 <div class="seg" role="radiogroup" aria-labelledby="pets-label">
                   <label><input type="radio" name="pets" value="No pets" checked><span>No pets</span></label>
@@ -912,21 +977,33 @@ urls.push(page({
                   <label><input type="radio" name="pets" value="Cat or other"><span>Cat / other</span></label>
                 </div>
               </div>
+              <div class="field span-2"><span class="field-label" id="products-label">Products</span>
+                <div class="seg" role="radiogroup" aria-labelledby="products-label">
+                  <label><input type="radio" name="products" value="Our products" checked><span>Our products</span></label>
+                  <label><input type="radio" name="products" value="Fragrance-free"><span>Fragrance-free</span></label>
+                  <label><input type="radio" name="products" value="Use my products"><span>Use mine</span></label>
+                </div>
+              </div>
               <div class="field span-2"><label for="f-referrer">Referred by a client? <span class="opt">optional, their first and last name</span></label><input id="f-referrer" name="referrer" autocomplete="off" autocapitalize="words" placeholder="First and last name"><small class="field-hint">We'll give them $${C.offers.referral} off their next clean once yours is done and paid.</small></div>
-              <div class="field span-2"><label for="f-notes">Notes <span class="opt">optional</span></label><textarea id="f-notes" name="notes" rows="3" placeholder="Parking, rooms to focus on, products to avoid"></textarea><small class="field-hint">Please don't type door or lockbox codes here. We'll ask for them by text once your booking is confirmed.</small></div>
+              <div class="field span-2"><label for="f-notes">Notes <span class="opt">optional</span></label><textarea id="f-notes" name="notes" rows="3" placeholder="Rooms to focus on, things to leave alone"></textarea><small class="field-hint">Please don't type door or lockbox codes here. We'll ask for them by text once your booking is confirmed.</small></div>
               <div class="field span-2"><span class="field-label" id="pref-label">Confirm by</span>
-                <div class="seg${B.whatsapp ? " seg-slots" : ""}" role="radiogroup" aria-labelledby="pref-label">
+                <div class="seg${B.whatsapp ? " seg-4" : ""}" role="radiogroup" aria-labelledby="pref-label">
                   <label><input type="radio" name="contactPref" value="Text" checked><span>Text</span></label>
                   ${B.whatsapp ? '<label><input type="radio" name="contactPref" value="WhatsApp"><span>WhatsApp</span></label>' : ""}
                   <label><input type="radio" name="contactPref" value="Call"><span>Call</span></label>
                   <label><input type="radio" name="contactPref" value="Email"><span>Email</span></label>
                 </div>
               </div>
+              <section class="review span-2" aria-labelledby="review-title">
+                <h2 class="review-title" id="review-title">Check your clean</h2>
+                <p class="field-note">You can change any detail before sending.</p>
+                <dl class="review-list" data-review></dl>
+              </section>
               <p class="consent-line span-2">${ic("i-check")}<span>${CAL
                 ? `Next, you pick a time on ${esc(B.ownerFirstName)}'s calendar and it's confirmed straight away. Nothing to pay until it's done. Free to change up to ${C.policies.cancelNoticeHours} hours before. ${LATE_FEE_LINE}`
-                : `This is a booking request. ${esc(B.ownerFirstName)} confirms the time and final price with you before the clean. Nothing to pay until it's done. Free to change up to ${C.policies.cancelNoticeHours} hours before. ${LATE_FEE_LINE}`}</span></p>
+                : `This is a booking request. Your time is held only after ${esc(B.ownerFirstName)} confirms it with you, along with the final price. Nothing to pay until it's done. Free to change up to ${C.policies.cancelNoticeHours} hours before. ${LATE_FEE_LINE}`}</span></p>
               <p class="privacy-note span-2">Your booking is with ${esc(B.name)}, owned and operated by ${esc(B.owner)}, ${ADDR ? esc(ADDR) : `${esc(B.base)}, Ontario`}. ${PHONE ? `<a data-tel href="tel:${B.phone}">${esc(B.phoneDisplay)}</a> · ` : ""}<a data-mailto href="mailto:${B.email}">${esc(B.email)}</a></p>
-              <p class="privacy-note span-2">By sending, you agree to our <a href="${L("policies/")}">Service Policies</a>. We use your details only to arrange your clean. Your request is sent through FormSubmit to our Google email inbox${CAL ? ", and the time you pick is booked on Cal.com, our booking calendar. Both" : ", which"} may store data outside Canada. See our <a href="${L("privacy/")}">Privacy Policy</a>.</p>
+              <p class="privacy-note span-2">By sending, you agree to our <a href="${L("policies/")}">Service Policies</a>. We use your details only to arrange your clean. Your request is sent through FormSubmit to our Google email inbox${CAL ? ", and the time you pick is booked on Cal.com, our booking calendar. Both" : ", which"} may store data outside Canada. Your details stay in this browser tab only until you send. See our <a href="${L("privacy/")}">Privacy Policy</a>. <button type="button" class="link-btn link-btn-sm" data-clear-details>Clear my details from this device</button></p>
               <input type="text" name="_honey" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
             </div>
             <p class="form-error" data-form-error role="alert" hidden></p>
@@ -935,30 +1012,32 @@ urls.push(page({
           <div class="step-nav">
             <button type="button" class="btn btn-ghost" data-prev hidden>${ic("i-back")} Back</button>
             <button type="button" class="btn btn-primary btn-grow" data-next>Continue ${ic("i-arrow")}</button>
-            <button type="submit" class="btn btn-primary btn-grow" data-submit hidden>${CAL ? `Choose your time ${ic("i-arrow")}` : "Request booking"}</button>
+            <button type="submit" class="btn btn-primary btn-grow" data-submit hidden>${CAL ? `Choose your time ${ic("i-arrow")}` : "Request this clean"}</button>
           </div>
         </form>
 
         ${CAL ? `<div class="cal-step" data-cal-step hidden tabindex="-1">
           <p class="label">Last step</p>
           <h2>Pick your time</h2>
-          <p>Your details are in. Choose a time that suits you and it's confirmed straight away, with a confirmation email.</p>
+          <p>Your details are in. Choose a time that suits you and it's confirmed straight away. Cal.com emails you the confirmation.</p>
           <div class="cal-embed" data-cal-embed></div>
           <p class="form-error" data-cal-fail role="alert" hidden>The calendar didn't load here. Open it in a new tab below, or ${esc(B.ownerFirstName)} will text you ${esc(B.replyPromise)} to arrange a time.</p>
           <p class="cal-alt"><a class="text-link" data-cal-link href="#" target="_blank" rel="noopener">Open the calendar in a new tab ${ic("i-arrow")}</a></p>
         </div>
 
         ` : ""}<div class="done" data-done hidden tabindex="-1">
-          <p class="label" data-done-label>Request received</p>
+          <p class="label" data-done-label>Request sent · not confirmed yet</p>
           <h2 data-done-title>Thank you.</h2>
           <p data-done-text></p>
           <p class="ref">Reference <strong data-ref></strong></p>
           <dl class="done-list" data-done-list></dl>
           <div class="done-actions">
-            <button type="button" class="btn btn-primary" data-ics>${ic("i-cal")} Add to calendar</button>
+            <a class="btn btn-primary" data-change-mail href="mailto:${B.email}">${ic("i-mail")} Email a change</a>
+            <button type="button" class="btn btn-ghost" data-ics>${ic("i-cal")} Save the requested time</button>
             ${B.whatsapp ? `<a class="btn btn-wa" data-wa-booking href="#" target="_blank" rel="noopener">${ic("i-wa")} Send on WhatsApp</a>` : ""}
             ${PHONE ? `<a class="btn btn-ghost" data-sms-booking href="#">${ic("i-sms")} Text us these details</a>` : ""}
           </div>
+          <p class="field-note">Keep your reference. It's how to change, cancel or ask about this request. <a href="${L("help/")}">Help with your booking</a></p>
           <div class="done-refer">
             <p><strong>Know someone who'd love this?</strong> When a friend books their first clean, you both get $<span data-referral>${C.offers.referral}</span> off. Ask them to give us your first and last name when they book. <a href="${L("policies/#referral")}">Terms</a></p>
             <button type="button" class="btn btn-ghost btn-sm" data-share>Share ${esc(B.name)}</button>
@@ -983,6 +1062,15 @@ urls.push(page({
   }
 }));
 
+// Extras with what each price covers. With a service key, each line follows that service's scope rule.
+function extrasList(key) {
+  return `<ul class="price-list extras-list">${C.addons.map((a) => {
+    const st = key ? addonStatus(key, a.id) : "extra";
+    const tag = st === "included" ? "Included" : st === "none" ? "Not offered" : "+" + money(a.price);
+    return `<li class="${st === "extra" ? "" : "is-" + st}"><span><span class="xl-name">${esc(a.name)}</span>${a.limit && st === "extra" ? `<small>${esc(a.limit)}</small>` : ""}</span><b>${tag}</b></li>`;
+  }).join("")}</ul>`;
+}
+
 /* ---------- service pages ---------- */
 const SVC_PHOTO = { regular: "bedroom", deep: "bathroom", move: "entryway", detail: "kitchen", residence: "living-room", office: "kitchen" };
 function checklistFor(s) {
@@ -1000,7 +1088,6 @@ for (const k of svcKeys) {
   const trail = [["Home", ""], [s.name, "services/" + s.slug + "/"]];
   const fq = faqBlock(k, undefined, "section-tint");
   const others = allServices.filter((o) => o.key !== k);
-  const included = (C.includedAddons[k] || []);
   urls.push(page({
     depth: 2, pathOut: `services/${s.slug}/index.html`, pageType: "service",
     title: `${s.name} in Scarborough & North York | ${B.name}`,
@@ -1027,9 +1114,9 @@ for (const k of svcKeys) {
   </div>
 </section>
 
-<section class="section">
+<section class="section" id="included">
   <div class="wrap">
-    <div class="section-head"><p class="label">What's included</p><h2>Room by room.</h2></div>
+    <div class="section-head"><p class="label">What's included</p><h2>Room by room.</h2>${addonsWith(k, "none").length ? `<p class="muted">Not part of ${esc(s.menuName.toLowerCase())}: ${esc(listJoin(addonsWith(k, "none").map((a) => a.name.toLowerCase())))}.</p>` : ""}</div>
     <div class="incl-grid">${checklistFor(s)}</div>
   </div>
 </section>
@@ -1056,7 +1143,7 @@ for (const k of svcKeys) {
     </div>
     <div>
       <p class="label">Extras</p>
-      <ul class="price-list">${C.addons.map((a) => `<li><span>${esc(a.name)}</span><b>${included.includes(a.id) ? "Included" : "+" + money(a.price)}</b></li>`).join("")}</ul>
+      ${extrasList(k)}
     </div>
   </div>
 </section>
@@ -1112,7 +1199,8 @@ ${PHONE ? finalCta(L, "Prefer to talk it through?", "Call, text or WhatsApp and 
   const trail = [["Home", ""], ["Pricing", "pricing/"]];
   const fq = faqBlock("pricing", "Pricing questions.", "section-tint");
   const quotes = allServices.filter((s) => s.quote);
-  const moveIncl = (C.includedAddons.move || []).map((id) => C.addons.find((a) => a.id === id).name.toLowerCase());
+  const moveIncl = addonsWith("move", "included").map((a) => a.name.toLowerCase());
+  const moveNone = addonsWith("move", "none").map((a) => a.name.toLowerCase());
   const factors = Object.keys(C.homeTypes).filter((h) => C.homeTypes[h].factor > 1);
   const pct = (h) => Math.round((C.homeTypes[h].factor - 1) * 100) + "%";
   urls.push(page({
@@ -1143,7 +1231,7 @@ ${PHONE ? finalCta(L, "Prefer to talk it through?", "Call, text or WhatsApp and 
     <div class="section-head">
       <p class="label">By home size</p>
       <h2>Find your home. See your price.</h2>
-      <p class="muted">Prices for the whole visit in ${C.currency}, with products and equipment included. Studios are priced as 1 bedroom. ${factors.map((h, i) => `${i ? C.homeTypes[h].label.toLowerCase() : C.homeTypes[h].label}s add <span data-factor="${h}">${pct(h)}</span>`).join(" and ")}, for the stairs and extra floor space.</p>
+      <p class="muted">Prices for the whole visit in ${C.currency}, with products and equipment included. <span data-tax-note>${TAX_TEXT}</span>. Studios are priced as 1 bedroom. Count full bathrooms; half baths, basements and second kitchens are confirmed with you before the clean. Homes over about 3,000 sq ft are by quote. ${factors.map((h, i) => `${i ? C.homeTypes[h].label.toLowerCase() : C.homeTypes[h].label}s add <span data-factor="${h}">${pct(h)}</span>`).join(" and ")}, for the stairs and extra floor space.</p>
       ${offerNote()}
     </div>
     <div class="price-cards">
@@ -1171,7 +1259,7 @@ ${PHONE ? finalCta(L, "Prefer to talk it through?", "Call, text or WhatsApp and 
       <p class="muted">Plans apply to regular cleaning. Pause or change your plan anytime with ${C.policies.cancelNoticeHours} hours' notice.</p>
     </div>
     ${plansGrid()}
-    <p class="fine">Example prices for a ${example.beds}-bedroom, ${example.baths}-bathroom condo, regular clean.</p>
+    <p class="fine">Example prices for a ${example.beds}-bedroom, ${example.baths}-bathroom condo, regular clean. A plan discount and the founding discount aren't combined: your first visit gets the larger one. Discounted prices are rounded to the nearest dollar, and the discount shown is the difference, so every line adds up.</p>
   </div>
 </section>
 
@@ -1180,7 +1268,7 @@ ${PHONE ? finalCta(L, "Prefer to talk it through?", "Call, text or WhatsApp and 
     <div class="split-head">
       <p class="label">Extras</p>
       <h2>Add only what you need.</h2>
-      <p class="muted">Choose extras when you book.${moveIncl.length ? ` These are already included in a move-in or move-out clean: ${listJoin(moveIncl)}.` : ""}</p>
+      <p class="muted">Choose extras when you book. Each price covers what's written under it.${moveIncl.length ? ` Already included in a move-in or move-out clean: ${listJoin(moveIncl)}.` : ""}${moveNone.length ? ` Not part of a move-out clean, because the home is empty: ${listJoin(moveNone)}.` : ""}</p>
       <p class="label label-sm">Included in every price</p>
       <ul class="ticks">
         <li>${ic("i-check")}Products and equipment</li>
@@ -1188,7 +1276,7 @@ ${PHONE ? finalCta(L, "Prefer to talk it through?", "Call, text or WhatsApp and 
         <li>${ic("i-check")}No deposit, and payment after the clean</li>
       </ul>
     </div>
-    <ul class="price-list">${C.addons.map((a) => `<li><span>${esc(a.name)}</span><b>+${money(a.price)}</b></li>`).join("")}</ul>
+    ${extrasList()}
   </div>
 </section>
 
@@ -1226,6 +1314,35 @@ function postalCodes(a) {
         ${whole.length ? `<p class="muted">Every postal code starting with ${whole.map(esc).join(" or ")}.</p>` : ""}
         ${fsas.length ? `<ul class="fsa-list">${fsas.map((p) => `<li>${esc(p)}</li>`).join("")}</ul>` : ""}
       </div>`;
+}
+
+// Real jobs from config.jobs, shown only once there are some. Never anything that identifies a home.
+function jobsSection(list, title, cls = "section-tint") {
+  if (!list.length) return "";
+  return `<section class="section ${cls}" id="work">
+  <div class="wrap">
+    <div class="section-head"><p class="label">Real jobs</p><h2>${esc(title)}</h2><p class="muted">Shared with each client's permission. We never show a street, building or unit.</p></div>
+    <ul class="job-grid">${list.map((j) => `<li class="job-card"><p class="job-meta">${esc(j.neighbourhood || "")}${j.month ? " · " + esc(j.month) : ""}</p><h3>${esc(j.service)}${j.home ? ", " + esc(j.home) : ""}</h3><p>${esc(j.text)}</p>${j.hours ? `<p class="job-time">${ic("i-clock")}About ${esc(j.hours)} hours on site</p>` : ""}</li>`).join("")}</ul>
+  </div>
+</section>`;
+}
+// What to tell us for a condo clean. Built from the booking form's own questions: no building's rules are assumed.
+function condoGuide(name) {
+  return `<section class="section" id="condo">
+  <div class="wrap split">
+    <div class="split-head">
+      <p class="label">Condo cleans</p>
+      <h2>Booking a condo clean in ${esc(name)}.</h2>
+      <p class="muted">Most condo delays happen before the door opens. Tell us these when you book, and the visit starts on time.</p>
+    </div>
+    <ul class="ticks condo-list">
+      <li>${ic("i-check")}<span><strong>Concierge or front desk.</strong> Choose it under "Getting in" on the booking form. If your building registers visitors, tick that box and we'll give you the cleaner's name to pass on.</span></li>
+      <li>${ic("i-check")}<span><strong>Parking.</strong> Say whether there's visitor parking or paid parking nearby, so no time is lost looking.</span></li>
+      <li>${ic("i-check")}<span><strong>Service elevator.</strong> If it has to be booked, tick the box and add the times your building allows in your notes.</span></li>
+      <li>${ic("i-check")}<span><strong>Codes and fobs.</strong> Never in the form. ${esc(B.ownerFirstName)} asks for them by text once your clean is confirmed, and deletes codes within ${C.policies.accessCodeDeleteDays} days of your last scheduled clean.</span></li>
+    </ul>
+  </div>
+</section>`;
 }
 
 for (const a of C.areas) {
@@ -1289,6 +1406,7 @@ for (const a of C.areas) {
     </div>
   </div>
 </section>
+${jobsSection(jobs.filter((j) => j.area === a.slug), `Recent cleans in ${a.name}.`, "")}
 ${fq.html}
 ${finalCta(L, `Book your ${a.name} clean.`)}`
   }));
@@ -1338,7 +1456,7 @@ for (const h of hoodPages) {
       <div class="fsa">
         <p class="label">Popular here</p>
         <ul class="ticks">
-          <li>${ic("i-check")}<a href="${L("services/regular-home-cleaning/")}">Regular cleaning</a> every 2 weeks, from ${money(price("regular", 2, 1) * (1 - C.frequencies.biweekly.discount / 100))} for a 2-bedroom condo</li>
+          <li>${ic("i-check")}<a href="${L("services/regular-home-cleaning/")}">Regular cleaning</a> every 2 weeks, from ${money(afterDiscount(price("regular", 2, 1), C.frequencies.biweekly.discount))} for a 2-bedroom condo</li>
           <li>${ic("i-check")}<a href="${L("services/deep-cleaning/")}">A deep clean</a> to start, from ${money(C.services.deep.base)}</li>
           <li>${ic("i-check")}<a href="${L("services/move-in-move-out-cleaning/")}">Move-in and move-out cleans</a>, fridge and oven included</li>
         </ul>
@@ -1354,6 +1472,8 @@ for (const h of hoodPages) {
   </div>
 </section>
 
+${h.condo ? condoGuide(h.name) : ""}
+${jobsSection(jobs.filter((j) => j.neighbourhood === h.name), `Recent cleans in ${h.name}.`, h.condo ? "section-tint" : "")}
 ${near.length ? `<section class="section section-tint">
   <div class="wrap split">
     <div class="split-head">
@@ -1433,8 +1553,8 @@ ${finalCta(L, `Book your ${h.name} clean.`)}`
       <p class="label">How it works</p>
       <h2>One ${PHONE ? "text" : "message"}, and it's handled.</h2>
       <ol class="steps-3 steps-col">
-        <li><h3>Send the address and date</h3><p>${PHONE ? "By the form, text or WhatsApp" : "By the form or email"}. We confirm a time ${esc(B.replyPromise)}.</p></li>
-        <li><h3>Leave access</h3><p>Lockbox, concierge or key pickup. Codes are deleted after the clean.</p></li>
+        <li><h3>Send the address and date</h3><p>${PHONE ? "By the form, text or WhatsApp" : "By the form or email"}. We reply within one business day with a price and the times we can offer, and the clean is booked once you agree.</p></li>
+        <li><h3>Leave access</h3><p>Lockbox, concierge or key pickup. We ask for codes by text once the clean is confirmed, and delete them within ${C.policies.accessCodeDeleteDays} days of the last scheduled clean.</p></li>
         <li><h3>Get a receipt</h3><p>Pay after the clean by e-Transfer or card, with a receipt for that property.</p></li>
       </ol>
     </div>
@@ -1445,7 +1565,7 @@ ${finalCta(L, `Book your ${h.name} clean.`)}`
   </div>
 </section>
 ${fq.html}
-${finalCta(L, "Next listing coming up?", "Send the address and date. We'll confirm a time by text.")}`
+${finalCta(L, "Next listing coming up?", "Send the address and date. We'll reply within one business day.")}`
   }));
 }
 
@@ -1700,6 +1820,92 @@ ${founding && founding.active
   }));
 }
 
+/* ---------- help ---------- */
+// Help with a booking: what happens after a request, and how to change, cancel or book again by reference.
+{
+  const trail = [["Home", ""], ["Help", "help/"]];
+  const fq = faqBlock("help", "Booking questions.");
+  const mail = (subject, body) => `mailto:${B.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  const P0 = C.policies;
+  urls.push(page({
+    depth: 1, pathOut: "help/index.html", pageType: "help",
+    title: `Help With Your Booking | ${B.name}`,
+    description: metaDesc(`What happens after you request a clean with ${B.name}, how to change, cancel or book again, and when ${B.ownerFirstName} replies.`),
+    schemas: [crumbSchema(trail), fq.schema],
+    body: (L) => `
+<section class="hero hero-sub">
+  <div class="wrap">${breadcrumbs(L, trail)}</div>
+  <div class="wrap">
+    <div class="hero-copy guides-head">
+      <p class="kicker">Help</p>
+      <h1 class="display display-sub">Help with your booking.</h1>
+      <p class="lede">What happens after you send a request, how to change or cancel, and how to reach ${esc(B.ownerFirstName)}. Keep your reference handy: it starts with NR-.</p>
+    </div>
+  </div>
+</section>
+
+<section class="section section-flush" id="manage">
+  <div class="wrap">
+    <div class="section-head">
+      <p class="label">Manage your booking</p>
+      <h2>Change, cancel or book again.</h2>
+      <p class="muted">Email ${esc(B.ownerFirstName)} with your reference${PHONE ? `, or call or text <a data-tel href="tel:${B.phone}">${esc(B.phoneDisplay)}</a>` : ""}. Changes are free up to ${P0.cancelNoticeHours} hours before your arrival window. ${LATE_FEE_LINE}</p>
+    </div>
+    <div class="cta-row help-actions">
+      <a class="btn btn-primary" href="${esc(mail("Change my booking", "Reference: NR-\nWhat I'd like to change: "))}" data-track="manage_change">${ic("i-mail")} Change a booking</a>
+      <a class="btn btn-ghost" href="${esc(mail("Cancel my booking", "Reference: NR-\n"))}" data-track="manage_cancel">Cancel a booking</a>
+      <a class="btn btn-ghost" href="${L("book/")}" data-track="book_click">Book again</a>
+    </div>
+    <p class="fine">On the device you booked from, the booking form remembers your home and extras for ${DRAFT_DAYS} days, so booking again takes a moment.</p>
+  </div>
+</section>
+
+<section class="section section-tint" id="after">
+  <div class="wrap">
+    <div class="section-head"><p class="label">After you send a request</p><h2>Three steps. You always know which one you're at.</h2></div>
+    <ol class="steps-3">
+      ${CAL
+        ? `<li><h3>Details sent</h3><p>Your details reach ${esc(B.ownerFirstName)} first, with a reference (NR-…), so nothing is lost if the calendar doesn't load.</p></li>
+      <li><h3>You pick a time</h3><p>The time you pick on the calendar is confirmed straight away, and Cal.com emails you the confirmation with links to reschedule or cancel.</p></li>
+      <li><h3>${esc(B.ownerFirstName)} checks in</h3><p>${esc(B.ownerFirstName)} contacts you ${esc(B.replyPromise)} to go over the details. You pay after the clean.</p></li>`
+        : `<li><h3>Request sent</h3><p>You get a reference (NR-…). Nothing is booked yet, and nothing is charged.</p></li>
+      <li><h3>${esc(B.ownerFirstName)} reviews it</h3><p>${esc(B.ownerFirstName)} checks your home, the time it needs and the day you asked for, then replies ${esc(B.replyPromise)}, by text, call or email as you chose.</p></li>
+      <li><h3>Confirmed</h3><p>You agree the day, arrival window and final price. Your time is held from then. You pay after the clean.</p></li>`}
+    </ol>
+  </div>
+</section>
+
+<section class="section" id="reply">
+  <div class="wrap split">
+    <div class="split-head">
+      <p class="label">Reply times</p>
+      <h2>When you'll hear back.</h2>
+    </div>
+    <ul class="ticks help-list">
+      <li>${ic("i-clock")}<span><strong>Booking requests:</strong> ${esc(B.replyPromise)} (${esc(B.hours.toLowerCase())}).</span></li>
+      <li>${ic("i-clock")}<span><strong>Quotes</strong> for Residence Care, offices, realtors and property managers: within one business day.</span></li>
+      <li>${ic("i-shield")}<span><strong>Something not right after a clean?</strong> Tell us within ${P0.recleanWindowHours} hours for a free re-clean, or within ${P0.damageReportHours} hours about any damage. <a href="${L("policies/#guarantee")}">How it works</a></span></li>
+    </ul>
+  </div>
+</section>
+
+<section class="section section-tint" id="details">
+  <div class="wrap split">
+    <div class="split-head">
+      <p class="label">Your details</p>
+      <h2>Codes, keys and this device.</h2>
+    </div>
+    <ul class="ticks help-list">
+      <li>${ic("i-key")}<span><strong>Door and lockbox codes</strong> never go in a website form. ${esc(B.ownerFirstName)} asks for them by text once your clean is confirmed, and deletes them within ${P0.accessCodeDeleteDays} days of your last scheduled visit.</span></li>
+      <li>${ic("i-home")}<span><strong>On this device,</strong> the booking form keeps your contact details only in the open browser tab, and your home choices for ${DRAFT_DAYS} days. <button type="button" class="link-btn" data-clear-details>Clear my details from this device</button></span></li>
+    </ul>
+  </div>
+</section>
+${fq.html}
+${finalCta(L, "Ready when you are.", "See your price and send a request in two minutes. Nothing to pay until it's done.")}`
+  }));
+}
+
 /* ---------- review page ---------- */
 // Sent to clients after a clean, so it stays out of search results and the sitemap.
 page({
@@ -1774,7 +1980,7 @@ legalPage({
       <div class="table-scroll"><table>
         <thead><tr><th scope="col">When</th><th scope="col">What we collect</th></tr></thead>
         <tbody>
-          <tr><td>You request a booking</td><td>Name, mobile number, email (optional), street address and postal code, home type and size, extras, ${CAL ? "the time you pick on our calendar" : "preferred day and arrival window"}, how we get in (for example a lockbox or concierge), pets, notes, and how you'd like us to confirm.</td></tr>
+          <tr><td>You request a booking</td><td>Name, mobile number, email (optional), street address and postal code, home type and size, anything unusual about the home you tell us (such as a basement), extras, ${CAL ? "the time you pick on our calendar" : "preferred day and arrival window"}, how we get in (for example a lockbox or concierge) and building details you add (parking, service elevator, visitor registration), pets, product preference, notes, and how you'd like us to confirm.</td></tr>
           <tr><td>You ask us to text you a price</td><td>Your mobile number and the price details you chose.</td></tr>
           <tr><td>You request a quote</td><td>Name, phone, email (optional), postal code, details about the space or property, and any notes you add.</td></tr>
           <tr><td>You request a gift card</td><td>Your name, phone and email, the gift amount, the recipient's name, and optionally their email, postal code and your message.</td></tr>
@@ -1789,7 +1995,7 @@ legalPage({
     { id: "use", h: "How we use it", html: () => `<ul>
       <li>To schedule, confirm and deliver your cleaning, and to get into your home as you've arranged.</li>
       <li>To contact you about your booking, quote, gift card, a change of plans or a problem with a visit.</li>
-      <li>To send you a confirmation email when you give us your email address with a request.</li>
+      <li>To reply to you about your request by text, call or email, as you choose.</li>
       <li>To prepare quotes, keep payment and tax records, and meet our legal obligations.</li>
       <li>To publish your review on our website, using only your first name, last initial, neighbourhood and review, if you've sent us one.</li>
       <li>To improve our service, for example by learning which services clients book.</li>
@@ -1803,7 +2009,7 @@ legalPage({
         <li><strong>Google</strong> provides our email service, where booking, quote, gift card and review messages are stored.</li>
         ${CAL ? `<li><strong>Cal.com</strong> (cal.com) runs our booking calendar. When you pick a time, it receives your name, email, phone number and booking details, and emails your confirmation. It may store data outside Canada.</li>
         ` : ""}${GA ? `<li><strong>Google Analytics</strong> (Google LLC) measures how visitors use this website: the pages viewed, how they arrived (for example from our flyer or business card), the type of device and an approximate location. It doesn't receive anything you type into our forms, and it stores data in the United States.</li>
-        ` : ""}<li><strong>FormSubmit</strong> (formsubmit.co) delivers the website's forms to our email inbox, and sends your confirmation email when you give us your address.</li>
+        ` : ""}<li><strong>FormSubmit</strong> (formsubmit.co) delivers the website's forms to our email inbox. If you give your email address, it may also send you an automatic acknowledgement. ${esc(B.ownerFirstName)}'s own reply is what confirms a booking.</li>
         ${B.whatsapp ? `<li><strong>WhatsApp</strong> (WhatsApp LLC, part of Meta Platforms) delivers and stores messages if you choose to contact us on WhatsApp.</li>
         ` : ""}<li><strong>Your bank or card payment provider</strong> processes payments you make by Interac e-Transfer or card.</li>
       </ul>
@@ -1820,7 +2026,7 @@ legalPage({
     { id: "safeguards", h: "How we protect it", html: () => `<p>Only the people who need your information to serve you can see it. We protect our email and business accounts with strong passwords and two-step verification, keep access codes separate from other records, and delete information we no longer need. No method of transmission or storage is completely secure, but we work to protect your information.</p>
       <p>If a breach of our safeguards creates a real risk of significant harm to you, we will notify you and the Office of the Privacy Commissioner of Canada as the law requires.</p>` },
     { id: "access", h: "Door and lockbox codes", html: () => `<p>Codes and keys give access to your home, so we treat them with extra care. We don't ask for them on the website. We ask by text or phone only after your booking is confirmed, keep them separate from your name and address, never write them on keys, and delete them within ${P.accessCodeDeleteDays} days of your last scheduled visit. We recommend changing your code from time to time, and after you stop using our service.</p>` },
-    { id: "cookies", h: "Cookies and your browser", html: () => `<p>We don't use advertising cookies or tracking pixels.${GA ? ` We use Google Analytics to understand how visitors use the site, and it sets its own cookies in your browser (their names start with "_ga"). We've turned off Google's advertising features for this site. To opt out, block cookies in your browser settings or install Google's opt-out add-on at <a href="https://tools.google.com/dlpage/gaoptout" rel="noopener" target="_blank">tools.google.com/dlpage/gaoptout</a>.` : ""} When you start a booking, the details you enter are saved in your own browser so you don't lose them if you leave the page. They stay on your device and are sent to us only when you submit the request. You can clear them at any time through your browser settings.</p>${CAL ? `
+    { id: "cookies", h: "Cookies and your browser", html: () => `<p>We don't use advertising cookies or tracking pixels.${GA ? ` We use Google Analytics to understand how visitors use the site, and it sets its own cookies in your browser (their names start with "_ga"). We've turned off Google's advertising features for this site. To opt out, block cookies in your browser settings or install Google's opt-out add-on at <a href="https://tools.google.com/dlpage/gaoptout" rel="noopener" target="_blank">tools.google.com/dlpage/gaoptout</a>.` : ""} When you start a booking, your home choices (service, size, extras and plan) are saved in your browser for ${DRAFT_DAYS} days, so you can pick up where you left off or book again. Your personal details (name, contact details, address and notes) are kept only in the open browser tab, and are deleted from it once your request is sent. Nothing is sent to us until you submit the request. You can clear everything at any time with "Clear my details from this device" on the booking form or our <a href="${linker(1)("help/")}">help page</a>.</p>${CAL ? `
       <p>When you pick a time, our booking calendar from Cal.com loads on the page and may use its own cookies to run the calendar. See Cal.com's privacy policy for details.</p>` : ""}
       <p>If we add ${GA ? "advertising tools" : "website analytics or advertising tools"} in future, we will update this policy first and explain how to opt out.</p>` },
     { id: "rights", h: "Your rights", html: () => `<p>You can ask to see the personal information we hold about you, ask how it has been used or shared, and ask us to correct it if it's wrong. Contact us at ${contactLine}. We'll respond within 30 days, and there's no charge.</p>` },
@@ -1839,8 +2045,9 @@ legalPage({
     { id: "area", h: "Where we clean", html: () => `<p>We clean homes and small offices in Scarborough and North York, Toronto. We confirm your postal code before every booking.</p>` },
     { id: "booking", h: "Booking and confirmation", html: () => CAL
       ? `<p>When you book on the website, you send your details first, then pick a time on our online calendar. The time you pick is confirmed straight away, and our calendar provider, Cal.com, emails you a confirmation with links to reschedule or cancel. We also contact you by text, WhatsApp, call or email, as you prefer, ${esc(B.replyPromise)}. If you don't pick a time, your details reach us as a request and we'll contact you to arrange one.</p>`
-      : `<p>A booking made on the website is a request. It's confirmed once we've contacted you by text, WhatsApp, call or email and agreed a day and arrival window. We usually reply ${esc(B.replyPromise)}. If you give us your email address, you also get an automatic email confirming we've received your request.</p>` },
-    { id: "pricing", h: "Prices and estimates", html: () => `<p>The price shown on the website is an estimate based on what you tell us: the service, home type, bedrooms, bathrooms and extras. If your home needs much more or less time than expected, we'll tell you and agree the price with you before we start, never after. Prices are in Canadian dollars.</p>
+      : `<p>A booking made on the website is a request. The day and arrival window you choose are your preference, not a reserved time. Your booking is confirmed once we've contacted you by text, WhatsApp, call or email and agreed the day, arrival window and final price, and your time is held from then. We usually reply ${esc(B.replyPromise)}. Our confirmation message is your written copy of what we agreed.</p>` },
+    { id: "pricing", h: "Prices and estimates", html: () => `<p>The price shown on the website is an estimate based on what you tell us: the service, home type, bedrooms, bathrooms and extras. If your home needs much more or less time than expected, we'll tell you and agree the price with you before we start, never after. Prices are in Canadian dollars. ${C.taxRate ? `Prices are before ${Math.round(C.taxRate * 100)}% HST, which is shown as its own line.` : "We don't charge HST."} Discounted prices are rounded to the nearest dollar.</p>
+      <p>What's included in each service is listed room by room on its service page. Each extra covers what's written with it on our <a href="${linker(1)("pricing/#extras")}">pricing page</a>, and anything more is agreed with you first. An extra that a service already includes is never charged again.</p>
       ${founding && founding.active ? `<p>Founding household offer: ${esc(founding.text)} The discount applies to the first visit only and can't be combined with other discounts.</p>` : ""}
       <p>Recurring plans (weekly, every 2 weeks or every 4 weeks) receive the discount shown when you book. You can pause or change your plan with ${P.cancelNoticeHours} hours' notice.</p>` },
     { id: "payment", h: "Payment", html: () => `<p>There's no deposit to book. You pay after your clean by Interac e-Transfer, credit or debit card, or cash.</p>` },

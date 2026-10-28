@@ -9,7 +9,7 @@ It's built to turn visitors into booked clients and to rank on Google for local 
 |---|---|
 | `/` | Home: instant price (visible on the first phone screen), services, how booking works, the Nest & Rest standard and guarantee, plans, founder and founding offer, areas, guides, FAQ |
 | `/pricing/` | Every price by home size and type, plan discounts, extras, a room-by-room comparison of regular, deep and move-out cleaning, pricing FAQ |
-| `/book/` | Focused 3-step booking: your home → plan & time → your details. With a Cal.com link set: your home & plan → your details → pick a confirmed time on your calendar |
+| `/book/` | Focused 3-step booking request: your home → plan & preferred time → your details, ending with "Check your clean", a full review with an Edit link on every detail. With a Cal.com link set: your home & plan → your details → pick a confirmed time on your calendar |
 | `/services/<service>/` | One page per service (regular, deep, move-in/out, kitchen & bath, residence care, office), each with its own price table |
 | `/areas/<district>/` | Scarborough and North York, with their neighbourhoods and postal codes |
 | `/areas/<district>/<neighbourhood>/` | 12 neighbourhood pages (Agincourt, Malvern, Guildwood, Birch Cliff, Highland Creek, Wexford, Willowdale, Don Mills, York Mills, Bayview Village, Bathurst Manor, Lawrence Manor) |
@@ -17,6 +17,7 @@ It's built to turn visitors into booked clients and to rank on Google for local 
 | `/gift/` | Gift a clean: gift card request form (pay by e-Transfer, never expires) |
 | `/guides/` | Five helpful articles: Toronto cleaning prices, move-out checklist, deep vs regular, preparing for a cleaner, how often to clean |
 | `/vision/` | Our vision: Mann's note, what we believe, always/never promises, the road ahead, hours given back, work with us |
+| `/help/` | Help with a booking: what happens after a request, change, cancel or book again by reference, reply times, codes and saved details |
 | `/review/` | Review form to text clients after each clean (no rewards for reviews: Google and the Competition Bureau forbid undisclosed incentives). Hidden from search engines. |
 | `/privacy/` | Privacy Policy (PIPEDA) |
 | `/policies/` | Service Policies: booking, cancellation, payment, re-clean, gift cards, damage, keys, pets, safety |
@@ -28,16 +29,23 @@ Each page has its own title, description, social-share card and structured data 
 All settings are in `js/config.js`. Prices and contact details update on every page right away. Run `node tools/build.mjs` afterwards so search engines see the changes too.
 
 - **Prices, offers, contact details, hours, FAQs, reviews:** edit `js/config.js`.
-- **Founding spots left:** after each new founding household books, add 1 to `offers.founding.claimed`. The site shows "X of 50 founding spots left". Set `offers.founding.active` to `false` when they're all taken.
+- **What each service includes (one rule for the whole site):** the room-by-room `checklist` decides it. `"yes"` is included, `"add"` is a paid extra and `""` is not offered. Each extra in `addons` names its checklist row in `task`, so the booking form, the price box, the service pages and the pricing page all follow the checklist: an included task can never be charged twice, and an extra a service doesn't offer can't be chosen. Today a move-in/move-out clean includes the oven, fridge, cabinets and wall spot cleaning, and doesn't offer laundry (the home is empty). The build stops with a message if a `task` doesn't match a checklist row.
+- **What an extra covers:** `limit` on each extra (for example "up to 10 windows") is shown under it wherever it's offered. Keep each one true.
+- **Unusual homes:** `homeChecks` are the optional "Anything unusual about your home?" boxes on the booking form. Half baths, a basement, a second kitchen or heavy build-up keep the estimate but tell the customer you'll confirm the price before the clean. "Over about 3,000 sq ft" (`quote: "residence"`) sends them to the Residence Care quote form instead, with their home details filled in.
+- **Founding spots left:** after each new founding household books, add 1 to `offers.founding.claimed`. Set `offers.founding.active` to `false` when they're all taken. The "X of 50 founding spots left" count is off (`showSpotsLeft: false`), so the site says "for our first 50 households" instead. Switch it on only while you update `claimed` after every founding booking.
 - **Live booking calendar (Cal.com):** see [Booking calendar](#booking-calendar-calcom) below. Until `booking.calLink` is set, bookings are requests you confirm by text.
-- **Next opening:** the site shows the next day you can be booked. `booking.leadDays` is how many days' notice you need (1 = tomorrow). Add any day you're full or away to `booking.blockedDates` as `"YYYY-MM-DD"`; the booking calendar and "Next opening" both skip it.
+- **Earliest day to request:** the site shows the first day a customer can ask for, in Toronto time. These are preferred days, not confirmed openings: nothing is preselected, and the customer either picks a day and an arrival window or ticks "I'm flexible". `booking.leadDays` is how many days' notice you need (1 = tomorrow). Add any day you're full or away to `booking.blockedDates` as `"YYYY-MM-DD"`; it's then never offered.
+- **Arrival windows:** `timeSlots`, each with its earliest (`start`) and latest (`end`) arrival. A window is greyed out when a clean that long couldn't finish by closing time after arriving at the end of the window, so a 7-hour deep clean can't be requested for the evening. "Any time" lets the customer leave it to you. The time on site assumes `booking.cleaners` (1) cleaner.
+- **HST:** `taxRate` is 0, so prices and booking summaries say "No HST charged". Once you're registered, set it to 0.13: HST then shows as its own line. Discounted prices are rounded to the nearest dollar and the discount line is the difference, so every line adds up to the total.
+- **Price version:** change `pricingVersion` (a date) whenever prices, extras or the checklist change. Every booking request carries it, so you know which prices the customer saw.
 - **Mailing address:** paste one into `business.mailingAddress` (a PO box or mailbox service is fine) and run the build. Canada's anti-spam law (CASL) needs it in every business email and text, and Ontario's Consumer Protection Act needs it shown when customers book online. It then appears in the footer, the policies, the booking page and every confirmation email.
 - **Referral credit:** the amount is `offers.referral`; the terms are in the "Referral credit" section of the Service Policies (`tools/build.mjs`). New clients give the referring client's first and last name in the optional "Referred by" box on the booking form, and it arrives as "Referred by" in your booking email.
 - **Phone number:** private for now. `business.phoneDisplay` and `business.phone` are both `""`, so the site shows no call or text buttons, leaves the number out of Google's business data and the confirmation emails, and points people to email instead. To show it again, set `phoneDisplay` (e.g. `"647 555 0123"`) and `phone` (e.g. `"+16475550123"`) and run `node tools/build.mjs`.
 - **WhatsApp:** `business.whatsapp` is the WhatsApp number (digits only, with the 1). Leave it `""` to hide every WhatsApp button.
-- **Confirmation emails:** customers who give an email get an automatic confirmation from FormSubmit. The wording is in `emails` (booking, bookingCal, quote, gift). Booking emails are the customer's written copy of the agreement (Ontario's Consumer Protection Act), so keep the itemized price, the change terms and the link to the policies in them. `emails.footer` is added to every email with who we are and how to stop emails, as CASL requires.
+- **Confirmation emails:** FormSubmit documents its automatic reply as unsupported for forms sent the way this site sends them, so the site no longer promises one. It's still requested (wording in `emails`, with the CASL footer from `emails.footer`) and any that arrive are a bonus. **Your own confirmation message is what confirms a booking and is the customer's written copy** (Ontario's Consumer Protection Act): include the day, arrival window, itemized price, change terms and the policies link, as in the "Confirming a booking" template below.
 - **Gift a clean:** amounts and wording are in `offers.gift`. The home-page banner only shows in `bannerMonths` (November and December).
-- **Neighbourhood pages:** each one is an entry in `neighbourhoods`. Keep every fact true and local. Run the build to add or change one.
+- **Neighbourhood pages:** each one is an entry in `neighbourhoods`. Keep every fact true and local. Run the build to add or change one. `condo: true` adds a "Booking a condo clean" section (concierge, parking, service elevator, codes), on Willowdale and Bayview Village today.
+- **Real jobs:** add finished cleans to `jobs` (only with the client's permission, and never a street, building or unit). They appear on the matching area and neighbourhood pages and the home page. This is the strongest proof the site can show.
 - **Guides:** the articles are in `tools/guides.mjs`. Prices inside them come from `js/config.js`.
 - **Adding a service or area, or changing page wording:** edit `js/config.js` or `tools/build.mjs`, then run `node tools/build.mjs` to regenerate the pages.
 - **Trust badges** (insured, eco-friendly, police-checked) are off. Switch each on in `badges` only once it's true and documented.
@@ -54,7 +62,12 @@ All settings are in `js/config.js`. Prices and contact details update on every p
 
 Everything is emailed to `nestnrestcleaning@gmail.com` through [FormSubmit](https://formsubmit.co), including "Text me this price" requests from the price box.
 After any change of email address, send one test booking and click **Activate** in the FormSubmit email.
-If sending fails, the customer gets an email button with their details filled in (plus text and WhatsApp buttons while those numbers are set).
+
+- **Request, then confirmation.** A booking request is not a booked time. The customer sees "Request sent · not confirmed yet" and that their time is held only once you confirm. Each request email has a **Status**, the preferred day and window, what's included, extras with prices, "Price to confirm" (half baths, a basement, more than 8 hours…), the time on site, the price version, building details and product preference.
+- **Sent means sent.** The site shows "Request sent" only when FormSubmit answers with an explicit success. An empty or unexpected answer is treated as a failure: the customer gets an email button with everything filled in (plus text and WhatsApp while those numbers are set) and can try again.
+- **One reference per request.** A retry keeps the same reference (NR-…), so if a request reaches you twice, the matching reference tells you it's one booking.
+- **Changes and rebooking:** customers email you with their reference from the done screen or the Help page. On the same device, the booking form remembers their home and extras for a repeat booking.
+- **Saved details:** home choices are kept on the customer's device for 14 days. Name, contact details, address and notes are kept only in the open browser tab and are deleted once the request is sent. "Clear my details from this device" is on the booking form and the Help page.
 
 ## Booking calendar (Cal.com)
 
@@ -88,7 +101,18 @@ Keep a note of anyone who opts out and don't message them again. No promotional 
 ## Growth tracking (for ads)
 
 Paste a Google Analytics 4 ID (`G-…`) and/or a Meta Pixel ID into `analytics` in `js/config.js`, and update the Privacy Policy's cookies section at the same time.
-The site then reports: book clicks, call, text, WhatsApp and email taps, instant-price use, booking started, and leads (bookings, quotes, gift cards and price requests).
+The site then reports: book clicks, call, text, WhatsApp and email taps, `quote_viewed` (a price was on screen), `booking_started` (first real use of the form), `booking_step_completed`, `validation_failed` (step, field and a fixed code), `review_edit`, `request_not_confirmed`, and leads (`generate_lead` for bookings, quotes, gift cards and price requests). Events carry categories and amounts only: never names, contact details, addresses, postal codes, codes or notes.
+A `generate_lead` means FormSubmit accepted the request, not that a booking is confirmed. Count confirmed bookings from your own replies.
+
+## Still to do (needs Mann, or a booking system)
+
+From the October 2026 website audit. Everything the website itself can fix is done; these need a decision or an account:
+
+1. **Confirm the defaults chosen for you** in `js/config.js`: laundry not offered with a move-out clean, the limit under each extra (especially "up to 10 windows"), half baths and basements confirmed by you rather than priced, and no HST. Change any of them there and run the build.
+2. **Test delivery once.** Send one test booking with your own email address to confirm the request arrives, and see whether FormSubmit's automatic reply arrives too.
+3. **A request record that doesn't depend on email.** Today a request exists only as an email. The audit recommends trying a booking system (for example BookingKoala's Starter plan) against the booking cases above before building anything custom, keeping this website as the front door. Until then, reply to every request within your promised time and keep your replies as the record.
+4. **Proof:** add real jobs to `jobs` and real reviews to `reviews` as they come in, and paste your Google Business Profile review link into `business.googleReviewUrl` once it exists.
+5. **Search Console:** connect it to see which pages and searches bring people, before adding more neighbourhood pages.
 
 ## Brand
 
@@ -106,7 +130,7 @@ Every push to `main` publishes the site automatically. Watch the "pages build an
 ## Files
 
 ```
-index.html, book/, services/, areas/, realtors/, gift/, guides/, review/, 404.html   generated pages
+index.html, book/, services/, areas/, realtors/, gift/, guides/, help/, review/, 404.html   generated pages
 css/site.css       design system
 js/config.js       business settings (edit this)
 js/site.js         pricing, booking, forms, WhatsApp, tracking

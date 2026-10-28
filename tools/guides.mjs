@@ -1,9 +1,9 @@
 // The helpful articles at /guides/<slug>/. Prices come from js/config.js, so they stay current after a rebuild.
 // Each article: slug, title (for Google), h1, description, kicker, minutes (reading time), photo, body(L) as HTML.
-export default function guides({ C, B, esc, money, price, listJoin }) {
+export default function guides({ C, B, esc, money, price, listJoin, afterDiscount }) {
   const R = C.services.regular, D = C.services.deep, M = C.services.move;
   const fr = C.frequencies;
-  const planPrice = (k) => money(price("regular", 2, 1) * (1 - fr[k].discount / 100));
+  const planPrice = (k) => money(afterDiscount(price("regular", 2, 1), fr[k].discount));
   const pct = (h) => Math.round((C.homeTypes[h].factor - 1) * 100) + "%";
   const moveTasks = C.checklist.map((r) => ({ room: r.room, tasks: r.tasks.filter((t) => t[3] === "yes").map((t) => t[0]) })).filter((r) => r.tasks.length);
   const deepOnly = C.checklist.flatMap((r) => r.tasks.filter((t) => t[2] === "yes" && t[1] !== "yes").map((t) => t[0]));
