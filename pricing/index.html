@@ -28,7 +28,7 @@
 <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
 <link rel="preload" href="../assets/fonts/barlow-condensed-800.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="../assets/fonts/dm-sans.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="../css/site.css?v=3c4d6b02">
+<link rel="stylesheet" href="../css/site.css?v=763742e8">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://nestnrestcleaning.com/"},{"@type":"ListItem","position":2,"name":"Pricing","item":"https://nestnrestcleaning.com/pricing/"}]}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How is my price calculated?","acceptedAnswer":{"@type":"Answer","text":"Your price is based on the service, the number of bedrooms and bathrooms, the type of home and any extras you add. You see it before you book. If your home needs much more or less time than expected, we tell you before we start, never after."}},{"@type":"Question","name":"Do I pay when I book?","acceptedAnswer":{"@type":"Answer","text":"No. There's no deposit. You pay after the clean by Interac e-Transfer, credit or debit card, or cash."}},{"@type":"Question","name":"Should I book a deep clean first?","acceptedAnswer":{"@type":"Answer","text":"If your home hasn't had a professional clean in the last few months, yes. A deep clean resets the build-up so every regular visit after it stays quick and consistent."}},{"@type":"Question","name":"Are supplies included in the price?","acceptedAnswer":{"@type":"Answer","text":"Yes. Every price includes our products and equipment: cloths, mops, a vacuum and cleaning products. There's nothing extra to buy."}},{"@type":"Question","name":"Why do townhouses and houses cost more?","acceptedAnswer":{"@type":"Answer","text":"A townhouse or house usually has stairs, more floor area and more entrances than a condo with the same number of bedrooms, so it takes longer to clean. The price box adjusts for this automatically."}},{"@type":"Question","name":"Do regular plans cost less?","acceptedAnswer":{"@type":"Answer","text":"Yes. Visits every week, every 2 weeks or every 4 weeks cost less than a one-time clean, and you can pause or change your plan with 24 hours' notice."}}]}</script>
 </head>
@@ -86,14 +86,14 @@
       <a href="../#services">Services</a>
       <a href="../pricing/">Pricing</a>
       <a href="../#areas">Areas</a>
-      <a href="../guides/">Guides</a>
-      <a href="../vision/">Our vision</a>
+      <a href="../#how">How it works</a>
+      <a href="../help/">Help</a>
     </nav>
     <div class="header-actions">
       
       
       <button type="button" class="theme-btn" data-theme-toggle aria-pressed="false" aria-label="Dark mode"><svg class="ic theme-moon" aria-hidden="true"><use href="#i-moon"/></svg><svg class="ic theme-sun" aria-hidden="true"><use href="#i-sun"/></svg></button>
-      <a class="btn btn-primary header-book" href="../book/" data-track="book_click"><span class="hb-long">Book your clean</span><span class="hb-short">Book now</span></a>
+      <a class="btn btn-primary header-book" href="../book/" data-track="book_click"><span class="hb-long">See my price</span><span class="hb-short">My price</span></a>
       <button class="menu-btn" type="button" aria-controls="menu" aria-expanded="false" aria-label="Open menu"><svg class="ic" aria-hidden="true"><use href="#i-menu"/></svg></button>
     </div>
   </div>
@@ -108,6 +108,8 @@
     <ul class="menu-list menu-list-sm">
       <li><a href="../pricing/">Pricing</a></li>
       <li><a href="../#areas">Areas we serve</a></li>
+      <li><a href="../#how">How booking works</a></li>
+      <li><a href="../help/">Help &amp; your booking</a></li>
       <li><a href="../gift/">Gift a clean</a></li>
       <li><a href="../realtors/">Realtors &amp; property managers</a></li>
       <li><a href="../guides/">Guides</a></li>
@@ -141,7 +143,7 @@
     <div class="hero-pricer"><form class="pricer" data-pricer data-default-service="regular" novalidate>
   <div class="pricer-head">
     <p class="pricer-title">Price your home</p>
-    <p class="pricer-offer" data-offer-note><span><strong>20% off</strong> your first visit</span><span class="spots" data-spots>50 of 50 founding spots left</span></p>
+    <p class="pricer-offer" data-offer-note><span><strong>20% off</strong> your first visit</span><span class="spots" data-spots>For our first 50 households</span></p>
     
   </div>
   <div class="pricer-result" aria-live="polite">
@@ -179,8 +181,9 @@
     </div>
   </div>
   <a class="btn btn-primary btn-block" href="../book/" data-p-go data-track="pricer_continue">Choose your time <svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></a>
-  <p class="pricer-next"><svg class="ic" aria-hidden="true"><use href="#i-cal"/></svg><span>Next opening: <strong data-next-open>tomorrow</strong></span></p>
+  <p class="pricer-next"><svg class="ic" aria-hidden="true"><use href="#i-cal"/></svg><span>Earliest day to request: <strong data-next-open>tomorrow</strong></span></p>
   <div class="pricer-alt">
+    <a class="link-btn" data-p-incl href="../services/regular-home-cleaning/#included"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg> What's included</a>
     <button type="button" class="link-btn" data-textme-open aria-expanded="false" aria-controls="textme-regular"><svg class="ic" aria-hidden="true"><use href="#i-sms"/></svg> Text me this price</button>
     
   </div>
@@ -190,7 +193,7 @@
     <p class="field-hint" data-textme-note>Mann texts you this price once, within 2 hours during business hours. No spam.</p>
     <input type="text" name="_honey" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true" data-textme-honey>
   </div>
-  <p class="pricer-fine">No payment to book · Free re-clean guarantee</p>
+  <p class="pricer-fine"><span data-tax-note>No HST charged</span> · No payment to book · Free re-clean guarantee</p>
 </form></div>
   </div>
 </section>
@@ -200,8 +203,8 @@
     <div class="section-head">
       <p class="label">By home size</p>
       <h2>Find your home. See your price.</h2>
-      <p class="muted">Prices for the whole visit in CAD, with products and equipment included. Studios are priced as 1 bedroom. Townhouses add <span data-factor="town">10%</span> and houses add <span data-factor="house">20%</span>, for the stairs and extra floor space.</p>
-      <p class="pricer-offer" data-offer-note><span><strong>20% off</strong> your first visit</span><span class="spots" data-spots>50 of 50 founding spots left</span></p>
+      <p class="muted">Prices for the whole visit in CAD, with products and equipment included. <span data-tax-note>No HST charged</span>. Studios are priced as 1 bedroom. Count full bathrooms; half baths, basements and second kitchens are confirmed with you before the clean. Homes over about 3,000 sq ft are by quote. Townhouses add <span data-factor="town">10%</span> and houses add <span data-factor="house">20%</span>, for the stairs and extra floor space.</p>
+      <p class="pricer-offer" data-offer-note><span><strong>20% off</strong> your first visit</span><span class="spots" data-spots>For our first 50 households</span></p>
     </div>
     <div class="price-cards">
       <article class="price-card">
@@ -302,7 +305,7 @@
           <p class="plan-save">Save 10%</p>
         </div>
     </div>
-    <p class="fine">Example prices for a 2-bedroom, 1-bathroom condo, regular clean.</p>
+    <p class="fine">Example prices for a 2-bedroom, 1-bathroom condo, regular clean. A plan discount and the founding discount aren't combined: your first visit gets the larger one. Discounted prices are rounded to the nearest dollar, and the discount shown is the difference, so every line adds up.</p>
   </div>
 </section>
 
@@ -311,7 +314,7 @@
     <div class="split-head">
       <p class="label">Extras</p>
       <h2>Add only what you need.</h2>
-      <p class="muted">Choose extras when you book. These are already included in a move-in or move-out clean: inside oven, inside fridge and inside kitchen cabinets.</p>
+      <p class="muted">Choose extras when you book. Each price covers what's written under it. Already included in a move-in or move-out clean: inside oven, inside fridge, inside kitchen cabinets and wall spot cleaning. Not part of a move-out clean, because the home is empty: laundry, wash and fold.</p>
       <p class="label label-sm">Included in every price</p>
       <ul class="ticks">
         <li><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg>Products and equipment</li>
@@ -319,7 +322,7 @@
         <li><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg>No deposit, and payment after the clean</li>
       </ul>
     </div>
-    <ul class="price-list"><li><span>Inside oven</span><b>+$40</b></li><li><span>Inside fridge</span><b>+$40</b></li><li><span>Inside kitchen cabinets</span><b>+$45</b></li><li><span>Interior windows</span><b>+$50</b></li><li><span>Wall spot cleaning</span><b>+$25</b></li><li><span>Laundry, wash and fold</span><b>+$25</b></li><li><span>Balcony or patio</span><b>+$30</b></li><li><span>Heavy pet hair</span><b>+$20</b></li></ul>
+    <ul class="price-list extras-list"><li class=""><span><span class="xl-name">Inside oven</span><small>One oven, inside and racks.</small></span><b>+$40</b></li><li class=""><span><span class="xl-name">Inside fridge</span><small>One fridge. Please empty it before we arrive.</small></span><b>+$40</b></li><li class=""><span><span class="xl-name">Inside kitchen cabinets</span><small>Kitchen cabinets and drawers. Please empty them first.</small></span><b>+$45</b></li><li class=""><span><span class="xl-name">Interior windows</span><small>Inside glass, frames and sills, up to 10 windows. More by quote.</small></span><b>+$50</b></li><li class=""><span><span class="xl-name">Wall spot cleaning</span><small>Marks and scuffs on reachable walls. Not a full wall wash.</small></span><b>+$25</b></li><li class=""><span><span class="xl-name">Laundry, wash and fold</span><small>One load in your machines, washed, dried and folded during the visit.</small></span><b>+$25</b></li><li class=""><span><span class="xl-name">Balcony or patio</span><small>One balcony or patio, swept and wiped down.</small></span><b>+$30</b></li><li class=""><span><span class="xl-name">Heavy pet hair</span><small>Extra time for heavy shedding across the home.</small></span><b>+$20</b></li></ul>
   </div>
 </section>
 
@@ -404,6 +407,7 @@
           <p class="label label-sm">Company</p>
           <ul>
             <li><a href="../pricing/">Pricing</a></li>
+            <li><a href="../help/">Help &amp; your booking</a></li>
             <li><a href="../gift/">Gift a clean</a></li>
             <li><a href="../realtors/">For realtors</a></li>
             <li><a href="../guides/">Guides</a></li>
@@ -441,8 +445,8 @@
   <a class="btn btn-primary ab-book" href="../book/" data-track="book_click"><span class="ab-long">Book your clean</span><span class="ab-short">Book now</span></a>
 </nav>
 <div class="toast" data-toast role="status" aria-live="polite" hidden></div>
-<script defer src="../js/config.js?v=2a20e703"></script>
+<script defer src="../js/config.js?v=e482fa01"></script>
 
-<script defer src="../js/site.js?v=bcffd9bb"></script>
+<script defer src="../js/site.js?v=30782fcd"></script>
 </body>
 </html>

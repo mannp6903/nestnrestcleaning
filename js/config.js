@@ -60,7 +60,11 @@ window.NR_CONFIG = {
 
   currency: "CAD",
   // Small suppliers (under $30,000 in 12 months) don't charge HST in Ontario. Set 0.13 once registered.
+  // While it's 0, prices and booking summaries say "No HST charged". Once set, they show HST as its own line.
   taxRate: 0,
+  // Change this date whenever prices, extras or the checklist change. It travels with every booking request,
+  // so you can tell which prices a customer saw.
+  pricingVersion: "2026-10-28",
 
   offers: {
     founding: {
@@ -68,8 +72,11 @@ window.NR_CONFIG = {
       label: "Founding household",
       percent: 20,
       spots: 50,
-      // Add 1 here after each new founding household books. The site shows "X of 50 founding spots left".
+      // Add 1 here after each new founding household books.
       claimed: 0,
+      /* Show "X of 50 founding spots left". Off by default: switch it on only while you update "claimed"
+         after every founding booking, so the count is always true. */
+      showSpotsLeft: false,
       text: "Our first 50 households receive 20% off their first visit."
     },
     // Referral credit in dollars, for both the existing client and the friend. Terms are on the Service Policies page.
@@ -228,17 +235,31 @@ window.NR_CONFIG = {
     }
   },
 
+  /* Extras. "task" links an extra to its row in the checklist below, and that row decides, for each service,
+     whether the extra is included ("yes"), a paid extra ("add") or not offered (""). The booking form, the price
+     box, the service pages and the pricing page all follow it, so an included task can never be charged twice.
+     "limit" says exactly what the price covers. It's shown wherever the extra is offered: keep each one true. */
   addons: [
-    { id: "oven", name: "Inside oven", price: 40, hours: 0.5 },
-    { id: "fridge", name: "Inside fridge", price: 40, hours: 0.5 },
-    { id: "cabinets", name: "Inside kitchen cabinets", price: 45, hours: 0.75 },
-    { id: "windows", name: "Interior windows", price: 50, hours: 0.75 },
-    { id: "walls", name: "Wall spot cleaning", price: 25, hours: 0.5 },
-    { id: "laundry", name: "Laundry, wash and fold", price: 25, hours: 0.5 },
-    { id: "balcony", name: "Balcony or patio", price: 30, hours: 0.5 },
-    { id: "pets", name: "Heavy pet hair", price: 20, hours: 0.5 }
+    { id: "oven", name: "Inside oven", price: 40, hours: 0.5, task: "Inside fridge and oven", limit: "One oven, inside and racks." },
+    { id: "fridge", name: "Inside fridge", price: 40, hours: 0.5, task: "Inside fridge and oven", limit: "One fridge. Please empty it before we arrive." },
+    { id: "cabinets", name: "Inside kitchen cabinets", price: 45, hours: 0.75, task: "Inside cabinets and drawers", limit: "Kitchen cabinets and drawers. Please empty them first." },
+    { id: "windows", name: "Interior windows", price: 50, hours: 0.75, task: "Interior windows", limit: "Inside glass, frames and sills, up to 10 windows. More by quote." },
+    { id: "walls", name: "Wall spot cleaning", price: 25, hours: 0.5, task: "Walls spot-cleaned", limit: "Marks and scuffs on reachable walls. Not a full wall wash." },
+    { id: "laundry", name: "Laundry, wash and fold", price: 25, hours: 0.5, task: "Laundry, wash and fold", limit: "One load in your machines, washed, dried and folded during the visit." },
+    { id: "balcony", name: "Balcony or patio", price: 30, hours: 0.5, task: "Balcony or patio", limit: "One balcony or patio, swept and wiped down." },
+    { id: "pets", name: "Heavy pet hair", price: 20, hours: 0.5, limit: "Extra time for heavy shedding across the home." }
   ],
-  includedAddons: { move: ["oven", "fridge", "cabinets"] },
+
+  /* "Anything unusual about your home?" on the booking form. All optional, so a simple booking skips them.
+     quote: the home is priced by quote instead: the customer goes to that quote form with their choices carried over.
+     Otherwise the estimate stays, and Mann confirms any change to the price before the clean. */
+  homeChecks: [
+    { id: "large", label: "Over about 3,000 sq ft", quote: "residence" },
+    { id: "halfbath", label: "Half bathrooms (powder rooms)", note: "Count full bathrooms only above. Mann confirms any change to your price for half baths before the clean." },
+    { id: "basement", label: "A finished basement", note: "Mann confirms the time and price for a basement before the clean." },
+    { id: "kitchen2", label: "A second kitchen", note: "Mann confirms the time and price for a second kitchen before the clean." },
+    { id: "buildup", label: "Heavy build-up, or no professional clean in a long while", note: "A deep clean is usually the right first visit. Mann confirms the time needed before the clean." }
+  ],
 
   frequencies: {
     once: { label: "One time", discount: 0 },
@@ -247,11 +268,14 @@ window.NR_CONFIG = {
     monthly: { label: "Every 4 weeks", discount: 10 }
   },
 
+  /* Preferred arrival windows. start and end are the earliest and latest arrival, in 24-hour time.
+     A window is offered only if a clean of that length, arriving at the end of the window, finishes by closing time. */
   timeSlots: [
-    { id: "morning", label: "Morning", time: "9am to 12pm", start: 9 },
-    { id: "midday", label: "Midday", time: "12 to 3pm", start: 12 },
-    { id: "afternoon", label: "Afternoon", time: "3 to 6pm", start: 15 },
-    { id: "evening", label: "Evening", time: "6 to 8pm", start: 18 }
+    { id: "morning", label: "Morning", time: "9am to 12pm", start: 9, end: 12 },
+    { id: "midday", label: "Midday", time: "12 to 3pm", start: 12, end: 15 },
+    { id: "afternoon", label: "Afternoon", time: "3 to 6pm", start: 15, end: 18 },
+    { id: "evening", label: "Evening", time: "6 to 8pm", start: 18, end: 20 },
+    { id: "any", label: "Any time", time: "Earliest suitable", any: true }
   ],
   opens: "09:00", closes: "23:00",
   openDays: [0, 1, 2, 3, 4, 5, 6],   // 0 = Sunday
@@ -277,7 +301,8 @@ window.NR_CONFIG = {
   ],
 
   /* Neighbourhood pages, one per entry, at /areas/<district>/<slug>/. Keep every fact true and local.
-     fsas must be postal codes listed in serviceArea above. */
+     fsas must be postal codes listed in serviceArea above.
+     condo: true adds a "Booking a condo clean" section (concierge, parking, service elevator) to that page. */
   neighbourhoods: [
     { slug: "agincourt", name: "Agincourt", district: "scarborough", fsas: ["M1S", "M1T", "M1V"],
       intro: "Agincourt runs along Sheppard Avenue East around Kennedy Road, with Agincourt GO and Agincourt Mall at its heart. We clean its condos, townhouses and family homes, from newer buildings near the GO line to the bungalows on its quieter streets.",
@@ -306,7 +331,7 @@ window.NR_CONFIG = {
     { slug: "willowdale", name: "Willowdale", district: "north-york", fsas: ["M2M", "M2N", "M2R"],
       intro: "Willowdale stretches along Yonge Street north of the 401, with North York Centre and Mel Lastman Square at its core. It's one of Toronto's busiest condo areas, and condos are where our prices start.",
       homes: "High-rise condos along Yonge Street, and detached homes on the streets east and west of it.",
-      near: ["bayview-village", "bathurst-manor"] },
+      near: ["bayview-village", "bathurst-manor"], condo: true },
     { slug: "don-mills", name: "Don Mills", district: "north-york", fsas: ["M3B", "M3C"],
       intro: "Don Mills, around Don Mills Road and Lawrence Avenue East, was one of Canada's first planned communities and is home to the Shops at Don Mills. We clean its mid-century homes, townhouses and condos alike.",
       homes: "Mid-century detached homes, townhouses, and condos near the Shops at Don Mills.",
@@ -318,7 +343,7 @@ window.NR_CONFIG = {
     { slug: "bayview-village", name: "Bayview Village", district: "north-york", fsas: ["M2K"],
       intro: "Bayview Village, around Bayview Avenue and Sheppard Avenue East, mixes condos near Bayview Village Shopping Centre and the subway with quiet streets of detached homes.",
       homes: "Condos near Bayview and Sheppard, and detached homes on the surrounding streets.",
-      near: ["willowdale", "don-mills"] },
+      near: ["willowdale", "don-mills"], condo: true },
     { slug: "bathurst-manor", name: "Bathurst Manor", district: "north-york", fsas: ["M3H"],
       intro: "Bathurst Manor, around Bathurst Street and Sheppard Avenue West, sits beside Earl Bales Park. Its family homes and apartments are a short drive from us, any day of the week.",
       homes: "Detached and semi-detached family homes, and apartment buildings along Bathurst Street.",
@@ -329,7 +354,9 @@ window.NR_CONFIG = {
       near: ["bathurst-manor", "york-mills"] }
   ],
 
-  /* Room-by-room checklist: [task, regular, deep, move] with "yes", "add" (add-on) or "". */
+  /* Room-by-room checklist: [task, regular, deep, move] with "yes" (included), "add" (a paid extra) or "" (not offered).
+     This is the one scope rule for the whole site: rows linked to an extra (see "task" in addons) also decide
+     whether the booking form charges for that extra. Kitchen & Bath Detailing follows the deep column. */
   checklist: [
     { room: "Kitchen", tasks: [
       ["Counters and backsplash wiped", "yes", "yes", "yes"],
@@ -373,33 +400,37 @@ window.NR_CONFIG = {
     ] }
   ],
 
-  /* FAQs. "on" lists where each appears: home, regular, deep, move, detail, residence, office, area, pricing. */
+  /* FAQs. "on" lists where each appears: home, regular, deep, move, detail, residence, office, area, pricing, help.
+     requestsOnly: true hides a question once booking.calLink is set (it describes booking requests, not the live calendar). */
   faqs: [
     { q: "How is my price calculated?", a: "Your price is based on the service, the number of bedrooms and bathrooms, the type of home and any extras you add. You see it before you book. If your home needs much more or less time than expected, we tell you before we start, never after.", on: ["home", "regular", "deep", "move", "detail", "area", "pricing"] },
     { q: "Do I pay when I book?", a: "No. There's no deposit. You pay after the clean by Interac e-Transfer, credit or debit card, or cash.", on: ["home", "regular", "deep", "move", "detail", "area", "pricing"] },
-    { q: "What if something is missed?", a: "Tell us within 24 hours and we'll come back and re-clean those areas, free of charge.", on: ["home", "regular", "deep", "move", "detail", "residence", "area"] },
-    { q: "Do you bring supplies and equipment?", a: "Yes. We bring cloths, mops, a vacuum and our products. If you'd like us to use your own products, or need fragrance-free, add it to your booking notes.", on: ["home", "regular", "deep", "detail", "office"] },
+    { q: "What if something is missed?", a: "Tell us within 24 hours and we'll come back and re-clean those areas, free of charge.", on: ["home", "regular", "deep", "move", "detail", "residence", "area", "help"] },
+    { q: "Do you bring supplies and equipment?", a: "Yes. We bring cloths, mops, a vacuum and our products. If you'd like us to use your own products, or need fragrance-free, choose it under Products when you book.", on: ["home", "regular", "deep", "detail", "office"] },
     { q: "Do I need to be home?", a: "No. You can leave access with a concierge, lockbox or key code. Choose how we get in when you book and we'll confirm the details by text.", on: ["home", "regular", "deep", "area"] },
-    { q: "Can I reschedule or cancel?", a: "Yes. Let us know at least 24 hours before your arrival window and there's no charge.", on: ["home", "regular", "deep", "move", "detail", "office", "area"] },
+    { q: "Can I reschedule or cancel?", a: "Yes. Let us know at least 24 hours before your arrival window and there's no charge.", on: ["home", "regular", "deep", "move", "detail", "office", "area", "help"] },
+    { q: "Is my clean booked as soon as I send the form?", a: "Not yet. Sending the form is a request. Mann replies within 2 hours during business hours to agree your day, arrival window and final price. Your time is held once Mann confirms it with you.", on: ["home", "help"], requestsOnly: true },
+    { q: "How do I change or cancel a booking?", a: "Email Mann with your reference (it starts with NR-), or reply to your confirmation message. Changes are free up to 24 hours before your arrival window.", on: ["help"] },
+    { q: "How do I book again?", a: "Use the booking form any time. On the same device, it remembers your home and the extras you chose last time, so you only check them and pick a day.", on: ["help"] },
     { q: "Are pets OK?", a: "Absolutely. Tell us about them when you book. For heavy shedding, add the pet hair extra so we schedule enough time.", on: ["home", "regular", "deep"] },
     { q: "Why do you wear house shoes?", a: "Street shoes carry grit and salt, especially in a Toronto winter. We change into indoor-only shoes at your door, so your floors only meet clean soles.", on: ["home", "residence"] },
     { q: "Should I book a deep clean first?", a: "If your home hasn't had a professional clean in the last few months, yes. A deep clean resets the build-up so every regular visit after it stays quick and consistent.", on: ["regular", "deep", "pricing"] },
     { q: "Are supplies included in the price?", a: "Yes. Every price includes our products and equipment: cloths, mops, a vacuum and cleaning products. There's nothing extra to buy.", on: ["pricing"] },
     { q: "Why do townhouses and houses cost more?", a: "A townhouse or house usually has stairs, more floor area and more entrances than a condo with the same number of bedrooms, so it takes longer to clean. The price box adjusts for this automatically.", on: ["pricing"] },
     { q: "Do regular plans cost less?", a: "Yes. Visits every week, every 2 weeks or every 4 weeks cost less than a one-time clean, and you can pause or change your plan with 24 hours' notice.", on: ["pricing", "regular"] },
-    { q: "Is the oven and fridge included in a move-out clean?", a: "Yes. Inside the fridge, oven, cabinets, drawers and closets are all included in a move-in or move-out clean.", on: ["move"] },
+    { q: "Is the oven and fridge included in a move-out clean?", a: "Yes. Inside the fridge, oven, cabinets, drawers and closets, and spot-cleaning the walls, are all included in a move-in or move-out clean. Laundry isn't part of it, because the home is empty.", on: ["move"] },
     { q: "Does the home need to be empty?", a: "For a move-in or move-out clean, it's best if furniture and boxes are out so we can reach every surface. If some items remain, mention it in your notes.", on: ["move"] },
     { q: "How long does a residence walkthrough take?", a: "Usually 20 to 30 minutes. We walk each room with you, note surfaces and priorities, and send a written care plan and quote afterwards.", on: ["residence"] },
     { q: "Can you clean outside business hours?", a: "Tell us what suits your business in the quote form. We'll confirm the times we can offer in your quote.", on: ["office"] },
     { q: "Do I need a contract?", a: "No contract is needed to start. Most offices begin with a single visit, then choose a schedule.", on: ["office"] },
     { q: "Which areas do you serve?", a: "Scarborough and North York. Enter your postal code on the site to check. If you're just outside these areas, get in touch and we'll tell you honestly whether we can help.", on: ["home", "area", "residence", "office", "realtors"] },
-    { q: "How do I get in touch?", a: "Email nestnrestcleaning@gmail.com, or send your details through the booking form. Mann replies within 2 hours during business hours.", on: ["home", "area"] },
+    { q: "How do I get in touch?", a: "Email nestnrestcleaning@gmail.com, or send your details through the booking form. Mann replies within 2 hours during business hours (every day, 9am to 11pm).", on: ["home", "area"] },
     { q: "Do gift cards expire?", a: "No. Nest & Rest gift cards never expire, and they can be used toward any service. Any balance left after a clean stays on the card.", on: ["gift"] },
     { q: "How do I pay for a gift card?", a: "Send the form and we'll text you to confirm the details and send an Interac e-Transfer request. Your gift card is emailed as soon as it's paid.", on: ["gift"] },
     { q: "How does the person I'm gifting book?", a: "They book online like anyone else and mention the code on their gift card. We take the gift value off their price after the clean.", on: ["gift"] },
     { q: "Can the gift be for someone outside Scarborough or North York?", a: "The clean has to be in Scarborough or North York. If you're not sure, enter their postal code on the gift page to check.", on: ["gift"] },
     { q: "Can you clean before listing photos or a showing?", a: "Yes. Tell us the date of your photos or first showing and we'll aim to clean the day before. Evenings and weekends are available.", on: ["realtors"] },
-    { q: "Does someone need to be there?", a: "No. A lockbox or the concierge works well. We confirm the code by text and delete it after the clean.", on: ["realtors"] },
+    { q: "Does someone need to be there?", a: "No. A lockbox or the concierge works well. We ask for the code by text once the clean is confirmed, and delete it within 7 days of the last scheduled clean.", on: ["realtors"] },
     { q: "How does payment work for multiple properties?", a: "You pay after each clean by Interac e-Transfer, credit or debit card. Each property gets its own receipt, so it's easy to bill back to an owner or seller.", on: ["realtors"] }
   ],
 
@@ -412,6 +443,12 @@ window.NR_CONFIG = {
     damageReportHours: 48,
     accessCodeDeleteDays: 7
   },
+
+  /* Real jobs, shown on the area pages (and the home page) once you add them. Only with the client's permission,
+     and never anything that identifies the home: no street, building name or unit. One per entry:
+     { area: "north-york", neighbourhood: "Willowdale", month: "November 2026", service: "Deep Cleaning",
+       home: "2-bed condo", hours: 4.5, text: "What was done, and anything that made it easier or harder." } */
+  jobs: [],
 
   /* Real reviews only. Add them as they come in:
      { name: "Priya S.", area: "Agincourt", rating: 5, service: "Deep Cleaning", text: "..." } */
