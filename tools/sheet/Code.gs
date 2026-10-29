@@ -43,6 +43,18 @@ var REQUIRED = {
 // Headers the script fills itself. A form field with one of these names is saved as "Form <name>" instead.
 var RESERVED = ["Reference", "Received", "Status", "Confirmed time", "Final price", "Email", "Attempt", "Alert email", "Receipt email"];
 
+// Receipts to customers. The wording is fixed: only the reference is filled in, so nobody can use the
+// website's forms to send their own words from Mann's Gmail.
+var RECEIPTS = {
+  booking: { subject: "We got your request {ref}", line: "We got your request {ref}. It's not confirmed yet. Mann will reply within 2 hours during business hours to agree your time and final price." },
+  quote: { subject: "We got your quote request {ref}", line: "We got your quote request {ref}. Mann will reply within one business day." },
+  gift: { subject: "We got your gift card request {ref}", line: "We got your gift card request {ref}. Mann will text you within 2 hours during business hours to confirm and send an Interac e-Transfer request." }
+};
+var ALERT_SUBJECTS = { booking: "New booking request", quote: "New quote request", gift: "New gift card request", review: "New review", pricetext: "New price text request" };
+var DEFAULT_OWNER = "nestnrestcleaning@gmail.com";
+var MAX_TRIES = 5;
+var RECEIPTS_PER_DAY = 50;
+
 var TZ = "America/Toronto";
 var MAX_BODY = 20000;
 var MAX_VALUE = 2000;
@@ -57,9 +69,12 @@ function doPost(e) {
   return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
 }
 
-// Run once from the Apps Script editor: creates the tabs, headers and Status dropdowns. Safe to run again.
+// Run once from the Apps Script editor: creates the tabs, headers, Status dropdowns and the two timers. Safe to run again.
 function setup() {
   Object.keys(TABS).forEach(function (form) { ensureTab_(form); });
+  var have = ScriptApp.getProjectTriggers().map(function (t) { return t.getHandlerFunction(); });
+  if (have.indexOf("retryEmails") === -1) ScriptApp.newTrigger("retryEmails").timeBased().everyMinutes(15).create();
+  if (have.indexOf("morningReminder") === -1) ScriptApp.newTrigger("morningReminder").timeBased().atHour(9).everyDays(1).inTimezone(TZ).create();
 }
 
 function handleRequest_(body) {
@@ -91,7 +106,8 @@ function handleRequest_(body) {
     var ref = /^(NR|GIFT)-[A-Z0-9]{4}$/.test(String(body.reference || "")) ? String(body.reference) : newRef_("NR");
     while (refs.indexOf(ref) > -1) ref = newRef_(ref.split("-")[0]);
 
-    var values = { "Reference": ref, "Received": Utilities.formatDate(now_(), TZ, "yyyy-MM-dd HH:mm"), "Status": "Received", "Email": email, "Attempt": attempt };
+    var values = { "Reference": ref, "Received": Utilities.formatDate(now_(), TZ, "yyyy-MM-dd HH:mm"), "Status": "Received", "Email": email, "Attempt": attempt,
+      "Alert email": "Pending", "Receipt email": "Pending" };
     Object.keys(fields).forEach(function (label) { values[RESERVED.indexOf(label) > -1 ? "Form " + label : label] = fields[label]; });
     head = addMissingHeaders_(sheet, head, Object.keys(values));
     var width = sheet.getLastColumn();
@@ -101,10 +117,144 @@ function handleRequest_(body) {
     // Plain text, so Sheets keeps "$140.00", phone numbers and times exactly as sent.
     sheet.getRange(lastRow + 1, 1, 1, width).setNumberFormat("@").setValues([row]);
     saved = { row: lastRow + 1, reference: ref };
+    // Emails go out under the same lock, so the 15-minute retry can never send one twice. A failed email
+    // never undoes the saved row: it is marked "Not sent" and retried.
+    try { sendEmails_(TABS[form], saved.row); } catch (err) { /* the row is saved; retryEmails picks up anything Pending */ }
   } finally {
     lock.releaseLock();
   }
   return { ok: true, reference: saved.reference, duplicate: false };
+}
+
+// Sends whatever this row still needs: Mann's alert, and the customer's receipt where one applies.
+// Each email column reads Sent, Not sent (will retry, tries: N), Failed (gave up after 5 tries), Not needed or Not needed (limit).
+function sendEmails_(tabName, rowNumber) {
+  var sheet = SpreadsheetApp.getActive().getSheetByName(tabName);
+  var head = headerMap_(sheet);
+  var width = sheet.getLastColumn();
+  var line = sheet.getRange(rowNumber, 1, 1, width).getValues()[0];
+  var get = function (h) { return head[h] ? unsafe_(line[head[h] - 1]) : ""; };
+  var set = function (h, v) { sheet.getRange(rowNumber, head[h], 1, 1).setValue(v); };
+  var form = formForTab_(tabName);
+  var ref = get("Reference");
+  var email = get("Email");
+  var hasEmail = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email);
+
+  var alertState = get("Alert email");
+  if (needsSending_(alertState)) {
+    var skip = ["Status", "Attempt", "Alert email", "Receipt email"].concat(OWNER_COLUMNS[tabName] || []);
+    var lines = Object.keys(head).sort(function (a, b) { return head[a] - head[b]; })
+      .filter(function (h) { return skip.indexOf(h) === -1 && get(h) !== ""; })
+      .map(function (h) { return h + ": " + get(h); });
+    var alert = { to: ownerEmail_(), subject: ALERT_SUBJECTS[form] + " " + ref, body: lines.join("\n") + "\n\nOpen the sheet: " + SpreadsheetApp.getActive().getUrl() };
+    if (hasEmail) alert.replyTo = email;
+    set("Alert email", trySend_(alert, alertState));
+  }
+
+  var receiptState = get("Receipt email");
+  if (receiptState === "Pending") {
+    if (!RECEIPTS[form] || !hasEmail) receiptState = "Not needed";
+    else if (!receiptAllowed_(email)) receiptState = "Not needed (limit)";
+    else receiptState = "Due";
+  }
+  if (receiptState === "Due" || /^Not sent/.test(receiptState)) {
+    var r = RECEIPTS[form];
+    receiptState = trySend_({ to: email, subject: r.subject.replace("{ref}", ref), body: r.line.replace("{ref}", ref) + "\n\nNest & Rest Cleaning" }, receiptState);
+  }
+  set("Receipt email", receiptState);
+}
+
+// Only rows this script wrote are emailed: a row Mann types in by hand has blank email columns and is left alone.
+function needsSending_(state) { return state === "Pending" || /^Not sent/.test(state); }
+
+// "Sent", or the next "Not sent" / "Failed" state counting this try.
+function trySend_(message, previous) {
+  var m = /tries: (\d+)/.exec(String(previous || ""));
+  var tries = (m ? +m[1] : 0) + 1;
+  try {
+    MailApp.sendEmail(message);
+    return "Sent";
+  } catch (err) {
+    return tries >= MAX_TRIES ? "Failed (gave up after " + MAX_TRIES + " tries)" : "Not sent (will retry, tries: " + tries + ")";
+  }
+}
+
+// At most one receipt per address per hour, and RECEIPTS_PER_DAY a day, so the forms can't be used to flood someone's inbox.
+function receiptAllowed_(email) {
+  var props = PropertiesService.getScriptProperties();
+  var now = now_().getTime();
+  var key = "receipt:" + email.toLowerCase();
+  var last = +(props.getProperty(key) || 0);
+  if (last && now - last < 60 * 60 * 1000) return false;
+  var dayKey = "receipts:" + Utilities.formatDate(now_(), TZ, "yyyy-MM-dd");
+  var count = +(props.getProperty(dayKey) || 0);
+  if (count >= RECEIPTS_PER_DAY) return false;
+  props.setProperty(key, String(now));
+  props.setProperty(dayKey, String(count + 1));
+  return true;
+}
+
+// Every 15 minutes: retries emails that didn't go out.
+function retryEmails() {
+  var lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    Object.keys(TABS).forEach(function (form) {
+      var sheet = SpreadsheetApp.getActive().getSheetByName(TABS[form]);
+      if (!sheet) return;
+      var head = headerMap_(sheet), lastRow = sheet.getLastRow();
+      var alerts = columnValues_(sheet, head["Alert email"], lastRow), receipts = columnValues_(sheet, head["Receipt email"], lastRow);
+      for (var i = 0; i < Math.max(alerts.length, receipts.length); i++) {
+        if (needsSending_(alerts[i] || "") || needsSending_(receipts[i] || "")) sendEmails_(TABS[form], i + 2);
+      }
+    });
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+// Every morning at 9: one email to Mann if a booking or quote has waited over 2 hours, or an email gave up.
+function morningReminder() {
+  var cutoff = Utilities.formatDate(new Date(now_().getTime() - 2 * 60 * 60 * 1000), TZ, "yyyy-MM-dd HH:mm");
+  var lines = [];
+  Object.keys(TABS).forEach(function (form) {
+    var name = TABS[form];
+    var sheet = SpreadsheetApp.getActive().getSheetByName(name);
+    if (!sheet) return;
+    var head = headerMap_(sheet), lastRow = sheet.getLastRow();
+    var col = function (h) { return columnValues_(sheet, head[h], lastRow); };
+    var refs = col("Reference"), received = col("Received"), status = col("Status"), alerts = col("Alert email"), receipts = col("Receipt email");
+    refs.forEach(function (ref, i) {
+      var when = /^\d{4}-\d\d-\d\d \d\d:\d\d/.test(received[i]) ? received[i].slice(0, 16) : received[i];
+      if ((form === "booking" || form === "quote") && status[i] === "Received" && when < cutoff) lines.push(name + " · " + ref + " · received " + when);
+      if (/^Failed/.test(alerts[i] || "") || /^Failed/.test(receipts[i] || "")) lines.push(name + " · " + ref + " · an email couldn't be sent");
+    });
+  });
+  tidyReceiptLimits_();
+  if (!lines.length) return;
+  MailApp.sendEmail({ to: ownerEmail_(), subject: "Waiting for your reply: " + lines.length,
+    body: lines.join("\n") + "\n\nOpen the sheet: " + SpreadsheetApp.getActive().getUrl() });
+}
+
+// Drops receipt-limit notes older than a day.
+function tidyReceiptLimits_() {
+  var props = PropertiesService.getScriptProperties();
+  var now = now_().getTime(), today = "receipts:" + Utilities.formatDate(now_(), TZ, "yyyy-MM-dd");
+  props.getKeys().forEach(function (k) {
+    if ((k.indexOf("receipt:") === 0 && now - +props.getProperty(k) > 24 * 60 * 60 * 1000) || (k.indexOf("receipts:") === 0 && k !== today)) props.deleteProperty(k);
+  });
+}
+
+function ownerEmail_() { return PropertiesService.getScriptProperties().getProperty("OWNER_EMAIL") || DEFAULT_OWNER; }
+
+function formForTab_(tabName) {
+  return Object.keys(TABS).filter(function (f) { return TABS[f] === tabName; })[0];
+}
+
+// A cell's value as the customer sent it (the apostrophe that kept a formula as text is dropped).
+function unsafe_(v) {
+  v = String(v === null || v === undefined ? "" : v);
+  return /^'[=+\-@]/.test(v) ? v.slice(1) : v;
 }
 
 // The tab for a form, created with its headers and Status dropdown if it isn't there yet.
