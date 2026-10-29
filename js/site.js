@@ -8,6 +8,8 @@
   // Home choices (service, size, extras) are kept on this device for a return visit.
   // Personal details (name, contact, address, notes) are kept only for this browser tab.
   var QUOTE_KEY = "nr-quote-v1", DETAILS_KEY = "nr-details-v1", OLD_DRAFT_KEY = "nr-booking-v2", DRAFT_DAYS = 14;
+  // Home details handed from the booking form to a quote form: kept in this tab for 30 minutes, never in a page address.
+  var HANDOFF_KEY = "nr-quote-handoff", HANDOFF_MS = 30 * 60 * 1000;
   var QUOTE_FIELDS = ["service", "homeType", "beds", "baths", "addons", "checks", "freq"];
   var host = document.querySelector("[data-page]");
   var PAGE = host ? host.getAttribute("data-page") : "";
@@ -350,10 +352,12 @@
       $("[data-inc]", bathsBox).disabled = st.baths >= 6;
       bedsBox.hidden = st.service === "detail";
       var p = price(st.service, st.beds, st.baths, st.home);
-      $("[data-p-amount]", form).textContent = money(p);
-      var f = C.offers.founding;
-      var first = f && f.active ? " · " + money(afterDiscount(p, f.percent)) + " first visit" : "";
-      $("[data-p-meta]", form).textContent = "Estimate · about " + hoursFor(st.service, st.beds, st.baths, st.home) + " hours" + first;
+      // While the founding offer runs, the first-visit price leads and the regular price sits under it (the booking total's rule).
+      var f = C.offers.founding, on = !!(f && f.active), h = hoursFor(st.service, st.beds, st.baths, st.home);
+      $("[data-p-amount]", form).textContent = money(on ? afterDiscount(p, f.percent) : p);
+      var unit = $("[data-p-unit]", form);
+      if (unit) unit.hidden = !on;
+      $("[data-p-meta]", form).textContent = on ? "Regular price " + money(p) + " · estimate, about " + h + " hours on site" : "Estimate · about " + h + " hours on site";
       var go = $("[data-p-go]", form);
       go.href = link("book/") + "?s=" + st.service + "&h=" + st.home + "&bd=" + st.beds + "&ba=" + st.baths;
       var incl = $("[data-p-incl]", form);
@@ -375,15 +379,17 @@
         tmOpen.setAttribute("aria-expanded", String(open));
         if (open) $("[data-textme-phone]", tmBox).focus();
       });
-      var tmPhone = $("[data-textme-phone]", tmBox), tmSend = $("[data-textme-send]", tmBox), tmNote = $("[data-textme-note]", tmBox);
+      var tmPhone = $("[data-textme-phone]", tmBox), tmSend = $("[data-textme-send]", tmBox), tmNote = $("[data-textme-note]", tmBox), tmIds = null;
       var sendTm = function () {
         if (!phoneOk(tmPhone.value)) { fieldError(tmPhone, "Enter a 10-digit mobile number, like 647 555 0123."); tmPhone.focus(); tmBox.scrollIntoView({ block: "center" }); return; }
         fieldError(tmPhone, "");
         var p = price(st.service, st.beds, st.baths, st.home);
         tmSend.disabled = true; tmSend.textContent = "Sending…";
+        tmIds = tmIds || newIds("NR");
         send({ _subject: "Text this price: " + money(p) + " to " + tmPhone.value.trim(), _template: "table", _captcha: "false", _honey: ($("[data-textme-honey]", tmBox) || {}).value || "",
           "Text this price to": tmPhone.value.trim(), "Quote": summary() + ", " + money(p), "Estimated time": "about " + hoursFor(st.service, st.beds, st.baths, st.home) + " hours", "Page": location.pathname
-        }).then(function (res) {
+        }, "pricetext", tmIds).then(function (res) {
+          tmIds = null;
           tmBox.classList.add("is-sent");
           if (res && res.skipped) {
             tmBox.innerHTML = '<p class="field-note"><strong>Preview only.</strong> On the live site, ' + esc(B.ownerFirstName) + " gets this request and texts " + esc(money(p)) + " to " + esc(tmPhone.value.trim()) + ".</p>";
@@ -437,8 +443,13 @@
     var CLOSES = parseInt(C.closes, 10) || 23;
     var CLEANERS = (C.booking || {}).cleaners || 1;
     // One reference per request. A retry after a failed send keeps it, so a request that arrives twice is easy to spot.
-    var ref = null;
+    var ref = null, attempt = null;
     var started = false;
+    // On phones the Continue bar sits just above the price bar; follow the price bar's real height (it grows with larger text).
+    var sumBar = $(".summary-toggle");
+    if (sumBar && window.ResizeObserver) new ResizeObserver(function () {
+      document.documentElement.style.setProperty("--sum-h", Math.ceil(sumBar.getBoundingClientRect().height) + "px");
+    }).observe(sumBar);
 
     function availableDates() { return openDates(C.daysAhead); }
     var iso = isoDay;
@@ -564,7 +575,9 @@
         ["Contact", who || "Not added yet", LAST, "#f-name"],
         ["Address", where || "Not added yet", LAST, "#f-address"],
         ["Getting in", acc + buildingText() + (acc === "Lockbox or key code" ? ". " + B.ownerFirstName + " asks for the code by text once your clean is confirmed" : ""), LAST, "#f-access"],
+        ["Pets", radioVal("pets"), LAST, 'input[name="pets"]:checked'],
         ["Products", radioVal("products"), LAST, 'input[name="products"]:checked'],
+        ["Notes", shortenAtWord(val("f-notes"), 200) || "None", LAST, "#f-notes"],
         ["Confirm by", radioVal("contactPref"), LAST, 'input[name="contactPref"]:checked']
       ].filter(Boolean);
       var html = rows.map(function (r) {
@@ -636,13 +649,16 @@
       if (route) {
         route.hidden = !q.quoteOnly;
         var ql = $("[data-quote-link]", route);
-        // The quote form opens with these home details filled in: no personal details travel in the link.
+        // The quote form opens with these home details filled in. They wait in this tab, not in the link,
+        // so the page address (and analytics) never carries them.
         if (ql && q.quoteOnly) {
           var qs = C.quoteServices[q.quoteOnly.quote];
-          var carry = "From the booking form: " + q.s.name + ", " + homeLine(q) + (q.addons.length ? ". Extras: " + q.addons.map(function (a) { return a.name; }).join(", ") : "") +
-            (s.recurring ? ". How often: " + q.freq.label : "") + ".";
-          if (qs) ql.href = link("services/" + qs.slug + "/") + "?notes=" + encodeURIComponent(carry);
-        }
+          if (qs) ql.href = link("services/" + qs.slug + "/") + "?from=booking";
+          store(HANDOFF_KEY, { at: Date.now(), service: q.s.name, home: homeLine(q),
+            checks: q.checks.map(function (c) { return c.label; }), extras: q.addons.map(function (a) { return a.name; }),
+            often: { once: "One time to start", weekly: "Weekly", biweekly: "Every 2 weeks", monthly: "Monthly" }[s.recurring ? state.freq : "once"] || "One time to start",
+            postal: formatPostal(val("f-postal")) }, true);
+        } else if (!q.quoteOnly) store(HANDOFF_KEY, null, true);
       }
       $("[data-freq-field]").hidden = !s.recurring;
       $$("[data-slot]", form).forEach(function (lab) {
@@ -746,7 +762,7 @@
       fieldIds.forEach(function (id) { var el = $("#" + id); if (el) fields[id] = el.value; });
       radioNames.forEach(function (n) { fields[n] = radioVal(n); });
       boxIds.forEach(function (id) { var el = $("#" + id); if (el) fields[id] = el.checked; });
-      store(DETAILS_KEY, { fields: fields, step: state.step, date: state.date, flex: state.flex, slot: state.slot, ref: ref, at: Date.now() }, true);
+      store(DETAILS_KEY, { fields: fields, step: state.step, date: state.date, flex: state.flex, slot: state.slot, ref: ref, attempt: attempt, at: Date.now() }, true);
     }
     function restore() {
       var qd = quoteDraft();
@@ -755,6 +771,7 @@
       if (dd && dd.at && Date.now() - dd.at < DRAFT_DAYS * 86400000) {
         ["step", "date", "flex", "slot"].forEach(function (k) { if (dd[k] != null) state[k] = dd[k]; });
         if (typeof dd.ref === "string" && /^NR-[A-Z0-9]{4}$/.test(dd.ref)) ref = dd.ref;
+        if (typeof dd.attempt === "string" && /^[A-Za-z0-9]{20}$/.test(dd.attempt)) attempt = dd.attempt;
         var f = dd.fields || {};
         fieldIds.forEach(function (id) { var el = $("#" + id); if (el && typeof f[id] === "string" && f[id]) el.value = f[id]; });
         radioNames.forEach(function (n) { var i = f[n] && $('input[name="' + n + '"][value="' + String(f[n]).replace(/"/g, "") + '"]', form); if (i) i.checked = true; });
@@ -878,7 +895,7 @@
         boxIds.forEach(function (id) { var el = $("#" + id); if (el) el.checked = false; });
         radioNames.forEach(function (n) { var first = $('input[name="' + n + '"]', form); if (first) first.checked = true; });
         $$(".invalid", form).forEach(function (el) { fieldError(el, ""); });
-        ref = null;
+        ref = null; attempt = null;
         sync(); renderSummary();
         toast("Your details are cleared from this device.");
       });
@@ -902,7 +919,6 @@
     function fmtStart(d) {
       return new Intl.DateTimeFormat("en-CA", { weekday: "long", month: "long", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/Toronto" }).format(d);
     }
-    function newRef() { var c = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789", s = ""; for (var i = 0; i < 4; i++) s += c[Math.floor(Math.random() * c.length)]; return "NR-" + s; }
     function text(r, when) {
       var q = quote();
       return [(CAL ? "Booking " : "Booking request ") + r, q.s.name + ", " + homeLine(q),
@@ -922,7 +938,8 @@
     form.addEventListener("submit", function (e) {
       e.preventDefault();
       if (!validate(LAST)) return;
-      if (!ref) ref = newRef();
+      if (!ref) ref = newRef("NR");
+      if (!attempt) attempt = newAttempt();
       save();
       var r = ref, q = quote(), slot = slotById(state.slot), z = q.zone;
       var when = whenText();
@@ -958,7 +975,9 @@
         "Getting in": val("f-access") + buildingText(), "Pets": radioVal("pets"), "Products": radioVal("products"),
         "Referred by": val("f-referrer") || "None",
         "Notes": val("f-notes") || "None", "Confirm by": radioVal("contactPref")
-      }).then(function (res) {
+      }, "booking", { ref: r, attempt: attempt }).then(function (res) {
+        // The sheet may have issued a different reference (if this one was taken): show the one it saved.
+        if (res && res.reference) r = res.reference;
         track("generate_lead", { form: "booking", service: state.service, value: Math.round(q.first), currency: C.currency }, true);
         last = { ref: r, date: state.flex || CAL ? null : state.date, slot: slot, hours: q.hours, service: q.s.name, address: val("f-address") };
         var info = { r: r, q: q, slot: slot, email: email, firstName: firstName, skipped: !!(res && res.skipped),
@@ -967,13 +986,13 @@
         if (CAL && !info.skipped) showCalendar(info);
         else showDone(info, false, null);
         // The request is in: personal details leave this device. The home choices stay, for booking again.
-        ref = null;
+        ref = null; attempt = null;
         store(DETAILS_KEY, null, true);
       }).catch(function () {
         track("request_not_confirmed", { service: state.service });
         var err = $("[data-form-error]");
         err.innerHTML = "We couldn't confirm that your request reached us. Please " + (B.phone ? "<a href=\"sms:" + B.phone + "?&body=" + encodeURIComponent(text(r)) + "\">text it to us</a> or " : "") +
-          "<a href=\"" + mailHref("Booking request " + r, text(r)) + "\">email it</a>, with your details filled in. Or try again: your request keeps the same reference, " + esc(r) + ", so it can't become two bookings.";
+          "<a href=\"" + mailHref("Booking request " + r, text(r)) + "\">email it</a>, with your details filled in. Or try again: it keeps the same reference, " + esc(r) + ", so if both reach us, " + esc(B.ownerFirstName) + " will match them up as one request.";
         err.hidden = false;
       }).then(function () { btn.disabled = false; btn.innerHTML = btnLabel; });
     });
@@ -983,8 +1002,8 @@
       var when = booked ? (start ? fmtStart(start) : "The time you picked (see your Cal.com email)") : whenLine();
       $("[data-progress]").hidden = true;
       $("[data-summary]").hidden = true;
-      $(".book-head h1").textContent = booked ? "You're booked" : "Request sent";
-      $("[data-done-label]").textContent = booked ? "Booking confirmed" : "Request sent · not confirmed yet";
+      $(".book-head h1").textContent = booked ? "You're booked" : "Request received";
+      $("[data-done-label]").textContent = booked ? "Booking confirmed" : "Request received · not confirmed yet";
       $("[data-ref]").textContent = info.r;
       var rows = [
         ["Status", booked ? "Confirmed for the time you picked." : "Waiting for " + B.ownerFirstName + " to confirm. Your time is held only once " + B.ownerFirstName + " confirms it with you."],
@@ -1184,12 +1203,31 @@
   }
 
   /* ---------- Delivery ---------- */
+  // Long text cut at the last whole word, ending in "…".
+  function shortenAtWord(text, max) {
+    text = String(text || "").trim();
+    if (text.length <= max) return text;
+    var cut = text.slice(0, max + 1), at = cut.lastIndexOf(" ");
+    return (at > 0 ? cut.slice(0, at) : text.slice(0, max)).trim() + "…";
+  }
   function phoneOk(v) { var d = String(v).replace(/\D/g, ""); return d.length === 10 || (d.length === 11 && d[0] === "1"); }
   function emailOk(v) { return !v || /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v); }
-  // Only an explicit success from the form service counts as sent. An empty, unreadable or unexpected
-  // reply is treated as a failure, so the customer is never told "sent" without that confirmation.
-  function send(data) {
+  // A request's reference (NR-XXXX, or GIFT-XXXX for gift cards) and attempt ID. Both stay the same across retries
+  // of one request, so the Google Sheet saves it once however many times it arrives.
+  function newRef(prefix) { var c = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789", s = ""; for (var i = 0; i < 4; i++) s += c[Math.floor(Math.random() * c.length)]; return prefix + "-" + s; }
+  function newAttempt() {
+    var c = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789", n = new Uint8Array(20), s = "";
+    if (window.crypto && crypto.getRandomValues) crypto.getRandomValues(n); else for (var j = 0; j < 20; j++) n[j] = Math.floor(Math.random() * 256);
+    for (var i = 0; i < 20; i++) s += c[n[i] % c.length];
+    return s;
+  }
+  function newIds(prefix) { return { ref: newRef(prefix), attempt: newAttempt() }; }
+  // Only an explicit success counts as sent. An empty, unreadable or unexpected reply is treated as a failure,
+  // so the customer is never told "sent" without that confirmation.
+  // form: booking | quote | gift | review | pricetext. ids: { ref, attempt }, kept by the form until a success.
+  function send(data, form, ids) {
     if (PREVIEW || !C.delivery || C.delivery.provider === "none") return Promise.resolve({ skipped: true });
+    if (C.delivery.provider === "sheet") return sendSheet(data, form, ids || newIds("NR"));
     return fetch(C.delivery.endpoint, {
       method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify(data)
     }).then(function (r) {
@@ -1201,16 +1239,42 @@
       });
     });
   }
+  // The Google Sheet script (tools/sheet/Code.gs). A plain-text body keeps this a "simple" request, so the browser
+  // sends it without the preflight Google's script can't answer. Saved only when the script answers ok with a reference.
+  function sendSheet(data, form, ids) {
+    var fields = {};
+    Object.keys(data).forEach(function (k) {
+      if (k[0] !== "_" && k !== "email" && k !== "Reference" && k !== "Status" && data[k] !== undefined) fields[k] = data[k];
+    });
+    var payload = { form: form, reference: ids.ref, attempt: ids.attempt, honey: data._honey || "", email: data._replyto || "", fields: fields };
+    return fetch(C.delivery.endpoint, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(payload) }).then(function (r) {
+      return r.text().then(function (t) {
+        var j = null;
+        try { j = JSON.parse(t); } catch (e) { /* not JSON: handled below */ }
+        if (!r.ok || !j || j.ok !== true || typeof j.reference !== "string" || !j.reference) throw new Error((j && j.error) || "Not confirmed");
+        return j;
+      });
+    });
+  }
 
   /* ---------- Quote forms ---------- */
   function bindQuote() {
     var form = $("[data-quote-form]");
     if (!form) return;
-    var name = form.getAttribute("data-quote-name");
-    // Arriving from the booking form (a home over about 3,000 sq ft): its home details are carried into the notes.
-    var carried = new URLSearchParams(location.search).get("notes");
-    var notesBox = $("#q-notes", form);
-    if (carried && notesBox && !notesBox.value) notesBox.value = carried.slice(0, 600);
+    var name = form.getAttribute("data-quote-name"), qIds = null;
+    // Arriving from the booking form (a home over about 3,000 sq ft): what the customer already told us is filled in.
+    // Only on that route, only within 30 minutes, and the handoff is deleted once read.
+    if (new URLSearchParams(location.search).get("from") === "booking") {
+      var h = store(HANDOFF_KEY, undefined, true);
+      store(HANDOFF_KEY, null, true);
+      if (h && h.at && Date.now() - h.at <= HANDOFF_MS) {
+        var pc = $("#q-postal", form), fq = $("#q-frequency", form), nb = $("#q-notes", form);
+        if (pc && h.postal && !pc.value) pc.value = String(h.postal).slice(0, 7);
+        if (fq && $$("option", fq).some(function (o) { return o.value === h.often; })) fq.value = h.often;
+        if (nb && !nb.value) nb.value = ("From the booking form: " + h.service + ", " + h.home + (h.checks && h.checks.length ? ". Home: " + h.checks.join(", ") : "") +
+          (h.extras && h.extras.length ? ". Extras: " + h.extras.join(", ") : "") + ".").slice(0, 600);
+      }
+    }
     function qCheck(el) {
       var v = el.value.trim(), m = "";
       if (el.hasAttribute("data-required") && v.length < 2) m = "Add your " + el.name.toLowerCase() + ".";
@@ -1235,7 +1299,8 @@
       var data = { _subject: "New quote request: " + name, _template: "table", _captcha: "false", "Service": name };
       $$("input, select, textarea", form).forEach(function (el) {
         if (el.name === "_honey") data._honey = el.value;
-        else if (el.name) data[el.name] = el.value.trim() || "—";
+        // A dropdown left on "Choose one" is sent as such, never as the first option.
+        else if (el.name) data[el.name] = el.tagName === "SELECT" && !el.value ? "Not chosen" : el.value.trim() || "—";
       });
       if (data.Email && data.Email !== "—") {
         data._replyto = data.email = data.Email;
@@ -1244,7 +1309,9 @@
       delete data.Email;
       var btn = $('button[type="submit"]', form);
       btn.disabled = true; btn.textContent = "Sending…";
-      send(data).then(function (res) {
+      qIds = qIds || newIds("NR");
+      send(data, "quote", qIds).then(function (res) {
+        qIds = null;
         track("generate_lead", { form: "quote", service: name }, true);
         form.hidden = true;
         var done = $("[data-quote-done]");
@@ -1270,7 +1337,7 @@
   function bindGift() {
     var form = $("[data-gift-form]");
     if (!form) return;
-    var them = $("[data-gift-them]");
+    var them = $("[data-gift-them]"), gIds = null;
     form.addEventListener("change", function (e) {
       if (e.target.name === "send") them.hidden = e.target.value.indexOf("them") === -1;
     });
@@ -1296,7 +1363,8 @@
       $$(checked, form).forEach(function (el) { if (!gCheck(el) && !first) first = el; });
       if (first) { err.textContent = "Please fix the highlighted fields."; err.hidden = false; first.focus(); return; }
       err.hidden = true;
-      var r = "GIFT-" + Math.random().toString(36).slice(2, 6).toUpperCase();
+      gIds = gIds || newIds("GIFT");
+      var r = gIds.ref;
       var amount = ($('input[name="amount"]:checked', form) || {}).value;
       var mine = $("#g-email").value.trim(), name = $("#g-name").value.trim();
       var data = { _subject: "New gift card request " + r + ": " + money(+amount), _template: "table", _captcha: "false", _replyto: mine, email: mine,
@@ -1308,7 +1376,9 @@
       });
       var btn = $('button[type="submit"]', form);
       btn.disabled = true; btn.textContent = "Sending…";
-      send(data).then(function (res) {
+      send(data, "gift", gIds).then(function (res) {
+        gIds = null;
+        if (res && res.reference) r = res.reference;
         track("generate_lead", { form: "gift", value: +amount, currency: C.currency }, true);
         form.hidden = true;
         var done = $("[data-gift-done]");
@@ -1333,6 +1403,7 @@
   function bindReview() {
     var form = $("[data-review-form]");
     if (!form) return;
+    var rIds = null;
     form.addEventListener("submit", function (e) {
       e.preventDefault();
       var err = $("[data-review-error]");
@@ -1343,9 +1414,11 @@
       err.hidden = true;
       var btn = $('button[type="submit"]', form);
       btn.disabled = true;
+      rIds = rIds || newIds("NR");
       send({ _subject: "New review: " + rating + " stars from " + nm, _template: "table", _captcha: "false", _honey: $('[name="_honey"]', form).value,
         "Rating": rating + " / 5", "Name": nm, "Neighbourhood": $("#rv-area").value.trim(), "Service": $("#rv-service").value, "Review": tx, "Booked with": ct
-      }).then(function (res) {
+      }, "review", rIds).then(function (res) {
+        rIds = null;
         form.hidden = true;
         if (res && res.skipped) $("[data-review-done-text]").textContent = "Preview only: reviews aren't sent from this preview.";
         var done = $("[data-review-done]");
