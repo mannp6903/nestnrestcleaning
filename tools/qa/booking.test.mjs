@@ -3,13 +3,13 @@ import { test, assert, newPage, mockDelivery, loadConfig } from "./lib.mjs";
 
 const total = async (p) => (await p.textContent("[data-total]")).trim();
 const extra = (id) => `label.extra[data-addon="${id}"]`;
-async function fillDetails(p, name = "Priya Sample") {
+export async function fillDetails(p, name = "Priya Sample") {
   await p.fill("#f-name", name);
   await p.fill("#f-phone", "647 555 0123");
   await p.fill("#f-address", "1 Example St, Unit 1");
 }
 // From the price-box link to the details step, with a preferred day and window chosen.
-async function toDetails(p, url, query = "?s=regular&h=condo&bd=2&ba=1") {
+export async function toDetails(p, url, query = "?s=regular&h=condo&bd=2&ba=1") {
   await p.goto(url + "/book/" + query);
   await p.fill("#f-postal", "M2N 5W9");
   await p.click("[data-next]");

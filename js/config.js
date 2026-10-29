@@ -40,6 +40,10 @@ window.NR_CONFIG = {
   /* Where booking requests, quotes and reviews are delivered.
      "formsubmit" emails each one to the address below through formsubmit.co (free, no account).
      The first request sends a one-time activation email to that inbox: click "Activate". */
+  /* Where the website's forms go. "formsubmit" emails each request to the inbox below.
+     To save every request to your Google Sheet instead (docs/google-sheet-setup.md), use:
+       delivery: { provider: "sheet", endpoint: "https://script.google.com/macros/s/…/exec" },
+     then run `node tools/build.mjs` so the privacy notes name the sheet. */
   delivery: {
     provider: "formsubmit",
     endpoint: "https://formsubmit.co/ajax/nestnrestcleaning@gmail.com"

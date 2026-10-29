@@ -19,6 +19,11 @@ const C = sandbox.window.NR_CONFIG;
 const B = C.business;
 const SITE = C.siteUrl.replace(/\/$/, "");
 const BRAND_SHORT = "Nest & Rest";
+// Where form requests go: "formsubmit" (email) or "sheet" (Mann's Google Sheet). NR_PROVIDER overrides it for tests.
+const SHEET = (process.env.NR_PROVIDER || (C.delivery || {}).provider) === "sheet";
+const SENT_VIA = SHEET
+  ? "Your request is saved to our Google Sheet and emailed to our Gmail inbox (both Google), which may store data outside Canada."
+  : "Your request is sent through FormSubmit to our Google email inbox, which may store data outside Canada.";
 // Scripts are deferred on the live site so they never block the first paint. The preview inlines a flag between them, so it loads them in order instead.
 const DEFER = PREVIEW_DIR ? "" : " defer";
 const YEAR = new Date().getFullYear();
@@ -614,7 +619,7 @@ function quoteForm(L, { name, title = "Request a free quote", reply, fields, but
         <p class="form-error" data-q-error role="alert" hidden></p>
         <button type="submit" class="btn btn-primary btn-block">${esc(button)}</button>
         <p class="pricer-fine">Reply ${esc(reply)} · No obligation</p>
-        <p class="privacy-note">${note ? esc(note) + " " : ""}Your request is sent through FormSubmit to our Google email inbox, which may store data outside Canada. See our <a href="${L("privacy/")}">Privacy Policy</a>.</p>
+        <p class="privacy-note">${note ? esc(note) + " " : ""}${SENT_VIA} See our <a href="${L("privacy/")}">Privacy Policy</a>.</p>
       </form>
       <div class="quote-done" data-quote-done hidden tabindex="-1"><p class="label">Request received</p><h2 data-qd-title>Thank you.</h2><p data-qd-text></p></div>`;
 }
@@ -1007,7 +1012,7 @@ urls.push(page({
                 ? `Next, you pick a time on ${esc(B.ownerFirstName)}'s calendar and it's confirmed straight away. Nothing to pay until it's done. Free to change up to ${C.policies.cancelNoticeHours} hours before. ${LATE_FEE_LINE}`
                 : `This is a booking request. Your time is held only after ${esc(B.ownerFirstName)} confirms it with you, along with the final price. Nothing to pay until it's done. Free to change up to ${C.policies.cancelNoticeHours} hours before. ${LATE_FEE_LINE}`}</span></p>
               <p class="privacy-note span-2">Your booking is with ${esc(B.name)}, owned and operated by ${esc(B.owner)}, ${ADDR ? esc(ADDR) : `${esc(B.base)}, Ontario`}. ${PHONE ? `<a data-tel href="tel:${B.phone}">${esc(B.phoneDisplay)}</a> · ` : ""}<a data-mailto href="mailto:${B.email}">${esc(B.email)}</a></p>
-              <p class="privacy-note span-2">By sending, you agree to our <a href="${L("policies/")}">Service Policies</a>. We use your details only to arrange your clean. Your request is sent through FormSubmit to our Google email inbox${CAL ? ", and the time you pick is booked on Cal.com, our booking calendar. Both" : ", which"} may store data outside Canada. Your details stay in this browser tab only until you send. See our <a href="${L("privacy/")}">Privacy Policy</a>. <button type="button" class="link-btn link-btn-sm" data-clear-details>Clear my details from this device</button></p>
+              <p class="privacy-note span-2">By sending, you agree to our <a href="${L("policies/")}">Service Policies</a>. We use your details only to arrange your clean. ${SHEET ? "Your request is saved to our Google Sheet and emailed to our Gmail inbox (both Google)" : "Your request is sent through FormSubmit to our Google email inbox"}${CAL ? ", and the time you pick is booked on Cal.com, our booking calendar. " + (SHEET ? "All" : "Both") : ", which"} may store data outside Canada. Your details stay in this browser tab only until you send. See our <a href="${L("privacy/")}">Privacy Policy</a>. <button type="button" class="link-btn link-btn-sm" data-clear-details>Clear my details from this device</button></p>
               <input type="text" name="_honey" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
             </div>
             <p class="form-error" data-form-error role="alert" hidden></p>
@@ -1030,7 +1035,7 @@ urls.push(page({
         </div>
 
         ` : ""}<div class="done" data-done hidden tabindex="-1">
-          <p class="label" data-done-label>Request sent · not confirmed yet</p>
+          <p class="label" data-done-label>Request received · not confirmed yet</p>
           <h2 data-done-title>Thank you.</h2>
           <p data-done-text></p>
           <p class="ref">Reference <strong data-ref></strong></p>
@@ -1625,7 +1630,7 @@ if (gift && gift.active) {
         <p class="form-error" data-gift-error role="alert" hidden></p>
         <button type="submit" class="btn btn-primary btn-block">Request gift card</button>
         <p class="pricer-fine">Nothing to pay now. We text you to confirm and send an Interac e-Transfer request.</p>
-        <p class="privacy-note">Your request is sent through FormSubmit to our Google email inbox, which may store data outside Canada. See our <a href="${L("privacy/")}">Privacy Policy</a> and <a href="${L("policies/#gift")}">gift card terms</a>.</p>
+        <p class="privacy-note">${SENT_VIA} See our <a href="${L("privacy/")}">Privacy Policy</a> and <a href="${L("policies/#gift")}">gift card terms</a>.</p>
       </form>
       <div class="quote-done" data-gift-done hidden tabindex="-1"><p class="label">Request received</p><h2 data-gd-title>Thank you.</h2><p data-gd-text></p><p class="ref">Reference <strong data-gd-ref></strong></p></div>
     </div>
@@ -1872,7 +1877,7 @@ ${founding && founding.active
         ? `<li><h3>Details sent</h3><p>Your details reach ${esc(B.ownerFirstName)} first, with a reference (NR-…), so nothing is lost if the calendar doesn't load.</p></li>
       <li><h3>You pick a time</h3><p>The time you pick on the calendar is confirmed straight away, and Cal.com emails you the confirmation with links to reschedule or cancel.</p></li>
       <li><h3>${esc(B.ownerFirstName)} checks in</h3><p>${esc(B.ownerFirstName)} contacts you ${esc(B.replyPromise)} to go over the details. You pay after the clean.</p></li>`
-        : `<li><h3>Request sent</h3><p>You get a reference (NR-…). Nothing is booked yet, and nothing is charged.</p></li>
+        : `<li><h3>Request received</h3><p>You get a reference (NR-…). Nothing is booked yet, and nothing is charged.</p></li>
       <li><h3>${esc(B.ownerFirstName)} reviews it</h3><p>${esc(B.ownerFirstName)} checks your home, the time it needs and the day you asked for, then replies ${esc(B.replyPromise)}, by text, call or email as you chose.</p></li>
       <li><h3>Confirmed</h3><p>You agree the day, arrival window and final price. Your time is held from then. You pay after the clean.</p></li>`}
     </ol>
@@ -2013,7 +2018,7 @@ legalPage({
         <li><strong>Google</strong> provides our email service, where booking, quote, gift card and review messages are stored.</li>
         ${CAL ? `<li><strong>Cal.com</strong> (cal.com) runs our booking calendar. When you pick a time, it receives your name, email, phone number and booking details, and emails your confirmation. It may store data outside Canada.</li>
         ` : ""}${GA ? `<li><strong>Google Analytics</strong> (Google LLC) measures how visitors use this website: the pages viewed, how they arrived (for example from our flyer or business card), the type of device and an approximate location. It doesn't receive anything you type into our forms, and it stores data in the United States.</li>
-        ` : ""}<li><strong>FormSubmit</strong> (formsubmit.co) delivers the website's forms to our email inbox. If you give your email address, it may also send you an automatic acknowledgement. ${esc(B.ownerFirstName)}'s own reply is what confirms a booking.</li>
+        ` : ""}${SHEET ? `<li><strong>Google Sheets and Gmail</strong> (Google) store and deliver the website's forms: each request is saved to our Google Sheet and emailed to our Gmail inbox. If you give your email address, you get an automatic receipt that only confirms your request arrived. ${esc(B.ownerFirstName)}'s own reply is what confirms a booking.</li>` : `<li><strong>FormSubmit</strong> (formsubmit.co) delivers the website's forms to our email inbox. If you give your email address, it may also send you an automatic acknowledgement. ${esc(B.ownerFirstName)}'s own reply is what confirms a booking.</li>`}
         ${B.whatsapp ? `<li><strong>WhatsApp</strong> (WhatsApp LLC, part of Meta Platforms) delivers and stores messages if you choose to contact us on WhatsApp.</li>
         ` : ""}<li><strong>Your bank or card payment provider</strong> processes payments you make by Interac e-Transfer or card.</li>
       </ul>

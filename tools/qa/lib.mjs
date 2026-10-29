@@ -48,6 +48,9 @@ export async function newPage(browser, { width = 1280, height = 900, theme = "li
   const page = await ctx.newPage();
   page.posts = [];
   page.deliveryMode = "ok";
+  page.sheetMode = "ok";
+  page.sheetPosts = [];
+  page.sheetRequests = [];
   page.errors = [];
   page.on("pageerror", (e) => page.errors.push(e.message));
   await page.route(/googletagmanager|google-analytics|cal\.com/, (r) => r.abort());
@@ -60,9 +63,33 @@ export async function newPage(browser, { width = 1280, height = 900, theme = "li
     if (mode === "neterr") return r.abort();
     return r.fulfill({ status: 200, contentType: "application/json", body: '{"success":"true","message":"The form was submitted successfully."}' });
   });
+  await routeSheet(page);
   return page;
 }
 export function mockDelivery(page, mode) { page.deliveryMode = mode; }
+// The Google Sheet script, answered locally (page.sheetPosts collects every request body).
+// ok and dup echo the posted reference; clash answers with a different one, as the script does when a reference is taken.
+async function routeSheet(page) {
+  await page.route(/script\.google\.com/, async (r) => {
+    const req = r.request();
+    page.sheetRequests.push({ method: req.method(), headers: req.headers() });
+    let body = null;
+    try { body = JSON.parse(req.postData() || "null"); } catch (e) { /* recorded as null */ }
+    page.sheetPosts.push(body);
+    const mode = page.sheetMode, cors = { "Access-Control-Allow-Origin": "*" };
+    if (mode === "neterr") return r.abort();
+    if (mode === "http500") return r.fulfill({ status: 500, headers: cors, body: "Server error" });
+    if (mode === "badjson") return r.fulfill({ status: 200, headers: cors, body: "<html>ok</html>" });
+    if (mode === "notok") return r.fulfill({ status: 200, headers: cors, contentType: "application/json", body: '{"ok":false,"error":"Missing: Phone"}' });
+    const reference = mode === "clash" ? "NR-ZZ99" : body && body.reference;
+    return r.fulfill({ status: 200, headers: cors, contentType: "application/json", body: JSON.stringify({ ok: true, reference, duplicate: mode === "dup" }) });
+  });
+}
+// Serves js/config.js with extra lines appended, e.g. to switch the provider or the founding offer for one test.
+export async function withConfig(page, js) {
+  const src = fs.readFileSync(path.join(ROOT, "js/config.js"), "utf8") + "\n" + js + "\n";
+  await page.route(/\/js\/config\.js/, (r) => r.fulfill({ status: 200, contentType: "text/javascript", body: src }));
+}
 export async function closeAll() { for (const c of [...openContexts]) await c.close().catch(() => {}); }
 
 // WCAG contrast ratio between two CSS colours. A translucent foreground is laid over the background first.
