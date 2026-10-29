@@ -120,7 +120,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 [hidden] { display: none !important; }
 :focus-visible { outline: 3px solid var(--sky); outline-offset: 3px; border-radius: 4px; }
 /* Enlarged text: long words wrap rather than push the page sideways, and grid columns may shrink below their longest word. */
-h1, h2, h3, h4 { overflow-wrap: break-word; hyphens: auto; }
+h1, h2, h3, h4 { overflow-wrap: break-word; }
 p, li, dd, dt, label, summary, figcaption { overflow-wrap: break-word; }
 a[href^="mailto:"] { overflow-wrap: anywhere; }
 .split > *, .split-head > *, .district > *, .district-head > *, .trust li > span, .svc-grid > li, .plan-grid > *, .freq-grid > * { min-width: 0; }
