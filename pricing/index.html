@@ -28,7 +28,7 @@
 <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
 <link rel="preload" href="../assets/fonts/plus-jakarta-sans.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="../assets/fonts/dm-sans.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="../css/site.css?v=82f881cb">
+<link rel="stylesheet" href="../css/site.min.css?v=cd7bb84f">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://nestnrestcleaning.com/"},{"@type":"ListItem","position":2,"name":"Pricing","item":"https://nestnrestcleaning.com/pricing/"}]}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How is my price calculated?","acceptedAnswer":{"@type":"Answer","text":"Your price is based on the service, the number of bedrooms and bathrooms, the type of home and any extras you add. You see it before you book. If your home needs much more or less time than expected, we tell you before we start, never after."}},{"@type":"Question","name":"Do I pay when I book?","acceptedAnswer":{"@type":"Answer","text":"No. There's no deposit. You pay after the clean by Interac e-Transfer, credit or debit card, or cash."}},{"@type":"Question","name":"Should I book a deep clean first?","acceptedAnswer":{"@type":"Answer","text":"If your home hasn't had a professional clean in the last few months, yes. A deep clean resets the build-up so every regular visit after it stays quick and consistent."}},{"@type":"Question","name":"Are supplies included in the price?","acceptedAnswer":{"@type":"Answer","text":"Yes. Every price includes our products and equipment: cloths, mops, a vacuum and cleaning products. There's nothing extra to buy."}},{"@type":"Question","name":"Why do townhouses and houses cost more?","acceptedAnswer":{"@type":"Answer","text":"A townhouse or house usually has stairs, more floor area and more entrances than a condo with the same number of bedrooms, so it takes longer to clean. The price box adjusts for this automatically."}},{"@type":"Question","name":"Do regular plans cost less?","acceptedAnswer":{"@type":"Answer","text":"Yes. Visits every week, every 2 weeks or every 4 weeks cost less than a one-time clean, and you can pause or change your plan with 24 hours' notice."}}]}</script>
 </head>
@@ -84,7 +84,7 @@
     <a class="brand" href="../" aria-label="Nest &amp; Rest Cleaning, home"><img class="logo-light" src="../assets/logo.svg" alt="Nest &amp; Rest Cleaning" width="772" height="210"><img class="logo-dark" src="../assets/logo-white.svg" alt="Nest &amp; Rest Cleaning" width="772" height="210"></a>
     <nav class="nav-desktop" aria-label="Main">
       <a href="../#services">Services</a>
-      <a href="../pricing/">Pricing</a>
+      <a href="../pricing/" class="is-current" aria-current="page">Pricing</a>
       <a href="../#areas">Areas</a>
       <a href="../#how">How it works</a>
       <a href="../help/">Help</a>
@@ -100,24 +100,27 @@
 </header>
 <div class="menu" id="menu" hidden>
   <div class="wrap menu-inner">
+    <a class="btn btn-primary btn-block menu-book" href="../book/" data-track="book_click">Book a clean</a>
     <p class="label">Services</p>
     <ul class="menu-list">
       <li><a href="../services/regular-home-cleaning/">Regular Cleaning</a></li><li><a href="../services/deep-cleaning/">Deep Cleaning</a></li><li><a href="../services/move-in-move-out-cleaning/">Move-In / Move-Out</a></li><li><a href="../services/kitchen-and-bath-detailing/">Kitchen &amp; Bath Detailing</a></li><li><a href="../services/residence-care/">Residence Care</a></li><li><a href="../services/office-cleaning/">Office Cleaning</a></li>
     </ul>
-    <p class="label">More</p>
+    <p class="label">Plan your clean</p>
     <ul class="menu-list menu-list-sm">
       <li><a href="../pricing/">Pricing</a></li>
-      <li><a href="../#areas">Areas we serve</a></li>
       <li><a href="../#how">How booking works</a></li>
+      <li><a href="../#areas">Areas we serve</a></li>
+      <li><a href="../#faq">Questions</a></li>
       <li><a href="../help/">Help &amp; your booking</a></li>
+    </ul>
+    <p class="label">About us</p>
+    <ul class="menu-list menu-list-sm">
+      <li><a href="../vision/">Our vision</a></li>
+      <li><a href="../guides/">Guides</a></li>
       <li><a href="../gift/">Gift a clean</a></li>
       <li><a href="../realtors/">Realtors &amp; property managers</a></li>
-      <li><a href="../guides/">Guides</a></li>
-      <li><a href="../vision/">Our vision</a></li>
-      <li><a href="../#faq">Questions</a></li>
     </ul>
     <div class="menu-cta">
-      <a class="btn btn-primary btn-block" href="../book/">Book a clean</a>
       
       <a class="btn btn-ghost btn-block" data-mailto href="mailto:nestnrestcleaning@gmail.com">Email Mann</a>
     </div>
@@ -131,7 +134,6 @@
   <div class="wrap"><nav class="crumbs" aria-label="Breadcrumb"><ol><li><a href="../">Home</a></li><li aria-current="page">Pricing</li></ol></nav></div>
   <div class="wrap hero-grid">
     <div class="hero-copy">
-      <p class="kicker">Pricing</p>
       <h1 class="display display-sub">House cleaning prices, up front<span class="stop">.</span></h1>
       <p class="lede">Your price is set by the service, the size and type of your home, and any extras you choose. You see it before you book, there's no deposit, and you pay after the clean.</p>
       <dl class="facts">
@@ -139,6 +141,10 @@
         <div><dt>Deep</dt><dd>From <span data-from="deep">$235</span></dd></div>
         <div><dt>Move-out</dt><dd>From <span data-from="move">$250</span></dd></div>
       </dl>
+      <picture class="photo hero-photo">
+      <source type="image/webp" srcset="../assets/photos/kitchen-600.webp 600w, ../assets/photos/kitchen-928.webp 928w" sizes="(min-width: 960px) 520px, 92vw">
+      <img src="../assets/photos/kitchen-928.jpg" srcset="../assets/photos/kitchen-600.jpg 600w, ../assets/photos/kitchen-928.jpg 928w" sizes="(min-width: 960px) 520px, 92vw" alt="A spotless kitchen counter and sink with a folded teal cloth and a glass spray bottle" width="928" height="1152" loading="lazy" decoding="async">
+    </picture>
     </div>
     <div class="hero-pricer"><form class="pricer" data-pricer data-default-service="regular" novalidate>
   <div class="pricer-head">
@@ -182,6 +188,7 @@
   </div>
   <a class="btn btn-primary btn-block" href="../book/" data-p-go data-track="pricer_continue">Book this clean <svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></a>
   <p class="pricer-next"><svg class="ic" aria-hidden="true"><use href="#i-cal"/></svg><span>Earliest day to request: <strong data-next-open>tomorrow</strong></span></p>
+  <p class="pricer-owner"><picture><source type="image/webp" srcset="../assets/founder-mann-patel-avatar.webp"><img src="../assets/founder-mann-patel-avatar.jpg" alt="" width="40" height="40" loading="lazy" decoding="async"></picture><span><strong>Mann Patel, owner,</strong> confirms your day, time and final price.</span></p>
   <div class="pricer-alt">
     <a class="link-btn" data-p-incl href="../services/regular-home-cleaning/#included"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg> What's included</a>
     <button type="button" class="link-btn" data-textme-open aria-expanded="false" aria-controls="textme-regular"><svg class="ic" aria-hidden="true"><use href="#i-sms"/></svg> Text me this price</button>
@@ -195,6 +202,13 @@
   </div>
   <p class="pricer-fine"><span data-tax-note>No HST charged</span> · No payment to book · Free re-clean guarantee</p>
 </form></div>
+  </div>
+</section>
+
+<section class="section section-flush" id="which">
+  <div class="wrap">
+    <div class="section-head"><p class="label">Not sure which?</p><h2>Which clean do I need?</h2></div>
+    <ul class="chooser"><li><a href="../services/regular-home-cleaning/"><span class="chooser-when">You&#39;d like the home kept right, every week or two</span><span class="chooser-what"><strong>Regular Home Cleaning</strong><span>From <b data-from="regular">$145</b></span></span><svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></a></li><li><a href="../services/deep-cleaning/"><span class="chooser-when">It&#39;s your first professional clean, or it&#39;s been a few months</span><span class="chooser-what"><strong>Deep Cleaning</strong><span>From <b data-from="deep">$235</b></span></span><svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></a></li><li><a href="../services/move-in-move-out-cleaning/"><span class="chooser-when">You&#39;re moving out or in, and the home is empty</span><span class="chooser-what"><strong>Move-In / Move-Out Cleaning</strong><span>From <b data-from="move">$250</b></span></span><svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></a></li><li><a href="../services/kitchen-and-bath-detailing/"><span class="chooser-when">Only the kitchen and bathrooms need attention</span><span class="chooser-what"><strong>Kitchen &amp; Bath Detailing</strong><span>From <b data-from="detail">$165</b></span></span><svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></a></li><li><a href="../services/residence-care/"><span class="chooser-when">The home is over about 3,000 sq ft, or has stone and fine finishes</span><span class="chooser-what"><strong>Residence Care</strong><span>Free quote</span></span><svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></a></li></ul>
   </div>
 </section>
 
@@ -400,7 +414,6 @@
 <section class="section faq-section section-tint" id="faq">
   <div class="wrap split">
     <div class="split-head">
-      <p class="label">Questions</p>
       <h2>Pricing questions<span class="stop">.</span></h2>
       <p class="muted">Anything else? Email <a data-mailto href="mailto:nestnrestcleaning@gmail.com">nestnrestcleaning@gmail.com</a>.</p>
     </div>
@@ -480,6 +493,6 @@
 <div class="toast" data-toast role="status" aria-live="polite" hidden></div>
 <script defer src="../js/config.js?v=277d64b6"></script>
 
-<script defer src="../js/site.js?v=be149aaf"></script>
+<script defer src="../js/site.min.js?v=3f7fb91e"></script>
 </body>
 </html>

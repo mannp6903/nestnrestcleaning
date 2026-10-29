@@ -124,6 +124,63 @@ export default async function () {
     assert(!bad.length, "unexpected booking labels: " + [...new Set(bad)].join("; "));
   });
 
+  test("the phone menu leads with Book a clean, fully in view", async ({ browser, url }) => {
+    const p = await newPage(browser, { width: 390, height: 844 });
+    for (const y of [0, 600]) {
+      await p.goto(url + "/");
+      await p.evaluate((v) => window.scrollTo(0, v), y);
+      await p.click(".menu-btn");
+      const r = await p.evaluate(() => {
+        const first = document.querySelector("#menu a"), b = first.getBoundingClientRect(), hit = document.elementFromPoint(b.left + b.width / 2, b.top + 4);
+        return { text: first.textContent.trim(), clear: !!(hit && first.contains(hit)), groups: [...document.querySelectorAll("#menu .label")].map((l) => l.textContent.trim()) };
+      });
+      assert(r.text === "Book a clean" && r.clear, `scrolled ${y}px: the menu should open with Book a clean in full view: ` + JSON.stringify(r));
+      assert(JSON.stringify(r.groups) === '["Services","Plan your clean","About us"]', "menu groups: " + r.groups);
+    }
+  });
+
+  test("the desktop nav shows where you are", async ({ browser, url }) => {
+    const p = await newPage(browser, { width: 1440, height: 900 });
+    const current = async () => p.$$eval(".nav-desktop a.is-current", (as) => as.map((a) => a.textContent.trim() + (a.getAttribute("aria-current") ? ":" + a.getAttribute("aria-current") : "")));
+    await p.goto(url + "/pricing/");
+    assert(JSON.stringify(await current()) === '["Pricing:page"]', "pricing: " + await current());
+    await p.goto(url + "/services/deep-cleaning/");
+    assert(JSON.stringify(await current()) === '["Services"]', "a service page marks Services without aria-current: " + await current());
+    await p.goto(url + "/");
+    assert((await current()).length === 0, "the home page marks nothing");
+  });
+
+  test("pricing says which clean fits which situation", async ({ browser, url }) => {
+    const p = await newPage(browser, { width: 390, height: 844 });
+    await p.goto(url + "/pricing/");
+    const rows = await p.$$eval("#which .chooser a", (as) => as.map((a) => [a.getAttribute("href"), a.querySelector("strong").textContent.trim(), (a.querySelector("[data-from]") || {}).textContent || "quote"]));
+    assert(rows.length === 5, "five situations, got " + rows.length);
+    for (const [href, name, from] of rows) {
+      const s = Object.values(C.services).concat(Object.values(C.quoteServices)).find((x) => x.name === name);
+      assert(s && href.includes(s.slug), `${name} should link to its page, got ${href}`);
+      if (C.services[Object.keys(C.services).find((k) => C.services[k] === s)]) assert(from === "$" + s.base, `${name} should say from $${s.base}, got ${from}`);
+    }
+  });
+
+  test("inner price boxes carry Mann's confirmation; the home one doesn't repeat it", async ({ browser, url }) => {
+    const p = await newPage(browser, { width: 1440, height: 900 });
+    for (const path of ["/pricing/", "/services/deep-cleaning/", "/areas/scarborough/", "/areas/north-york/willowdale/"]) {
+      await p.goto(url + path);
+      const t = (await p.textContent("[data-pricer] .pricer-owner")).replace(/\s+/g, " ").trim();
+      assert(/confirms your day, time and final price/.test(t), `${path}: ${t}`);
+    }
+    await p.goto(url + "/");
+    assert(await p.locator("[data-pricer] .pricer-owner").count() === 0 && await p.isVisible(".hero-owner"), "home keeps its hero owner line only");
+  });
+
+  test("booking says when the price box filled things in", async ({ browser, url }) => {
+    const p = await newPage(browser, { width: 390, height: 844 });
+    await p.goto(url + "/book/?s=deep&h=house&bd=3&ba=2");
+    assert(await p.isVisible("[data-prefill]"), "arriving from a price box shows the note");
+    await p.goto(url + "/book/");
+    assert(await p.isHidden("[data-prefill]"), "arriving directly shows no note");
+  });
+
   test("headings never hyphenate", async ({ browser, url }) => {
     const p = await newPage(browser, { width: 1440, height: 900 });
     const bad = [];

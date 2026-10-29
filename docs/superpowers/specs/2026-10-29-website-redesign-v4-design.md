@@ -84,6 +84,19 @@ The build wraps a heading's closing full stop in `<span class="stop">` (`tidySto
 
 Unchanged: prices, discount rules, the checklist, booking fields and payload, form endpoints, the postal check, URLs, titles, descriptions, canonicals, structured data, analytics events and dark mode.
 
+## 6b. Round 2 (same day, after the first re-score of 79)
+
+The owner asked for 90 or more. Each change below fixes something the re-score still found; none of them is there to move the number.
+
+- **Navigation:** the phone menu opens with "Book a clean" and groups its links (Services, Plan your clean, About us). It now starts where the header ends: before, its top 44 px hid under the header while the offer bar was on screen. The desktop nav marks the section you're in (`aria-current="page"` only on a link to the page itself).
+- **Choosing a service:** "Which clean do I need?" on the pricing page: one situation per service, from the lightest clean up, linking to each service with its from-price (`CHOOSER` in `tools/build.mjs`).
+- **The owner at the point of decision:** inner price boxes carry "Mann Patel, owner, confirms your day, time and final price" with his photo; the done screen shows his photo beside "Mann has your request". The home page keeps its hero line instead.
+- **Booking:** arriving from a price box, step 1 says the choices came along, so nothing looks asked twice.
+- **Layout:** desktop heroes on pricing, area and neighbourhood pages show a room photo under the facts, so no column is left empty. Help's "Change, cancel or book again" sits beside its actions. Tighter rows on phones for room lists and questions.
+- **Labels:** a label above a heading is dropped where the heading already says the same thing ("Questions", "Pricing", "Prices", "Service area", "Help", and "Service" when a service has no tag).
+- **Motion:** questions and the comparison open with a short slide where supported; nothing under reduced motion.
+- **Speed:** pages load `css/site.min.css` and `js/site.min.js`, written by the build from the readable files (comments and spare spaces removed). Lab LCP went from 1.91–2.00 s at baseline to 1.84–1.95 s. The preview test fails if the compact copies are stale.
+
 ## 7. Verification
 
 - `tools/qa/v4.test.mjs`: scope lists match the checklist for every service; step-2 errors are inline with focus; money is tabular; the done screen drops the stale line; the price switcher (phone, keyboard, hash, computer); panels aligned; heading stops; one action vocabulary; nothing under 12 px on phones.

@@ -168,9 +168,9 @@ Both need Playwright with Chromium (`npm install -g playwright && npx playwright
 
 ```
 index.html, book/, services/, areas/, realtors/, gift/, guides/, help/, review/, 404.html   generated pages
-css/site.css       design system
+css/site.css       design system (edit this; the build writes css/site.min.css, which the pages load)
 js/config.js       business settings (edit this)
-js/site.js         pricing, booking, forms, WhatsApp, tracking
+js/site.js         pricing, booking, forms, WhatsApp, tracking (the build writes js/site.min.js, which the pages load)
 tools/build.mjs    page generator
 tools/guides.mjs   the guide articles
 tools/qa/          browser checks (see Checking the site)

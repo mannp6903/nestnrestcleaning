@@ -28,7 +28,7 @@
 <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
 <link rel="preload" href="../assets/fonts/plus-jakarta-sans.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="../assets/fonts/dm-sans.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="../css/site.css?v=82f881cb">
+<link rel="stylesheet" href="../css/site.min.css?v=cd7bb84f">
 
 </head>
 <body data-page="book" data-root="../">
@@ -102,6 +102,7 @@
         <form id="booking-form" class="booking-form" novalidate>
           <fieldset class="step" data-step="1">
             <legend>Your home</legend>
+            <p class="prefill-note" data-prefill hidden><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg><span>Your choices from the price box are filled in below. Add the postal code, check the details, and continue.</span></p>
             <div class="field"><label for="f-postal">Postal code of the home</label><input id="f-postal" name="postal" autocomplete="postal-code" autocapitalize="characters" maxlength="7" placeholder="e.g. M1B 2K3" required><small class="pc-result" data-pc-booking aria-live="polite"></small></div>
             <div class="field"><span class="field-label" id="svc-label">Service</span>
               <div class="choice-grid" role="radiogroup" aria-labelledby="svc-label">
@@ -254,7 +255,7 @@
         <div class="done" data-done hidden tabindex="-1">
           <p class="label" data-done-label>Request received · not confirmed yet</p>
           <h2 data-done-title>Thank you<span class="stop">.</span></h2>
-          <p data-done-text></p>
+          <div class="done-from"><picture><source type="image/webp" srcset="../assets/founder-mann-patel-avatar.webp"><img src="../assets/founder-mann-patel-avatar.jpg" alt="" width="48" height="48" loading="lazy" decoding="async"></picture><p data-done-text></p></div>
           <p class="ref">Reference <strong data-ref></strong></p>
           <dl class="done-list" data-done-list></dl>
           <div class="done-actions">
@@ -291,6 +292,6 @@
 <div class="toast" data-toast role="status" aria-live="polite" hidden></div>
 <script defer src="../js/config.js?v=277d64b6"></script>
 
-<script defer src="../js/site.js?v=be149aaf"></script>
+<script defer src="../js/site.min.js?v=3f7fb91e"></script>
 </body>
 </html>

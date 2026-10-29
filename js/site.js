@@ -1172,6 +1172,9 @@
     });
 
     restore();
+    // Arriving from a price box: say that its choices came along, so nothing looks asked twice.
+    var pre = $("[data-prefill]");
+    if (pre && /[?&]s=/.test(location.search)) pre.hidden = false;
     // A saved draft or an old link can't carry an extra this service includes or doesn't offer.
     normalizeAddons(true);
     normalizeSlot(false);
@@ -1498,6 +1501,8 @@
     if (btn && menu) {
       // While the menu is open the page behind it is inert, so keyboard focus stays in the header and the menu.
       var setMenu = function (open, returnFocus) {
+        // The menu starts where the header ends: lower while the offer bar is still on screen, so nothing hides under the header.
+        if (open) menu.style.top = Math.max(0, Math.round($(".site-header").getBoundingClientRect().bottom)) + "px";
         menu.hidden = !open;
         btn.setAttribute("aria-expanded", String(open));
         btn.setAttribute("aria-label", open ? "Close menu" : "Open menu");

@@ -28,7 +28,7 @@
 <link rel="apple-touch-icon" href="../../../assets/apple-touch-icon.png">
 <link rel="preload" href="../../../assets/fonts/plus-jakarta-sans.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="../../../assets/fonts/dm-sans.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="../../../css/site.css?v=82f881cb">
+<link rel="stylesheet" href="../../../css/site.min.css?v=cd7bb84f">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://nestnrestcleaning.com/"},{"@type":"ListItem","position":2,"name":"North York","item":"https://nestnrestcleaning.com/areas/north-york/"},{"@type":"ListItem","position":3,"name":"Lawrence Manor","item":"https://nestnrestcleaning.com/areas/north-york/lawrence-manor/"}]}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How is my price calculated?","acceptedAnswer":{"@type":"Answer","text":"Your price is based on the service, the number of bedrooms and bathrooms, the type of home and any extras you add. You see it before you book. If your home needs much more or less time than expected, we tell you before we start, never after."}},{"@type":"Question","name":"Do I pay when I book?","acceptedAnswer":{"@type":"Answer","text":"No. There's no deposit. You pay after the clean by Interac e-Transfer, credit or debit card, or cash."}},{"@type":"Question","name":"What if something is missed?","acceptedAnswer":{"@type":"Answer","text":"Tell us within 24 hours and we'll come back and re-clean those areas, free of charge."}},{"@type":"Question","name":"Do I need to be home?","acceptedAnswer":{"@type":"Answer","text":"No. You can leave access with a concierge, lockbox or key code. Choose how we get in when you book and we'll confirm the details by text."}},{"@type":"Question","name":"Can I reschedule or cancel?","acceptedAnswer":{"@type":"Answer","text":"Yes. Let us know at least 24 hours before your arrival window and there's no charge."}},{"@type":"Question","name":"Which areas do you serve?","acceptedAnswer":{"@type":"Answer","text":"Scarborough and North York. Enter your postal code on the site to check. If you're just outside these areas, get in touch and we'll tell you honestly whether we can help."}},{"@type":"Question","name":"How do I get in touch?","acceptedAnswer":{"@type":"Answer","text":"Email nestnrestcleaning@gmail.com, or send your details through the booking form. Mann replies within 2 hours during business hours (every day, 9am to 11pm)."}}]}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"Service","name":"House cleaning in Lawrence Manor","serviceType":"House cleaning","provider":{"@id":"https://nestnrestcleaning.com/#business"},"areaServed":{"@type":"Place","name":"Lawrence Manor, North York, Toronto, ON","containedInPlace":{"@type":"Place","name":"North York, Toronto, ON","sameAs":"https://en.wikipedia.org/wiki/North_York"}}}</script>
@@ -86,7 +86,7 @@
     <nav class="nav-desktop" aria-label="Main">
       <a href="../../../#services">Services</a>
       <a href="../../../pricing/">Pricing</a>
-      <a href="../../../#areas">Areas</a>
+      <a href="../../../#areas" class="is-current">Areas</a>
       <a href="../../../#how">How it works</a>
       <a href="../../../help/">Help</a>
     </nav>
@@ -101,24 +101,27 @@
 </header>
 <div class="menu" id="menu" hidden>
   <div class="wrap menu-inner">
+    <a class="btn btn-primary btn-block menu-book" href="../../../book/" data-track="book_click">Book a clean</a>
     <p class="label">Services</p>
     <ul class="menu-list">
       <li><a href="../../../services/regular-home-cleaning/">Regular Cleaning</a></li><li><a href="../../../services/deep-cleaning/">Deep Cleaning</a></li><li><a href="../../../services/move-in-move-out-cleaning/">Move-In / Move-Out</a></li><li><a href="../../../services/kitchen-and-bath-detailing/">Kitchen &amp; Bath Detailing</a></li><li><a href="../../../services/residence-care/">Residence Care</a></li><li><a href="../../../services/office-cleaning/">Office Cleaning</a></li>
     </ul>
-    <p class="label">More</p>
+    <p class="label">Plan your clean</p>
     <ul class="menu-list menu-list-sm">
       <li><a href="../../../pricing/">Pricing</a></li>
-      <li><a href="../../../#areas">Areas we serve</a></li>
       <li><a href="../../../#how">How booking works</a></li>
+      <li><a href="../../../#areas">Areas we serve</a></li>
+      <li><a href="../../../#faq">Questions</a></li>
       <li><a href="../../../help/">Help &amp; your booking</a></li>
+    </ul>
+    <p class="label">About us</p>
+    <ul class="menu-list menu-list-sm">
+      <li><a href="../../../vision/">Our vision</a></li>
+      <li><a href="../../../guides/">Guides</a></li>
       <li><a href="../../../gift/">Gift a clean</a></li>
       <li><a href="../../../realtors/">Realtors &amp; property managers</a></li>
-      <li><a href="../../../guides/">Guides</a></li>
-      <li><a href="../../../vision/">Our vision</a></li>
-      <li><a href="../../../#faq">Questions</a></li>
     </ul>
     <div class="menu-cta">
-      <a class="btn btn-primary btn-block" href="../../../book/">Book a clean</a>
       
       <a class="btn btn-ghost btn-block" data-mailto href="mailto:nestnrestcleaning@gmail.com">Email Mann</a>
     </div>
@@ -140,6 +143,10 @@
         <div><dt>Open daily</dt><dd>9am–11pm</dd></div>
         <div><dt>Payment</dt><dd>After the clean</dd></div>
       </dl>
+      <picture class="photo hero-photo">
+      <source type="image/webp" srcset="../../../assets/photos/bedroom-600.webp 600w, ../../../assets/photos/bedroom-928.webp 928w" sizes="(min-width: 960px) 520px, 92vw">
+      <img src="../../../assets/photos/bedroom-928.jpg" srcset="../../../assets/photos/bedroom-600.jpg 600w, ../../../assets/photos/bedroom-928.jpg 928w" sizes="(min-width: 960px) 520px, 92vw" alt="A freshly made bed with white linen, a sand-coloured throw and navy and teal pillows" width="928" height="1152" loading="lazy" decoding="async">
+    </picture>
     </div>
     <div class="hero-pricer"><form class="pricer" data-pricer data-default-service="regular" novalidate>
   <div class="pricer-head">
@@ -183,6 +190,7 @@
   </div>
   <a class="btn btn-primary btn-block" href="../../../book/" data-p-go data-track="pricer_continue">Book this clean <svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></a>
   <p class="pricer-next"><svg class="ic" aria-hidden="true"><use href="#i-cal"/></svg><span>Earliest day to request: <strong data-next-open>tomorrow</strong></span></p>
+  <p class="pricer-owner"><picture><source type="image/webp" srcset="../../../assets/founder-mann-patel-avatar.webp"><img src="../../../assets/founder-mann-patel-avatar.jpg" alt="" width="40" height="40" loading="lazy" decoding="async"></picture><span><strong>Mann Patel, owner,</strong> confirms your day, time and final price.</span></p>
   <div class="pricer-alt">
     <a class="link-btn" data-p-incl href="../../../services/regular-home-cleaning/#included"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg> What's included</a>
     <button type="button" class="link-btn" data-textme-open aria-expanded="false" aria-controls="textme-regular"><svg class="ic" aria-hidden="true"><use href="#i-sms"/></svg> Text me this price</button>
@@ -296,7 +304,6 @@
 <section class="section faq-section" id="faq">
   <div class="wrap split">
     <div class="split-head">
-      <p class="label">Questions</p>
       <h2>Cleaning in Lawrence Manor: questions<span class="stop">.</span></h2>
       <p class="muted">Anything else? Email <a data-mailto href="mailto:nestnrestcleaning@gmail.com">nestnrestcleaning@gmail.com</a>.</p>
     </div>
@@ -376,6 +383,6 @@
 <div class="toast" data-toast role="status" aria-live="polite" hidden></div>
 <script defer src="../../../js/config.js?v=277d64b6"></script>
 
-<script defer src="../../../js/site.js?v=be149aaf"></script>
+<script defer src="../../../js/site.min.js?v=3f7fb91e"></script>
 </body>
 </html>

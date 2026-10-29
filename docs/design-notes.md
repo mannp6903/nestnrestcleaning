@@ -52,6 +52,12 @@ Fonts: Plus Jakarta Sans for headings, buttons and money, DM Sans for text, both
 - **Booking errors:** each sits under the choice it's about (`[data-step-error]`), describes every option in it, and takes focus to the first option. The toast is only for confirmations ("Link copied"), never for errors.
 - **Pricing switcher** (`bindPriceTabs()` in `js/site.js`): under 960px, one tab per service above the price tables shows one table at a time. Computers, and visitors without JavaScript, see all four.
 - **Navy panels:** both sit on the content grid (1220px), so their text lines up with the page.
+- **Phone menu:** "Book a clean" first, then Services, Plan your clean and About us. It opens where the header ends.
+- **Desktop nav:** the section you're in is underlined in teal; only a link to the page itself gets `aria-current="page"`.
+- **Which clean do I need?** (`chooser()`, pricing page): one situation per service from `CHOOSER`. Keep each line true to the service page.
+- **Owner line** (`pricer(L, key, heading, { owner: true })`): inner price boxes say who confirms the price, with Mann's photo. The home page uses the hero line instead.
+- **Labels above headings:** only where they add something the heading doesn't say. Not above FAQ headings, which already say "questions".
+- **Compact files:** the pages load `css/site.min.css` and `js/site.min.js`. Edit `css/site.css` and `js/site.js`, then run the build.
 
 ## Reference patterns
 

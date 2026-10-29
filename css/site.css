@@ -247,7 +247,8 @@ a[href^="mailto:"] { overflow-wrap: anywhere; }
 .header-call:hover, .header-phone:hover { background: var(--paper); }
 .header-call .ic, .header-phone .ic { width: 20px; height: 20px; }
 .menu { position: fixed; z-index: 45; left: 0; right: 0; top: calc(var(--header-h) + env(safe-area-inset-top, 0px)); bottom: 0; background: var(--page-bg); overflow-y: auto; border-top: 1px solid var(--line); }
-.menu-inner { padding-block: 24px 40px; display: grid; gap: 12px; }
+.menu-inner { padding-block: 20px 40px; display: grid; gap: 12px; }
+.menu-book { margin-bottom: 10px; }
 .menu-list { list-style: none; margin: 0 0 14px; padding: 0; }
 .menu-list a { display: block; padding: 11px 0; border-bottom: 1px solid var(--line); font-family: var(--display); font-weight: 700; font-size: 1.1875rem; text-decoration: none; line-height: 1.2; letter-spacing: -0.01em; }
 .menu-list-sm a { font-family: var(--body); text-transform: none; font-size: 1.05rem; font-weight: 600; }
@@ -312,7 +313,26 @@ body.menu-open { overflow: hidden; }
 .pricer-next { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.9rem; color: var(--muted); }
 .pricer-next .ic { color: var(--teal-ink); width: 18px; height: 18px; }
 .pricer-next strong { color: var(--ink); }
+.pricer-owner { display: flex; align-items: center; gap: 12px; margin: 0; padding: 12px 14px; border-radius: var(--field-radius); background: var(--section-tint); font-size: 0.9rem; line-height: 1.4; color: var(--muted); }
+.pricer-owner picture { flex: none; width: 40px; height: 40px; border-radius: 50%; overflow: hidden; box-shadow: 0 0 0 2px var(--paper), 0 0 0 3.5px var(--teal); }
+.pricer-owner img { width: 100%; height: 100%; object-fit: cover; }
+.pricer-owner strong { color: var(--ink); font-weight: 600; }
 .pricer-alt { display: flex; flex-wrap: wrap; justify-content: center; gap: 2px 22px; border-top: 1px solid var(--line); padding-top: 6px; }
+/* Which clean do I need? One row per situation; the service and its price on the right. */
+.chooser { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+.chooser li { border-bottom: 1px solid var(--line); }
+.chooser a { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 16px; align-items: center; padding: 16px 2px; text-decoration: none; }
+.chooser-when { grid-column: 1 / -1; color: var(--muted); font-size: var(--fs-small); }
+.chooser-what { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; min-width: 0; }
+.chooser-what strong { font-family: var(--display); font-weight: 700; font-size: 1.125rem; line-height: 1.25; color: var(--ink); }
+.chooser-what > span { font-size: var(--fs-small); color: var(--muted); }
+.chooser-what b { font-family: var(--money); font-variant-numeric: tabular-nums lining-nums; color: var(--ink); }
+.chooser .ic { color: var(--teal-ink); transition: transform .2s; }
+.chooser a:hover .ic { transform: translateX(3px); }
+@media (min-width: 47.5em) {
+  .chooser a { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr) 24px; padding-block: 18px; }
+  .chooser-when { grid-column: auto; color: var(--ink); font-size: 1rem; }
+}
 .textme { display: grid; gap: 8px; padding: 14px; border-radius: var(--field-radius); background: var(--sky-soft); }
 .textme label { font-family: var(--body); font-weight: 600; font-size: 0.95rem; line-height: 1.4; color: var(--ink); }
 .textme.is-sent { background: var(--sand-soft); }
@@ -346,6 +366,8 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--i
 .check { display: flex; gap: 12px; align-items: flex-start; font-size: 0.93rem; cursor: pointer; }
 .check input { width: 20px; height: 20px; margin-top: 2px; accent-color: var(--ink); flex: none; }
 .field > label.check { font-family: var(--body); font-weight: 500; font-size: 0.93rem; letter-spacing: 0; text-transform: none; color: var(--ink); }
+.prefill-note { display: flex; gap: 10px; align-items: flex-start; margin: 0; padding: 12px 14px; border-radius: var(--field-radius); background: var(--teal-soft); color: var(--ink); font-size: 0.92rem; line-height: 1.45; }
+.prefill-note .ic { color: var(--teal-ink); margin-top: 1px; }
 .consent-line { display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; background: var(--sky-soft); border-radius: var(--field-radius); font-size: 0.92rem; line-height: 1.5; }
 .consent-line .ic { color: var(--teal-ink); margin-top: 2px; }
 
@@ -403,7 +425,7 @@ a.svc-card:hover .svc-arrow { transform: translateX(4px); }
 .svc-feature-card h3 { font-size: 1.22rem; font-weight: 700; line-height: 1.2; }
 .svc-best { color: var(--muted); font-size: 0.95rem; line-height: 1.45; }
 .svc-feature-card .svc-price { margin-top: auto; padding-top: 6px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 6px; }
-.svc-feature-card .svc-first { margin-left: 0; }
+.svc-feature-card .svc-first { margin-left: 0; flex-basis: 100%; }
 .svc-feature-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; margin-top: 8px; }
 /* Phones: a square photo beside the name keeps four cards short. With enlarged text the cards stay stacked. */
 @media (min-width: 20em) and (max-width: 37.4375em) {
@@ -900,6 +922,10 @@ a.svc-card:hover .svc-arrow { transform: translateX(4px); }
 .done:focus { outline: none; }
 .done h2 { font-size: clamp(1.9rem, 6vw, 2.6rem); }
 .done > p:not(.label) { color: var(--muted); max-width: 48ch; }
+.done-from { display: flex; align-items: flex-start; gap: 14px; max-width: 56ch; }
+.done-from picture { flex: none; width: 48px; height: 48px; border-radius: 50%; overflow: hidden; box-shadow: 0 0 0 2px var(--paper), 0 0 0 3.5px var(--teal); margin-top: 2px; }
+.done-from img { width: 100%; height: 100%; object-fit: cover; }
+.done-from p { color: var(--muted); }
 .done .ref strong { color: var(--ink); font-family: var(--display); font-size: 1.15rem; }
 .done-list { margin: 4px 0 0; width: 100%; max-width: 540px; border-top: 1px solid var(--line); }
 .done-list > div { display: grid; grid-template-columns: 5.5em 1fr; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--line); }
@@ -947,6 +973,9 @@ a.svc-card:hover .svc-arrow { transform: translateX(4px); }
 .help-list .ic { top: 2px; }
 .help-list .link-btn { display: inline; min-height: 0; padding: 0; }
 .help-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; margin-bottom: 14px; }
+/* On computers the actions sit in a soft panel beside the heading, so the section uses the width. */
+.help-manage { min-width: 0; }
+@media (min-width: 60em) { .help-manage { align-self: center; padding: 28px; border-radius: var(--card-radius); background: var(--section-tint); } .help-manage .fine { margin-top: 0; } }
 .condo-list { gap: 14px; }
 .condo-list li { align-items: flex-start; }
 .privacy-note a { color: inherit; text-underline-offset: 3px; }
@@ -1014,6 +1043,8 @@ a.svc-card:hover .svc-arrow { transform: translateX(4px); }
   .founder-photo { max-width: 300px; }
   .ritual li { padding: 14px 0; }
   .incl-room { padding: 18px; }
+  .incl-room li { padding-block: 9px; }
+  .faq-list summary { padding-block: 16px; }
   .home-guides { display: none; }
 }
 
@@ -1101,7 +1132,7 @@ a.svc-card:hover .svc-arrow { transform: translateX(4px); }
   .menu { display: none !important; }
   .nav-desktop { display: flex; gap: 30px; }
   .nav-desktop a { white-space: nowrap; text-decoration: none; font-family: var(--display); font-weight: 600; font-size: 1rem; padding: 8px 0; border-bottom: 2px solid transparent; }
-  .nav-desktop a:hover { border-color: var(--teal); }
+  .nav-desktop a:hover, .nav-desktop a.is-current { border-color: var(--teal); }
   .header-phone { display: inline-flex; }
 
   /* Header: a white bar; a soft shadow appears once the page scrolls. */
@@ -1179,8 +1210,12 @@ a.svc-card:hover .svc-arrow { transform: translateX(4px); }
 
 /* One orchestrated entrance on the home hero, from a visible resting state.
    The headline is the page's largest paint, so it stays still. */
-/* A price that just changed glows once, so the change is noticed. Nothing moves, and nothing at all under reduced motion. */
+/* A price that just changed glows once, so the change is noticed. Nothing moves, and nothing at all under reduced motion.
+   Questions and the comparison open with a short slide where the browser supports it (::details-content). */
 @media (prefers-reduced-motion: no-preference) {
+  :root { interpolate-size: allow-keywords; }
+  .faq-list details::details-content, .compare-box::details-content { height: 0; overflow: clip; transition: height .22s ease, content-visibility .22s allow-discrete; }
+  .faq-list details[open]::details-content, .compare-box[open]::details-content { height: auto; }
   .pricer-result.is-updated { animation: nr-ring .7s ease-out; }
   .sum-total.is-updated { animation: nr-glow .7s ease-out; }
   @keyframes nr-ring { from { box-shadow: 0 0 0 3px rgba(47, 164, 166, 0.5); } to { box-shadow: 0 0 0 3px rgba(47, 164, 166, 0); } }
