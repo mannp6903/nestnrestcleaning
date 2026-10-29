@@ -64,6 +64,9 @@ const LATE_FEE_LINE = `Later changes, or if we can't get in at the agreed time, 
 const afterDiscount = (amount, pct) => Math.round(amount * (100 - pct) / 100);
 const TAX_TEXT = C.taxRate ? `Prices are before ${Math.round(C.taxRate * 100)}% HST` : "No HST charged";
 const SHOW_SPOTS = !!(founding && founding.showSpotsLeft);
+// Opening hours for the facts row, from opens and closes: "9am–11pm". The label fits a third of a phone screen.
+const clock = (t) => { const [h, m] = t.split(":").map(Number); return (h % 12 || 12) + (m ? ":" + String(m).padStart(2, "0") : "") + (h >= 12 ? "pm" : "am"); };
+const OPEN_FACT = `<div><dt>${C.openDays.length === 7 ? "Open daily" : "Open"}</dt><dd>${clock(C.opens)}–${clock(C.closes)}</dd></div>`;
 // How long the booking form keeps home choices on a device (the same as DRAFT_DAYS in js/site.js).
 const DRAFT_DAYS = 14;
 const jobs = C.jobs || [];
@@ -176,6 +179,8 @@ const themeBtn = () => `<button type="button" class="theme-btn" data-theme-toggl
 // Every visit opens light; a visitor who chose dark gets it back before the page paints, so it never flashes.
 const THEME_BOOT = `<script>try{if(localStorage.getItem("nr-theme")==="dark")document.documentElement.setAttribute("data-theme","dark")}catch(e){}</script>`;
 
+// The desktop nav marks the section you're in. Only a link to this very page gets aria-current="page".
+const navLink = (href, label, on, isPage) => `<a href="${href}"${on ? ` class="is-current"${isPage ? ' aria-current="page"' : ""}` : ""}>${label}</a>`;
 function header(L, opts = {}) {
   if (opts.minimal) {
     return `<header class="site-header minimal">
@@ -192,41 +197,44 @@ function header(L, opts = {}) {
   <div class="wrap header-row">
     <a class="brand" href="${L("")}" aria-label="${esc(B.name)}, home">${logoImg(L)}</a>
     <nav class="nav-desktop" aria-label="Main">
-      <a href="${L("#services")}">Services</a>
-      <a href="${L("pricing/")}">Pricing</a>
-      <a href="${L("#areas")}">Areas</a>
-      <a href="${L("#how")}">How it works</a>
-      <a href="${L("help/")}">Help</a>
+      ${navLink(L("#services"), "Services", ["service", "quote"].includes(opts.current))}
+      ${navLink(L("pricing/"), "Pricing", opts.current === "pricing", true)}
+      ${navLink(L("#areas"), "Areas", opts.current === "area")}
+      ${navLink(L("#how"), "How it works", false)}
+      ${navLink(L("help/"), "Help", opts.current === "help", true)}
     </nav>
     <div class="header-actions">
       ${PHONE ? `<a class="header-phone" data-tel href="tel:${B.phone}">${ic("i-phone")}<span class="sr-only">Call <span data-phone-text>${esc(B.phoneDisplay)}</span></span></a>` : ""}
       ${B.whatsapp ? `<a class="header-wa" data-wa href="${esc(waLink(WA_HELLO))}" target="_blank" rel="noopener" aria-label="WhatsApp ${esc(B.ownerFirstName)}" data-track="whatsapp_click">${ic("i-wa")}</a>` : ""}
       ${themeBtn()}
-      <a class="btn btn-primary header-book" href="${L("book/")}" data-track="book_click"><span class="hb-long">See my price</span><span class="hb-short">My price</span></a>
+      <a class="btn btn-primary header-book" href="${L("book/")}" data-track="book_click"><span class="hb-long">Book a clean</span><span class="hb-short">Book</span></a>
       <button class="menu-btn" type="button" aria-controls="menu" aria-expanded="false" aria-label="Open menu">${ic("i-menu")}</button>
     </div>
   </div>
 </header>
 <div class="menu" id="menu" hidden>
   <div class="wrap menu-inner">
+    <a class="btn btn-primary btn-block menu-book" href="${L("book/")}" data-track="book_click">Book a clean</a>
     <p class="label">Services</p>
     <ul class="menu-list">
       ${allServices.map((s) => `<li><a href="${L("services/" + s.slug + "/")}">${esc(s.menuName)}</a></li>`).join("")}
     </ul>
-    <p class="label">More</p>
+    <p class="label">Plan your clean</p>
     <ul class="menu-list menu-list-sm">
       <li><a href="${L("pricing/")}">Pricing</a></li>
-      <li><a href="${L("#areas")}">Areas we serve</a></li>
       <li><a href="${L("#how")}">How booking works</a></li>
+      <li><a href="${L("#areas")}">Areas we serve</a></li>
+      <li><a href="${L("#faq")}">Questions</a></li>
       <li><a href="${L("help/")}">Help &amp; your booking</a></li>
+    </ul>
+    <p class="label">About us</p>
+    <ul class="menu-list menu-list-sm">
+      <li><a href="${L("vision/")}">Our vision</a></li>
+      <li><a href="${L("guides/")}">Guides</a></li>
       <li><a href="${L("gift/")}">Gift a clean</a></li>
       <li><a href="${L("realtors/")}">Realtors &amp; property managers</a></li>
-      <li><a href="${L("guides/")}">Guides</a></li>
-      <li><a href="${L("vision/")}">Our vision</a></li>
-      <li><a href="${L("#faq")}">Questions</a></li>
     </ul>
     <div class="menu-cta">
-      <a class="btn btn-primary btn-block" href="${L("book/")}">Book your clean</a>
       ${B.whatsapp ? `<a class="btn btn-wa btn-block" data-wa href="${esc(waLink(WA_HELLO))}" target="_blank" rel="noopener">${ic("i-wa")} WhatsApp ${esc(B.ownerFirstName)}</a>` : ""}
       ${PHONE ? `<a class="btn btn-ghost btn-block" data-tel href="tel:${B.phone}">Call or text <span class="nowrap">${esc(B.phoneDisplay)}</span></a>`
         : `<a class="btn btn-ghost btn-block" data-mailto href="mailto:${B.email}">Email ${esc(B.ownerFirstName)}</a>`}
@@ -249,15 +257,17 @@ function socialLinks(cls = "") {
 // Thin top bar with rotating true messages. Dismissing it is remembered until the messages change.
 function announceBar() {
   const A = C.announce || {};
+  // Each message is [full, short]: phones under 480px show the short one, so the bar stays on one line.
   const msgs = [
-    ...(founding && founding.active && spotsLeft > 0 ? [`${founding.percent}% off your first visit, first ${founding.spots} households`] : []),
-    ...(A.messages || [])
+    ...(founding && founding.active && spotsLeft > 0 ? [[`${founding.percent}% off your first visit, first ${founding.spots} households`, `${founding.percent}% off your first visit`]] : []),
+    ...(A.messages || []).map((m) => [m, m])
   ];
   if (!A.active || !msgs.length) return "";
-  const key = crypto.createHash("sha1").update(msgs.join("|")).digest("hex").slice(0, 8);
+  const key = crypto.createHash("sha1").update(msgs.map((m) => m[0]).join("|")).digest("hex").slice(0, 8);
+  const msgHtml = ([full, short]) => full === short ? esc(full) : `<span class="am-long">${esc(full)}</span><span class="am-short">${esc(short)}</span>`;
   return `<div class="announce" data-announce data-key="${key}" role="region" aria-label="Announcements">
   <div class="wrap announce-row">
-    <p class="announce-msgs" data-announce-msgs>${msgs.map((m, i) => `<span${i ? "" : ' class="is-on"'}>${esc(m)}</span>`).join("")}</p>
+    <p class="announce-msgs" data-announce-msgs>${msgs.map((m, i) => `<span${i ? "" : ' class="is-on"'}>${msgHtml(m)}</span>`).join("")}</p>
     <button type="button" class="announce-close" data-announce-close aria-label="Hide announcements">${ic("i-close")}</button>
   </div>
 </div>
@@ -333,8 +343,15 @@ function actionBar(L) {
   <a class="ab-link ab-phone" data-sms href="sms:${B.phone}" data-track="text_click">${ic("i-sms")}<span>Text</span></a>` : ""}
   ${B.whatsapp ? `<a class="ab-link ab-wa" data-wa href="${esc(waLink(WA_HELLO))}" target="_blank" rel="noopener" data-track="whatsapp_click">${ic("i-wa")}<span>WhatsApp</span></a>` : ""}
   <a class="ab-link${PHONE ? " ab-desk" : ""}" data-mailto href="mailto:${B.email}" data-track="email_click">${ic("i-mail")}<span>Email</span></a>
-  <a class="btn btn-primary ab-book" href="${L("book/")}" data-track="book_click"><span class="ab-long">Book your clean</span><span class="ab-short">Book now</span></a>
+  <a class="btn btn-primary ab-book" href="${L("book/")}" data-track="book_click"><span class="ab-long">Book a clean</span><span class="ab-short">Book</span></a>
 </nav>`;
+}
+
+// Inside the price box: one line under the price, so the offer isn't said twice on a phone's first screen.
+function offerLine() {
+  if (!founding || !founding.active) return "";
+  const spots = SHOW_SPOTS ? `${spotsLeft} of ${founding.spots} founding spots left` : `For our first ${founding.spots} households`;
+  return `<p class="pricer-deal" data-offer-note><span>${founding.percent}% off your first visit</span> · <span data-spots>${spots}</span></p>`;
 }
 
 function offerNote() {
@@ -362,6 +379,27 @@ function priceExample(id, caption, key, beds, baths, home, { freq, addon } = {})
         </dl>
       </figure>`;
 }
+// "Which clean do I need?": one situation per service, from the lightest clean up. Each line must stay true to the service page.
+const CHOOSER = [
+  ["regular", "You'd like the home kept right, every week or two"],
+  ["deep", "It's your first professional clean, or it's been a few months"],
+  ["move", "You're moving out or in, and the home is empty"],
+  ["detail", "Only the kitchen and bathrooms need attention"],
+  ["residence", "The home is over about 3,000 sq ft, or has stone and fine finishes"]
+];
+for (const [k] of CHOOSER) if (!C.services[k] && !C.quoteServices[k]) throw new Error(`CHOOSER names "${k}", which isn't a service in js/config.js.`);
+function chooser(L) {
+  return `<section class="section section-flush" id="which">
+  <div class="wrap">
+    <div class="section-head"><p class="label">Not sure which?</p><h2>Which clean do I need?</h2></div>
+    <ul class="chooser">${CHOOSER.map(([k, when]) => {
+      const s = C.services[k] || C.quoteServices[k];
+      return `<li><a href="${L("services/" + s.slug + "/")}"><span class="chooser-when">${esc(when)}</span><span class="chooser-what"><strong>${esc(s.name)}</strong><span>${C.services[k] ? `From <b data-from="${k}">${money(s.base)}</b>` : "Free quote"}</span></span>${ic("i-arrow")}</a></li>`;
+    }).join("")}</ul>
+  </div>
+</section>`;
+}
+
 function priceExplainer() {
   const plans = Object.values(C.frequencies).filter((f) => f.discount).sort((x, y) => y.discount - x.discount).map((f) => `${f.discount}% ${f.label.toLowerCase()}`);
   const hood = (h) => C.homeTypes[h].label.toLowerCase();
@@ -386,19 +424,20 @@ function priceExplainer() {
 </section>`;
 }
 
-function pricer(L, defaultKey = "regular", heading = "Your price, in seconds") {
+// owner: true adds Mann's line under the button. The home page already has it in the hero, so it leaves it out.
+function pricer(L, defaultKey = "regular", heading = "Your price, in seconds", { owner = false } = {}) {
   const p = price(defaultKey, 1, 1);
   // While the founding offer runs, the first-visit price is the big number and the regular price sits under it.
   const on = !!(founding && founding.active), h = hours(defaultKey, 1, 1);
   return `<form class="pricer" data-pricer data-default-service="${defaultKey}" novalidate>
   <div class="pricer-head">
     <p class="pricer-title">${esc(heading)}</p>
-    ${offerNote()}
     ${ratingPill()}
   </div>
   <div class="pricer-result" aria-live="polite">
     <p class="pricer-amount"><span data-p-amount>${money(on ? afterDiscount(p, founding.percent) : p)}</span> <span class="pricer-unit" data-p-unit${on ? "" : " hidden"}>first visit</span></p>
     <p class="pricer-meta" data-p-meta>${on ? `Regular price ${money(p)} · estimate, about ${h} hours on site` : `Estimate · about ${h} hours on site`}</p>
+    ${offerLine()}
   </div>
   <div class="field">
     <label for="p-service">Service</label>
@@ -416,8 +455,9 @@ function pricer(L, defaultKey = "regular", heading = "Your price, in seconds") {
     ${stepper("p-beds", "Bedrooms", 1, "data-p-beds")}
     ${stepper("p-baths", "Bathrooms", 1, "data-p-baths")}
   </div>
-  <a class="btn btn-primary btn-block" href="${L("book/")}" data-p-go data-track="pricer_continue">Choose your time ${ic("i-arrow")}</a>
+  <a class="btn btn-primary btn-block" href="${L("book/")}" data-p-go data-track="pricer_continue">Book this clean ${ic("i-arrow")}</a>
   <p class="pricer-next">${ic("i-cal")}<span>${CAL ? "Bookings from" : "Earliest day to request:"} <strong data-next-open>tomorrow</strong></span></p>
+  ${owner ? `<p class="pricer-owner"><picture><source type="image/webp" srcset="${L("assets/founder-mann-patel-avatar.webp")}"><img src="${L("assets/founder-mann-patel-avatar.jpg")}" alt="" width="40" height="40" loading="lazy" decoding="async"></picture><span><strong>${esc(B.owner)}, owner,</strong> ${CAL ? "checks in after you pick a time." : "confirms your day, time and final price."}</span></p>` : ""}
   <div class="pricer-alt">
     <a class="link-btn" data-p-incl href="${L("services/" + C.services[defaultKey].slug + "/")}#included">${ic("i-check")} What's included</a>
     <button type="button" class="link-btn" data-textme-open aria-expanded="false" aria-controls="textme-${defaultKey}">${ic("i-sms")} Text me this price</button>
@@ -506,7 +546,6 @@ function faqBlock(tag, title = "Questions, answered.", cls = "") {
   const html = `<section class="section faq-section${cls ? " " + cls : ""}" id="faq">
   <div class="wrap split">
     <div class="split-head">
-      <p class="label">Questions</p>
       <h2>${esc(title)}</h2>
       <p class="muted">Anything else? ${PHONE ? `Call or text <a data-tel href="tel:${B.phone}" data-phone-text>${esc(B.phoneDisplay)}</a>` : `Email <a data-mailto href="mailto:${B.email}">${esc(B.email)}</a>`}${B.whatsapp ? `, or <a data-wa href="${esc(waLink(WA_HELLO))}" target="_blank" rel="noopener">message on WhatsApp</a>` : ""}.</p>
     </div>
@@ -525,7 +564,7 @@ function finalCta(L, title = "Come home to it.", text = "Book in two minutes. No
     <h2>${esc(title)}</h2>
     <p>${esc(text)}</p>
     <div class="cta-row">
-      <a class="btn btn-light" href="${L("book/")}" data-track="book_click">Book your clean</a>
+      <a class="btn btn-light" href="${L("book/")}" data-track="book_click">Book a clean</a>
       ${B.whatsapp ? `<a class="btn btn-wa" data-wa href="${esc(waLink(WA_HELLO))}" target="_blank" rel="noopener" data-track="whatsapp_click">${ic("i-wa")} WhatsApp</a>` : ""}
       ${PHONE ? `<a class="btn btn-ghost-light" data-tel href="tel:${B.phone}">Call <span class="nowrap">${esc(B.phoneDisplay)}</span></a>`
         : `<a class="btn btn-ghost-light" data-mailto href="mailto:${B.email}" data-track="email_click">Email ${esc(B.ownerFirstName)}</a>`}
@@ -565,6 +604,10 @@ function websiteSchema() {
 }
 
 /* ---------- page shell ---------- */
+// A heading's closing full stop goes in .stop, which css/site.css pulls in: the glyph's wide left side-bearing leaves a gap at display sizes.
+// Only h1 and h2, and only a stop that ends a line (before <br>, a closing </span> or the end of the heading). The words don't change.
+const tidyStops = (html) => html.replace(/<(h[12])(\b[^>]*)>([\s\S]*?)<\/\1>/g, (m, tag, attrs, inner) =>
+  `<${tag}${attrs}>${inner.replace(/([^\s.>])\.(?=<br>|<\/span>|$)/g, '$1<span class="stop">.</span>')}</${tag}>`);
 function page({ depth, pathOut, title, description, body, schemas = [], pageType, minimal = false, noBar = false, noindex = false, ogImage = "assets/og-image.jpg" }) {
   const L = linker(depth);
   const canonical = SITE + "/" + pathOut.replace(/index\.html$/, "");
@@ -596,12 +639,12 @@ ${noindex ? '<meta name="robots" content="noindex">\n' : ""}<meta name="theme-co
 <link rel="apple-touch-icon" href="${L("assets/apple-touch-icon.png")}">
 <link rel="preload" href="${L("assets/fonts/plus-jakarta-sans.woff2")}" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="${L("assets/fonts/dm-sans.woff2")}" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="${L("css/site.css")}?v=${ASSET_V.css}">
+<link rel="stylesheet" href="${L("css/site.min.css")}?v=${ASSET_V.css}">
 ${ld}`;
   const bodyInner = `${ICONS}
 <a class="skip" href="#main">Skip to content</a>
 ${minimal ? "" : announceBar()}
-${header(L, { minimal })}
+${header(L, { minimal, current: pageType })}
 <main id="main">
 ${body(L)}
 </main>
@@ -610,7 +653,7 @@ ${noBar ? "" : actionBar(L)}
 <div class="toast" data-toast role="status" aria-live="polite" hidden></div>
 <script${DEFER} src="${L("js/config.js")}?v=${ASSET_V.config}"></script>
 ${PREVIEW_DIR ? "<script>window.NR_CONFIG.preview = true;</script>" : ""}
-<script${DEFER} src="${L("js/site.js")}?v=${ASSET_V.site}"></script>`;
+<script${DEFER} src="${L("js/site.min.js")}?v=${ASSET_V.site}"></script>`;
   const isPreviewRoot = PREVIEW_DIR && pathOut === "index.html";
   const html = isPreviewRoot
     ? `${headInner}\n<div class="page" data-page="${pageType}" data-root="${depth ? "../".repeat(depth) : "./"}">${bodyInner}</div>\n`
@@ -628,7 +671,7 @@ ${bodyInner}
 `;
   const file = path.join(OUT, pathOut);
   fs.mkdirSync(path.dirname(file), { recursive: true });
-  fs.writeFileSync(file, html);
+  fs.writeFileSync(file, tidyStops(html));
   return canonical;
 }
 
@@ -752,13 +795,13 @@ urls.push(page({
 <section class="hero hero-home">
   <div class="wrap hero-grid">
     <div class="hero-copy">
-      <p class="kicker">House cleaning in North York &amp; Scarborough</p>
-      <h1 class="display">We clean.<br><span class="accent">You rest.</span></h1>
+      <h1 class="hero-title"><span class="hero-what">House cleaning in ${esc(B.areaLabel)}</span> <span class="display">We clean.<br> <span class="accent">You rest.</span></span></h1>
       <p class="lede">Your weekends are for living, not scrubbing. ${esc(B.ownerFirstName)} cleans your home with care, so you come back to calm, and you pay only after the clean.</p>
       <div class="hero-cta">
-        <a class="btn btn-primary" href="${L("book/")}" data-track="book_click">Book your clean ${ic("i-arrow")}</a>
+        <a class="btn btn-primary" href="${L("book/")}" data-track="book_click">Book a clean ${ic("i-arrow")}</a>
         <a class="text-link" href="${L("#how")}">How it works ${ic("i-arrow")}</a>
         ${B.whatsapp ? `<a class="btn btn-wa" data-wa href="${esc(waLink(WA_HELLO))}" target="_blank" rel="noopener" data-track="whatsapp_click">${ic("i-wa")} WhatsApp</a>` : ""}
+        <p class="cta-note">${CAL ? "About two minutes. You pick a confirmed time on the calendar." : `About two minutes. ${esc(B.ownerFirstName)} confirms your day and time.`}</p>
       </div>
     </div>
     <div class="hero-visual">
@@ -804,7 +847,7 @@ ${gift && gift.active ? `<section class="gift-band" data-gift-banner data-months
         : `<li><h3>Request your day</h3><p>Pick a preferred day and arrival window, or tell us you're flexible. Requests from <strong data-next-open>tomorrow</strong>, any day of the week.</p></li>
       <li><h3>${esc(B.ownerFirstName)} confirms</h3><p>${esc(B.ownerFirstName)} replies <span data-reply>${esc(B.replyPromise)}</span> to agree your time and final price. Your time is held once it's confirmed. You pay after the clean.</p></li>`}
     </ol>
-    <div class="center-cta"><a class="btn btn-primary" href="${L("book/")}" data-track="book_click">Book your clean</a> <a class="text-link" href="${L("help/")}">What happens after you request ${ic("i-arrow")}</a></div>
+    <div class="center-cta"><a class="btn btn-primary" href="${L("book/")}" data-track="book_click">Book a clean</a> <a class="text-link" href="${L("help/")}">What happens after you request ${ic("i-arrow")}</a></div>
   </div>
 </section>
 
@@ -927,7 +970,7 @@ urls.push(page({
   <div class="wrap">
     <div class="book-head">
       <div>
-        <h1>Book your clean</h1>
+        <h1>Book a clean</h1>
         <p class="book-sub">${ic("i-cal")} <span>${CAL ? "Bookings from" : "Earliest day to request:"} <strong data-next-open>tomorrow</strong>${CAL ? "" : `. ${esc(B.ownerFirstName)} confirms every booking.`}</span></p>
       </div>
       <ol class="progress" data-progress aria-label="Booking steps">
@@ -939,6 +982,7 @@ urls.push(page({
         <form id="booking-form" class="booking-form" novalidate>
           <fieldset class="step" data-step="1">
             <legend>Your home</legend>
+            <p class="prefill-note" data-prefill hidden>${ic("i-check")}<span>Your choices from the price box are filled in below. Add the postal code, check the details, and continue.</span></p>
             <div class="field"><label for="f-postal">Postal code of the home</label><input id="f-postal" name="postal" autocomplete="postal-code" autocapitalize="characters" maxlength="7" placeholder="e.g. M1B 2K3" required><small class="pc-result" data-pc-booking aria-live="polite"></small></div>
             <div class="field"><span class="field-label" id="svc-label">Service</span>
               <div class="choice-grid" role="radiogroup" aria-labelledby="svc-label">
@@ -973,6 +1017,7 @@ urls.push(page({
                 <p><strong>Homes this size are priced by quote.</strong> ${esc(B.ownerFirstName)} starts with a walkthrough and a written care plan, so the price fits the home.</p>
                 <a class="btn btn-teal btn-sm" data-quote-link href="${L("services/residence-care/")}">Get a Residence Care quote ${ic("i-arrow")}</a>
                 <small class="field-hint">Your home details are carried over. Nothing is sent until you send the quote form.</small>
+                <p class="field-error" id="err-quote" data-step-error="quote" hidden></p>
               </div>
             </div>` : ""}
             <div class="field"><span class="field-label" id="extras-label">Extras <span class="opt">optional</span></span>
@@ -991,6 +1036,7 @@ urls.push(page({
               <p class="field-note">Choose your preferred day. ${esc(B.ownerFirstName)} will confirm availability. Requests from <strong data-next-open>tomorrow</strong>, any day of the week.</p>
               <div class="date-strip" role="radiogroup" aria-labelledby="date-label" data-dates></div>
               <label class="check"><input type="checkbox" id="flex-date" data-flex> <span>I'm flexible. Please offer the earliest suitable appointment.</span></label>
+              <p class="field-error" id="err-date" data-step-error="date" hidden></p>
             </div>
             <div class="field"><span class="field-label" id="slot-label">Preferred arrival window</span>
               <p class="field-note">Your clean takes about <strong data-job-hours>2</strong> hours on site after arrival, with ${(C.booking || {}).cleaners > 1 ? `${C.booking.cleaners} cleaners` : "one cleaner"}. Windows too late to finish by ${Number(C.closes.split(":")[0]) > 12 ? Number(C.closes.split(":")[0]) - 12 + "pm" : C.closes} are greyed out.</p>
@@ -998,6 +1044,7 @@ urls.push(page({
                 ${C.timeSlots.map((t) => `<label class="slot" data-slot="${t.id}"><input type="radio" name="slot" value="${t.id}"><span><strong>${esc(t.label)}</strong><small>${esc(t.time)}</small></span></label>`).join("")}
               </div>
               <p class="field-hint" data-slot-note aria-live="polite"></p>
+              <p class="field-error" id="err-slot" data-step-error="slot" hidden></p>
             </div>
             <p class="consent-line">${ic("i-check")}<span>This is a request, not a booked time. Your time is held only after ${esc(B.ownerFirstName)} confirms it with you.</span></p>
           </fieldset>`}
@@ -1077,7 +1124,7 @@ urls.push(page({
         ` : ""}<div class="done" data-done hidden tabindex="-1">
           <p class="label" data-done-label>Request received · not confirmed yet</p>
           <h2 data-done-title>Thank you.</h2>
-          <p data-done-text></p>
+          <div class="done-from"><picture><source type="image/webp" srcset="${L("assets/founder-mann-patel-avatar.webp")}"><img src="${L("assets/founder-mann-patel-avatar.jpg")}" alt="" width="48" height="48" loading="lazy" decoding="async"></picture><p data-done-text></p></div>
           <p class="ref">Reference <strong data-ref></strong></p>
           <dl class="done-list" data-done-list></dl>
           <div class="done-actions">
@@ -1121,15 +1168,43 @@ function extrasList(key) {
 }
 
 /* ---------- service pages ---------- */
-const SVC_PHOTO = { regular: "bedroom", deep: "bathroom", move: "entryway", detail: "kitchen", residence: "living-room", office: "kitchen" };
+// The hero shows the same room as the home page's card for the service; the "Ideal for" section shows a different one.
+const SVC_PHOTO = { regular: "bedroom", deep: "bathroom", move: "living-room", detail: "kitchen", residence: "living-room", office: "kitchen" };
+// Every task in the service's rooms, in three groups: included, a paid extra, and not part of this clean.
+// The not-included group is what customers most often ask about after a visit, so it's listed, not left out.
+const SCOPE_ORDER = { yes: 0, add: 1, "": 2 };
+const scopeTasks = (s) => C.checklist.filter((r) => !s.rooms || s.rooms.includes(r.room)).flatMap((r) => r.tasks);
 function checklistFor(s) {
   const col = s.checklistColumn;
   const rooms = C.checklist.filter((r) => !s.rooms || s.rooms.includes(r.room));
   return rooms.map((r) => {
-    const tasks = r.tasks.filter((t) => t[col]);
-    if (!tasks.length) return "";
-    return `<div class="incl-room"><h3>${esc(r.room)}</h3><ul>${tasks.map((t) => `<li class="${t[col] === "add" ? "is-add" : ""}">${t[col] === "add" ? '<span class="add-tag">Extra</span>' : ic("i-check")}<span>${esc(t[0])}</span></li>`).join("")}</ul></div>`;
+    const tasks = r.tasks.slice().sort((a, b) => SCOPE_ORDER[a[col] || ""] - SCOPE_ORDER[b[col] || ""]);
+    return `<div class="incl-room"><h3>${esc(r.room)}</h3><ul>${tasks.map((t) => {
+      const v = t[col] || "";
+      if (v === "yes") return `<li>${ic("i-check")}<span>${esc(t[0])}</span></li>`;
+      if (v === "add") return `<li class="is-add">${ic("i-plus")}<span>${esc(t[0])}</span><span class="add-tag">Extra</span></li>`;
+      return `<li class="is-none" data-not-included>${ic("i-minus")}<span>${esc(t[0])}</span><span class="none-tag">Not included</span></li>`;
+    }).join("")}</ul></div>`;
   }).join("");
+}
+function scopeSummary(s) {
+  const col = s.checklistColumn, t = scopeTasks(s);
+  const n = (v) => t.filter((x) => (x[col] || "") === v).length;
+  return `<ul class="scope-sum"><li><b>${n("yes")}</b> tasks included</li><li><b>${n("add")}</b> paid extras</li><li><b>${n("")}</b> not included</li></ul>`;
+}
+// Points to the next fuller clean (the smallest step up that covers some of what this one leaves out), when there is one.
+function scopeMore(L, k) {
+  const s = C.services[k], col = s.checklistColumn, t = scopeTasks(s);
+  const none = t.filter((x) => !x[col]);
+  const yesIn = (c) => t.filter((x) => x[c] === "yes").length;
+  const best = svcKeys.filter((o) => o !== k && !C.services[o].rooms && yesIn(C.services[o].checklistColumn) > yesIn(col))
+    .map((o) => ({ o, n: none.filter((x) => x[C.services[o].checklistColumn] === "yes").length, size: yesIn(C.services[o].checklistColumn) }))
+    .filter((x) => x.n > 0)
+    .sort((a, b) => a.size - b.size)[0];
+  if (!none.length || !best || !best.n) return "";
+  const o = C.services[best.o];
+  const count = best.n === none.length ? (best.n === 1 ? "it" : best.n === 2 ? "both" : "all of them") : `${best.n} of the ${none.length}`;
+  return `<div class="scope-more"><p>Need something marked “Not included”? ${esc(o.name)} includes ${count}${best.o === "move" ? ", for an empty home" : ""}.</p><a class="text-link" href="${L("services/" + o.slug + "/#included")}">See ${esc(o.menuName)} ${ic("i-arrow")}</a></div>`;
 }
 
 for (const k of svcKeys) {
@@ -1150,7 +1225,7 @@ for (const k of svcKeys) {
   <div class="wrap">${breadcrumbs(L, trail)}</div>
   <div class="wrap hero-grid">
     <div class="hero-copy">
-      <p class="kicker">${s.tag ? esc(s.tag) : "Service"}</p>
+      ${s.tag ? `<p class="kicker">${esc(s.tag)}</p>` : ""}
       <h1 class="display display-sub">${esc(s.name)}</h1>
       <p class="lede">${esc(s.intro)}</p>
       <dl class="facts">
@@ -1158,22 +1233,23 @@ for (const k of svcKeys) {
         <div><dt>Time on site</dt><dd>From ${s.hours} hrs</dd></div>
         <div><dt>Payment</dt><dd>After the clean</dd></div>
       </dl>
+      ${photo(L, HOME_PHOTOS[k], { sizes: "(min-width: 960px) 520px, 92vw", cls: "hero-photo" })}
     </div>
-    <div class="hero-pricer">${pricer(L, k, "Price your " + s.menuName.toLowerCase())}</div>
+    <div class="hero-pricer">${pricer(L, k, "Price your " + s.menuName.toLowerCase(), { owner: true })}</div>
   </div>
 </section>
 
 <section class="section" id="included">
   <div class="wrap">
-    <div class="section-head"><p class="label">What's included</p><h2>Room by room.</h2>${addonsWith(k, "none").length ? `<p class="muted">Not part of ${esc(s.menuName.toLowerCase())}: ${esc(listJoin(addonsWith(k, "none").map((a) => a.name.toLowerCase())))}.</p>` : ""}</div>
+    <div class="section-head"><p class="label">What's included</p><h2>Room by room.</h2><p class="muted">What every ${esc(s.menuName.toLowerCase())} visit covers, what you can add, and what isn't part of it.${addonsWith(k, "none").length ? ` Not offered with this clean: ${esc(listJoin(addonsWith(k, "none").map((a) => a.name.toLowerCase())))}.` : ""}</p>${scopeSummary(s)}</div>
     <div class="incl-grid">${checklistFor(s)}</div>
+    ${scopeMore(L, k)}
   </div>
 </section>
 
 <section class="section section-tint" id="prices">
   <div class="wrap split">
     <div class="split-head">
-      <p class="label">Prices</p>
       <h2>${esc(s.menuName)} prices.</h2>
       <p class="muted">${k === "detail" ? "Priced by the number of bathrooms, with the kitchen always included." : "Studios are priced as 1 bedroom."} Products and equipment are included, and extras are added on top. For other sizes, use the price box above.</p>
       <a class="text-link" href="${L("pricing/")}">Compare every price ${ic("i-arrow")}</a>
@@ -1262,7 +1338,6 @@ ${PHONE ? finalCta(L, "Prefer to talk it through?", "Call, text or WhatsApp and 
   <div class="wrap">${breadcrumbs(L, trail)}</div>
   <div class="wrap hero-grid">
     <div class="hero-copy">
-      <p class="kicker">Pricing</p>
       <h1 class="display display-sub">House cleaning prices, up front.</h1>
       <p class="lede">Your price is set by the service, the size and type of your home, and any extras you choose. You see it before you book, there's no deposit, and you pay after the clean.</p>
       <dl class="facts">
@@ -1270,10 +1345,13 @@ ${PHONE ? finalCta(L, "Prefer to talk it through?", "Call, text or WhatsApp and 
         <div><dt>Deep</dt><dd>From <span data-from="deep">${money(C.services.deep.base)}</span></dd></div>
         <div><dt>Move-out</dt><dd>From <span data-from="move">${money(C.services.move.base)}</span></dd></div>
       </dl>
+      ${photo(L, "kitchen", { sizes: "(min-width: 960px) 520px, 92vw", cls: "hero-photo" })}
     </div>
-    <div class="hero-pricer">${pricer(L, "regular", "Price your home")}</div>
+    <div class="hero-pricer">${pricer(L, "regular", "Price your home", { owner: true })}</div>
   </div>
 </section>
+
+${chooser(L)}
 
 ${priceExplainer()}
 
@@ -1286,7 +1364,7 @@ ${priceExplainer()}
       ${offerNote()}
     </div>
     <div class="price-cards">
-      ${svcKeys.map((k) => { const s = C.services[k]; return `<article class="price-card">
+      ${svcKeys.map((k) => { const s = C.services[k]; return `<article class="price-card" id="prices-${k}" data-tab-label="${esc(s.shortName || s.menuName.replace(/ Detailing$/, ""))}">
         <div class="price-card-head">
           <h3><a href="${L("services/" + s.slug + "/")}">${esc(s.name)}</a></h3>
           <p class="price-card-from">From <b data-from="${k}">${money(s.base)}</b></p>
@@ -1396,6 +1474,8 @@ function condoGuide(name) {
 </section>`;
 }
 
+// Desktop heroes on area and neighbourhood pages: one room per district, never the entryway (the "standard" section uses it) or the living room (its window shows downtown).
+const AREA_PHOTO = { scarborough: "kitchen", "north-york": "bedroom" };
 for (const a of C.areas) {
   const trail = [["Home", ""], [a.name, "areas/" + a.slug + "/"]];
   const fq = faqBlock("area", `Cleaning in ${a.name}: questions.`);
@@ -1409,16 +1489,16 @@ for (const a of C.areas) {
   <div class="wrap">${breadcrumbs(L, trail)}</div>
   <div class="wrap hero-grid">
     <div class="hero-copy">
-      <p class="kicker">Service area</p>
       <h1 class="display display-sub">House cleaning in ${esc(a.name)}.</h1>
       <p class="lede">${esc(a.intro)}</p>
       <dl class="facts">
         <div><dt>From</dt><dd data-from="regular">${money(C.services.regular.base)}</dd></div>
-        <div><dt>Open</dt><dd>7 days, 9am to 11pm</dd></div>
+        ${OPEN_FACT}
         <div><dt>Payment</dt><dd>After the clean</dd></div>
       </dl>
+      ${photo(L, AREA_PHOTO[a.slug] || "living-room", { sizes: "(min-width: 960px) 520px, 92vw", cls: "hero-photo" })}
     </div>
-    <div class="hero-pricer">${pricer(L, "regular", "Your price in " + a.name)}</div>
+    <div class="hero-pricer">${pricer(L, "regular", "Your price in " + a.name, { owner: true })}</div>
   </div>
 </section>
 
@@ -1483,11 +1563,12 @@ for (const h of hoodPages) {
       <p class="lede">${esc(h.intro)}</p>
       <dl class="facts">
         <div><dt>From</dt><dd data-from="regular">${money(C.services.regular.base)}</dd></div>
-        <div><dt>Open</dt><dd>7 days, 9am to 11pm</dd></div>
+        ${OPEN_FACT}
         <div><dt>Payment</dt><dd>After the clean</dd></div>
       </dl>
+      ${photo(L, AREA_PHOTO[h.district] || "living-room", { sizes: "(min-width: 960px) 520px, 92vw", cls: "hero-photo" })}
     </div>
-    <div class="hero-pricer">${pricer(L, "regular", "Your price in " + h.name)}</div>
+    <div class="hero-pricer">${pricer(L, "regular", "Your price in " + h.name, { owner: true })}</div>
   </div>
 </section>
 
@@ -1888,7 +1969,6 @@ ${founding && founding.active
   <div class="wrap">${breadcrumbs(L, trail)}</div>
   <div class="wrap">
     <div class="hero-copy guides-head">
-      <p class="kicker">Help</p>
       <h1 class="display display-sub">Help with your booking.</h1>
       <p class="lede">What happens after you send a request, how to change or cancel, and how to reach ${esc(B.ownerFirstName)}. Keep your reference handy: it starts with NR-.</p>
     </div>
@@ -1896,18 +1976,20 @@ ${founding && founding.active
 </section>
 
 <section class="section section-flush" id="manage">
-  <div class="wrap">
-    <div class="section-head">
+  <div class="wrap split">
+    <div class="split-head">
       <p class="label">Manage your booking</p>
       <h2>Change, cancel or book again.</h2>
       <p class="muted">Email ${esc(B.ownerFirstName)} with your reference${PHONE ? `, or call or text <a data-tel href="tel:${B.phone}">${esc(B.phoneDisplay)}</a>` : ""}. Changes are free up to ${P0.cancelNoticeHours} hours before your arrival window. ${LATE_FEE_LINE}</p>
     </div>
+    <div class="help-manage">
     <div class="cta-row help-actions">
       <a class="btn btn-primary" href="${esc(mail("Change my booking", "Reference: NR-\nWhat I'd like to change: "))}" data-track="manage_change">${ic("i-mail")} Change a booking</a>
       <a class="text-link" href="${esc(mail("Cancel my booking", "Reference: NR-\n"))}" data-track="manage_cancel">Cancel a booking ${ic("i-arrow")}</a>
       <a class="text-link" href="${L("book/")}" data-track="book_click">Book again ${ic("i-arrow")}</a>
     </div>
     <p class="fine">On the device you booked from, the booking form remembers your home and extras for ${DRAFT_DAYS} days, so booking again takes a moment.</p>
+    </div>
   </div>
 </section>
 
@@ -2133,7 +2215,7 @@ if (!PREVIEW_DIR) {
 <title>Page not found | ${esc(B.name)}</title>
 <link rel="icon" type="image/svg+xml" href="${L404("assets/logo-mark.svg")}">
 ${THEME_BOOT}
-<link rel="stylesheet" href="${L404("css/site.css")}?v=${ASSET_V.css}"></head>
+<link rel="stylesheet" href="${L404("css/site.min.css")}?v=${ASSET_V.css}"></head>
 <body data-page="404"><main class="section"><div class="wrap narrow">
 <a class="brand" href="${L404()}"><img class="logo-light" src="${L404("assets/logo.svg")}" alt="${esc(B.name)}" width="772" height="210" style="height:56px;width:auto"><img class="logo-dark" src="${L404("assets/logo-white.svg")}" alt="${esc(B.name)}" width="772" height="210" style="height:56px;width:auto"></a>
 <h1 class="display display-sub" style="margin-top:48px">This page has moved.</h1>
@@ -2158,5 +2240,14 @@ if (PREVIEW_DIR) {
   for (const d of ["css", "js", "assets"]) fs.cpSync(path.join(ROOT, d), path.join(OUT, d), { recursive: true });
   fs.copyFileSync(path.join(ROOT, "site.webmanifest"), path.join(OUT, "site.webmanifest"));
 }
+
+/* ---------- compact copies: the pages load these, written from the files you edit ---------- */
+// css/site.css and js/site.js stay readable with their comments; the pages load css/site.min.css and js/site.min.js.
+// No tools needed: comments and spare spaces go, nothing else changes. Always edit the readable files, then run the build.
+const compactCss = (s) => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\s+/g, " ").replace(/\s*([{};,])\s*/g, "$1").replace(/:\s+/g, ":").replace(/;}/g, "}").trim() + "\n";
+// The script has no template strings or multi-line comments, so whole-line comments and indentation can go safely.
+const compactJs = (s) => s.split("\n").map((l) => l.trim()).filter((l) => l && !l.startsWith("//") && !(l.startsWith("/*") && l.endsWith("*/"))).join("\n") + "\n";
+fs.writeFileSync(path.join(OUT, "css/site.min.css"), compactCss(fs.readFileSync(path.join(ROOT, "css/site.css"), "utf8")));
+fs.writeFileSync(path.join(OUT, "js/site.min.js"), compactJs(fs.readFileSync(path.join(ROOT, "js/site.js"), "utf8")));
 
 console.log(`Built ${urls.length} pages into ${OUT}`);

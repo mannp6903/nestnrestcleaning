@@ -10,13 +10,14 @@ export default async function () {
       const p = await newPage(browser, { width, height: 900 });
       await p.goto(url + "/");
       const primary = await p.$$eval(".hero-cta .btn-primary", (as) => as.map((a) => a.textContent.trim()));
-      assert(primary.length === 1 && primary[0].startsWith("Book your clean"), `${width}px: the hero should have one main action, Book your clean, got ${JSON.stringify(primary)}`);
+      assert(primary.length === 1 && primary[0].startsWith("Book a clean"), `${width}px: the hero should have one main action, Book a clean, got ${JSON.stringify(primary)}`);
       const how = await p.$$eval(".hero-cta .text-link", (as) => as.map((a) => [a.textContent.trim(), a.getAttribute("href")]));
       assert(how.length === 1 && how[0][0] === "How it works" && how[0][1].endsWith("#how"), `${width}px: How it works should be a text link to #how, got ${JSON.stringify(how)}`);
       const imgs = await p.$$eval(".hero-home img", (is) => is.map((i) => i.getAttribute("src")));
       assert(imgs.length === 1 && /avatar/.test(imgs[0]), `${width}px: the owner's photo should be the hero's only image, got ${imgs.join(", ")}`);
-      const kicker = (await p.textContent(".hero-home .kicker")).trim();
-      assert(kicker === "House cleaning in North York & Scarborough", "hero eyebrow is: " + kicker);
+      // v4: the h1 itself says what and where, then the slogan.
+      const h1 = (await p.textContent(".hero-home h1")).replace(/\s+/g, " ").trim();
+      assert(h1 === "House cleaning in Scarborough & North York We clean. You rest.", "hero h1 is: " + h1);
       await p.context().close();
     }
   });
@@ -81,7 +82,8 @@ export default async function () {
     const p = await newPage(browser, { width: 1440, height: 900 });
     await p.goto(url + "/");
     assert(await p.locator(".founding").count() === 0, "the separate founding panel should be gone from the home page");
-    assert(await p.locator(".hero-home .pricer-offer").count() === 1, "the price box should still show the offer");
+    assert(await p.locator(".hero-home .pricer-deal").count() === 1 && await p.isVisible(".hero-home .pricer-deal"), "the price box should still show the offer, as one line under the price");
+    assert(await p.locator(".hero-home .pricer-offer").count() === 0, "the offer shouldn't also sit in a separate box in the price box");
     const firsts = await p.$$eval("#services .svc-first", (ss) => ss.map((s) => s.textContent.trim()));
     assert(firsts.length === 4 && firsts.every((t) => /^\$\d+ first visit$/.test(t)), "each service price should show its first-visit price, got " + JSON.stringify(firsts));
   });

@@ -87,6 +87,19 @@
     clearTimeout(toast.t);
     toast.t = setTimeout(function () { t.hidden = true; }, 3000);
   }
+  // A price that changed glows once (css/site.css; nothing happens under reduced motion).
+  function pulse(el) {
+    if (!el) return;
+    el.classList.remove("is-updated");
+    void el.offsetWidth;
+    el.classList.add("is-updated");
+  }
+  // Script-set headings get the same .stop as built ones (tools/build.mjs), so the full stop doesn't drift.
+  function setHeading(el, text) {
+    if (!el) return;
+    var m = /^(.*[^\s.])\.$/.exec(text);
+    if (m) el.innerHTML = esc(m[1]) + '<span class="stop">.</span>'; else el.textContent = text;
+  }
   function waHref(msg) { return B.whatsapp ? "https://wa.me/" + B.whatsapp + "?text=" + encodeURIComponent(msg) : ""; }
   // How to reach us: by phone while business.phone is set, otherwise by email (the number can be kept private).
   var REACH = B.phone ? "call or text " + B.phoneDisplay : "email " + B.email;
@@ -367,7 +380,9 @@
       var p = price(st.service, st.beds, st.baths, st.home);
       // While the founding offer runs, the first-visit price leads and the regular price sits under it (the booking total's rule).
       var f = C.offers.founding, on = !!(f && f.active), h = hoursFor(st.service, st.beds, st.baths, st.home);
-      $("[data-p-amount]", form).textContent = money(on ? afterDiscount(p, f.percent) : p);
+      var amt = $("[data-p-amount]", form), shown = money(on ? afterDiscount(p, f.percent) : p);
+      if (touched && amt.textContent !== shown) pulse($(".pricer-result", form));
+      amt.textContent = shown;
       var unit = $("[data-p-unit]", form);
       if (unit) unit.hidden = !on;
       $("[data-p-meta]", form).textContent = on ? "Regular price " + money(p) + " · estimate, about " + h + " hours on site" : "Estimate · about " + h + " hours on site";
@@ -455,6 +470,17 @@
     var CAL = !!(calStep && calPath);
     var CLOSES = parseInt(C.closes, 10) || 23;
     var CLEANERS = (C.booking || {}).cleaners || 1;
+    // Step errors sit beside the choice they're about (built in tools/build.mjs as [data-step-error]),
+    // and every option in that choice is described by them, so a screen reader hears why on arrival.
+    var STEP_TARGETS = { date: "[data-dates] input", slot: ".slot-grid input", quote: "[data-quote-link]" };
+    function stepError(name, msg) {
+      var box = $('[data-step-error="' + name + '"]', form);
+      if (!box) return;
+      box.textContent = msg || "";
+      box.hidden = !msg;
+      $$(STEP_TARGETS[name], form).forEach(function (el) { if (msg) el.setAttribute("aria-describedby", box.id); else el.removeAttribute("aria-describedby"); });
+    }
+    function firstOption(sel) { return $$(sel + " input", form).filter(function (i) { return !i.disabled; })[0]; }
     // One reference per request. A retry after a failed send keeps it, so a request that arrives twice is easy to spot.
     var ref = null, attempt = null;
     var started = false;
@@ -558,7 +584,9 @@
       html += line("Time on site", "about " + q.hours + " hrs, " + (CLEANERS === 1 ? "1 cleaner" : CLEANERS + " cleaners"), "then");
       if (q.review && !q.quoteOnly) html += line("Final price", esc(B.ownerFirstName) + " confirms", "then warn");
       $("[data-lines]").innerHTML = html;
-      $("[data-total]").textContent = q.quoteOnly ? "Quote" : moneyC(q.first);
+      var tot = $("[data-total]"), shownTotal = q.quoteOnly ? "Quote" : moneyC(q.first);
+      if (started && tot.textContent !== shownTotal) pulse(tot);
+      tot.textContent = shownTotal;
       $("[data-sum-label]").textContent = q.quoteOnly ? "Larger home" : q.firstDisc > 0 ? "First visit · " + q.firstPct + "% off" : "Your estimate";
       $("[data-fine]").textContent = "Estimate in " + C.currency + ". " + (q.tax ? "Includes " + Math.round(q.tax * 100) + "% HST. " : "No HST charged. ") +
         "Nothing to pay now. " + (CAL ? "You pick a confirmed time in the last step." : B.ownerFirstName + " confirms your time and final price before the clean.");
@@ -702,6 +730,7 @@
       $("[data-next]").hidden = n === LAST;
       $("[data-submit]").hidden = n !== LAST;
       $("[data-form-error]").hidden = true;
+      Object.keys(STEP_TARGETS).forEach(function (k) { stepError(k, ""); });
       if (focus) {
         var top = $(".book-head").getBoundingClientRect().top;
         if (top < -10) $(".book-head").scrollIntoView({ behavior: "smooth", block: "start" });
@@ -740,15 +769,21 @@
         if (!checkField(pc)) { failed(1, "postal", fullPostalOk(pc.value) ? "outside_area" : "postal_format"); pc.focus(); return false; }
         if (quote().quoteOnly) {
           failed(1, "home", "needs_quote");
-          toast("Homes over about 3,000 sq ft are priced by quote. Use the Residence Care button, or untick that box.");
+          stepError("quote", "Homes over about 3,000 sq ft are priced by quote. Use the Residence Care button, or untick that box.");
           var ql = $("[data-quote-link]");
           if (ql) ql.focus();
           return false;
         }
       }
       if (n === 2 && datesBox) {
-        if (!state.date && !state.flex) { msg = "Choose a preferred day, or tick “I'm flexible”."; failed(2, "date", "missing"); }
-        else if (!state.slot) { msg = "Choose a preferred arrival window, or “Any time”."; failed(2, "slot", "missing"); }
+        var miss = null;
+        if (!state.date && !state.flex) { miss = "date"; stepError("date", "Choose a preferred day, or tick “I'm flexible”."); failed(2, "date", "missing"); }
+        else if (!state.slot) { miss = "slot"; stepError("slot", "Choose a preferred arrival window, or “Any time”."); failed(2, "slot", "missing"); }
+        if (miss) {
+          var opt = miss === "date" ? firstOption("[data-dates]") : firstOption(".slot-grid");
+          if (opt) { opt.focus({ preventScroll: true }); opt.closest(".field").scrollIntoView({ block: "center" }); }
+          return false;
+        }
       }
       if (n === LAST) {
         var first = null;
@@ -832,11 +867,11 @@
       if (t.name === "service") { state.service = t.value; normalizeAddons(true); normalizeSlot(true); }
       if (t.name === "homeType") { state.homeType = t.value; normalizeSlot(true); }
       if (t.name === "freq") state.freq = t.value;
-      if (t.name === "slot") { state.slot = t.value; $("[data-slot-note]").textContent = ""; }
-      if (t.name === "date") { state.date = t.value; state.flex = false; }
-      if (t.hasAttribute("data-flex")) { state.flex = t.checked; if (state.flex) state.date = null; }
+      if (t.name === "slot") { state.slot = t.value; $("[data-slot-note]").textContent = ""; stepError("slot", ""); }
+      if (t.name === "date") { state.date = t.value; state.flex = false; stepError("date", ""); }
+      if (t.hasAttribute("data-flex")) { state.flex = t.checked; if (state.flex) state.date = null; stepError("date", ""); }
       if (t.name === "addon") { state.addons = $$('input[name="addon"]:checked:not(:disabled)', form).map(function (i) { return i.value; }); normalizeSlot(true); }
-      if (t.name === "check") state.checks = $$('input[name="check"]:checked', form).map(function (i) { return i.value; });
+      if (t.name === "check") { state.checks = $$('input[name="check"]:checked', form).map(function (i) { return i.value; }); stepError("quote", ""); }
       sync();
       renderSummary();
       save();
@@ -1016,6 +1051,7 @@
       $("[data-progress]").hidden = true;
       $("[data-summary]").hidden = true;
       $(".book-head h1").textContent = booked ? "You're booked" : "Request received";
+      $(".book-sub").hidden = true;
       $("[data-done-label]").textContent = booked ? "Booking confirmed" : "Request received · not confirmed yet";
       $("[data-ref]").textContent = info.r;
       var rows = [
@@ -1029,15 +1065,15 @@
       ];
       $("[data-done-list]").innerHTML = rows.filter(Boolean).map(function (x) { return "<div><dt>" + esc(x[0]) + "</dt><dd>" + esc(x[1]) + "</dd></div>"; }).join("");
       if (info.skipped) {
-        $("[data-done-title]").textContent = "Preview only.";
+        setHeading($("[data-done-title]"), "Preview only.");
         $("[data-done-text]").textContent = "This preview doesn't send bookings. On the live site, " + B.ownerFirstName + " receives this request by email.";
       } else if (booked) {
-        $("[data-done-title]").textContent = "You're booked, " + info.firstName + ".";
+        setHeading($("[data-done-title]"), "You're booked, " + info.firstName + ".");
         var at = start ? fmtStart(start) : "";
         $("[data-done-text]").textContent = (at ? at + (/\.$/.test(at) ? " " : ". ") : "") + "Cal.com emails your confirmation with links to reschedule or cancel. " +
           B.ownerFirstName + " will " + info.how + " you " + B.replyPromise + " to go over the details. Nothing to pay until after your clean.";
       } else {
-        $("[data-done-title]").textContent = "Thank you, " + info.firstName + ".";
+        setHeading($("[data-done-title]"), "Thank you, " + info.firstName + ".");
         $("[data-done-text]").textContent = B.ownerFirstName + " has your request and will " + info.how + " you " + B.replyPromise + " to agree your day, arrival window and final price. Nothing to pay until after your clean.";
       }
       var msg = text(info.r, booked ? when : null);
@@ -1093,6 +1129,7 @@
     function showCalendar(info) {
       var cfg = calConfig(info);
       $(".book-head h1").textContent = "Almost booked";
+      $(".book-sub").hidden = true;
       markDots(3);
       $("[data-cal-link]").href = "https://cal.com/" + calPath + "?" + Object.keys(cfg).map(function (k) { return encodeURIComponent(k) + "=" + encodeURIComponent(cfg[k]); }).join("&");
       calStep.hidden = false;
@@ -1135,6 +1172,9 @@
     });
 
     restore();
+    // Arriving from a price box: say that its choices came along, so nothing looks asked twice.
+    var pre = $("[data-prefill]");
+    if (pre && /[?&]s=/.test(location.search)) pre.hidden = false;
     // A saved draft or an old link can't carry an extra this service includes or doesn't offer.
     normalizeAddons(true);
     normalizeSlot(false);
@@ -1461,6 +1501,8 @@
     if (btn && menu) {
       // While the menu is open the page behind it is inert, so keyboard focus stays in the header and the menu.
       var setMenu = function (open, returnFocus) {
+        // The menu starts where the header ends: lower while the offer bar is still on screen, so nothing hides under the header.
+        if (open) menu.style.top = Math.max(0, Math.round($(".site-header").getBoundingClientRect().bottom)) + "px";
         menu.hidden = !open;
         btn.setAttribute("aria-expanded", String(open));
         btn.setAttribute("aria-label", open ? "Close menu" : "Open menu");
@@ -1564,11 +1606,74 @@
     window.addEventListener("popstate", function () { load(new URL(location.href), false); });
   }
 
+  /* ---------- Pricing: one price table at a time on phones and tablets ---------- */
+  // A tab per service above the tables (css/site.css hides the other tables while .is-tabbed is on).
+  // Wider screens, and anyone without this script, see all four. A link to #prices-deep opens that table.
+  function bindPriceTabs() {
+    var box = $(".price-cards");
+    if (!box || !window.matchMedia) return;
+    var cards = $$(".price-card[data-tab-label]", box);
+    if (cards.length < 2) return;
+    var mq = window.matchMedia("(max-width: 59.9375em)"), list = null, current = 0;
+    cards.forEach(function (c, i) { if (location.hash === "#" + c.id) current = i; });
+    function select(i, focus) {
+      current = i;
+      cards.forEach(function (c, j) { c.classList.toggle("is-active", j === i); });
+      $$('[role="tab"]', list).forEach(function (t, j) {
+        t.setAttribute("aria-selected", String(j === i));
+        t.tabIndex = j === i ? 0 : -1;
+        if (j === i && focus) t.focus();
+      });
+    }
+    function on() {
+      if (list) return;
+      list = document.createElement("div");
+      list.className = "price-tabs";
+      list.setAttribute("role", "tablist");
+      list.setAttribute("aria-label", "Prices for");
+      cards.forEach(function (c, i) {
+        var b = document.createElement("button");
+        b.type = "button";
+        b.id = "tab-" + c.id;
+        b.setAttribute("role", "tab");
+        b.setAttribute("aria-controls", c.id);
+        b.textContent = c.getAttribute("data-tab-label");
+        b.addEventListener("click", function () { select(i); });
+        list.appendChild(b);
+        c.setAttribute("role", "tabpanel");
+        c.setAttribute("aria-labelledby", b.id);
+      });
+      list.addEventListener("keydown", function (e) {
+        var n = cards.length, i = e.key === "ArrowRight" ? (current + 1) % n : e.key === "ArrowLeft" ? (current - 1 + n) % n : e.key === "Home" ? 0 : e.key === "End" ? n - 1 : -1;
+        if (i < 0) return;
+        e.preventDefault();
+        select(i, true);
+      });
+      box.insertBefore(list, box.firstChild);
+      box.classList.add("is-tabbed");
+      select(current);
+    }
+    function off() {
+      if (!list) return;
+      list.parentNode.removeChild(list);
+      list = null;
+      box.classList.remove("is-tabbed");
+      cards.forEach(function (c) { c.classList.remove("is-active"); c.removeAttribute("role"); c.removeAttribute("aria-labelledby"); });
+    }
+    function apply() { if (mq.matches) on(); else off(); }
+    apply();
+    if (mq.addEventListener) mq.addEventListener("change", apply); else if (mq.addListener) mq.addListener(apply);
+    window.addEventListener("hashchange", function () {
+      cards.forEach(function (c, i) { if (location.hash === "#" + c.id) { current = i; if (list) select(i); } });
+    });
+  }
+
   initAnalytics();
   fillCommon();
   renderReviews();
   bindPostalChecks();
   bindPricer();
+  bindPriceTabs();
   bindBooking();
   bindQuote();
   bindReview();

@@ -42,12 +42,13 @@ export default async function () {
       assert(px(s.size) === want, `${path} ${selector} at ${width}px should be ${want}px, got ${s.size}`);
       if (weight) assert(s.weight === String(weight), `${path} ${selector} weight should be ${weight}, got ${s.weight}`);
     };
-    await check(1440, "/", "h1", 76, 800);
-    await check(1440, "/pricing/", "h1", 60);
-    await check(1440, "/", "#services h2", 46, 800);
-    await check(390, "/", "h1", 48);
-    await check(390, "/pricing/", "h1", 40);
-    await check(390, "/", "#services h2", 32);
+    // v4 (docs/superpowers/specs/2026-10-29-website-redesign-v4-design.md): calmer 700 headings on a smaller scale.
+    await check(1440, "/", ".hero-title .display", 68, 700);
+    await check(1440, "/pricing/", "h1", 56, 700);
+    await check(1440, "/", "#services h2", 40, 700);
+    await check(390, "/", ".hero-title .display", 44);
+    await check(390, "/pricing/", "h1", 36);
+    await check(390, "/", "#services h2", 28);
   });
 
   test("white pages with ivory sections", async ({ browser, url }) => {
@@ -238,7 +239,7 @@ export default async function () {
     const lede = (await p.textContent(".hero-home .lede")).trim();
     assert(lede === "Your weekends are for living, not scrubbing. Mann cleans your home with care, so you come back to calm, and you pay only after the clean.", "hero subheading is: " + lede);
     const links = await p.$$eval(".hero-cta a", (as) => as.map((a) => [a.textContent.trim(), a.getAttribute("href")]));
-    assert(links.some(([t, h]) => t.startsWith("Book your clean") && h.endsWith("book/")), "hero needs Book your clean -> book/: " + JSON.stringify(links));
+    assert(links.some(([t, h]) => t.startsWith("Book a clean") && h.endsWith("book/")), "hero needs Book a clean -> book/: " + JSON.stringify(links));
     assert(links.some(([t, h]) => t.startsWith("How it works") && h.endsWith("#how")), "hero needs How it works -> #how: " + JSON.stringify(links));
   });
 

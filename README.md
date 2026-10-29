@@ -8,9 +8,9 @@ It's built to turn visitors into booked clients and to rank on Google for local 
 | Page | Purpose |
 |---|---|
 | `/` | Home: instant price (visible on the first phone screen), services, how booking works, the Nest & Rest standard and guarantee, plans, founder and founding offer, areas, guides, FAQ |
-| `/pricing/` | Every price by home size and type, plan discounts, extras, a room-by-room comparison of regular, deep and move-out cleaning, pricing FAQ |
+| `/pricing/` | Every price by home size and type (one table at a time on phones), plan discounts, extras, a room-by-room comparison of regular, deep and move-out cleaning, pricing FAQ |
 | `/book/` | Focused 3-step booking request: your home → plan & preferred time → your details, ending with "Check your clean", a full review with an Edit link on every detail. With a Cal.com link set: your home & plan → your details → pick a confirmed time on your calendar |
-| `/services/<service>/` | One page per service (regular, deep, move-in/out, kitchen & bath, residence care, office), each with its own price table |
+| `/services/<service>/` | One page per service (regular, deep, move-in/out, kitchen & bath, residence care, office), each with its own price table and, room by room, what's included, what's a paid extra and what isn't included |
 | `/areas/<district>/` | Scarborough and North York, with their neighbourhoods and postal codes |
 | `/areas/<district>/<neighbourhood>/` | 12 neighbourhood pages (Agincourt, Malvern, Guildwood, Birch Cliff, Highland Creek, Wexford, Willowdale, Don Mills, York Mills, Bayview Village, Bathurst Manor, Lawrence Manor) |
 | `/realtors/` | Listing-prep, move-out and between-tenant cleaning for realtors, landlords and property managers, with a quote form |
@@ -160,6 +160,7 @@ The checks cover:
 - **layout and design:** screen widths, both themes, type and contrast.
 - **a11y:** text at 200%, keyboard only, what screen readers hear, an axe-core scan, and long names.
 - **sheet:** the Google Sheet script, run against stand-in Google services.
+- **v4:** what's included and not on service pages, booking errors beside their field, tabular prices, the phone price switcher, aligned panels, one set of booking labels, and nothing under 12px.
 
 Both need Playwright with Chromium (`npm install -g playwright && npx playwright install chromium`). The checks serve the site from your computer and never send a real booking. For what only a real phone can show (its keyboard, autofill, VoiceOver or TalkBack), use `docs/phone-checklist.md`.
 
@@ -167,9 +168,9 @@ Both need Playwright with Chromium (`npm install -g playwright && npx playwright
 
 ```
 index.html, book/, services/, areas/, realtors/, gift/, guides/, help/, review/, 404.html   generated pages
-css/site.css       design system
+css/site.css       design system (edit this; the build writes css/site.min.css, which the pages load)
 js/config.js       business settings (edit this)
-js/site.js         pricing, booking, forms, WhatsApp, tracking
+js/site.js         pricing, booking, forms, WhatsApp, tracking (the build writes js/site.min.js, which the pages load)
 tools/build.mjs    page generator
 tools/guides.mjs   the guide articles
 tools/qa/          browser checks (see Checking the site)

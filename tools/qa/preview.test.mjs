@@ -14,7 +14,8 @@ export default async function () {
       fs.mkdirSync(path.join(dir, "css"));
       fs.writeFileSync(path.join(dir, "css/site.css"), "/* an older stylesheet */");
       execFileSync(process.execPath, [path.join(ROOT, "tools/build.mjs"), "--preview", dir], { stdio: "pipe" });
-      const files = ["css/site.css", "js/site.js", "js/config.js", "site.webmanifest", "assets/logo.svg", "assets/fonts/dm-sans.woff2",
+      // The compact copies the pages load must match a fresh build of the readable files, so a forgotten rebuild fails here.
+      const files = ["css/site.css", "css/site.min.css", "js/site.js", "js/site.min.js", "js/config.js", "site.webmanifest", "assets/logo.svg", "assets/fonts/dm-sans.woff2",
         ...fs.readdirSync(path.join(ROOT, "assets/photos")).map((f) => "assets/photos/" + f)];
       const same = (f) => fs.existsSync(path.join(dir, f)) && fs.readFileSync(path.join(dir, f)).equals(fs.readFileSync(path.join(ROOT, f)));
       const bad = files.filter((f) => !same(f));

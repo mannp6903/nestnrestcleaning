@@ -9,7 +9,7 @@ Note anything that looks wrong or confusing (a screenshot helps) and send it to 
 1. Open the home page. In the price box, change bedrooms and bathrooms.
    - The big number should be the first-visit price.
    - "Regular price" should sit under it.
-2. Tap **Choose your time**.
+2. Tap **Book this clean**.
    - Type your postal code with the phone keyboard. A postal-style keyboard is a plus.
    - Tap Continue.
 3. Pick a day and an arrival time, then tap Continue.
