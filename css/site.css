@@ -421,6 +421,8 @@ a.svc-card:hover .svc-arrow { transform: translateX(4px); }
 .ritual { list-style: none; margin: 0; padding: 0; counter-reset: rit; }
 .ritual li { counter-increment: rit; display: grid; grid-template-columns: 52px 1fr; gap: 2px 12px; padding: 18px 0; border-top: 1px solid var(--line-navy); }
 .ritual li:last-child { border-bottom: 1px solid var(--line-navy); }
+/* Below 960px the guarantee follows the steps with its own rule, so the last step doesn't add a second one. */
+@media (max-width: 59.9375em) { .ritual li:last-child { border-bottom: 0; } }
 .ritual li::before { content: counter(rit, decimal-leading-zero); grid-row: span 2; font-family: var(--display); font-weight: 800; font-size: 1.5rem; color: var(--teal); line-height: 1.1; }
 .ritual h3 { font-size: 1.4rem; }
 .ritual p { color: var(--on-navy-2); font-size: 0.98rem; }
@@ -468,6 +470,7 @@ a.svc-card:hover .svc-arrow { transform: translateX(4px); }
 /* Founder */
 .founder-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: clamp(36px, 6vw, 72px); align-items: center; }
 .founder-photo { position: relative; margin: 0; width: calc(100% - 18px); max-width: 420px; }
+@media (min-width: 37.5em) and (max-width: 47.4375em) { .founder-photo { max-width: 340px; } }
 .founder-photo::before { content: ""; position: absolute; inset: 18px -18px -18px 18px; background: var(--band-sand); border-radius: var(--r-lg); }
 .founder-photo img { position: relative; width: 100%; aspect-ratio: 4 / 5; object-fit: cover; border-radius: var(--r-lg); box-shadow: var(--shadow); }
 .founder-body { display: grid; gap: 24px; justify-items: start; }
@@ -998,6 +1001,9 @@ a.svc-card:hover .svc-arrow { transform: translateX(4px); }
 @media (min-width: 75em) {
   .svc-grid-4 { grid-template-columns: repeat(4, 1fr); }
   .district-cards { grid-template-columns: 1fr 1fr; }
+  /* Footer: three columns once the email address fits on one line; below that, contact gets its own row. */
+  .footer-cols { grid-template-columns: repeat(3, 1fr); }
+  .footer-cols > div:last-child { grid-column: auto; }
 }
 
 /* ≥ 600px */
@@ -1006,12 +1012,8 @@ a.svc-card:hover .svc-arrow { transform: translateX(4px); }
   .booking-form .form-grid .span-2 { grid-column: span 2; }
   .choice-grid { grid-template-columns: 1fr 1fr; }
   .freq-grid { grid-template-columns: repeat(4, 1fr); }
-  .trust { grid-template-columns: repeat(4, 1fr); padding: 22px 0; }
-  .trust li { font-size: 0.98rem; }
-  .footer-cols { grid-template-columns: repeat(3, 1fr); }
-  .footer-cols > div:last-child { grid-column: auto; }
+  .trust { padding: 22px 0; }
   .incl-grid { grid-template-columns: 1fr 1fr; }
-  .guide-grid { grid-template-columns: 1fr 1fr; }
   .price-table th, .price-table td { padding-left: 12px; }
   .price-table tbody th { font-size: 0.95rem; }
   .cmp-short { display: none; }
@@ -1088,6 +1090,8 @@ a.svc-card:hover .svc-arrow { transform: translateX(4px); }
   .founder-grid > .founder-photo { position: sticky; top: calc(var(--header-h) + 28px); }
   .measure { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: end; gap: 48px; }
   .footer-top { grid-template-columns: 1fr 2fr; }
+  .trust { grid-template-columns: repeat(4, 1fr); }
+  .trust li { font-size: 0.98rem; }
   .ideal-grid { grid-template-columns: minmax(260px, 0.8fr) minmax(0, 1fr) minmax(0, 1fr); }
   .ideal-grid.ideal-2 { grid-template-columns: minmax(260px, 0.8fr) minmax(0, 2fr); align-items: center; }
   .ideal-2 .area-list { margin-top: 12px; max-width: 520px; }

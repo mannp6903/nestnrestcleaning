@@ -2153,4 +2153,10 @@ ${urls.map((u) => `  <url><loc>${u}</loc><lastmod>${TODAY}</lastmod></url>`).joi
   fs.writeFileSync(path.join(OUT, "robots.txt"), `User-agent: *\nAllow: /\nSitemap: ${SITE}/sitemap.xml\n`);
 }
 
+/* ---------- preview: the stylesheet, scripts and images go with the pages ---------- */
+if (PREVIEW_DIR) {
+  for (const d of ["css", "js", "assets"]) fs.cpSync(path.join(ROOT, d), path.join(OUT, d), { recursive: true });
+  fs.copyFileSync(path.join(ROOT, "site.webmanifest"), path.join(OUT, "site.webmanifest"));
+}
+
 console.log(`Built ${urls.length} pages into ${OUT}`);
