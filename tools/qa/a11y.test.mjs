@@ -116,6 +116,33 @@ export default async function () {
     assert(!problems.length, "focus problems: " + [...new Set(problems)].join(", "));
   });
 
+  test("menu keeps focus in the header and menu, and Escape returns it", async ({ browser, url }) => {
+    const p = await newPage(browser, { width: 390, height: 844 });
+    await p.goto(url + "/");
+    await p.focus(".menu-btn");
+    await p.keyboard.press("Enter");
+    assert(await p.isVisible("#menu"), "Enter on the menu button should open the menu");
+    assert(await p.getAttribute(".menu-btn", "aria-expanded") === "true", "the button should say the menu is open");
+    const escaped = [];
+    for (let i = 0; i < 25; i++) {
+      await p.keyboard.press("Tab");
+      // Focus may pass out to the browser's own controls (body) between laps; it must never land on the page behind the menu.
+      const where = await p.evaluate(() => { const a = document.activeElement; return a === document.body || a.closest(".site-header, #menu") ? null : a.tagName.toLowerCase() + "." + a.className + " " + a.textContent.trim().slice(0, 24); });
+      if (where) escaped.push(where);
+    }
+    assert(!escaped.length, "focus left the open menu for: " + [...new Set(escaped)].slice(0, 4).join("; "));
+    await p.focus("#menu .menu-list a");
+    await p.keyboard.press("Escape");
+    assert(!(await p.isVisible("#menu")), "Escape should close the menu");
+    assert(await p.evaluate(() => document.activeElement.classList.contains("menu-btn")), "Escape should put focus back on the menu button");
+    assert(await p.getAttribute(".menu-btn", "aria-expanded") === "false", "the button should say the menu is closed");
+    assert(await p.evaluate(() => !document.querySelector("[inert]")), "nothing should stay inert once the menu closes");
+    await p.click(".menu-btn");
+    await p.setViewportSize({ width: 1440, height: 900 });
+    await p.waitForFunction(() => !document.querySelector("[inert]"));
+    assert(await p.getAttribute(".menu-btn", "aria-expanded") === "false", "turning a tablet sideways should close the menu");
+  });
+
   test("prices, totals and errors are announced", async ({ browser, url }) => {
     const p = await newPage(browser, { width: 390, height: 844 });
     await p.goto(url + "/");

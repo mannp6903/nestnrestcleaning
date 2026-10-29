@@ -1459,16 +1459,26 @@
   function bindChrome() {
     var btn = $(".menu-btn"), menu = $("#menu");
     if (btn && menu) {
-      var setMenu = function (open) {
+      // While the menu is open the page behind it is inert, so keyboard focus stays in the header and the menu.
+      var setMenu = function (open, returnFocus) {
         menu.hidden = !open;
         btn.setAttribute("aria-expanded", String(open));
         btn.setAttribute("aria-label", open ? "Close menu" : "Open menu");
         $("use", btn).setAttribute("href", open ? "#i-close" : "#i-menu");
         document.body.classList.toggle("menu-open", open);
+        $$("main, .site-footer, [data-action-bar], .announce, .skip").forEach(function (el) { el.toggleAttribute("inert", open); });
+        if (!open && returnFocus) btn.focus();
       };
       btn.addEventListener("click", function () { setMenu(menu.hidden); });
       menu.addEventListener("click", function (e) { if (e.target.closest("a")) setMenu(false); });
-      document.addEventListener("keydown", function (e) { if (e.key === "Escape") setMenu(false); });
+      document.addEventListener("keydown", function (e) {
+        if (e.key !== "Escape" || menu.hidden) return;
+        setMenu(false, document.activeElement === btn || menu.contains(document.activeElement));
+      });
+      // The menu only exists below 960px: widening the window (a tablet turned sideways) closes it, so the page isn't left inert.
+      var wide = window.matchMedia("(min-width: 60em)");
+      var onWide = function () { if (wide.matches && !menu.hidden) setMenu(false); };
+      if (wide.addEventListener) wide.addEventListener("change", onWide); else if (wide.addListener) wide.addListener(onWide);
     }
 
     document.addEventListener("click", function (e) {
