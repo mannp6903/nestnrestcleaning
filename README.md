@@ -62,12 +62,23 @@ All settings are in `js/config.js`. Prices and contact details update on every p
 
 Everything is emailed to `nestnrestcleaning@gmail.com` through [FormSubmit](https://formsubmit.co), including "Text me this price" requests from the price box.
 After any change of email address, send one test booking and click **Activate** in the FormSubmit email.
+You can switch to saving every request in your own Google Sheet instead (see the next section).
 
-- **Request, then confirmation.** A booking request is not a booked time. The customer sees "Request sent · not confirmed yet" and that their time is held only once you confirm. Each request email has a **Status**, the preferred day and window, what's included, extras with prices, "Price to confirm" (half baths, a basement, more than 8 hours…), the time on site, the price version, building details and product preference.
-- **Sent means sent.** The site shows "Request sent" only when FormSubmit answers with an explicit success. An empty or unexpected answer is treated as a failure: the customer gets an email button with everything filled in (plus text and WhatsApp while those numbers are set) and can try again.
-- **One reference per request.** A retry keeps the same reference (NR-…), so if a request reaches you twice, the matching reference tells you it's one booking.
+- **Request, then confirmation.** A booking request is not a booked time. The customer sees "Request received · not confirmed yet" and that their time is held only once you confirm. Each request email has a **Status**, the preferred day and window, what's included, extras with prices, "Price to confirm" (half baths, a basement, more than 8 hours…), the time on site, the price version, building details and product preference.
+- **Received means received.** The site shows "Request received" only when FormSubmit (or the Google Sheet) answers with an explicit success. An empty or unexpected answer is treated as a failure: the customer gets an email button with everything filled in (plus text and WhatsApp while those numbers are set) and can try again.
+- **One reference per request.** A retry keeps the same reference (NR-…, or GIFT-… for gift cards), so if a request reaches you twice, the matching reference tells you it's one request. With the Google Sheet switched on, a retry never adds a second row.
 - **Changes and rebooking:** customers email you with their reference from the done screen or the Help page. On the same device, the booking form remembers their home and extras for a repeat booking.
 - **Saved details:** home choices are kept on the customer's device for 14 days. Name, contact details, address and notes are kept only in the open browser tab and are deleted once the request is sent. "Clear my details from this device" is on the booking form and the Help page.
+
+## Saving form requests to a Google Sheet
+
+With this switched on, every form (bookings, quotes, gift cards, reviews and "Text me this price") is saved as a row in a Google Sheet you own, under one reference.
+You get an alert email for each request, and customers who give an email get a short receipt saying it arrived and isn't confirmed yet.
+Emails that fail are retried every 15 minutes, and each morning at 9 you get one email listing anything still waiting for your reply.
+
+- **Set up:** follow `docs/google-sheet-setup.md` (about 15 minutes). The script to paste is `tools/sheet/Code.gs`.
+- **Switch on:** in `js/config.js`, set `delivery: { provider: "sheet", endpoint: "<your /exec address>" }`, then run `node tools/build.mjs` so the privacy notes name the sheet.
+- **Switch off:** set `provider` back to `"formsubmit"` and rebuild. The sheet keeps what's already saved.
 
 ## Booking calendar (Cal.com)
 
@@ -133,11 +144,22 @@ After a change, rebuild and run the browser checks:
 
 ```
 node tools/build.mjs
-node tools/qa/run.mjs            # booking, privacy, layout and design checks; add a word to run one file, e.g. booking
+node tools/qa/run.mjs            # all checks below; add a word to run one file, e.g. booking
 node tools/qa/perf.mjs           # load speed on a slow phone: fails if a page takes over 2.2s or jumps around
 ```
 
-Both need Playwright with Chromium (`npm install -g playwright && npx playwright install chromium`). The checks serve the site from your computer and never send a real booking.
+The checks cover:
+
+- **booking:** the booking form's rules, plus the Pets and Notes rows.
+- **delivery:** forms sent to the Google Sheet.
+- **handoff:** large homes carried into the Residence Care quote, and quote dropdowns.
+- **pricebox:** the price box.
+- **privacy:** nothing personal in analytics.
+- **layout and design:** screen widths, both themes, type and contrast.
+- **a11y:** text at 200%, keyboard only, what screen readers hear, an axe-core scan, and long names.
+- **sheet:** the Google Sheet script, run against stand-in Google services.
+
+Both need Playwright with Chromium (`npm install -g playwright && npx playwright install chromium`). The checks serve the site from your computer and never send a real booking. For what only a real phone can show (its keyboard, autofill, VoiceOver or TalkBack), use `docs/phone-checklist.md`.
 
 ## Files
 
