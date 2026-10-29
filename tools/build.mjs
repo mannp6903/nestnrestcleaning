@@ -477,7 +477,7 @@ function faqBlock(tag, title = "Questions, answered.", cls = "") {
       <h2>${esc(title)}</h2>
       <p class="muted">Anything else? ${PHONE ? `Call or text <a data-tel href="tel:${B.phone}" data-phone-text>${esc(B.phoneDisplay)}</a>` : `Email <a data-mailto href="mailto:${B.email}">${esc(B.email)}</a>`}${B.whatsapp ? `, or <a data-wa href="${esc(waLink(WA_HELLO))}" target="_blank" rel="noopener">message on WhatsApp</a>` : ""}.</p>
     </div>
-    <div class="faq">
+    <div class="faq-list">
       ${list.map((f) => `<details><summary><span>${esc(f.q)}</span>${ic("i-plus")}</summary><p>${esc(f.a)}</p></details>`).join("")}
     </div>
   </div>
@@ -737,7 +737,7 @@ ${gift && gift.active ? `<section class="gift-band" data-gift-banner data-months
 
 <section class="section" id="services">
   <div class="wrap">
-    <div class="section-head section-head-center">
+    <div class="section-head">
       <p class="label">Services</p><h2>Choose the care your home needs.</h2>
       <a class="text-link" href="${L("pricing/")}">See every price ${ic("i-arrow")}</a>
     </div>
@@ -747,7 +747,7 @@ ${gift && gift.active ? `<section class="gift-band" data-gift-banner data-months
 
 <section class="section section-tint" id="how">
   <div class="wrap">
-    <div class="section-head section-head-center">
+    <div class="section-head">
       <p class="label">Booking</p>
       <h2>${CAL ? "Booked in two minutes. Confirmed instantly." : `Request in two minutes. ${esc(B.ownerFirstName)} confirms.`}</h2>
     </div>

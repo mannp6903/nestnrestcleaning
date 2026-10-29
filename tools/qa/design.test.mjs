@@ -64,36 +64,55 @@ export default async function () {
     }
   });
 
-  test("pill buttons and soft cards", async ({ browser, url }) => {
+  // v3 (docs/superpowers/specs/2026-10-29-website-redesign-v3-design.md): pill buttons stay; cards, panels and fields get calmer corners and no shadow.
+  test("pill buttons and v3 surfaces", async ({ browser, url }) => {
     const p = await newPage(browser, { width: 1440, height: 900 });
-    const box = (sel) => p.$eval(sel, (e) => { const s = getComputedStyle(e), r = e.getBoundingClientRect(); return { radius: parseFloat(s.borderTopLeftRadius), h: r.height, w: r.width }; });
+    const box = (sel) => p.$eval(sel, (e) => { const s = getComputedStyle(e), r = e.getBoundingClientRect(); return { radius: parseFloat(s.borderTopLeftRadius), shadow: s.boxShadow, h: r.height, w: r.width }; });
     await p.goto(url + "/");
     const primary = await box(".hero-cta .btn-primary");
     assert(primary.radius >= 26 && Math.abs(primary.h - 52) <= 1, "primary button should be a 52px pill, got " + JSON.stringify(primary));
     const small = await box("#services .btn-sm");
     assert(Math.abs(small.h - 44) <= 1 && small.radius >= 22, "small button should be a 44px pill, got " + JSON.stringify(small));
-    for (const sel of ["#services .svc-card", ".hero-home .pricer", "#faq details"]) {
-      const b = await box(sel);
-      assert(b.radius === 20, `${sel} should have a 20px radius, got ${b.radius}`);
-    }
+    assert((await box(".hero-home .pricer")).radius === 14, "the price box should have a 14px radius");
     for (const sel of ["section.standard", ".final-cta .final-inner"]) {
       const b = await box(sel);
-      assert(b.radius === 28, `${sel} should be a rounded 28px panel, got ${b.radius}`);
+      assert(b.radius === 20, `${sel} should be a 20px panel, got ${b.radius}`);
       assert(b.w < 1440, `${sel} should sit inside the page width, got ${b.w}px wide`);
     }
-    assert((await box("#pc-home")).radius === 14, "fields should have a 14px radius");
-    assert(Math.round((await box("#services .svc-ico")).w) === 42, "icon chips should be 42px");
+    assert((await box("#pc-home")).radius === 12, "fields should have a 12px radius");
+    await p.goto(url + "/services/deep-cleaning/");
+    const card = await box(".svc-card");
+    assert(card.radius === 14 && card.shadow === "none", "service cards should be flat with a 14px radius, got " + JSON.stringify(card));
     await p.goto(url + "/pricing/");
-    assert((await box(".price-card")).radius === 20, "price cards should have a 20px radius");
+    const price = await box(".price-card");
+    assert(price.radius === 14 && price.shadow === "none", "price cards should be flat with a 14px radius, got " + JSON.stringify(price));
+    await p.goto(url + "/book/");
+    assert((await box(".choice-body")).radius === 12, "booking choices should have a 12px radius");
   });
 
-  test("label pill", async ({ browser, url }) => {
+  test("eyebrows are plain text", async ({ browser, url }) => {
     const p = await newPage(browser, { width: 1440, height: 900 });
-    await p.goto(url + "/");
-    const s = await p.$eval("#services .label", (e) => { const c = getComputedStyle(e); return { fam: c.fontFamily, size: c.fontSize, bg: c.backgroundColor }; });
-    assert(/^"?DM Sans/.test(s.fam), "label should use DM Sans, got " + s.fam);
-    assert(s.size === "13px", "label should be 13px, got " + s.size);
-    assert(s.bg !== "rgba(0, 0, 0, 0)" && s.bg !== "transparent", "label should be a pill with a background");
+    const bad = [];
+    let seen = 0;
+    for (const path of ["/", "/pricing/", "/services/deep-cleaning/", "/book/"]) {
+      await p.goto(url + path);
+      const found = await p.$$eval(".label, .kicker", (els) => els.filter((e) => e.getClientRects().length && getComputedStyle(e).visibility !== "hidden").map((e) => {
+        const c = getComputedStyle(e);
+        return { text: e.textContent.trim().slice(0, 24), bg: c.backgroundColor, dot: getComputedStyle(e, "::before").content, fam: c.fontFamily, size: parseFloat(c.fontSize), weight: c.fontWeight };
+      }));
+      seen += found.length;
+      for (const f of found) {
+        const why = [];
+        if (f.bg !== "rgba(0, 0, 0, 0)") why.push("background " + f.bg);
+        if (f.dot !== "none") why.push("a ::before dot");
+        if (!/^"?DM Sans/.test(f.fam)) why.push("font " + f.fam);
+        if (f.size < 13 || f.size > 14.5) why.push(f.size + "px");
+        if (f.weight !== "700") why.push("weight " + f.weight);
+        if (why.length) bad.push(`${path} "${f.text}": ${why.join(", ")}`);
+      }
+    }
+    assert(seen > 8, "expected eyebrows on these pages, found " + seen);
+    assert(!bad.length, bad.length + " eyebrow(s) still styled as pills, e.g. " + bad.slice(0, 4).join("; "));
   });
 
   // Text colour against the first solid background behind it, for every text element on a page.
@@ -166,14 +185,17 @@ export default async function () {
     assert(!bad.length, bad.join("; "));
   });
 
-  test("cards lift on hover, but not with reduced motion", async ({ browser, url }) => {
-    for (const [motion, wantLift] of [["no-preference", true], ["reduce", false]]) {
+  test("cards stay still on hover", async ({ browser, url }) => {
+    for (const motion of ["no-preference", "reduce"]) {
       const p = await newPage(browser, { width: 1440, height: 900, reducedMotion: motion });
-      await p.goto(url + "/");
-      await p.hover("#services .svc-card h3");
+      await p.goto(url + "/services/deep-cleaning/");
+      const look = () => p.$eval(".svc-card", (e) => ({ t: getComputedStyle(e).transform, border: getComputedStyle(e).borderTopColor }));
+      const before = await look();
+      await p.hover(".svc-card h3");
       await p.waitForTimeout(350);
-      const t = await p.$eval("#services .svc-card", (e) => getComputedStyle(e).transform);
-      assert(wantLift ? t !== "none" : t === "none", `${motion}: card transform should be ${wantLift ? "a lift" : "none"}, got ${t}`);
+      const after = await look();
+      assert(after.t === "none", `${motion}: cards shouldn't move on hover, got ${after.t}`);
+      if (motion === "no-preference") assert(after.border !== before.border, "the card border should darken on hover, stayed " + after.border);
       await p.context().close();
     }
   });
@@ -212,13 +234,15 @@ export default async function () {
     assert(await p.locator("[data-assure]").count() === 1, "the [data-assure] hook should appear exactly once");
   });
 
-  test("section heads are centred on services and how it works", async ({ browser, url }) => {
+  test("section heads are left-aligned", async ({ browser, url }) => {
     const p = await newPage(browser, { width: 1440, height: 900 });
-    await p.goto(url + "/");
-    for (const sel of ["#services .section-head", "#how .section-head"]) {
-      const a = await p.$eval(sel, (e) => getComputedStyle(e).textAlign);
-      assert(a === "center", `${sel} should be centred, got ${a}`);
+    const bad = [];
+    for (const path of ["/", "/pricing/", "/services/deep-cleaning/"]) {
+      await p.goto(url + path);
+      const heads = await p.$$eval(".section-head", (els) => els.filter((e) => e.getClientRects().length).map((e) => ({ h: (e.querySelector("h2") || e).textContent.trim().slice(0, 30), a: getComputedStyle(e).textAlign })));
+      bad.push(...heads.filter((x) => x.a !== "start" && x.a !== "left").map((x) => `${path} "${x.h}" ${x.a}`));
     }
+    assert(!bad.length, "section heads should be left-aligned: " + bad.join("; "));
   });
 
   test("service cards sit three to a row on desktop", async ({ browser, url }) => {
@@ -231,14 +255,25 @@ export default async function () {
     assert(new Set(four).size === 1, "the four realtor jobs should share a row, tops: " + four.join(", "));
   });
 
-  test("sub-page heroes match the home hero", async ({ browser, url }) => {
+  test("heroes are plain", async ({ browser, url }) => {
     const p = await newPage(browser, { width: 1440, height: 900 });
-    for (const path of ["/pricing/", "/services/deep-cleaning/", "/areas/north-york/willowdale/", "/help/"]) {
+    for (const path of ["/", "/pricing/", "/services/deep-cleaning/", "/areas/north-york/willowdale/", "/help/"]) {
       await p.goto(url + path);
-      const r = await p.$eval(".hero-sub", (e) => ({ bg: getComputedStyle(e).backgroundImage, h1: getComputedStyle(e.querySelector("h1")).fontFamily }));
-      assert(r.bg.includes("radial-gradient"), `${path} hero should have the soft glow`);
+      const r = await p.$eval(".hero", (e) => ({ bg: getComputedStyle(e).backgroundImage, h1: getComputedStyle(e.querySelector("h1")).fontFamily }));
+      assert(r.bg === "none", `${path} hero should have a plain background, got ${r.bg.slice(0, 40)}`);
       assert(JAKARTA.test(r.h1), `${path} h1 should use Plus Jakarta Sans, got ${r.h1}`);
     }
+  });
+
+  test("FAQ is one list with dividers", async ({ browser, url }) => {
+    const p = await newPage(browser, { width: 1440, height: 900 });
+    await p.goto(url + "/");
+    const list = await p.$eval("#faq .faq-list", (e) => getComputedStyle(e).borderTopWidth);
+    assert(list === "1px", "the FAQ list should open with a 1px rule, got " + list);
+    const items = await p.$$eval("#faq .faq-list > details", (ds) => ds.map((d) => { const s = getComputedStyle(d); return { radius: s.borderTopLeftRadius, bg: s.backgroundColor, top: s.borderTopWidth, bottom: s.borderBottomWidth, shadow: s.boxShadow }; }));
+    assert(items.length >= 4, "expected the home questions, found " + items.length);
+    const bad = items.filter((i) => i.radius !== "0px" || i.bg !== "rgba(0, 0, 0, 0)" || i.top !== "0px" || i.bottom !== "1px" || i.shadow !== "none");
+    assert(!bad.length, "each question should be a plain row with a rule under it, got " + JSON.stringify(bad[0]));
   });
 
   test("comparison keeps its first column in view", async ({ browser, url }) => {
@@ -259,7 +294,7 @@ export default async function () {
     }
     for (const sel of [".choice-body", ".extra", ".seg", ".compare-box"]) {
       const r = await p.$eval(sel, (e) => parseFloat(getComputedStyle(e).borderTopLeftRadius));
-      assert(r >= 14, `${sel} should have at least a 14px radius, got ${r}`);
+      assert(r >= 12, `${sel} should have at least a 12px radius, got ${r}`);
     }
     assert(await p.$eval("[data-summary]", (e) => getComputedStyle(e).borderTopLeftRadius) === "20px", "the price summary should be a 20px card");
     const hooks = ["#booking-form", "[data-next]", "[data-prev]", "[data-submit]", "[data-summary]", "[data-lines]", "[data-total]", "[data-review]", "[data-addons]", "[data-dates]", "[data-scope-note]", "[data-slot-note]", "[data-quote-route]", "[data-done]"];
