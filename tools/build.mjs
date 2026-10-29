@@ -422,17 +422,6 @@ function founderPhoto(L, cls = "") {
     </div>`;
 }
 
-function foundingCard(L) {
-  if (!founding || !founding.active) return "";
-  return `<div class="founding" data-founding>
-      <p class="label">Founding households</p>
-      <p class="founding-big"><span data-founding-pct>${founding.percent}</span>% off</p>
-      <p class="founding-sub">Your first visit</p>
-      <p data-founding-text>${esc(founding.text)}</p>
-      ${SHOW_SPOTS ? `<p class="spots-bar" data-spots-wrap><span class="spots-track"><span class="spots-fill" data-spots-fill style="width:${Math.round(spotsLeft / founding.spots * 100)}%"></span></span><span data-spots>${spotsLeft} of ${founding.spots} founding spots left</span></p>` : ""}
-      <a class="btn btn-light" href="${L("book/")}" data-track="book_click">Claim your first visit</a>
-    </div>`;
-}
 
 // Same wording as site.js, which refreshes it when config.impact changes.
 function impactCaption(im) {
@@ -627,23 +616,8 @@ function quoteForm(L, { name, title = "Request a free quote", reply, fields, but
 }
 
 function serviceCards(L, list, cls = "") {
-  const shop = cls.includes("svc-grid-shop");
-  const first = founding && founding.active && spotsLeft > 0 ? (b) => money(afterDiscount(b, founding.percent)) : null;
   return `<ul class="svc-grid${cls ? " " + cls : ""}">
-      ${list.map((s) => shop ? `<li>
-        <div class="svc-card svc-shop">
-          <span class="svc-top"><span class="svc-ico">${ic(SVC_ICON[s.key] || "i-sparkle")}</span>${s.tag ? `<small class="svc-tag">${esc(s.tag)}</small>` : ""}</span>
-          <h3><a class="svc-link" href="${L("services/" + s.slug + "/")}">${esc(s.name)}</a></h3>
-          <p>${esc(s.short)}</p>
-          <p class="svc-foot"><span class="svc-price">${s.quote ? "Free quote" : `From <b data-from="${s.key}">${money(s.base)}</b>${first ? `<span class="svc-first">${first(s.base)} first visit</span>` : ""}`}</span></p>
-          <div class="svc-actions">
-            ${s.quote
-              ? `<a class="btn btn-primary btn-sm" href="${L("services/" + s.slug + "/")}" data-track="quote_click">Get a quote</a>`
-              : `<a class="btn btn-primary btn-sm" href="${L("book/")}?s=${s.key}" data-track="book_click">Book now</a>`}
-            ${B.whatsapp ? `<a class="btn btn-ghost btn-sm svc-wa" href="${esc(waLink(`Hi ${B.ownerFirstName}, I have a question about ${s.name}.`))}" target="_blank" rel="noopener" data-track="whatsapp_click">${ic("i-wa")} Ask ${esc(B.ownerFirstName)}</a>` : ""}
-          </div>
-        </div>
-      </li>` : `<li>
+      ${list.map((s) => `<li>
         <a class="svc-card" href="${L("services/" + s.slug + "/")}">
           <span class="svc-top"><span class="svc-ico">${ic(SVC_ICON[s.key] || "i-sparkle")}</span>${s.tag ? `<small class="svc-tag">${esc(s.tag)}</small>` : ""}</span>
           <h3>${esc(s.name)}</h3>
@@ -652,6 +626,34 @@ function serviceCards(L, list, cls = "") {
         </a>
       </li>`).join("")}
     </ul>`;
+}
+
+// Home: the four bookable services as photo cards, each with who it suits, its price and two next steps.
+const HOME_PHOTOS = { regular: "living-room", deep: "kitchen", move: "entryway", detail: "bathroom" };
+function homeServices(L) {
+  const first = founding && founding.active && spotsLeft > 0 ? (b) => money(afterDiscount(b, founding.percent)) : null;
+  return `<ul class="svc-feature">
+      ${Object.keys(HOME_PHOTOS).map((k) => { const s = C.services[k]; return `<li class="svc-feature-card">
+        ${photo(L, HOME_PHOTOS[k], { sizes: "(min-width: 64em) 300px, (min-width: 37.5em) 45vw, 92vw" })}
+        <div class="svc-feature-body">
+          <h3>${esc(s.name)}</h3>
+          <p class="svc-best">Best for: ${esc(s.idealFor[0])}</p>
+          <p class="svc-price">From <b data-from="${k}">${money(s.base)}</b>${first ? ` <span class="svc-first">${first(s.base)} first visit</span>` : ""}</p>
+          <div class="svc-feature-actions">
+            <a class="btn btn-primary btn-sm" href="${L("book/")}?s=${k}" data-track="book_click">Book</a>
+            <a class="text-link" href="${L("services/" + s.slug + "/#included")}">What's included</a>
+          </div>
+        </div>
+      </li>`; }).join("")}
+    </ul>
+    <div class="svc-paths">
+      <p>Not a regular home?</p>
+      <ul>
+        <li><a href="${L("services/" + C.quoteServices.residence.slug + "/")}"><strong>${esc(C.quoteServices.residence.name)}</strong>${ic("i-arrow")}<span>Larger homes and fine finishes</span></a></li>
+        <li><a href="${L("services/" + C.quoteServices.office.slug + "/")}"><strong>${esc(C.quoteServices.office.name)}</strong>${ic("i-arrow")}<span>Offices, clinics and studios</span></a></li>
+        <li><a href="${L("realtors/")}"><strong>For realtors</strong>${ic("i-arrow")}<span>Listings and rentals</span></a></li>
+      </ul>
+    </div>`;
 }
 
 // On the home page only the neighbourhoods with their own page are listed, plus a link to the rest.
@@ -684,7 +686,7 @@ const examplePrice = price("regular", example.beds, example.baths);
 const gift = C.offers.gift;
 
 function plansGrid() {
-  return `<div class="plan-grid" data-plans data-beds="${example.beds}" data-baths="${example.baths}">
+  return `<div class="plan-strip" data-plans data-beds="${example.beds}" data-baths="${example.baths}">
       ${Object.keys(C.frequencies).map((k) => {
         const f = C.frequencies[k];
         return `<div class="plan${f.recommended ? " plan-rec" : ""}" data-plan="${k}">
@@ -706,17 +708,16 @@ urls.push(page({
 <section class="hero hero-home">
   <div class="wrap hero-grid">
     <div class="hero-copy">
-      <p class="kicker">Home cleaning · Scarborough &amp; North York</p>
+      <p class="kicker">House cleaning in North York &amp; Scarborough</p>
       <h1 class="display">We clean.<br><span class="accent">You rest.</span></h1>
       <p class="lede">Your weekends are for living, not scrubbing. ${esc(B.ownerFirstName)} cleans your home with care, so you come back to calm, and you pay only after the clean.</p>
       <div class="hero-cta">
         <a class="btn btn-primary" href="${L("book/")}" data-track="book_click">Book your clean ${ic("i-arrow")}</a>
-        <a class="btn btn-ghost" href="${L("#how")}">How it works</a>
+        <a class="text-link" href="${L("#how")}">How it works ${ic("i-arrow")}</a>
         ${B.whatsapp ? `<a class="btn btn-wa" data-wa href="${esc(waLink(WA_HELLO))}" target="_blank" rel="noopener" data-track="whatsapp_click">${ic("i-wa")} WhatsApp</a>` : ""}
       </div>
     </div>
     <div class="hero-visual">
-      ${photo(L, "living-room", { sizes: "(min-width: 960px) 460px, 1px", cls: "hero-photo", eager: false })}
       <div class="hero-pricer">${pricer(L)}</div>
     </div>
     <p class="hero-owner">
@@ -737,11 +738,11 @@ ${gift && gift.active ? `<section class="gift-band" data-gift-banner data-months
 
 <section class="section" id="services">
   <div class="wrap">
-    <div class="section-head">
-      <p class="label">Services</p><h2>Choose the care your home needs.</h2>
+    <div class="section-head section-head-row">
+      <div><p class="label">Services</p><h2>Choose the care your home needs.</h2></div>
       <a class="text-link" href="${L("pricing/")}">See every price ${ic("i-arrow")}</a>
     </div>
-    ${serviceCards(L, allServices, "svc-grid-shop")}
+    ${homeServices(L)}
   </div>
 </section>
 
@@ -779,9 +780,7 @@ ${gift && gift.active ? `<section class="gift-band" data-gift-banner data-months
         <li><h3>A final check before we leave</h3><p>Every room checked against the checklist. Nothing left behind.</p></li>
       </ol>
     </div>
-    <div class="standard-side">
-      ${photo(L, "entryway", { sizes: "(min-width: 960px) 460px, 92vw", cls: "standard-photo" })}
-      <aside class="guarantee" aria-labelledby="guarantee-title">
+    <aside class="standard-guarantee" aria-labelledby="guarantee-title">
         <p class="label label-light">Our guarantee</p>
         <p class="guarantee-title" id="guarantee-title">Not quite right? We come back and fix it, free.</p>
         <p>Tell us within ${C.policies.recleanWindowHours} hours of your clean and we'll re-clean those areas at no charge.</p>
@@ -791,23 +790,19 @@ ${gift && gift.active ? `<section class="gift-band" data-gift-banner data-months
           <li>${ic("i-check")}Pay after the clean</li>
         </ul>
         <a class="text-link" href="${L("policies/#guarantee")}">Read our service policies ${ic("i-arrow")}</a>
-      </aside>
-    </div>
+    </aside>
   </div>
 </section>
 
 <section class="section" id="plans">
-  <div class="wrap plans-grid">
-    ${photo(L, "bedroom", { sizes: "(min-width: 960px) 420px, 92vw", cls: "plans-photo" })}
-    <div>
-      <div class="section-head">
-        <p class="label">Regular care</p>
-        <h2>Set it once. Stay ahead.</h2>
-        <p class="muted">Recurring visits cost less and keep your home consistently right. Pause or change anytime with ${C.policies.cancelNoticeHours} hours' notice.</p>
-      </div>
-      ${plansGrid()}
-      <p class="fine">Example prices for a ${example.beds}-bedroom, ${example.baths}-bathroom condo, regular clean.</p>
+  <div class="wrap">
+    <div class="section-head">
+      <p class="label">Regular care</p>
+      <h2>Set it once. Stay ahead.</h2>
+      <p class="muted">Recurring visits cost less and keep your home consistently right. Pause or change anytime with ${C.policies.cancelNoticeHours} hours' notice.</p>
     </div>
+    ${plansGrid()}
+    <p class="fine">Example prices for a ${example.beds}-bedroom, ${example.baths}-bathroom condo, regular clean.</p>
   </div>
 </section>
 
@@ -824,7 +819,6 @@ ${gift && gift.active ? `<section class="gift-band" data-gift-banner data-months
         <figcaption><strong data-owner>${esc(B.owner)}</strong><span>Founder &amp; Owner</span></figcaption>
       </figure>
       <a class="text-link" href="${L("vision/")}">Read ${esc(B.ownerFirstName)}'s vision ${ic("i-arrow")}</a>
-      ${foundingCard(L)}
     </div>
   </div>
 </section>

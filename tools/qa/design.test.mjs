@@ -173,7 +173,7 @@ export default async function () {
     const p = await newPage(browser, { width: 1440, height: 900 });
     await p.goto(url + "/");
     const bad = [];
-    for (const scope of [".standard .label", ".founding .label", ".footer-cols .label"]) {
+    for (const scope of [".standard .label", ".footer-cols .label"]) {
       const items = await contrastProblems(p, scope.split(" ")[0]);
       for (const t of items.filter((x) => x.tag.startsWith("p.label"))) {
         const r = contrast(t.fg, t.bg);
@@ -217,15 +217,6 @@ export default async function () {
     assert(b && b.y < 844, "the price box should start on the first phone screen, starts at " + (b && b.y));
   });
 
-  test("photo behind the price box on desktop only", async ({ browser, url }) => {
-    for (const [width, want] of [[1440, true], [390, false]]) {
-      const p = await newPage(browser, { width, height: 900 });
-      await p.goto(url + "/");
-      assert(await p.isVisible(".hero-home .hero-photo") === want, `hero photo at ${width}px should be ${want ? "shown" : "hidden"}`);
-      await p.context().close();
-    }
-  });
-
   test("trust strip", async ({ browser, url }) => {
     const p = await newPage(browser, { width: 1440, height: 900 });
     await p.goto(url + "/");
@@ -245,11 +236,8 @@ export default async function () {
     assert(!bad.length, "section heads should be left-aligned: " + bad.join("; "));
   });
 
-  test("service cards sit three to a row on desktop", async ({ browser, url }) => {
+  test("realtor jobs sit four to a row on wide screens", async ({ browser, url }) => {
     const p = await newPage(browser, { width: 1440, height: 900 });
-    await p.goto(url + "/");
-    const tops = await p.$$eval("#services .svc-grid > li", (ls) => ls.slice(0, 3).map((l) => Math.round(l.getBoundingClientRect().top)));
-    assert(new Set(tops).size === 1, "the first three service cards should share a row, tops: " + tops.join(", "));
     await p.goto(url + "/realtors/");
     const four = await p.$$eval(".svc-grid-4 > li", (ls) => ls.map((l) => Math.round(l.getBoundingClientRect().top)));
     assert(new Set(four).size === 1, "the four realtor jobs should share a row, tops: " + four.join(", "));
