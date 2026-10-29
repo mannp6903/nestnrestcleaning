@@ -344,6 +344,8 @@ function offerNote() {
 
 function pricer(L, defaultKey = "regular", heading = "Your price, in seconds") {
   const p = price(defaultKey, 1, 1);
+  // While the founding offer runs, the first-visit price is the big number and the regular price sits under it.
+  const on = !!(founding && founding.active), h = hours(defaultKey, 1, 1);
   return `<form class="pricer" data-pricer data-default-service="${defaultKey}" novalidate>
   <div class="pricer-head">
     <p class="pricer-title">${esc(heading)}</p>
@@ -351,8 +353,8 @@ function pricer(L, defaultKey = "regular", heading = "Your price, in seconds") {
     ${ratingPill()}
   </div>
   <div class="pricer-result" aria-live="polite">
-    <p class="pricer-amount" data-p-amount>${money(p)}</p>
-    <p class="pricer-meta" data-p-meta>Estimate · about ${hours(defaultKey, 1, 1)} hours on site</p>
+    <p class="pricer-amount"><span data-p-amount>${money(on ? afterDiscount(p, founding.percent) : p)}</span> <span class="pricer-unit" data-p-unit${on ? "" : " hidden"}>first visit</span></p>
+    <p class="pricer-meta" data-p-meta>${on ? `Regular price ${money(p)} · estimate, about ${h} hours on site` : `Estimate · about ${h} hours on site`}</p>
   </div>
   <div class="field">
     <label for="p-service">Service</label>

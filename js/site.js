@@ -350,10 +350,12 @@
       $("[data-inc]", bathsBox).disabled = st.baths >= 6;
       bedsBox.hidden = st.service === "detail";
       var p = price(st.service, st.beds, st.baths, st.home);
-      $("[data-p-amount]", form).textContent = money(p);
-      var f = C.offers.founding;
-      var first = f && f.active ? " · " + money(afterDiscount(p, f.percent)) + " first visit" : "";
-      $("[data-p-meta]", form).textContent = "Estimate · about " + hoursFor(st.service, st.beds, st.baths, st.home) + " hours" + first;
+      // While the founding offer runs, the first-visit price leads and the regular price sits under it (the booking total's rule).
+      var f = C.offers.founding, on = !!(f && f.active), h = hoursFor(st.service, st.beds, st.baths, st.home);
+      $("[data-p-amount]", form).textContent = money(on ? afterDiscount(p, f.percent) : p);
+      var unit = $("[data-p-unit]", form);
+      if (unit) unit.hidden = !on;
+      $("[data-p-meta]", form).textContent = on ? "Regular price " + money(p) + " · estimate, about " + h + " hours on site" : "Estimate · about " + h + " hours on site";
       var go = $("[data-p-go]", form);
       go.href = link("book/") + "?s=" + st.service + "&h=" + st.home + "&bd=" + st.beds + "&ba=" + st.baths;
       var incl = $("[data-p-incl]", form);

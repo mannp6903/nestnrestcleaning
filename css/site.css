@@ -279,7 +279,8 @@ body.menu-open { overflow: hidden; }
 .spots { color: var(--teal-ink); font-weight: 700; }
 .pricer-result { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; padding: 12px 16px; border-radius: var(--field-radius); background: var(--ivory); }
 .pricer-amount { font-family: var(--display); font-weight: 800; font-size: clamp(2.3rem, 9vw, 2.75rem); line-height: 1; font-variant-numeric: tabular-nums; }
-.pricer-meta { font-size: 0.88rem; color: var(--muted); line-height: 1.4; flex: 1 1 140px; }
+.pricer-unit { font-family: var(--body); font-size: 1rem; font-weight: 600; color: var(--muted); letter-spacing: 0; }
+.pricer-meta { font-size: 0.88rem; color: var(--muted); line-height: 1.4; flex: 1 1 100%; }
 .pricer-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .pricer-row > [hidden] + .stepper { grid-column: 1 / -1; }
 .pricer-next { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.9rem; color: var(--muted); }
