@@ -90,6 +90,38 @@ export default async function () {
     assert((await box(".choice-body")).radius === 12, "booking choices should have a 12px radius");
   });
 
+  // v3: an outlined button is only for navy bands and the phone menu; elsewhere a second action is a text link.
+  test("secondary actions on light pages are text links", async ({ browser, url }) => {
+    const p = await newPage(browser, { width: 1440, height: 900 });
+    const bad = [];
+    for (const path of ["/", "/pricing/", "/help/", "/services/deep-cleaning/", "/gift/", "/realtors/", "/vision/", "/guides/house-cleaning-cost-toronto/", "/404.html"]) {
+      await p.goto(url + path);
+      const found = await p.$$eval(".btn-ghost", (bs) => bs.filter((b) => b.getClientRects().length && !b.closest(".final-cta, .standard, .vow, #menu, .book")).map((b) => b.textContent.trim().slice(0, 30)));
+      bad.push(...found.map((t) => `${path} "${t}"`));
+    }
+    assert(!bad.length, "outlined buttons on light pages: " + bad.join("; "));
+  });
+
+  test("every icon points at a symbol on its page", async ({ browser, url }) => {
+    const p = await newPage(browser, { width: 1440, height: 900 });
+    const bad = [];
+    for (const path of ["/", "/pricing/", "/help/", "/book/", "/guides/house-cleaning-cost-toronto/", "/404.html"]) {
+      await p.goto(url + path);
+      const missing = await p.$$eval("use", (us) => [...new Set(us.map((u) => u.getAttribute("href")).filter((h) => h && h.startsWith("#") && !document.querySelector(h)))]);
+      bad.push(...missing.map((h) => path + " " + h));
+    }
+    assert(!bad.length, "icons with no symbol: " + bad.join(", "));
+  });
+
+  test("vision page boxes are flat", async ({ browser, url }) => {
+    const p = await newPage(browser, { width: 1440, height: 900 });
+    await p.goto(url + "/vision/");
+    const look = (sel) => p.$eval(sel, (e) => { const s = getComputedStyle(e); return { radius: s.borderTopLeftRadius, shadow: s.boxShadow }; });
+    const m = await look(".measure"), c = await look(".chapters li");
+    assert(m.radius === "14px" && m.shadow === "none", "the hours box should be a flat 14px card, got " + JSON.stringify(m));
+    assert(c.radius === "14px", "chapter cards should use the 14px card radius, got " + JSON.stringify(c));
+  });
+
   test("eyebrows are plain text", async ({ browser, url }) => {
     const p = await newPage(browser, { width: 1440, height: 900 });
     const bad = [];

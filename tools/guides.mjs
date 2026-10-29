@@ -1,13 +1,13 @@
 // The helpful articles at /guides/<slug>/. Prices come from js/config.js, so they stay current after a rebuild.
 // Each article: slug, title (for Google), h1, description, kicker, minutes (reading time), photo, body(L) as HTML.
-export default function guides({ C, B, esc, money, price, listJoin, afterDiscount }) {
+export default function guides({ C, B, esc, money, price, listJoin, afterDiscount, ic }) {
   const R = C.services.regular, D = C.services.deep, M = C.services.move;
   const fr = C.frequencies;
   const planPrice = (k) => money(afterDiscount(price("regular", 2, 1), fr[k].discount));
   const pct = (h) => Math.round((C.homeTypes[h].factor - 1) * 100) + "%";
   const moveTasks = C.checklist.map((r) => ({ room: r.room, tasks: r.tasks.filter((t) => t[3] === "yes").map((t) => t[0]) })).filter((r) => r.tasks.length);
   const deepOnly = C.checklist.flatMap((r) => r.tasks.filter((t) => t[2] === "yes" && t[1] !== "yes").map((t) => t[0]));
-  const cta = (L, text = "See your price") => `<p class="article-cta"><a class="btn btn-primary" href="${L("book/")}" data-track="book_click">${esc(text)}</a> <a class="btn btn-ghost" href="${L("pricing/")}">All prices</a></p>`;
+  const cta = (L, text = "See your price") => `<p class="article-cta"><a class="btn btn-primary" href="${L("book/")}" data-track="book_click">${esc(text)}</a> <a class="text-link" href="${L("pricing/")}">All prices ${ic("i-arrow")}</a></p>`;
   const ul = (items) => `<ul class="article-list">${items.map((i) => `<li>${i}</li>`).join("")}</ul>`;
 
   return [

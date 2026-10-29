@@ -84,7 +84,8 @@ function addonStatus(key, id) {
   return v === "yes" ? "included" : v === "add" ? "extra" : "none";
 }
 const addonsWith = (key, status) => C.addons.filter((a) => addonStatus(key, a.id) === status);
-const guides = guideList({ C, B, esc, money, price, listJoin, afterDiscount });
+// ic is declared further down; the wrapper only reads it when a guide page is built.
+const guides = guideList({ C, B, esc, money, price, listJoin, afterDiscount, ic: (...a) => ic(...a) });
 
 function price(key, beds, baths, home = "condo") {
   const s = C.services[key];
@@ -1294,7 +1295,7 @@ ${priceExplainer()}
         ${priceTable(k)}
         <div class="price-card-foot">
           <a class="text-link" href="${L("services/" + s.slug + "/")}">What's included ${ic("i-arrow")}</a>
-          <a class="btn btn-ghost btn-sm" href="${L("book/")}?s=${k}" data-track="book_click">Book</a>
+          <a class="btn btn-primary btn-sm" href="${L("book/")}?s=${k}" data-track="book_click">Book</a>
         </div>
       </article>`; }).join("\n      ")}
     </div>
@@ -1903,8 +1904,8 @@ ${founding && founding.active
     </div>
     <div class="cta-row help-actions">
       <a class="btn btn-primary" href="${esc(mail("Change my booking", "Reference: NR-\nWhat I'd like to change: "))}" data-track="manage_change">${ic("i-mail")} Change a booking</a>
-      <a class="btn btn-ghost" href="${esc(mail("Cancel my booking", "Reference: NR-\n"))}" data-track="manage_cancel">Cancel a booking</a>
-      <a class="btn btn-ghost" href="${L("book/")}" data-track="book_click">Book again</a>
+      <a class="text-link" href="${esc(mail("Cancel my booking", "Reference: NR-\n"))}" data-track="manage_cancel">Cancel a booking ${ic("i-arrow")}</a>
+      <a class="text-link" href="${L("book/")}" data-track="book_click">Book again ${ic("i-arrow")}</a>
     </div>
     <p class="fine">On the device you booked from, the booking form remembers your home and extras for ${DRAFT_DAYS} days, so booking again takes a moment.</p>
   </div>
@@ -2137,7 +2138,7 @@ ${THEME_BOOT}
 <a class="brand" href="${L404()}"><img class="logo-light" src="${L404("assets/logo.svg")}" alt="${esc(B.name)}" width="772" height="210" style="height:56px;width:auto"><img class="logo-dark" src="${L404("assets/logo-white.svg")}" alt="${esc(B.name)}" width="772" height="210" style="height:56px;width:auto"></a>
 <h1 class="display display-sub" style="margin-top:48px">This page has moved.</h1>
 <p class="lede">Everything you need is a tap away.</p>
-<p class="cta-row" style="margin-top:24px"><a class="btn btn-primary" href="${L404("book/")}">Book a clean</a> <a class="btn btn-ghost" href="${L404()}">Go to the home page</a></p>
+<p class="cta-row" style="margin-top:24px"><a class="btn btn-primary" href="${L404("book/")}">Book a clean</a> <a class="text-link" href="${L404()}">Go to the home page</a></p>
 </div></main></body></html>
 `);
 }
