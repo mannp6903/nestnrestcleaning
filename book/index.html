@@ -28,7 +28,7 @@
 <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
 <link rel="preload" href="../assets/fonts/plus-jakarta-sans.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="../assets/fonts/dm-sans.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="../css/site.css?v=47a23fb7">
+<link rel="stylesheet" href="../css/site.css?v=82f881cb">
 
 </head>
 <body data-page="book" data-root="../">
@@ -88,7 +88,7 @@
   <div class="wrap">
     <div class="book-head">
       <div>
-        <h1>Book your clean</h1>
+        <h1>Book a clean</h1>
         <p class="book-sub"><svg class="ic" aria-hidden="true"><use href="#i-cal"/></svg> <span>Earliest day to request: <strong data-next-open>tomorrow</strong>. Mann confirms every booking.</span></p>
       </div>
       <ol class="progress" data-progress aria-label="Booking steps">
@@ -154,6 +154,7 @@
                 <p><strong>Homes this size are priced by quote.</strong> Mann starts with a walkthrough and a written care plan, so the price fits the home.</p>
                 <a class="btn btn-teal btn-sm" data-quote-link href="../services/residence-care/">Get a Residence Care quote <svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></a>
                 <small class="field-hint">Your home details are carried over. Nothing is sent until you send the quote form.</small>
+                <p class="field-error" id="err-quote" data-step-error="quote" hidden></p>
               </div>
             </div>
             <div class="field"><span class="field-label" id="extras-label">Extras <span class="opt">optional</span></span>
@@ -176,6 +177,7 @@
               <p class="field-note">Choose your preferred day. Mann will confirm availability. Requests from <strong data-next-open>tomorrow</strong>, any day of the week.</p>
               <div class="date-strip" role="radiogroup" aria-labelledby="date-label" data-dates></div>
               <label class="check"><input type="checkbox" id="flex-date" data-flex> <span>I'm flexible. Please offer the earliest suitable appointment.</span></label>
+              <p class="field-error" id="err-date" data-step-error="date" hidden></p>
             </div>
             <div class="field"><span class="field-label" id="slot-label">Preferred arrival window</span>
               <p class="field-note">Your clean takes about <strong data-job-hours>2</strong> hours on site after arrival, with one cleaner. Windows too late to finish by 11pm are greyed out.</p>
@@ -183,6 +185,7 @@
                 <label class="slot" data-slot="morning"><input type="radio" name="slot" value="morning"><span><strong>Morning</strong><small>9am to 12pm</small></span></label><label class="slot" data-slot="midday"><input type="radio" name="slot" value="midday"><span><strong>Midday</strong><small>12 to 3pm</small></span></label><label class="slot" data-slot="afternoon"><input type="radio" name="slot" value="afternoon"><span><strong>Afternoon</strong><small>3 to 6pm</small></span></label><label class="slot" data-slot="evening"><input type="radio" name="slot" value="evening"><span><strong>Evening</strong><small>6 to 8pm</small></span></label><label class="slot" data-slot="any"><input type="radio" name="slot" value="any"><span><strong>Any time</strong><small>Earliest suitable</small></span></label>
               </div>
               <p class="field-hint" data-slot-note aria-live="polite"></p>
+              <p class="field-error" id="err-slot" data-step-error="slot" hidden></p>
             </div>
             <p class="consent-line"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg><span>This is a request, not a booked time. Your time is held only after Mann confirms it with you.</span></p>
           </fieldset>
@@ -250,7 +253,7 @@
 
         <div class="done" data-done hidden tabindex="-1">
           <p class="label" data-done-label>Request received · not confirmed yet</p>
-          <h2 data-done-title>Thank you.</h2>
+          <h2 data-done-title>Thank you<span class="stop">.</span></h2>
           <p data-done-text></p>
           <p class="ref">Reference <strong data-ref></strong></p>
           <dl class="done-list" data-done-list></dl>
@@ -288,6 +291,6 @@
 <div class="toast" data-toast role="status" aria-live="polite" hidden></div>
 <script defer src="../js/config.js?v=277d64b6"></script>
 
-<script defer src="../js/site.js?v=26749c2f"></script>
+<script defer src="../js/site.js?v=be149aaf"></script>
 </body>
 </html>

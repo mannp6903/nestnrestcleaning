@@ -28,7 +28,7 @@
 <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
 <link rel="preload" href="../assets/fonts/plus-jakarta-sans.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="../assets/fonts/dm-sans.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="../css/site.css?v=47a23fb7">
+<link rel="stylesheet" href="../css/site.css?v=82f881cb">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://nestnrestcleaning.com/"},{"@type":"ListItem","position":2,"name":"Pricing","item":"https://nestnrestcleaning.com/pricing/"}]}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How is my price calculated?","acceptedAnswer":{"@type":"Answer","text":"Your price is based on the service, the number of bedrooms and bathrooms, the type of home and any extras you add. You see it before you book. If your home needs much more or less time than expected, we tell you before we start, never after."}},{"@type":"Question","name":"Do I pay when I book?","acceptedAnswer":{"@type":"Answer","text":"No. There's no deposit. You pay after the clean by Interac e-Transfer, credit or debit card, or cash."}},{"@type":"Question","name":"Should I book a deep clean first?","acceptedAnswer":{"@type":"Answer","text":"If your home hasn't had a professional clean in the last few months, yes. A deep clean resets the build-up so every regular visit after it stays quick and consistent."}},{"@type":"Question","name":"Are supplies included in the price?","acceptedAnswer":{"@type":"Answer","text":"Yes. Every price includes our products and equipment: cloths, mops, a vacuum and cleaning products. There's nothing extra to buy."}},{"@type":"Question","name":"Why do townhouses and houses cost more?","acceptedAnswer":{"@type":"Answer","text":"A townhouse or house usually has stairs, more floor area and more entrances than a condo with the same number of bedrooms, so it takes longer to clean. The price box adjusts for this automatically."}},{"@type":"Question","name":"Do regular plans cost less?","acceptedAnswer":{"@type":"Answer","text":"Yes. Visits every week, every 2 weeks or every 4 weeks cost less than a one-time clean, and you can pause or change your plan with 24 hours' notice."}}]}</script>
 </head>
@@ -74,7 +74,7 @@
 <a class="skip" href="#main">Skip to content</a>
 <div class="announce" data-announce data-key="aff53bb4" role="region" aria-label="Announcements">
   <div class="wrap announce-row">
-    <p class="announce-msgs" data-announce-msgs><span class="is-on">20% off your first visit, first 50 households</span><span>Free re-clean if anything&#39;s missed</span><span>No deposit. You pay after your clean</span></p>
+    <p class="announce-msgs" data-announce-msgs><span class="is-on"><span class="am-long">20% off your first visit, first 50 households</span><span class="am-short">20% off your first visit</span></span><span>Free re-clean if anything&#39;s missed</span><span>No deposit. You pay after your clean</span></p>
     <button type="button" class="announce-close" data-announce-close aria-label="Hide announcements"><svg class="ic" aria-hidden="true"><use href="#i-close"/></svg></button>
   </div>
 </div>
@@ -93,7 +93,7 @@
       
       
       <button type="button" class="theme-btn" data-theme-toggle aria-pressed="false" aria-label="Dark mode"><svg class="ic theme-moon" aria-hidden="true"><use href="#i-moon"/></svg><svg class="ic theme-sun" aria-hidden="true"><use href="#i-sun"/></svg></button>
-      <a class="btn btn-primary header-book" href="../book/" data-track="book_click"><span class="hb-long">See my price</span><span class="hb-short">My price</span></a>
+      <a class="btn btn-primary header-book" href="../book/" data-track="book_click"><span class="hb-long">Book a clean</span><span class="hb-short">Book</span></a>
       <button class="menu-btn" type="button" aria-controls="menu" aria-expanded="false" aria-label="Open menu"><svg class="ic" aria-hidden="true"><use href="#i-menu"/></svg></button>
     </div>
   </div>
@@ -117,7 +117,7 @@
       <li><a href="../#faq">Questions</a></li>
     </ul>
     <div class="menu-cta">
-      <a class="btn btn-primary btn-block" href="../book/">Book your clean</a>
+      <a class="btn btn-primary btn-block" href="../book/">Book a clean</a>
       
       <a class="btn btn-ghost btn-block" data-mailto href="mailto:nestnrestcleaning@gmail.com">Email Mann</a>
     </div>
@@ -132,7 +132,7 @@
   <div class="wrap hero-grid">
     <div class="hero-copy">
       <p class="kicker">Pricing</p>
-      <h1 class="display display-sub">House cleaning prices, up front.</h1>
+      <h1 class="display display-sub">House cleaning prices, up front<span class="stop">.</span></h1>
       <p class="lede">Your price is set by the service, the size and type of your home, and any extras you choose. You see it before you book, there's no deposit, and you pay after the clean.</p>
       <dl class="facts">
         <div><dt>Regular</dt><dd>From <span data-from="regular">$145</span></dd></div>
@@ -143,12 +143,12 @@
     <div class="hero-pricer"><form class="pricer" data-pricer data-default-service="regular" novalidate>
   <div class="pricer-head">
     <p class="pricer-title">Price your home</p>
-    <p class="pricer-offer" data-offer-note><span><strong>20% off</strong> your first visit</span><span class="spots" data-spots>For our first 50 households</span></p>
     
   </div>
   <div class="pricer-result" aria-live="polite">
     <p class="pricer-amount"><span data-p-amount>$116</span> <span class="pricer-unit" data-p-unit>first visit</span></p>
     <p class="pricer-meta" data-p-meta>Regular price $145 · estimate, about 2 hours on site</p>
+    <p class="pricer-deal" data-offer-note><span>20% off your first visit</span> · <span data-spots>For our first 50 households</span></p>
   </div>
   <div class="field">
     <label for="p-service">Service</label>
@@ -180,7 +180,7 @@
       </div>
     </div>
   </div>
-  <a class="btn btn-primary btn-block" href="../book/" data-p-go data-track="pricer_continue">Choose your time <svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+  <a class="btn btn-primary btn-block" href="../book/" data-p-go data-track="pricer_continue">Book this clean <svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></a>
   <p class="pricer-next"><svg class="ic" aria-hidden="true"><use href="#i-cal"/></svg><span>Earliest day to request: <strong data-next-open>tomorrow</strong></span></p>
   <div class="pricer-alt">
     <a class="link-btn" data-p-incl href="../services/regular-home-cleaning/#included"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg> What's included</a>
@@ -200,7 +200,7 @@
 
 <section class="section section-tint" id="how-price">
   <div class="wrap">
-    <div class="section-head"><p class="label">How pricing works</p><h2>How your price is worked out.</h2></div>
+    <div class="section-head"><p class="label">How pricing works</p><h2>How your price is worked out<span class="stop">.</span></h2></div>
     <div class="price-explain">
       <ol class="price-steps">
         <li><h3>Base price</h3><p>Set by the service and your home's bedrooms and bathrooms. Townhouses add 10% and houses add 20%, for the stairs and extra floor space.</p></li>
@@ -235,12 +235,12 @@
   <div class="wrap">
     <div class="section-head">
       <p class="label">By home size</p>
-      <h2>Find your home. See your price.</h2>
+      <h2>Find your home. See your price<span class="stop">.</span></h2>
       <p class="muted">Prices for the whole visit in CAD, with products and equipment included. <span data-tax-note>No HST charged</span>. Studios are priced as 1 bedroom. Count full bathrooms; half baths, basements and second kitchens are confirmed with you before the clean. Homes over about 3,000 sq ft are by quote. Townhouses add <span data-factor="town">10%</span> and houses add <span data-factor="house">20%</span>, for the stairs and extra floor space.</p>
       <p class="pricer-offer" data-offer-note><span><strong>20% off</strong> your first visit</span><span class="spots" data-spots>For our first 50 households</span></p>
     </div>
     <div class="price-cards">
-      <article class="price-card">
+      <article class="price-card" id="prices-regular" data-tab-label="Regular">
         <div class="price-card-head">
           <h3><a href="../services/regular-home-cleaning/">Regular Home Cleaning</a></h3>
           <p class="price-card-from">From <b data-from="regular">$145</b></p>
@@ -256,7 +256,7 @@
           <a class="btn btn-primary btn-sm" href="../book/?s=regular" data-track="book_click">Book</a>
         </div>
       </article>
-      <article class="price-card">
+      <article class="price-card" id="prices-deep" data-tab-label="Deep">
         <div class="price-card-head">
           <h3><a href="../services/deep-cleaning/">Deep Cleaning</a></h3>
           <p class="price-card-from">From <b data-from="deep">$235</b></p>
@@ -272,7 +272,7 @@
           <a class="btn btn-primary btn-sm" href="../book/?s=deep" data-track="book_click">Book</a>
         </div>
       </article>
-      <article class="price-card">
+      <article class="price-card" id="prices-move" data-tab-label="Move-out">
         <div class="price-card-head">
           <h3><a href="../services/move-in-move-out-cleaning/">Move-In / Move-Out Cleaning</a></h3>
           <p class="price-card-from">From <b data-from="move">$250</b></p>
@@ -288,7 +288,7 @@
           <a class="btn btn-primary btn-sm" href="../book/?s=move" data-track="book_click">Book</a>
         </div>
       </article>
-      <article class="price-card">
+      <article class="price-card" id="prices-detail" data-tab-label="Kitchen &amp; Bath">
         <div class="price-card-head">
           <h3><a href="../services/kitchen-and-bath-detailing/">Kitchen &amp; Bath Detailing</a></h3>
           <p class="price-card-from">From <b data-from="detail">$165</b></p>
@@ -312,7 +312,7 @@
   <div class="wrap">
     <div class="section-head">
       <p class="label">Regular plans</p>
-      <h2>Book regular visits. Pay less for each one.</h2>
+      <h2>Book regular visits. Pay less for each one<span class="stop">.</span></h2>
       <p class="muted">Plans apply to regular cleaning. Pause or change your plan anytime with 24 hours' notice.</p>
     </div>
     <div class="plan-strip" data-plans data-beds="2" data-baths="1">
@@ -346,7 +346,7 @@
   <div class="wrap split">
     <div class="split-head">
       <p class="label">Extras</p>
-      <h2>Add only what you need.</h2>
+      <h2>Add only what you need<span class="stop">.</span></h2>
       <p class="muted">Choose extras when you book. Each price covers what's written under it. Already included in a move-in or move-out clean: inside oven, inside fridge, inside kitchen cabinets and wall spot cleaning. Not part of a move-out clean, because the home is empty: laundry, wash and fold.</p>
       <p class="label label-sm">Included in every price</p>
       <ul class="ticks">
@@ -376,7 +376,7 @@
 
 <section class="section" id="quotes">
   <div class="wrap">
-    <div class="section-head"><p class="label">By quote</p><h2>Larger homes, offices and realtors.</h2><p class="muted">These are priced after a conversation or a walkthrough, so the quote fits the space. Quotes are free.</p></div>
+    <div class="section-head"><p class="label">By quote</p><h2>Larger homes, offices and realtors<span class="stop">.</span></h2><p class="muted">These are priced after a conversation or a walkthrough, so the quote fits the space. Quotes are free.</p></div>
     <ul class="svc-grid svc-grid-compact">
       <li>
         <a class="svc-card" href="../services/residence-care/">
@@ -401,7 +401,7 @@
   <div class="wrap split">
     <div class="split-head">
       <p class="label">Questions</p>
-      <h2>Pricing questions.</h2>
+      <h2>Pricing questions<span class="stop">.</span></h2>
       <p class="muted">Anything else? Email <a data-mailto href="mailto:nestnrestcleaning@gmail.com">nestnrestcleaning@gmail.com</a>.</p>
     </div>
     <div class="faq-list">
@@ -411,10 +411,10 @@
 </section>
 <section class="final-cta">
   <div class="wrap final-inner">
-    <h2>See your price.</h2>
+    <h2>See your price<span class="stop">.</span></h2>
     <p>Book in two minutes. No payment until it&#39;s done.</p>
     <div class="cta-row">
-      <a class="btn btn-light" href="../book/" data-track="book_click">Book your clean</a>
+      <a class="btn btn-light" href="../book/" data-track="book_click">Book a clean</a>
       
       <a class="btn btn-ghost-light" data-mailto href="mailto:nestnrestcleaning@gmail.com" data-track="email_click">Email Mann</a>
     </div>
@@ -475,11 +475,11 @@
   
   
   <a class="ab-link" data-mailto href="mailto:nestnrestcleaning@gmail.com" data-track="email_click"><svg class="ic" aria-hidden="true"><use href="#i-mail"/></svg><span>Email</span></a>
-  <a class="btn btn-primary ab-book" href="../book/" data-track="book_click"><span class="ab-long">Book your clean</span><span class="ab-short">Book now</span></a>
+  <a class="btn btn-primary ab-book" href="../book/" data-track="book_click"><span class="ab-long">Book a clean</span><span class="ab-short">Book</span></a>
 </nav>
 <div class="toast" data-toast role="status" aria-live="polite" hidden></div>
 <script defer src="../js/config.js?v=277d64b6"></script>
 
-<script defer src="../js/site.js?v=26749c2f"></script>
+<script defer src="../js/site.js?v=be149aaf"></script>
 </body>
 </html>

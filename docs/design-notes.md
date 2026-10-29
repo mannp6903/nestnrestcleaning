@@ -1,8 +1,8 @@
-# Design notes (v3, October 2026)
+# Design notes (v4, October 2026)
 
-This is how the site looks and why, so later changes stay consistent. The full reasoning is in [the v3 spec](superpowers/specs/2026-10-29-website-redesign-v3-design.md).
+This is how the site looks and why, so later changes stay consistent. The reasoning is in [the v4 spec](superpowers/specs/2026-10-29-website-redesign-v4-design.md), which builds on [v3](superpowers/specs/2026-10-29-website-redesign-v3-design.md).
 
-**Direction:** calm home care, easy booking. The page is white with ivory sections, has navy for weight and teal for action, and uses few boxes. The price box is the main tool. Everything else reads like a well-set page, not a stack of cards.
+**Direction:** calm and clear. Calm home care, easy booking. The page is white with ivory sections, has navy for weight and teal for action, and uses few boxes. The price box is the main tool. Everything else reads like a well-set page, not a stack of cards.
 
 ## Tokens
 
@@ -17,8 +17,12 @@ All tokens sit at the top of `css/site.css`. Dark mode redefines the colour role
 | `--line` | navy at 12% | dividers: FAQ rows, steps, plan cells, example rows |
 | `--card-line` | navy at 8% | card borders |
 | `--field` | `#7A8899` | control borders (3:1 or better), and the card border on hover |
+| `--fs-display` / `--fs-h1` / `--fs-h2` / `--fs-h3` | 44–68 / 36–56 / 28–40 / 20–22px | the home slogan, page titles, sections, cards and steps (phone to desktop) |
+| `--fw-head` | 700 | every heading. 800 is kept for big prices only |
+| `--fs-fine` / `--fs-tag` | 13px / 12px | fine print / tags. Nothing on the site is smaller than 12px |
+| `--money` | Plus Jakarta Sans | every price, with tabular, lining figures (DM Sans's file has no tabular figures) |
 
-Fonts: Plus Jakarta Sans for headings, DM Sans for text, both self-hosted. Colours: navy `#0A2D5C`, teal `#2FA4A6`, sky `#6FC3E0`, sand `#EFD9AE`, ivory `#F7F3EA`. Every text colour pairing is checked by `contrast holds in both themes`.
+Fonts: Plus Jakarta Sans for headings, buttons and money, DM Sans for text, both self-hosted. A heading's closing full stop is wrapped in `.stop` by the build so it doesn't drift at large sizes. Colours: navy `#0A2D5C`, teal `#2FA4A6`, sky `#6FC3E0`, sand `#EFD9AE`, ivory `#F7F3EA`. Every text colour pairing is checked by `contrast holds in both themes`.
 
 ## Components
 
@@ -42,13 +46,22 @@ Fonts: Plus Jakarta Sans for headings, DM Sans for text, both self-hosted. Colou
   - `site.js` recomputes them in the browser, as it does the price tables.
   - A test checks the examples against a real booking.
 - **Phone menu:** while it is open, the page behind it is inert, so keyboard focus stays in the header and menu. Escape closes it and returns focus to the menu button.
+- **Action words:** "Book a clean" on every link into the booking form ("Book" where space is short), "Book this clean" on the price box. The booking page itself is "Book a clean".
+- **Service scope** (`checklistFor()`, `scopeSummary()`, `scopeMore()`): each room lists every task, included first (check), then paid extras (plus, "Extra"), then not included (dash, "Not included"). A count line sits above, and a note below names the smallest step up that covers the exclusions.
+- **Price box:** the price, then the regular price and time, then the offer as one teal line. No separate offer box.
+- **Booking errors:** each sits under the choice it's about (`[data-step-error]`), describes every option in it, and takes focus to the first option. The toast is only for confirmations ("Link copied"), never for errors.
+- **Pricing switcher** (`bindPriceTabs()` in `js/site.js`): under 960px, one tab per service above the price tables shows one table at a time. Computers, and visitors without JavaScript, see all four.
+- **Navy panels:** both sit on the content grid (1220px), so their text lines up with the page.
 
 ## Reference patterns
 
-The competitor sites were blocked from this build environment, so none were viewed on 29 October 2026. Each pattern is labelled with the evidence it rests on. All are original executions; no wording, images, code or page layouts were copied.
+v4 rendered the reference sites remotely on 29 October 2026 (they are blocked from this build environment directly). Earlier patterns keep their original evidence labels. All are original executions; no wording, images, code or page layouts were copied.
 
 | Pattern on this site | Seen at | Evidence |
 |---|---|---|
+| "Not included" listed beside what's included | Maid Sailors pricing (https://maidsailors.com/pricing/), "What we can't clean" | Rendered 29 Oct 2026 |
+| A caption under the main action saying what happens next | Hellamaid header (https://hellamaid.ca) | Rendered 29 Oct 2026 |
+| Calm through lighter headings and spacing | Molly Maid Canada (https://mollymaid.ca) | Rendered 29 Oct 2026 |
 | Price first, with no contact details needed; first visit and later visits shown apart | Hellamaid direct booking (https://hellamaid.ca) | Owner's recheck report, 28 Oct 2026 (E03/E11) |
 | Each service says who it's for, next to what's included | Hellamaid package checklists | Owner's recheck report (E13) |
 | A photograph with each service | AspenClean Toronto (https://aspenclean.com) | Web search summary, unverified |
@@ -74,12 +87,12 @@ No stock or generated people are shown as staff or customers, and there are no b
    - Then remove the footer's illustration note.
 2. **Insurance.** Its status is unverified, so the site doesn't mention it. Once you have a policy, send the insurer and coverage and it can be added where people decide (the standard band and the help page).
 3. **Reviews.** The reviews section stays hidden until `reviews` in `js/config.js` holds real reviews. Never add invented ones.
-4. **Competitor check.** To compare against today's reference pages, allow these domains in the environment's network settings and ask for a recheck: hellamaid.ca, aspenclean.com, maidthis.com and maidsailors.com.
+4. **Competitor check.** Done remotely in v4. For a direct recheck from this environment, allow hellamaid.ca, aspenclean.com, maidthis.com, maidsailors.com and mollymaid.ca in its network settings.
 
 ## Checks
 
 Run `node tools/build.mjs`, then:
 
-- `node tools/qa/run.mjs` runs the browser tests: layout at 320 to 1440px, 200% text, keyboard, axe, contrast, booking maths and the v3 design rules.
+- `node tools/qa/run.mjs` runs the browser tests: layout at 320 to 1440px, 200% text, keyboard, axe, contrast, booking maths, and the v3 and v4 design rules (`design`, `home`, `v4`).
 - `node tools/qa/perf.mjs` runs the lab LCP and CLS budget.
 - [docs/phone-checklist.md](phone-checklist.md) is a 10-minute check on a real phone.
