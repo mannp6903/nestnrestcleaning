@@ -446,6 +446,25 @@ a.svc-card:hover .svc-arrow { transform: translateX(4px); }
 .plan-price span { font-size: 0.84rem; color: var(--muted); }
 .plan-save { font-size: 0.86rem; font-weight: 700; color: var(--teal-ink); }
 
+/* How your price is worked out: four steps beside two worked examples. */
+.price-explain { display: grid; grid-template-columns: minmax(0, 1fr); gap: clamp(28px, 5vw, 64px); }
+.price-steps { list-style: none; margin: 0; padding: 0; counter-reset: ps; border-top: 1px solid var(--line); }
+.price-steps li { counter-increment: ps; display: grid; grid-template-columns: 36px minmax(0, 1fr); gap: 4px 16px; padding: 20px 0; border-bottom: 1px solid var(--line); }
+.price-steps li::before { content: counter(ps); grid-row: span 2; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; border: 1.5px solid var(--teal); color: var(--teal-ink); font-family: var(--display); font-weight: 800; }
+.price-steps h3 { font-size: 1.2rem; font-weight: 800; }
+.price-steps p { color: var(--muted); max-width: 54ch; }
+.price-examples { display: grid; gap: 16px; align-content: start; }
+.price-examples .fine { margin-top: 0; }
+.price-example { margin: 0; padding: clamp(18px, 3vw, 24px); background: var(--paper); border: 1px solid var(--card-line); border-radius: var(--card-radius); display: grid; gap: 10px; }
+.price-example figcaption { font-family: var(--display); font-weight: 700; line-height: 1.35; color: var(--ink); }
+.price-example dl { margin: 0; }
+.price-example dl > div { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; gap: 16px; padding: 9px 0; border-top: 1px solid var(--line); }
+.price-example dt { color: var(--muted); }
+.price-example dd { margin: 0; font-family: var(--display); font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.price-example .is-key dt { color: var(--ink); font-weight: 700; }
+.price-example .is-key dd { font-size: 1.3rem; font-weight: 800; }
+@media (min-width: 60em) { .price-explain { grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr); align-items: start; } }
+
 /* Founder */
 .founder-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: clamp(36px, 6vw, 72px); align-items: center; }
 .founder-photo { position: relative; margin: 0; width: calc(100% - 18px); max-width: 420px; }

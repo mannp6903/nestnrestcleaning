@@ -203,6 +203,19 @@
       var h = C.homeTypes[el.getAttribute("data-factor")];
       if (h) el.textContent = Math.round((h.factor - 1) * 100) + "%";
     });
+    // Pricing examples: data-ex="service:beds:baths:homeType", priced like a booking (one discount, the larger).
+    $$("[data-ex]").forEach(function (fig) {
+      var p = fig.getAttribute("data-ex").split(":");
+      if (!C.services[p[0]] || !C.homeTypes[p[3]]) return;
+      var addon = C.addons.filter(function (a) { return a.id === fig.getAttribute("data-ex-addon"); })[0];
+      var freq = C.frequencies[fig.getAttribute("data-ex-freq")];
+      var f = C.offers.founding, fp = f && f.active ? f.percent : 0, rec = freq ? freq.discount : 0;
+      var base = price(p[0], +p[1], +p[2], p[3]), total = base + (addon ? addon.price : 0);
+      var v = { base: base, addon: addon ? addon.price : 0, total: total, first: afterDiscount(total, Math.max(fp, rec)), later: afterDiscount(total, rec) };
+      $$("[data-amount]", fig).forEach(function (el) { el.textContent = money(v[el.getAttribute("data-amount")]); });
+      var label = $("[data-first-label]", fig);
+      if (label) label.textContent = !Math.max(fp, rec) ? "First visit" : fp >= rec && fp > 0 ? "First visit (" + fp + "% founding discount)" : "First visit (" + rec + "% plan discount)";
+    });
 
     $$("[data-tax-note]").forEach(function (el) { el.textContent = TAX_TEXT; });
 

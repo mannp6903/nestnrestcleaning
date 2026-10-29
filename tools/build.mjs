@@ -342,6 +342,49 @@ function offerNote() {
   return `<p class="pricer-offer" data-offer-note><span><strong>${founding.percent}% off</strong> your first visit</span><span class="spots" data-spots>${spots}</span></p>`;
 }
 
+// Pricing: how a price is worked out, in four steps, with two examples priced like a booking.
+// site.js recomputes the examples from js/config.js (data-ex), as it does the price tables.
+const exampleFirstLabel = (fp, rec) => !Math.max(fp, rec) ? "First visit" : fp >= rec && fp > 0 ? `First visit (${fp}% founding discount)` : `First visit (${rec}% plan discount)`;
+function priceExample(id, caption, key, beds, baths, home, { freq, addon } = {}) {
+  const a = addon && C.addons.find((x) => x.id === addon);
+  if (addon && (!a || addonStatus(key, addon) !== "extra")) throw new Error(`price example ${id}: ${addon} isn't a paid extra for ${key}`);
+  const fp = founding && founding.active ? founding.percent : 0, rec = freq ? C.frequencies[freq].discount : 0;
+  const base = price(key, beds, baths, home), total = base + (a ? a.price : 0);
+  const row = (dt, amount, value, cls = "", label = "") => `<div${cls ? ` class="${cls}"` : ""}><dt${label}>${dt}</dt><dd data-amount="${amount}">${money(value)}</dd></div>`;
+  return `<figure class="price-example" data-example="${id}" data-ex="${key}:${beds}:${baths}:${home}"${freq ? ` data-ex-freq="${freq}"` : ""}${a ? ` data-ex-addon="${a.id}"` : ""}>
+        <figcaption>Example: ${esc(caption)}</figcaption>
+        <dl>
+          ${a ? row("Base price", "base", base) + row(esc(a.name), "addon", a.price) + row("Total before discount", "total", total)
+              : row("Regular price", "base", base)}
+          ${row(exampleFirstLabel(fp, rec), "first", afterDiscount(total, Math.max(fp, rec)), "is-key", " data-first-label")}
+          ${freq ? row(`Later visits, ${esc(C.frequencies[freq].label.toLowerCase())} (${rec}% off)`, "later", afterDiscount(total, rec)) : ""}
+        </dl>
+      </figure>`;
+}
+function priceExplainer() {
+  const plans = Object.values(C.frequencies).filter((f) => f.discount).sort((x, y) => y.discount - x.discount).map((f) => `${f.discount}% ${f.label.toLowerCase()}`);
+  const hood = (h) => C.homeTypes[h].label.toLowerCase();
+  const bigger = Object.keys(C.homeTypes).filter((h) => C.homeTypes[h].factor > 1);
+  return `<section class="section section-tint" id="how-price">
+  <div class="wrap">
+    <div class="section-head"><p class="label">How pricing works</p><h2>How your price is worked out.</h2></div>
+    <div class="price-explain">
+      <ol class="price-steps">
+        <li><h3>Base price</h3><p>Set by the service and your home's bedrooms and bathrooms.${bigger.length ? ` ${listJoin(bigger.map((h) => `${hood(h)}s add ${Math.round((C.homeTypes[h].factor - 1) * 100)}%`)).replace(/^./, (c) => c.toUpperCase())}, for the stairs and extra floor space.` : ""}</p></li>
+        <li><h3>Extras</h3><p>Each extra has its own price, shown before you book. When your service already includes one, it costs nothing.</p></li>
+        <li><h3>One discount</h3><p>Regular plans save on every visit: ${listJoin(plans)}.${founding && founding.active ? ` <span data-offer-note>Your first visit gets the ${founding.percent}% founding discount or your plan's discount, whichever is larger. Discounts are never combined.</span>` : ""}</p></li>
+        <li><h3>Estimate, then ${esc(B.ownerFirstName)} confirms</h3><p>What you see is an estimate from what you tell us. ${esc(B.ownerFirstName)} confirms the final price with you before the clean, for example for half baths, basements or a larger home. You pay after the clean.</p></li>
+      </ol>
+      <div class="price-examples">
+        ${priceExample("a", `${C.services.regular.name}, 2-bedroom, 1-bathroom condo, ${C.frequencies.biweekly.label.toLowerCase()}`, "regular", 2, 1, "condo", { freq: "biweekly" })}
+        ${priceExample("b", `${C.services.deep.name}, 3-bedroom, 2-bathroom house, with the inside of the oven`, "deep", 3, 2, "house", { addon: "oven" })}
+        <p class="fine"><span data-tax-note>${TAX_TEXT}</span>. Discounted prices are rounded to the nearest dollar.</p>
+      </div>
+    </div>
+  </div>
+</section>`;
+}
+
 function pricer(L, defaultKey = "regular", heading = "Your price, in seconds") {
   const p = price(defaultKey, 1, 1);
   // While the founding offer runs, the first-visit price is the big number and the regular price sits under it.
@@ -1230,6 +1273,8 @@ ${PHONE ? finalCta(L, "Prefer to talk it through?", "Call, text or WhatsApp and 
     <div class="hero-pricer">${pricer(L, "regular", "Price your home")}</div>
   </div>
 </section>
+
+${priceExplainer()}
 
 <section class="section" id="by-size">
   <div class="wrap">
