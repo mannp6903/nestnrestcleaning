@@ -86,7 +86,9 @@
 
 *, *::before, *::after { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; scroll-padding-top: calc(var(--header-h) + 16px); scroll-padding-bottom: 96px; }
-html:has(body[data-page="book"]) { scroll-padding-bottom: 150px; }
+/* Booking: focus moves jump, not glide. A smooth scroll keeps moving after focus lands and can carry the field
+   under the sticky Continue bar. Step changes still glide: js/site.js asks for that explicitly. */
+html:has(body[data-page="book"]) { scroll-padding-bottom: 150px; scroll-behavior: auto; }
 @media (min-width: 960px) { html:has(body[data-page="book"]) { scroll-padding-bottom: 96px; } }
 body {
   margin: 0; background: var(--ivory); color: var(--ink);
