@@ -1474,8 +1474,8 @@ function condoGuide(name) {
 </section>`;
 }
 
-// Desktop heroes on area and neighbourhood pages: one room per district (the "standard" section below uses the entryway).
-const AREA_PHOTO = { scarborough: "living-room", "north-york": "bedroom" };
+// Desktop heroes on area and neighbourhood pages: one room per district, never the entryway (the "standard" section uses it) or the living room (its window shows downtown).
+const AREA_PHOTO = { scarborough: "kitchen", "north-york": "bedroom" };
 for (const a of C.areas) {
   const trail = [["Home", ""], [a.name, "areas/" + a.slug + "/"]];
   const fq = faqBlock("area", `Cleaning in ${a.name}: questions.`);
