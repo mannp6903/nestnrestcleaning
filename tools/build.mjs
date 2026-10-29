@@ -678,7 +678,7 @@ function homeServices(L) {
   const first = founding && founding.active && spotsLeft > 0 ? (b) => money(afterDiscount(b, founding.percent)) : null;
   return `<ul class="svc-feature">
       ${Object.keys(HOME_PHOTOS).map((k) => { const s = C.services[k]; return `<li class="svc-feature-card">
-        ${photo(L, HOME_PHOTOS[k], { sizes: "(min-width: 64em) 300px, (min-width: 37.5em) 45vw, 92vw" })}
+        ${photo(L, HOME_PHOTOS[k], { sizes: "(min-width: 64em) 300px, (min-width: 37.5em) 45vw, (min-width: 20em) 88px, 92vw" })}
         <div class="svc-feature-body">
           <h3>${esc(s.name)}</h3>
           <p class="svc-best">Best for: ${esc(s.idealFor[0])}</p>

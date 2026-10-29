@@ -56,6 +56,16 @@ export default async function () {
     }
   });
 
+  // On phones the photos are 88px squares, so even a 3x screen should get the 600px file, not the 928px one.
+  test("phone service thumbnails load the small photo", async ({ browser, url }) => {
+    const p = await newPage(browser, { width: 390, height: 844, isMobile: true });
+    await p.goto(url + "/");
+    await p.$$eval(".svc-feature-card img", (is) => is.forEach((i) => { i.loading = "eager"; }));
+    await p.waitForFunction(() => [...document.querySelectorAll(".svc-feature-card img")].every((i) => i.complete && i.currentSrc));
+    const srcs = await p.$$eval(".svc-feature-card img", (is) => is.map((i) => i.currentSrc.split("/").pop()));
+    assert(srcs.length === 4 && srcs.every((s) => /-600\./.test(s)), "phone thumbnails should use the 600px photos, got " + srcs.join(", "));
+  });
+
   test("not a regular home? links the quote services and realtors", async ({ browser, url }) => {
     const p = await newPage(browser, { width: 1440, height: 900 });
     await p.goto(url + "/");
