@@ -203,6 +203,19 @@
       var h = C.homeTypes[el.getAttribute("data-factor")];
       if (h) el.textContent = Math.round((h.factor - 1) * 100) + "%";
     });
+    // Pricing examples: data-ex="service:beds:baths:homeType", priced like a booking (one discount, the larger).
+    $$("[data-ex]").forEach(function (fig) {
+      var p = fig.getAttribute("data-ex").split(":");
+      if (!C.services[p[0]] || !C.homeTypes[p[3]]) return;
+      var addon = C.addons.filter(function (a) { return a.id === fig.getAttribute("data-ex-addon"); })[0];
+      var freq = C.frequencies[fig.getAttribute("data-ex-freq")];
+      var f = C.offers.founding, fp = f && f.active ? f.percent : 0, rec = freq ? freq.discount : 0;
+      var base = price(p[0], +p[1], +p[2], p[3]), total = base + (addon ? addon.price : 0);
+      var v = { base: base, addon: addon ? addon.price : 0, total: total, first: afterDiscount(total, Math.max(fp, rec)), later: afterDiscount(total, rec) };
+      $$("[data-amount]", fig).forEach(function (el) { el.textContent = money(v[el.getAttribute("data-amount")]); });
+      var label = $("[data-first-label]", fig);
+      if (label) label.textContent = !Math.max(fp, rec) ? "First visit" : fp >= rec && fp > 0 ? "First visit (" + fp + "% founding discount)" : "First visit (" + rec + "% plan discount)";
+    });
 
     $$("[data-tax-note]").forEach(function (el) { el.textContent = TAX_TEXT; });
 
@@ -1446,16 +1459,26 @@
   function bindChrome() {
     var btn = $(".menu-btn"), menu = $("#menu");
     if (btn && menu) {
-      var setMenu = function (open) {
+      // While the menu is open the page behind it is inert, so keyboard focus stays in the header and the menu.
+      var setMenu = function (open, returnFocus) {
         menu.hidden = !open;
         btn.setAttribute("aria-expanded", String(open));
         btn.setAttribute("aria-label", open ? "Close menu" : "Open menu");
         $("use", btn).setAttribute("href", open ? "#i-close" : "#i-menu");
         document.body.classList.toggle("menu-open", open);
+        $$("main, .site-footer, [data-action-bar], .announce, .skip").forEach(function (el) { el.toggleAttribute("inert", open); });
+        if (!open && returnFocus) btn.focus();
       };
       btn.addEventListener("click", function () { setMenu(menu.hidden); });
       menu.addEventListener("click", function (e) { if (e.target.closest("a")) setMenu(false); });
-      document.addEventListener("keydown", function (e) { if (e.key === "Escape") setMenu(false); });
+      document.addEventListener("keydown", function (e) {
+        if (e.key !== "Escape" || menu.hidden) return;
+        setMenu(false, document.activeElement === btn || menu.contains(document.activeElement));
+      });
+      // The menu only exists below 960px: widening the window (a tablet turned sideways) closes it, so the page isn't left inert.
+      var wide = window.matchMedia("(min-width: 60em)");
+      var onWide = function () { if (wide.matches && !menu.hidden) setMenu(false); };
+      if (wide.addEventListener) wide.addEventListener("change", onWide); else if (wide.addListener) wide.addListener(onWide);
     }
 
     document.addEventListener("click", function (e) {

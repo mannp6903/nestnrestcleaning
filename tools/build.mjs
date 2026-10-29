@@ -84,7 +84,8 @@ function addonStatus(key, id) {
   return v === "yes" ? "included" : v === "add" ? "extra" : "none";
 }
 const addonsWith = (key, status) => C.addons.filter((a) => addonStatus(key, a.id) === status);
-const guides = guideList({ C, B, esc, money, price, listJoin, afterDiscount });
+// ic is declared further down; the wrapper only reads it when a guide page is built.
+const guides = guideList({ C, B, esc, money, price, listJoin, afterDiscount, ic: (...a) => ic(...a) });
 
 function price(key, beds, baths, home = "condo") {
   const s = C.services[key];
@@ -342,6 +343,49 @@ function offerNote() {
   return `<p class="pricer-offer" data-offer-note><span><strong>${founding.percent}% off</strong> your first visit</span><span class="spots" data-spots>${spots}</span></p>`;
 }
 
+// Pricing: how a price is worked out, in four steps, with two examples priced like a booking.
+// site.js recomputes the examples from js/config.js (data-ex), as it does the price tables.
+const exampleFirstLabel = (fp, rec) => !Math.max(fp, rec) ? "First visit" : fp >= rec && fp > 0 ? `First visit (${fp}% founding discount)` : `First visit (${rec}% plan discount)`;
+function priceExample(id, caption, key, beds, baths, home, { freq, addon } = {}) {
+  const a = addon && C.addons.find((x) => x.id === addon);
+  if (addon && (!a || addonStatus(key, addon) !== "extra")) throw new Error(`price example ${id}: ${addon} isn't a paid extra for ${key}`);
+  const fp = founding && founding.active ? founding.percent : 0, rec = freq ? C.frequencies[freq].discount : 0;
+  const base = price(key, beds, baths, home), total = base + (a ? a.price : 0);
+  const row = (dt, amount, value, cls = "", label = "") => `<div${cls ? ` class="${cls}"` : ""}><dt${label}>${dt}</dt><dd data-amount="${amount}">${money(value)}</dd></div>`;
+  return `<figure class="price-example" data-example="${id}" data-ex="${key}:${beds}:${baths}:${home}"${freq ? ` data-ex-freq="${freq}"` : ""}${a ? ` data-ex-addon="${a.id}"` : ""}>
+        <figcaption>Example: ${esc(caption)}</figcaption>
+        <dl>
+          ${a ? row("Base price", "base", base) + row(esc(a.name), "addon", a.price) + row("Total before discount", "total", total)
+              : row("Regular price", "base", base)}
+          ${row(exampleFirstLabel(fp, rec), "first", afterDiscount(total, Math.max(fp, rec)), "is-key", " data-first-label")}
+          ${freq ? row(`Later visits, ${esc(C.frequencies[freq].label.toLowerCase())} (${rec}% off)`, "later", afterDiscount(total, rec)) : ""}
+        </dl>
+      </figure>`;
+}
+function priceExplainer() {
+  const plans = Object.values(C.frequencies).filter((f) => f.discount).sort((x, y) => y.discount - x.discount).map((f) => `${f.discount}% ${f.label.toLowerCase()}`);
+  const hood = (h) => C.homeTypes[h].label.toLowerCase();
+  const bigger = Object.keys(C.homeTypes).filter((h) => C.homeTypes[h].factor > 1);
+  return `<section class="section section-tint" id="how-price">
+  <div class="wrap">
+    <div class="section-head"><p class="label">How pricing works</p><h2>How your price is worked out.</h2></div>
+    <div class="price-explain">
+      <ol class="price-steps">
+        <li><h3>Base price</h3><p>Set by the service and your home's bedrooms and bathrooms.${bigger.length ? ` ${listJoin(bigger.map((h) => `${hood(h)}s add ${Math.round((C.homeTypes[h].factor - 1) * 100)}%`)).replace(/^./, (c) => c.toUpperCase())}, for the stairs and extra floor space.` : ""}</p></li>
+        <li><h3>Extras</h3><p>Each extra has its own price, shown before you book. When your service already includes one, it costs nothing.</p></li>
+        <li><h3>One discount</h3><p>Regular plans save on every visit: ${listJoin(plans)}.${founding && founding.active ? ` <span data-offer-note>Your first visit gets the ${founding.percent}% founding discount or your plan's discount, whichever is larger. Discounts are never combined.</span>` : ""}</p></li>
+        <li><h3>Estimate, then ${esc(B.ownerFirstName)} confirms</h3><p>What you see is an estimate from what you tell us. ${esc(B.ownerFirstName)} confirms the final price with you before the clean, for example for half baths, basements or a larger home. You pay after the clean.</p></li>
+      </ol>
+      <div class="price-examples">
+        ${priceExample("a", `${C.services.regular.name}, 2-bedroom, 1-bathroom condo, ${C.frequencies.biweekly.label.toLowerCase()}`, "regular", 2, 1, "condo", { freq: "biweekly" })}
+        ${priceExample("b", `${C.services.deep.name}, 3-bedroom, 2-bathroom house, with the inside of the oven`, "deep", 3, 2, "house", { addon: "oven" })}
+        <p class="fine"><span data-tax-note>${TAX_TEXT}</span>. Discounted prices are rounded to the nearest dollar.</p>
+      </div>
+    </div>
+  </div>
+</section>`;
+}
+
 function pricer(L, defaultKey = "regular", heading = "Your price, in seconds") {
   const p = price(defaultKey, 1, 1);
   // While the founding offer runs, the first-visit price is the big number and the regular price sits under it.
@@ -422,17 +466,6 @@ function founderPhoto(L, cls = "") {
     </div>`;
 }
 
-function foundingCard(L) {
-  if (!founding || !founding.active) return "";
-  return `<div class="founding" data-founding>
-      <p class="label">Founding households</p>
-      <p class="founding-big"><span data-founding-pct>${founding.percent}</span>% off</p>
-      <p class="founding-sub">Your first visit</p>
-      <p data-founding-text>${esc(founding.text)}</p>
-      ${SHOW_SPOTS ? `<p class="spots-bar" data-spots-wrap><span class="spots-track"><span class="spots-fill" data-spots-fill style="width:${Math.round(spotsLeft / founding.spots * 100)}%"></span></span><span data-spots>${spotsLeft} of ${founding.spots} founding spots left</span></p>` : ""}
-      <a class="btn btn-light" href="${L("book/")}" data-track="book_click">Claim your first visit</a>
-    </div>`;
-}
 
 // Same wording as site.js, which refreshes it when config.impact changes.
 function impactCaption(im) {
@@ -477,7 +510,7 @@ function faqBlock(tag, title = "Questions, answered.", cls = "") {
       <h2>${esc(title)}</h2>
       <p class="muted">Anything else? ${PHONE ? `Call or text <a data-tel href="tel:${B.phone}" data-phone-text>${esc(B.phoneDisplay)}</a>` : `Email <a data-mailto href="mailto:${B.email}">${esc(B.email)}</a>`}${B.whatsapp ? `, or <a data-wa href="${esc(waLink(WA_HELLO))}" target="_blank" rel="noopener">message on WhatsApp</a>` : ""}.</p>
     </div>
-    <div class="faq">
+    <div class="faq-list">
       ${list.map((f) => `<details><summary><span>${esc(f.q)}</span>${ic("i-plus")}</summary><p>${esc(f.a)}</p></details>`).join("")}
     </div>
   </div>
@@ -627,23 +660,8 @@ function quoteForm(L, { name, title = "Request a free quote", reply, fields, but
 }
 
 function serviceCards(L, list, cls = "") {
-  const shop = cls.includes("svc-grid-shop");
-  const first = founding && founding.active && spotsLeft > 0 ? (b) => money(afterDiscount(b, founding.percent)) : null;
   return `<ul class="svc-grid${cls ? " " + cls : ""}">
-      ${list.map((s) => shop ? `<li>
-        <div class="svc-card svc-shop">
-          <span class="svc-top"><span class="svc-ico">${ic(SVC_ICON[s.key] || "i-sparkle")}</span>${s.tag ? `<small class="svc-tag">${esc(s.tag)}</small>` : ""}</span>
-          <h3><a class="svc-link" href="${L("services/" + s.slug + "/")}">${esc(s.name)}</a></h3>
-          <p>${esc(s.short)}</p>
-          <p class="svc-foot"><span class="svc-price">${s.quote ? "Free quote" : `From <b data-from="${s.key}">${money(s.base)}</b>${first ? `<span class="svc-first">${first(s.base)} first visit</span>` : ""}`}</span></p>
-          <div class="svc-actions">
-            ${s.quote
-              ? `<a class="btn btn-primary btn-sm" href="${L("services/" + s.slug + "/")}" data-track="quote_click">Get a quote</a>`
-              : `<a class="btn btn-primary btn-sm" href="${L("book/")}?s=${s.key}" data-track="book_click">Book now</a>`}
-            ${B.whatsapp ? `<a class="btn btn-ghost btn-sm svc-wa" href="${esc(waLink(`Hi ${B.ownerFirstName}, I have a question about ${s.name}.`))}" target="_blank" rel="noopener" data-track="whatsapp_click">${ic("i-wa")} Ask ${esc(B.ownerFirstName)}</a>` : ""}
-          </div>
-        </div>
-      </li>` : `<li>
+      ${list.map((s) => `<li>
         <a class="svc-card" href="${L("services/" + s.slug + "/")}">
           <span class="svc-top"><span class="svc-ico">${ic(SVC_ICON[s.key] || "i-sparkle")}</span>${s.tag ? `<small class="svc-tag">${esc(s.tag)}</small>` : ""}</span>
           <h3>${esc(s.name)}</h3>
@@ -652,6 +670,34 @@ function serviceCards(L, list, cls = "") {
         </a>
       </li>`).join("")}
     </ul>`;
+}
+
+// Home: the four bookable services as photo cards, each with who it suits, its price and two next steps.
+const HOME_PHOTOS = { regular: "living-room", deep: "kitchen", move: "entryway", detail: "bathroom" };
+function homeServices(L) {
+  const first = founding && founding.active && spotsLeft > 0 ? (b) => money(afterDiscount(b, founding.percent)) : null;
+  return `<ul class="svc-feature">
+      ${Object.keys(HOME_PHOTOS).map((k) => { const s = C.services[k]; return `<li class="svc-feature-card">
+        ${photo(L, HOME_PHOTOS[k], { sizes: "(min-width: 64em) 300px, (min-width: 37.5em) 45vw, (min-width: 20em) 88px, 92vw" })}
+        <div class="svc-feature-body">
+          <h3>${esc(s.name)}</h3>
+          <p class="svc-best">Best for: ${esc(s.idealFor[0])}</p>
+          <p class="svc-price">From <b data-from="${k}">${money(s.base)}</b>${first ? ` <span class="svc-first">${first(s.base)} first visit</span>` : ""}</p>
+          <div class="svc-feature-actions">
+            <a class="btn btn-primary btn-sm" href="${L("book/")}?s=${k}" data-track="book_click">Book</a>
+            <a class="text-link" href="${L("services/" + s.slug + "/#included")}">What's included</a>
+          </div>
+        </div>
+      </li>`; }).join("")}
+    </ul>
+    <div class="svc-paths">
+      <p>Not a regular home?</p>
+      <ul>
+        <li><a href="${L("services/" + C.quoteServices.residence.slug + "/")}"><strong>${esc(C.quoteServices.residence.name)}</strong>${ic("i-arrow")}<span>Larger homes and fine finishes</span></a></li>
+        <li><a href="${L("services/" + C.quoteServices.office.slug + "/")}"><strong>${esc(C.quoteServices.office.name)}</strong>${ic("i-arrow")}<span>Offices, clinics and studios</span></a></li>
+        <li><a href="${L("realtors/")}"><strong>For realtors</strong>${ic("i-arrow")}<span>Listings and rentals</span></a></li>
+      </ul>
+    </div>`;
 }
 
 // On the home page only the neighbourhoods with their own page are listed, plus a link to the rest.
@@ -684,7 +730,7 @@ const examplePrice = price("regular", example.beds, example.baths);
 const gift = C.offers.gift;
 
 function plansGrid() {
-  return `<div class="plan-grid" data-plans data-beds="${example.beds}" data-baths="${example.baths}">
+  return `<div class="plan-strip" data-plans data-beds="${example.beds}" data-baths="${example.baths}">
       ${Object.keys(C.frequencies).map((k) => {
         const f = C.frequencies[k];
         return `<div class="plan${f.recommended ? " plan-rec" : ""}" data-plan="${k}">
@@ -706,17 +752,16 @@ urls.push(page({
 <section class="hero hero-home">
   <div class="wrap hero-grid">
     <div class="hero-copy">
-      <p class="kicker">Home cleaning · Scarborough &amp; North York</p>
+      <p class="kicker">House cleaning in North York &amp; Scarborough</p>
       <h1 class="display">We clean.<br><span class="accent">You rest.</span></h1>
       <p class="lede">Your weekends are for living, not scrubbing. ${esc(B.ownerFirstName)} cleans your home with care, so you come back to calm, and you pay only after the clean.</p>
       <div class="hero-cta">
         <a class="btn btn-primary" href="${L("book/")}" data-track="book_click">Book your clean ${ic("i-arrow")}</a>
-        <a class="btn btn-ghost" href="${L("#how")}">How it works</a>
+        <a class="text-link" href="${L("#how")}">How it works ${ic("i-arrow")}</a>
         ${B.whatsapp ? `<a class="btn btn-wa" data-wa href="${esc(waLink(WA_HELLO))}" target="_blank" rel="noopener" data-track="whatsapp_click">${ic("i-wa")} WhatsApp</a>` : ""}
       </div>
     </div>
     <div class="hero-visual">
-      ${photo(L, "living-room", { sizes: "(min-width: 960px) 460px, 1px", cls: "hero-photo", eager: false })}
       <div class="hero-pricer">${pricer(L)}</div>
     </div>
     <p class="hero-owner">
@@ -737,17 +782,17 @@ ${gift && gift.active ? `<section class="gift-band" data-gift-banner data-months
 
 <section class="section" id="services">
   <div class="wrap">
-    <div class="section-head section-head-center">
-      <p class="label">Services</p><h2>Choose the care your home needs.</h2>
+    <div class="section-head section-head-row">
+      <div><p class="label">Services</p><h2>Choose the care your home needs.</h2></div>
       <a class="text-link" href="${L("pricing/")}">See every price ${ic("i-arrow")}</a>
     </div>
-    ${serviceCards(L, allServices, "svc-grid-shop")}
+    ${homeServices(L)}
   </div>
 </section>
 
 <section class="section section-tint" id="how">
   <div class="wrap">
-    <div class="section-head section-head-center">
+    <div class="section-head">
       <p class="label">Booking</p>
       <h2>${CAL ? "Booked in two minutes. Confirmed instantly." : `Request in two minutes. ${esc(B.ownerFirstName)} confirms.`}</h2>
     </div>
@@ -779,9 +824,7 @@ ${gift && gift.active ? `<section class="gift-band" data-gift-banner data-months
         <li><h3>A final check before we leave</h3><p>Every room checked against the checklist. Nothing left behind.</p></li>
       </ol>
     </div>
-    <div class="standard-side">
-      ${photo(L, "entryway", { sizes: "(min-width: 960px) 460px, 92vw", cls: "standard-photo" })}
-      <aside class="guarantee" aria-labelledby="guarantee-title">
+    <aside class="standard-guarantee" aria-labelledby="guarantee-title">
         <p class="label label-light">Our guarantee</p>
         <p class="guarantee-title" id="guarantee-title">Not quite right? We come back and fix it, free.</p>
         <p>Tell us within ${C.policies.recleanWindowHours} hours of your clean and we'll re-clean those areas at no charge.</p>
@@ -791,23 +834,19 @@ ${gift && gift.active ? `<section class="gift-band" data-gift-banner data-months
           <li>${ic("i-check")}Pay after the clean</li>
         </ul>
         <a class="text-link" href="${L("policies/#guarantee")}">Read our service policies ${ic("i-arrow")}</a>
-      </aside>
-    </div>
+    </aside>
   </div>
 </section>
 
 <section class="section" id="plans">
-  <div class="wrap plans-grid">
-    ${photo(L, "bedroom", { sizes: "(min-width: 960px) 420px, 92vw", cls: "plans-photo" })}
-    <div>
-      <div class="section-head">
-        <p class="label">Regular care</p>
-        <h2>Set it once. Stay ahead.</h2>
-        <p class="muted">Recurring visits cost less and keep your home consistently right. Pause or change anytime with ${C.policies.cancelNoticeHours} hours' notice.</p>
-      </div>
-      ${plansGrid()}
-      <p class="fine">Example prices for a ${example.beds}-bedroom, ${example.baths}-bathroom condo, regular clean.</p>
+  <div class="wrap">
+    <div class="section-head">
+      <p class="label">Regular care</p>
+      <h2>Set it once. Stay ahead.</h2>
+      <p class="muted">Recurring visits cost less and keep your home consistently right. Pause or change anytime with ${C.policies.cancelNoticeHours} hours' notice.</p>
     </div>
+    ${plansGrid()}
+    <p class="fine">Example prices for a ${example.beds}-bedroom, ${example.baths}-bathroom condo, regular clean.</p>
   </div>
 </section>
 
@@ -824,7 +863,6 @@ ${gift && gift.active ? `<section class="gift-band" data-gift-banner data-months
         <figcaption><strong data-owner>${esc(B.owner)}</strong><span>Founder &amp; Owner</span></figcaption>
       </figure>
       <a class="text-link" href="${L("vision/")}">Read ${esc(B.ownerFirstName)}'s vision ${ic("i-arrow")}</a>
-      ${foundingCard(L)}
     </div>
   </div>
 </section>
@@ -1237,6 +1275,8 @@ ${PHONE ? finalCta(L, "Prefer to talk it through?", "Call, text or WhatsApp and 
   </div>
 </section>
 
+${priceExplainer()}
+
 <section class="section" id="by-size">
   <div class="wrap">
     <div class="section-head">
@@ -1255,7 +1295,7 @@ ${PHONE ? finalCta(L, "Prefer to talk it through?", "Call, text or WhatsApp and 
         ${priceTable(k)}
         <div class="price-card-foot">
           <a class="text-link" href="${L("services/" + s.slug + "/")}">What's included ${ic("i-arrow")}</a>
-          <a class="btn btn-ghost btn-sm" href="${L("book/")}?s=${k}" data-track="book_click">Book</a>
+          <a class="btn btn-primary btn-sm" href="${L("book/")}?s=${k}" data-track="book_click">Book</a>
         </div>
       </article>`; }).join("\n      ")}
     </div>
@@ -1864,8 +1904,8 @@ ${founding && founding.active
     </div>
     <div class="cta-row help-actions">
       <a class="btn btn-primary" href="${esc(mail("Change my booking", "Reference: NR-\nWhat I'd like to change: "))}" data-track="manage_change">${ic("i-mail")} Change a booking</a>
-      <a class="btn btn-ghost" href="${esc(mail("Cancel my booking", "Reference: NR-\n"))}" data-track="manage_cancel">Cancel a booking</a>
-      <a class="btn btn-ghost" href="${L("book/")}" data-track="book_click">Book again</a>
+      <a class="text-link" href="${esc(mail("Cancel my booking", "Reference: NR-\n"))}" data-track="manage_cancel">Cancel a booking ${ic("i-arrow")}</a>
+      <a class="text-link" href="${L("book/")}" data-track="book_click">Book again ${ic("i-arrow")}</a>
     </div>
     <p class="fine">On the device you booked from, the booking form remembers your home and extras for ${DRAFT_DAYS} days, so booking again takes a moment.</p>
   </div>
@@ -2098,7 +2138,7 @@ ${THEME_BOOT}
 <a class="brand" href="${L404()}"><img class="logo-light" src="${L404("assets/logo.svg")}" alt="${esc(B.name)}" width="772" height="210" style="height:56px;width:auto"><img class="logo-dark" src="${L404("assets/logo-white.svg")}" alt="${esc(B.name)}" width="772" height="210" style="height:56px;width:auto"></a>
 <h1 class="display display-sub" style="margin-top:48px">This page has moved.</h1>
 <p class="lede">Everything you need is a tap away.</p>
-<p class="cta-row" style="margin-top:24px"><a class="btn btn-primary" href="${L404("book/")}">Book a clean</a> <a class="btn btn-ghost" href="${L404()}">Go to the home page</a></p>
+<p class="cta-row" style="margin-top:24px"><a class="btn btn-primary" href="${L404("book/")}">Book a clean</a> <a class="text-link" href="${L404()}">Go to the home page</a></p>
 </div></main></body></html>
 `);
 }
@@ -2111,6 +2151,12 @@ ${urls.map((u) => `  <url><loc>${u}</loc><lastmod>${TODAY}</lastmod></url>`).joi
 </urlset>
 `);
   fs.writeFileSync(path.join(OUT, "robots.txt"), `User-agent: *\nAllow: /\nSitemap: ${SITE}/sitemap.xml\n`);
+}
+
+/* ---------- preview: the stylesheet, scripts and images go with the pages ---------- */
+if (PREVIEW_DIR) {
+  for (const d of ["css", "js", "assets"]) fs.cpSync(path.join(ROOT, d), path.join(OUT, d), { recursive: true });
+  fs.copyFileSync(path.join(ROOT, "site.webmanifest"), path.join(OUT, "site.webmanifest"));
 }
 
 console.log(`Built ${urls.length} pages into ${OUT}`);

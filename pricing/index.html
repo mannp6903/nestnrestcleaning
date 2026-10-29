@@ -28,7 +28,7 @@
 <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
 <link rel="preload" href="../assets/fonts/plus-jakarta-sans.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="../assets/fonts/dm-sans.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="../css/site.css?v=f63629e7">
+<link rel="stylesheet" href="../css/site.css?v=47a23fb7">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://nestnrestcleaning.com/"},{"@type":"ListItem","position":2,"name":"Pricing","item":"https://nestnrestcleaning.com/pricing/"}]}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How is my price calculated?","acceptedAnswer":{"@type":"Answer","text":"Your price is based on the service, the number of bedrooms and bathrooms, the type of home and any extras you add. You see it before you book. If your home needs much more or less time than expected, we tell you before we start, never after."}},{"@type":"Question","name":"Do I pay when I book?","acceptedAnswer":{"@type":"Answer","text":"No. There's no deposit. You pay after the clean by Interac e-Transfer, credit or debit card, or cash."}},{"@type":"Question","name":"Should I book a deep clean first?","acceptedAnswer":{"@type":"Answer","text":"If your home hasn't had a professional clean in the last few months, yes. A deep clean resets the build-up so every regular visit after it stays quick and consistent."}},{"@type":"Question","name":"Are supplies included in the price?","acceptedAnswer":{"@type":"Answer","text":"Yes. Every price includes our products and equipment: cloths, mops, a vacuum and cleaning products. There's nothing extra to buy."}},{"@type":"Question","name":"Why do townhouses and houses cost more?","acceptedAnswer":{"@type":"Answer","text":"A townhouse or house usually has stairs, more floor area and more entrances than a condo with the same number of bedrooms, so it takes longer to clean. The price box adjusts for this automatically."}},{"@type":"Question","name":"Do regular plans cost less?","acceptedAnswer":{"@type":"Answer","text":"Yes. Visits every week, every 2 weeks or every 4 weeks cost less than a one-time clean, and you can pause or change your plan with 24 hours' notice."}}]}</script>
 </head>
@@ -198,6 +198,39 @@
   </div>
 </section>
 
+<section class="section section-tint" id="how-price">
+  <div class="wrap">
+    <div class="section-head"><p class="label">How pricing works</p><h2>How your price is worked out.</h2></div>
+    <div class="price-explain">
+      <ol class="price-steps">
+        <li><h3>Base price</h3><p>Set by the service and your home's bedrooms and bathrooms. Townhouses add 10% and houses add 20%, for the stairs and extra floor space.</p></li>
+        <li><h3>Extras</h3><p>Each extra has its own price, shown before you book. When your service already includes one, it costs nothing.</p></li>
+        <li><h3>One discount</h3><p>Regular plans save on every visit: 20% weekly, 15% every 2 weeks and 10% every 4 weeks. <span data-offer-note>Your first visit gets the 20% founding discount or your plan's discount, whichever is larger. Discounts are never combined.</span></p></li>
+        <li><h3>Estimate, then Mann confirms</h3><p>What you see is an estimate from what you tell us. Mann confirms the final price with you before the clean, for example for half baths, basements or a larger home. You pay after the clean.</p></li>
+      </ol>
+      <div class="price-examples">
+        <figure class="price-example" data-example="a" data-ex="regular:2:1:condo" data-ex-freq="biweekly">
+        <figcaption>Example: Regular Home Cleaning, 2-bedroom, 1-bathroom condo, every 2 weeks</figcaption>
+        <dl>
+          <div><dt>Regular price</dt><dd data-amount="base">$175</dd></div>
+          <div class="is-key"><dt data-first-label>First visit (20% founding discount)</dt><dd data-amount="first">$140</dd></div>
+          <div><dt>Later visits, every 2 weeks (15% off)</dt><dd data-amount="later">$149</dd></div>
+        </dl>
+      </figure>
+        <figure class="price-example" data-example="b" data-ex="deep:3:2:house" data-ex-addon="oven">
+        <figcaption>Example: Deep Cleaning, 3-bedroom, 2-bathroom house, with the inside of the oven</figcaption>
+        <dl>
+          <div><dt>Base price</dt><dd data-amount="base">$450</dd></div><div><dt>Inside oven</dt><dd data-amount="addon">$40</dd></div><div><dt>Total before discount</dt><dd data-amount="total">$490</dd></div>
+          <div class="is-key"><dt data-first-label>First visit (20% founding discount)</dt><dd data-amount="first">$392</dd></div>
+          
+        </dl>
+      </figure>
+        <p class="fine"><span data-tax-note>No HST charged</span>. Discounted prices are rounded to the nearest dollar.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
 <section class="section" id="by-size">
   <div class="wrap">
     <div class="section-head">
@@ -220,7 +253,7 @@
     </table></div>
         <div class="price-card-foot">
           <a class="text-link" href="../services/regular-home-cleaning/">What's included <svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></a>
-          <a class="btn btn-ghost btn-sm" href="../book/?s=regular" data-track="book_click">Book</a>
+          <a class="btn btn-primary btn-sm" href="../book/?s=regular" data-track="book_click">Book</a>
         </div>
       </article>
       <article class="price-card">
@@ -236,7 +269,7 @@
     </table></div>
         <div class="price-card-foot">
           <a class="text-link" href="../services/deep-cleaning/">What's included <svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></a>
-          <a class="btn btn-ghost btn-sm" href="../book/?s=deep" data-track="book_click">Book</a>
+          <a class="btn btn-primary btn-sm" href="../book/?s=deep" data-track="book_click">Book</a>
         </div>
       </article>
       <article class="price-card">
@@ -252,7 +285,7 @@
     </table></div>
         <div class="price-card-foot">
           <a class="text-link" href="../services/move-in-move-out-cleaning/">What's included <svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></a>
-          <a class="btn btn-ghost btn-sm" href="../book/?s=move" data-track="book_click">Book</a>
+          <a class="btn btn-primary btn-sm" href="../book/?s=move" data-track="book_click">Book</a>
         </div>
       </article>
       <article class="price-card">
@@ -268,7 +301,7 @@
     </table></div>
         <div class="price-card-foot">
           <a class="text-link" href="../services/kitchen-and-bath-detailing/">What's included <svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></a>
-          <a class="btn btn-ghost btn-sm" href="../book/?s=detail" data-track="book_click">Book</a>
+          <a class="btn btn-primary btn-sm" href="../book/?s=detail" data-track="book_click">Book</a>
         </div>
       </article>
     </div>
@@ -282,7 +315,7 @@
       <h2>Book regular visits. Pay less for each one.</h2>
       <p class="muted">Plans apply to regular cleaning. Pause or change your plan anytime with 24 hours' notice.</p>
     </div>
-    <div class="plan-grid" data-plans data-beds="2" data-baths="1">
+    <div class="plan-strip" data-plans data-beds="2" data-baths="1">
       <div class="plan" data-plan="once">
           
           <p class="plan-name">One time</p>
@@ -371,7 +404,7 @@
       <h2>Pricing questions.</h2>
       <p class="muted">Anything else? Email <a data-mailto href="mailto:nestnrestcleaning@gmail.com">nestnrestcleaning@gmail.com</a>.</p>
     </div>
-    <div class="faq">
+    <div class="faq-list">
       <details><summary><span>How is my price calculated?</span><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg></summary><p>Your price is based on the service, the number of bedrooms and bathrooms, the type of home and any extras you add. You see it before you book. If your home needs much more or less time than expected, we tell you before we start, never after.</p></details><details><summary><span>Do I pay when I book?</span><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg></summary><p>No. There&#39;s no deposit. You pay after the clean by Interac e-Transfer, credit or debit card, or cash.</p></details><details><summary><span>Should I book a deep clean first?</span><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg></summary><p>If your home hasn&#39;t had a professional clean in the last few months, yes. A deep clean resets the build-up so every regular visit after it stays quick and consistent.</p></details><details><summary><span>Are supplies included in the price?</span><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg></summary><p>Yes. Every price includes our products and equipment: cloths, mops, a vacuum and cleaning products. There&#39;s nothing extra to buy.</p></details><details><summary><span>Why do townhouses and houses cost more?</span><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg></summary><p>A townhouse or house usually has stairs, more floor area and more entrances than a condo with the same number of bedrooms, so it takes longer to clean. The price box adjusts for this automatically.</p></details><details><summary><span>Do regular plans cost less?</span><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg></summary><p>Yes. Visits every week, every 2 weeks or every 4 weeks cost less than a one-time clean, and you can pause or change your plan with 24 hours&#39; notice.</p></details>
     </div>
   </div>
@@ -447,6 +480,6 @@
 <div class="toast" data-toast role="status" aria-live="polite" hidden></div>
 <script defer src="../js/config.js?v=277d64b6"></script>
 
-<script defer src="../js/site.js?v=897d8586"></script>
+<script defer src="../js/site.js?v=26749c2f"></script>
 </body>
 </html>
