@@ -118,7 +118,7 @@ From the October 2026 website audit. Everything the website itself can fix is do
 
 - **Logo:** `assets/logo.svg` (horizontal), `logo-stacked.svg`, `logo-mark.svg` and their `-white` versions for dark backgrounds. Traced from the original logo artwork; the wordmark is Barlow Condensed.
 - **Colours:** navy `#0A2D5C`, teal `#2FA4A6`, sky `#6FC3E0`, sand `#EFD9AE` on ivory `#F7F3EA`. All tokens are at the top of `css/site.css`.
-- **Fonts:** Barlow Condensed (headlines) and DM Sans (text), self-hosted in `assets/fonts` under the SIL Open Font License.
+- **Fonts:** Plus Jakarta Sans (headlines, sentence case) and DM Sans (text), self-hosted in `assets/fonts` under the SIL Open Font License.
 - **Room photos** in `assets/photos` are AI-generated illustrations, and the footer says so. Replace them with real photos from your own jobs (with the client's permission) as soon as you have them: same file names, 928 × 1152 px.
 
 ## Hosting
@@ -126,6 +126,18 @@ From the October 2026 website audit. Everything the website itself can fix is do
 Live at https://nestnrestcleaning.com (GitHub Pages, custom domain set by the `CNAME` file).
 When you connect a custom domain, update `siteUrl` in `js/config.js` and run `node tools/build.mjs`.
 Every push to `main` publishes the site automatically. Watch the "pages build and deployment" run under the repository's Actions tab; the change is live a minute or two after it turns green.
+
+## Checking the site
+
+After a change, rebuild and run the browser checks:
+
+```
+node tools/build.mjs
+node tools/qa/run.mjs            # booking, privacy, layout and design checks; add a word to run one file, e.g. booking
+node tools/qa/perf.mjs           # load speed on a slow phone: fails if a page takes over 2.2s or jumps around
+```
+
+Both need Playwright with Chromium (`npm install -g playwright && npx playwright install chromium`). The checks serve the site from your computer and never send a real booking.
 
 ## Files
 
@@ -136,5 +148,6 @@ js/config.js       business settings (edit this)
 js/site.js         pricing, booking, forms, WhatsApp, tracking
 tools/build.mjs    page generator
 tools/guides.mjs   the guide articles
+tools/qa/          browser checks (see Checking the site)
 assets/            logo, icons, founder photo, room photos, social-share image, fonts
 ```
