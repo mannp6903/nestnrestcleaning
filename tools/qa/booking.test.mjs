@@ -187,4 +187,47 @@ export default async function () {
     await walk("step 3", 45);
     assert(!hidden.length, "focused controls under a sticky bar: " + hidden.join("; "));
   });
+
+  // The value shown for one row of Check your clean.
+  const reviewValue = (p, label) => p.$$eval("[data-review] > div", (ds, label) => {
+    const d = ds.find((x) => x.querySelector("dt").textContent.trim() === label);
+    return d ? d.querySelector("dd").textContent : null;
+  }, label);
+
+  test("final check shows pets and notes", async ({ browser, url }) => {
+    const p = await newPage(browser);
+    await toDetails(p, url);
+    await fillDetails(p);
+    await p.click('label:has(input[name="pets"][value="Dog"])');
+    await p.fill("#f-notes", "<b>Ring twice</b>");
+    await p.press("#f-notes", "Tab");
+    assert(await reviewValue(p, "Pets") === "Dog", "pets row: " + await reviewValue(p, "Pets"));
+    assert(await reviewValue(p, "Notes") === "<b>Ring twice</b>", "notes row: " + await reviewValue(p, "Notes"));
+    assert(await p.$("[data-review] b") === null, "notes must show as text, not HTML");
+  });
+
+  test("long notes are shortened at a word", async ({ browser, url }) => {
+    const p = await newPage(browser);
+    await toDetails(p, url);
+    await fillDetails(p);
+    const notes = Array(60).fill("kitchen").join(" ");
+    await p.fill("#f-notes", notes);
+    await p.press("#f-notes", "Tab");
+    const v = await reviewValue(p, "Notes");
+    assert(v.endsWith("…") && v.length <= 201, "shortened notes: " + v.length + " " + v.slice(-20));
+    const kept = v.slice(0, -1);
+    assert(notes.startsWith(kept) && notes[kept.length] === " ", "cut must fall between words: …" + kept.slice(-12));
+  });
+
+  test("pets and notes edit buttons focus their controls", async ({ browser, url }) => {
+    const p = await newPage(browser);
+    await toDetails(p, url);
+    await fillDetails(p);
+    await p.click('label:has(input[name="pets"][value="Dog"])');
+    await p.click('[data-review] button[data-edit-focus*="pets"]');
+    const pets = await p.evaluate(() => [document.activeElement.name, document.activeElement.value, document.activeElement.checked]);
+    assert(pets[0] === "pets" && pets[1] === "Dog" && pets[2], "pets edit focus: " + pets.join(" | "));
+    await p.click('[data-review] button[data-edit-focus="#f-notes"]');
+    assert(await p.evaluate(() => document.activeElement.id) === "f-notes", "notes edit focus");
+  });
 }

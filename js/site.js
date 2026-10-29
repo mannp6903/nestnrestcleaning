@@ -568,7 +568,9 @@
         ["Contact", who || "Not added yet", LAST, "#f-name"],
         ["Address", where || "Not added yet", LAST, "#f-address"],
         ["Getting in", acc + buildingText() + (acc === "Lockbox or key code" ? ". " + B.ownerFirstName + " asks for the code by text once your clean is confirmed" : ""), LAST, "#f-access"],
+        ["Pets", radioVal("pets"), LAST, 'input[name="pets"]:checked'],
         ["Products", radioVal("products"), LAST, 'input[name="products"]:checked'],
+        ["Notes", shortenAtWord(val("f-notes"), 200) || "None", LAST, "#f-notes"],
         ["Confirm by", radioVal("contactPref"), LAST, 'input[name="contactPref"]:checked']
       ].filter(Boolean);
       var html = rows.map(function (r) {
@@ -1191,6 +1193,13 @@
   }
 
   /* ---------- Delivery ---------- */
+  // Long text cut at the last whole word, ending in "…".
+  function shortenAtWord(text, max) {
+    text = String(text || "").trim();
+    if (text.length <= max) return text;
+    var cut = text.slice(0, max + 1), at = cut.lastIndexOf(" ");
+    return (at > 0 ? cut.slice(0, at) : text.slice(0, max)).trim() + "…";
+  }
   function phoneOk(v) { var d = String(v).replace(/\D/g, ""); return d.length === 10 || (d.length === 11 && d[0] === "1"); }
   function emailOk(v) { return !v || /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v); }
   // A request's reference (NR-XXXX, or GIFT-XXXX for gift cards) and attempt ID. Both stay the same across retries
