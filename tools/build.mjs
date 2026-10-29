@@ -603,7 +603,7 @@ ${bodyInner}
 function quoteForm(L, { name, title = "Request a free quote", reply, fields, button = "Request a free quote", note }) {
   const field = (f) => {
     const span = f.span === 2 ? " span-2" : "";
-    if (f.type === "select") return `<div class="field${span}"><label for="q-${f.id}">${esc(f.label)}</label><div class="select-wrap"><select id="q-${f.id}" name="${esc(f.label)}">${f.options.map((o) => `<option>${esc(o)}</option>`).join("")}</select>${ic("i-chev")}</div></div>`;
+    if (f.type === "select") return `<div class="field${span}"><label for="q-${f.id}">${esc(f.label)}</label><div class="select-wrap"><select id="q-${f.id}" name="${esc(f.label)}"><option value="" selected>Choose one</option>${f.options.map((o) => `<option>${esc(o)}</option>`).join("")}</select>${ic("i-chev")}</div></div>`;
     return `<div class="field${span}"><label for="q-${f.id}">${esc(f.label)}${f.required ? "" : ' <span class="opt">optional</span>'}</label><input id="q-${f.id}" name="${esc(f.label)}"${f.required ? " required data-required" : ""}></div>`;
   };
   return `<form class="quote-form" data-quote-form data-quote-name="${esc(name)}" data-reply-time="${esc(reply)}" novalidate>

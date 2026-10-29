@@ -150,6 +150,7 @@ export default async function () {
     await p.click("[data-quote-link]");
     await p.waitForLoadState();
     assert(new URL(p.url()).pathname === "/services/residence-care/", "should land on Residence Care, got " + p.url());
+    assert(new URL(p.url()).search === "?from=booking", "only from=booking in the address, got " + p.url());
     assert((await p.inputValue("#q-notes")).startsWith("From the booking form: Deep Cleaning"), "home details should be carried into the notes");
   });
 

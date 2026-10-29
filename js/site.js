@@ -8,6 +8,8 @@
   // Home choices (service, size, extras) are kept on this device for a return visit.
   // Personal details (name, contact, address, notes) are kept only for this browser tab.
   var QUOTE_KEY = "nr-quote-v1", DETAILS_KEY = "nr-details-v1", OLD_DRAFT_KEY = "nr-booking-v2", DRAFT_DAYS = 14;
+  // Home details handed from the booking form to a quote form: kept in this tab for 30 minutes, never in a page address.
+  var HANDOFF_KEY = "nr-quote-handoff", HANDOFF_MS = 30 * 60 * 1000;
   var QUOTE_FIELDS = ["service", "homeType", "beds", "baths", "addons", "checks", "freq"];
   var host = document.querySelector("[data-page]");
   var PAGE = host ? host.getAttribute("data-page") : "";
@@ -642,13 +644,16 @@
       if (route) {
         route.hidden = !q.quoteOnly;
         var ql = $("[data-quote-link]", route);
-        // The quote form opens with these home details filled in: no personal details travel in the link.
+        // The quote form opens with these home details filled in. They wait in this tab, not in the link,
+        // so the page address (and analytics) never carries them.
         if (ql && q.quoteOnly) {
           var qs = C.quoteServices[q.quoteOnly.quote];
-          var carry = "From the booking form: " + q.s.name + ", " + homeLine(q) + (q.addons.length ? ". Extras: " + q.addons.map(function (a) { return a.name; }).join(", ") : "") +
-            (s.recurring ? ". How often: " + q.freq.label : "") + ".";
-          if (qs) ql.href = link("services/" + qs.slug + "/") + "?notes=" + encodeURIComponent(carry);
-        }
+          if (qs) ql.href = link("services/" + qs.slug + "/") + "?from=booking";
+          store(HANDOFF_KEY, { at: Date.now(), service: q.s.name, home: homeLine(q),
+            checks: q.checks.map(function (c) { return c.label; }), extras: q.addons.map(function (a) { return a.name; }),
+            often: { once: "One time to start", weekly: "Weekly", biweekly: "Every 2 weeks", monthly: "Monthly" }[s.recurring ? state.freq : "once"] || "One time to start",
+            postal: formatPostal(val("f-postal")) }, true);
+        } else if (!q.quoteOnly) store(HANDOFF_KEY, null, true);
       }
       $("[data-freq-field]").hidden = !s.recurring;
       $$("[data-slot]", form).forEach(function (lab) {
@@ -1252,10 +1257,19 @@
     var form = $("[data-quote-form]");
     if (!form) return;
     var name = form.getAttribute("data-quote-name"), qIds = null;
-    // Arriving from the booking form (a home over about 3,000 sq ft): its home details are carried into the notes.
-    var carried = new URLSearchParams(location.search).get("notes");
-    var notesBox = $("#q-notes", form);
-    if (carried && notesBox && !notesBox.value) notesBox.value = carried.slice(0, 600);
+    // Arriving from the booking form (a home over about 3,000 sq ft): what the customer already told us is filled in.
+    // Only on that route, only within 30 minutes, and the handoff is deleted once read.
+    if (new URLSearchParams(location.search).get("from") === "booking") {
+      var h = store(HANDOFF_KEY, undefined, true);
+      store(HANDOFF_KEY, null, true);
+      if (h && h.at && Date.now() - h.at <= HANDOFF_MS) {
+        var pc = $("#q-postal", form), fq = $("#q-frequency", form), nb = $("#q-notes", form);
+        if (pc && h.postal && !pc.value) pc.value = String(h.postal).slice(0, 7);
+        if (fq && $$("option", fq).some(function (o) { return o.value === h.often; })) fq.value = h.often;
+        if (nb && !nb.value) nb.value = ("From the booking form: " + h.service + ", " + h.home + (h.checks && h.checks.length ? ". Home: " + h.checks.join(", ") : "") +
+          (h.extras && h.extras.length ? ". Extras: " + h.extras.join(", ") : "") + ".").slice(0, 600);
+      }
+    }
     function qCheck(el) {
       var v = el.value.trim(), m = "";
       if (el.hasAttribute("data-required") && v.length < 2) m = "Add your " + el.name.toLowerCase() + ".";
@@ -1280,7 +1294,8 @@
       var data = { _subject: "New quote request: " + name, _template: "table", _captcha: "false", "Service": name };
       $$("input, select, textarea", form).forEach(function (el) {
         if (el.name === "_honey") data._honey = el.value;
-        else if (el.name) data[el.name] = el.value.trim() || "—";
+        // A dropdown left on "Choose one" is sent as such, never as the first option.
+        else if (el.name) data[el.name] = el.tagName === "SELECT" && !el.value ? "Not chosen" : el.value.trim() || "—";
       });
       if (data.Email && data.Email !== "—") {
         data._replyto = data.email = data.Email;
