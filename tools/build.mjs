@@ -531,7 +531,7 @@ function page({ depth, pathOut, title, description, body, schemas = [], pageType
   const headInner = `${THEME_BOOT}
 <title>${esc(shortTitle)}</title>
 <meta name="description" content="${esc(description)}">
-${noindex ? '<meta name="robots" content="noindex">\n' : ""}<meta name="theme-color" content="#F7F3EA">
+${noindex ? '<meta name="robots" content="noindex">\n' : ""}<meta name="theme-color" content="#FFFFFF">
 <link rel="canonical" href="${canonical}">
 <meta property="og:type" content="${pageType === "article" ? "article" : "website"}">
 <meta property="og:locale" content="en_CA">

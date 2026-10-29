@@ -81,7 +81,7 @@ export function contrast(fg, bg) {
   const b = parse(bg), f0 = parse(fg);
   const f = [0, 1, 2].map((i) => f0[i] * f0[3] + b[i] * (1 - f0[3]));
   const lum = (rgb) => rgb.map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }).reduce((t, v, i) => t + v * [0.2126, 0.7152, 0.0722][i], 0);
-  const [hi, lo] = [lum(f), lum(b)].sort((x, y) => y - x);
+  const [hi, lo] = [lum(f), lum(b.slice(0, 3))].sort((x, y) => y - x);
   return (hi + 0.05) / (lo + 0.05);
 }
 

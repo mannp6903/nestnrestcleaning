@@ -1122,7 +1122,7 @@
     function paint() {
       var dark = isDark();
       $$("[data-theme-toggle]").forEach(function (b) { b.setAttribute("aria-pressed", String(dark)); });
-      if (meta) meta.setAttribute("content", dark ? "#0E1A2B" : "#F7F3EA");
+      if (meta) meta.setAttribute("content", dark ? "#0E1A2B" : "#FFFFFF");
     }
     $$("[data-theme-toggle]").forEach(function (b) {
       b.addEventListener("click", function () {

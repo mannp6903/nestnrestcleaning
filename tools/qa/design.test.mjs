@@ -1,5 +1,5 @@
 // The redesign's rules (docs/superpowers/specs/2026-10-28-modern-redesign-design.md): type, surfaces, components, hero.
-import { test, assert, newPage } from "./lib.mjs";
+import { test, assert, newPage, contrast } from "./lib.mjs";
 
 const JAKARTA = /^"?Plus Jakarta Sans"?/;
 const px = (v) => Math.round(parseFloat(v));
@@ -48,6 +48,134 @@ export default async function () {
     await check(390, "/", "h1", 48);
     await check(390, "/pricing/", "h1", 40);
     await check(390, "/", "#services h2", 32);
+  });
+
+  test("white pages with ivory sections", async ({ browser, url }) => {
+    for (const [theme, page] of [["light", "rgb(255, 255, 255)"], ["dark", "rgb(14, 26, 43)"]]) {
+      const p = await newPage(browser, { width: 1440, height: 900, theme });
+      await p.goto(url + "/");
+      const bg = await p.evaluate(() => getComputedStyle(document.body).backgroundColor);
+      assert(bg === page, `${theme}: page background should be ${page}, got ${bg}`);
+      if (theme === "light") {
+        const tint = await p.$eval(".section-tint", (e) => getComputedStyle(e).backgroundColor);
+        assert(tint === "rgb(247, 243, 234)", "sections alternate in ivory, got " + tint);
+      }
+      await p.context().close();
+    }
+  });
+
+  test("pill buttons and soft cards", async ({ browser, url }) => {
+    const p = await newPage(browser, { width: 1440, height: 900 });
+    const box = (sel) => p.$eval(sel, (e) => { const s = getComputedStyle(e), r = e.getBoundingClientRect(); return { radius: parseFloat(s.borderTopLeftRadius), h: r.height, w: r.width }; });
+    await p.goto(url + "/");
+    const primary = await box(".hero-cta .btn-primary");
+    assert(primary.radius >= 26 && Math.abs(primary.h - 52) <= 1, "primary button should be a 52px pill, got " + JSON.stringify(primary));
+    const small = await box("#services .btn-sm");
+    assert(Math.abs(small.h - 44) <= 1 && small.radius >= 22, "small button should be a 44px pill, got " + JSON.stringify(small));
+    for (const sel of ["#services .svc-card", ".hero-home .pricer", "#faq details"]) {
+      const b = await box(sel);
+      assert(b.radius === 20, `${sel} should have a 20px radius, got ${b.radius}`);
+    }
+    for (const sel of ["section.standard", ".final-cta .final-inner"]) {
+      const b = await box(sel);
+      assert(b.radius === 28, `${sel} should be a rounded 28px panel, got ${b.radius}`);
+      assert(b.w < 1440, `${sel} should sit inside the page width, got ${b.w}px wide`);
+    }
+    assert((await box("#pc-home")).radius === 14, "fields should have a 14px radius");
+    assert(Math.round((await box("#services .svc-ico")).w) === 42, "icon chips should be 42px");
+    await p.goto(url + "/pricing/");
+    assert((await box(".price-card")).radius === 20, "price cards should have a 20px radius");
+  });
+
+  test("label pill", async ({ browser, url }) => {
+    const p = await newPage(browser, { width: 1440, height: 900 });
+    await p.goto(url + "/");
+    const s = await p.$eval("#services .label", (e) => { const c = getComputedStyle(e); return { fam: c.fontFamily, size: c.fontSize, bg: c.backgroundColor }; });
+    assert(/^"?DM Sans/.test(s.fam), "label should use DM Sans, got " + s.fam);
+    assert(s.size === "13px", "label should be 13px, got " + s.size);
+    assert(s.bg !== "rgba(0, 0, 0, 0)" && s.bg !== "transparent", "label should be a pill with a background");
+  });
+
+  // Text colour against the first solid background behind it, for every text element on a page.
+  const contrastProblems = (p, scope = "body") => p.evaluate((scope) => {
+    // The colour behind an element: translucent backgrounds laid over the first solid one beneath them.
+    const solid = (el) => {
+      const layers = [];
+      for (; el; el = el.parentElement) {
+        const m = getComputedStyle(el).backgroundColor.match(/[\d.]+/g);
+        if (!m) continue;
+        const [r, g, b, a = 1] = m.map(Number);
+        if (a === 0) continue;
+        layers.push([r, g, b, a]);
+        if (a === 1) break;
+      }
+      let base = [255, 255, 255];
+      for (const [r, g, b, a] of layers.reverse()) base = [r * a + base[0] * (1 - a), g * a + base[1] * (1 - a), b * a + base[2] * (1 - a)];
+      return `rgb(${base.map(Math.round).join(", ")})`;
+    };
+    const out = [];
+    document.querySelectorAll(scope + " :is(h1,h2,h3,p,li,a,button,.btn,.label,.kicker,label,dt,dd,.extra-name,.sum-total,summary,small,strong,span)").forEach((el) => {
+      const own = [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim());
+      const r = el.getBoundingClientRect(), s = getComputedStyle(el);
+      if (!own || r.width < 2 || r.height < 2 || s.visibility === "hidden" || el.closest("[hidden], .sr-only, [aria-hidden=true]") || +s.opacity < 1) return;
+      if (el.matches(":disabled, .is-off *") || el.closest(".announce-msgs > span:not(.is-on)")) return;
+      const size = parseFloat(s.fontSize), large = size >= 24 || (size >= 18.66 && +s.fontWeight >= 700);
+      out.push({ text: el.textContent.trim().slice(0, 28), tag: el.tagName.toLowerCase() + (el.className && typeof el.className === "string" ? "." + el.className.split(" ")[0] : ""), fg: s.color, bg: solid(el), min: large ? 3 : 4.5 });
+    });
+    return out;
+  }, scope);
+
+  test("contrast helper measures known pairs", async () => {
+    const near = (a, b) => Math.abs(a - b) < 0.02;
+    assert(near(contrast("#8994A3", "#FFFFFF"), 3.08), "#8994A3 on white should be 3.08:1, got " + contrast("#8994A3", "#FFFFFF"));
+    assert(near(contrast("rgb(75, 94, 116)", "rgb(255, 255, 255)"), 6.66), "#4B5E74 on white should be 6.66:1, got " + contrast("rgb(75, 94, 116)", "rgb(255, 255, 255)"));
+    assert(near(contrast("rgba(10, 45, 92, 0)", "#FFFFFF"), 1), "a fully transparent colour has no contrast");
+  });
+
+  test("contrast holds in both themes", async ({ browser, url }) => {
+    const bad = [];
+    for (const theme of ["light", "dark"]) {
+      const p = await newPage(browser, { width: 1440, height: 900, theme });
+      for (const path of ["/", "/pricing/", "/book/", "/help/"]) {
+        await p.goto(url + path);
+        await p.evaluate(() => document.getAnimations().forEach((a) => a.finish()));
+        for (const t of await contrastProblems(p)) {
+          const r = contrast(t.fg, t.bg);
+          assert(Number.isFinite(r), `couldn't measure ${t.fg} on ${t.bg}`);
+          if (r < t.min) bad.push(`${theme} ${path} ${t.tag} "${t.text}" ${r.toFixed(2)}:1`);
+        }
+      }
+      await p.context().close();
+    }
+    assert(!bad.length, bad.length + " low-contrast text item(s): " + [...new Set(bad)].slice(0, 8).join("; "));
+  });
+
+  test("labels on navy stay readable", async ({ browser, url }) => {
+    const p = await newPage(browser, { width: 1440, height: 900 });
+    await p.goto(url + "/");
+    const bad = [];
+    for (const scope of [".standard .label", ".founding .label", ".footer-cols .label"]) {
+      const items = await contrastProblems(p, scope.split(" ")[0]);
+      for (const t of items.filter((x) => x.tag.startsWith("p.label"))) {
+        const r = contrast(t.fg, t.bg);
+        assert(Number.isFinite(r), `couldn't measure ${t.fg} on ${t.bg}`);
+        if (r < 4.5) bad.push(`${scope} "${t.text}" ${r.toFixed(2)}:1`);
+      }
+      assert(items.some((x) => x.tag.startsWith("p.label")), "no label found in " + scope);
+    }
+    assert(!bad.length, bad.join("; "));
+  });
+
+  test("cards lift on hover, but not with reduced motion", async ({ browser, url }) => {
+    for (const [motion, wantLift] of [["no-preference", true], ["reduce", false]]) {
+      const p = await newPage(browser, { width: 1440, height: 900, reducedMotion: motion });
+      await p.goto(url + "/");
+      await p.hover("#services .svc-card h3");
+      await p.waitForTimeout(350);
+      const t = await p.$eval("#services .svc-card", (e) => getComputedStyle(e).transform);
+      assert(wantLift ? t !== "none" : t === "none", `${motion}: card transform should be ${wantLift ? "a lift" : "none"}, got ${t}`);
+      await p.context().close();
+    }
   });
 
   test("404 page uses the new type", async ({ browser, url }) => {
