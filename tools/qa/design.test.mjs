@@ -231,6 +231,43 @@ export default async function () {
     assert(new Set(four).size === 1, "the four realtor jobs should share a row, tops: " + four.join(", "));
   });
 
+  test("sub-page heroes match the home hero", async ({ browser, url }) => {
+    const p = await newPage(browser, { width: 1440, height: 900 });
+    for (const path of ["/pricing/", "/services/deep-cleaning/", "/areas/north-york/willowdale/", "/help/"]) {
+      await p.goto(url + path);
+      const r = await p.$eval(".hero-sub", (e) => ({ bg: getComputedStyle(e).backgroundImage, h1: getComputedStyle(e.querySelector("h1")).fontFamily }));
+      assert(r.bg.includes("radial-gradient"), `${path} hero should have the soft glow`);
+      assert(JAKARTA.test(r.h1), `${path} h1 should use Plus Jakarta Sans, got ${r.h1}`);
+    }
+  });
+
+  test("comparison keeps its first column in view", async ({ browser, url }) => {
+    const p = await newPage(browser, { width: 390, height: 844 });
+    await p.goto(url + "/pricing/#compare");
+    const r = await p.$eval(".compare tbody tr:not(.cmp-room) th", (e) => ({ pos: getComputedStyle(e).position, left: getComputedStyle(e).left, bg: getComputedStyle(e).backgroundColor }));
+    assert(r.pos === "sticky" && r.left === "0px", "task names should stay in view when the table scrolls sideways: " + JSON.stringify(r));
+    assert(r.bg !== "rgba(0, 0, 0, 0)", "a sticky column needs a solid background so cells don't show through");
+  });
+
+  test("booking keeps its look and its hooks", async ({ browser, url }) => {
+    const p = await newPage(browser, { width: 1440, height: 900 });
+    await p.goto(url + "/book/");
+    const fam = (sel) => p.$eval(sel, (e) => getComputedStyle(e).fontFamily);
+    for (const [sel, want] of [[".progress li", /^"?DM Sans/], [".choice-body strong", JAKARTA], [".extra-name", /^"?DM Sans/], [".step-nav [data-next]", JAKARTA]]) {
+      const f = await fam(sel);
+      assert(want.test(f), `${sel} font is ${f}`);
+    }
+    for (const sel of [".choice-body", ".extra", ".seg", ".compare-box"]) {
+      const r = await p.$eval(sel, (e) => parseFloat(getComputedStyle(e).borderTopLeftRadius));
+      assert(r >= 14, `${sel} should have at least a 14px radius, got ${r}`);
+    }
+    assert(await p.$eval("[data-summary]", (e) => getComputedStyle(e).borderTopLeftRadius) === "20px", "the price summary should be a 20px card");
+    const hooks = ["#booking-form", "[data-next]", "[data-prev]", "[data-submit]", "[data-summary]", "[data-lines]", "[data-total]", "[data-review]", "[data-addons]", "[data-dates]", "[data-scope-note]", "[data-slot-note]", "[data-quote-route]", "[data-done]"];
+    const missing = [];
+    for (const h of hooks) if (!(await p.$(h))) missing.push(h);
+    assert(!missing.length, "booking hooks missing: " + missing.join(", "));
+  });
+
   test("404 page uses the new type", async ({ browser, url }) => {
     const p = await newPage(browser, { width: 1440, height: 900 });
     await p.goto(url + "/404.html");
