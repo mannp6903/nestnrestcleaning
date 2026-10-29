@@ -445,6 +445,11 @@
     // One reference per request. A retry after a failed send keeps it, so a request that arrives twice is easy to spot.
     var ref = null, attempt = null;
     var started = false;
+    // On phones the Continue bar sits just above the price bar; follow the price bar's real height (it grows with larger text).
+    var sumBar = $(".summary-toggle");
+    if (sumBar && window.ResizeObserver) new ResizeObserver(function () {
+      document.documentElement.style.setProperty("--sum-h", Math.ceil(sumBar.getBoundingClientRect().height) + "px");
+    }).observe(sumBar);
 
     function availableDates() { return openDates(C.daysAhead); }
     var iso = isoDay;
