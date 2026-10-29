@@ -127,6 +127,8 @@ From the October 2026 website audit. Everything the website itself can fix is do
 
 ## Brand
 
+How the site looks and why (tokens, components, the reference patterns behind them, image sources and the replacements wanted) is in [docs/design-notes.md](docs/design-notes.md).
+
 - **Logo:** `assets/logo.svg` (horizontal), `logo-stacked.svg`, `logo-mark.svg` and their `-white` versions for dark backgrounds. Traced from the original logo artwork; the wordmark is Barlow Condensed.
 - **Colours:** navy `#0A2D5C`, teal `#2FA4A6`, sky `#6FC3E0`, sand `#EFD9AE` on ivory `#F7F3EA`. All tokens are at the top of `css/site.css`.
 - **Fonts:** Plus Jakarta Sans (headlines, sentence case) and DM Sans (text), self-hosted in `assets/fonts` under the SIL Open Font License.
