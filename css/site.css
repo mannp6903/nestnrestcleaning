@@ -132,6 +132,10 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .section-tint { background: var(--section-tint); }
 .section-head { display: grid; gap: 14px; max-width: 760px; margin-bottom: clamp(28px, 4.5vw, 52px); }
 .section-head-row { max-width: none; grid-template-columns: 1fr; align-items: end; }
+.section-head-center { margin-inline: auto; text-align: center; justify-items: center; }
+.section-head-center .label { justify-self: center; }
+.section-head-center .text-link { justify-self: center; }
+#how .center-cta { justify-content: center; }
 .section-head-row > div { display: grid; gap: 14px; }
 .label, .kicker { display: inline-flex; align-items: center; gap: 8px; justify-self: start; width: fit-content; max-width: 100%; margin: 0;
   font-family: var(--body); font-weight: 700; font-size: 0.8125rem; line-height: 1.3; color: var(--teal-ink); background: var(--pill-bg); padding: 6px 12px; border-radius: 999px; }
@@ -237,7 +241,7 @@ body.menu-open { overflow: hidden; }
 /* Hero */
 .hero { position: relative; overflow: hidden; overflow: clip; padding-block: clamp(18px, 3vw, 44px) clamp(40px, 5vw, 64px);
   background: radial-gradient(60% 45% at 92% 0%, var(--glow-sky), transparent 70%), radial-gradient(55% 45% at 0% 100%, var(--glow-sand), transparent 72%), var(--page-bg); }
-.hero-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: clamp(18px, 3vw, 28px); grid-template-areas: "copy" "visual" "owner" "assure"; position: relative; z-index: 1; }
+.hero-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: clamp(18px, 3vw, 28px); grid-template-areas: "copy" "visual" "owner"; position: relative; z-index: 1; }
 .hero-copy { grid-area: copy; display: grid; gap: clamp(12px, 2.4vw, 22px); align-content: start; min-width: 0; }
 .hero-cta { display: none; }
 .hero-visual { grid-area: visual; min-width: 0; }
@@ -326,9 +330,11 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--i
 .stepper-ctl output { font-family: var(--display); font-weight: 800; font-size: 1.3rem; font-variant-numeric: tabular-nums; }
 
 /* Assurances */
-.assure { grid-area: assure; list-style: none; margin: clamp(8px, 2vw, 20px) 0 0; padding: 20px 0 0; border-top: 1px solid var(--line-2); display: grid; grid-template-columns: 1fr 1fr; gap: 14px 18px; position: relative; z-index: 1; }
-.assure li { display: flex; gap: 10px; align-items: flex-start; font-size: 0.92rem; font-weight: 600; line-height: 1.35; }
-.assure .ic { color: var(--teal-ink); margin-top: 1px; }
+/* The four promises, in a strip under the home hero */
+.trust-strip { border-block: 1px solid var(--card-line); background: var(--page-bg); }
+.trust { list-style: none; margin: 0; padding: 18px 0; display: grid; grid-template-columns: 1fr 1fr; gap: 14px 18px; }
+.trust li { display: flex; align-items: center; gap: 12px; font-size: 0.92rem; font-weight: 600; line-height: 1.35; }
+.trust .ic { width: 38px; height: 38px; padding: 9px; border-radius: 12px; background: var(--teal-soft); color: var(--teal-ink); }
 
 /* Gift banner (November and December) */
 .gift-band { background: var(--band-sand); }
@@ -381,6 +387,11 @@ a.svc-card:hover .svc-arrow { transform: translateX(4px); }
 .steps-col li { background: transparent; border: 0; padding: 0 0 0 56px; position: relative; }
 .steps-col li::before { position: absolute; left: 0; top: 0; }
 .beliefs li::before { background: var(--teal-fill); color: #fff; }
+@media (min-width: 760px) {
+  #how .steps-3 { column-gap: 36px; }
+  #how .steps-3 li { position: relative; }
+  #how .steps-3 li:not(:last-child)::after { content: ""; position: absolute; top: 44px; right: -37px; width: 38px; border-top: 2px dashed var(--teal); }
+}
 
 /* Standard (navy, with the nest as a watermark) */
 .standard { position: relative; overflow: hidden; background: var(--navy); color: var(--on-navy);
@@ -943,6 +954,10 @@ a.svc-card:hover .svc-arrow { transform: translateX(4px); }
   .steps-3 { grid-template-columns: repeat(3, 1fr); gap: 16px; }
   .steps-col { grid-template-columns: 1fr; gap: 22px; }
 }
+/* Card grids: two across from 600px, three from 1024px (realtors' four jobs: four from 1200px). In this order, so the wider rules win. */
+@media (min-width: 600px) {
+  .svc-grid { grid-template-columns: 1fr 1fr; }
+}
 @media (min-width: 1024px) {
   .svc-grid { grid-template-columns: repeat(3, 1fr); }
 }
@@ -957,12 +972,12 @@ a.svc-card:hover .svc-arrow { transform: translateX(4px); }
   .booking-form .form-grid .span-2 { grid-column: span 2; }
   .choice-grid { grid-template-columns: 1fr 1fr; }
   .freq-grid { grid-template-columns: repeat(4, 1fr); }
-  .assure { grid-template-columns: repeat(4, 1fr); }
+  .trust { grid-template-columns: repeat(4, 1fr); padding: 22px 0; }
+  .trust li { font-size: 0.98rem; }
   .plan-grid { grid-template-columns: repeat(4, 1fr); }
   .footer-cols { grid-template-columns: repeat(3, 1fr); }
   .footer-cols > div:last-child { grid-column: auto; }
   .incl-grid { grid-template-columns: 1fr 1fr; }
-  .svc-grid { grid-template-columns: 1fr 1fr; }
   .guide-grid { grid-template-columns: 1fr 1fr; }
   .price-table th, .price-table td { padding-left: 12px; }
   .price-table tbody th { font-size: 0.95rem; }
@@ -1013,12 +1028,11 @@ a.svc-card:hover .svc-arrow { transform: translateX(4px); }
   .header-actions { gap: 12px; }
   .header-wa, .header-book { display: inline-flex; }
 
-  .hero-grid { grid-template-columns: minmax(0, 1fr) minmax(420px, 500px); grid-template-areas: "copy visual" "owner visual" "assure visual"; grid-template-rows: auto auto 1fr; column-gap: clamp(40px, 5vw, 72px); row-gap: 28px; align-items: start; }
+  .hero-grid { grid-template-columns: minmax(0, 1fr) minmax(420px, 500px); grid-template-areas: "copy visual" "owner visual"; grid-template-rows: auto 1fr; column-gap: clamp(40px, 5vw, 72px); row-gap: 28px; align-items: start; }
   .hero-copy { padding-top: clamp(20px, 4vw, 56px); gap: 22px; }
   .hero-cta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 6px; }
   .hero-owner { align-self: start; }
   .hero-owner picture { width: 76px; height: 76px; }
-  .hero-home .assure { grid-template-columns: 1fr 1fr; align-self: start; margin-top: 4px; max-width: 560px; }
   .hero-visual { display: grid; grid-template: 1fr / 1fr; }
   .photo.hero-photo { display: block; grid-area: 1 / 1; margin: 0 0 0 96px; align-self: start; }
   .hero-photo img { aspect-ratio: 4 / 5; object-position: 70% 50%; }

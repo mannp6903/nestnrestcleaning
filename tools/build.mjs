@@ -393,14 +393,17 @@ function stepper(id, label, value, attr) {
     </div>`;
 }
 
-function assurances() {
+// The four promises, in a strip under the home hero. js/site.js adds any switched-on badges to [data-assure].
+function trustStrip() {
   const items = [
     ["i-shield", "Free re-clean within 24 hours"],
     ["i-card", "No deposit. Pay after your clean"],
     ["i-clock", "Open 7 days, 9am to 11pm"],
     ["i-pin", "Scarborough & North York"]
   ];
-  return `<ul class="assure" data-assure>${items.map(([i, t]) => `<li>${ic(i)}<span>${esc(t)}</span></li>`).join("")}</ul>`;
+  return `<section class="trust-strip" aria-label="Our promises">
+  <div class="wrap"><ul class="trust" data-assure>${items.map(([i, t]) => `<li>${ic(i)}<span>${esc(t)}</span></li>`).join("")}</ul></div>
+</section>`;
 }
 
 function founderPhoto(L, cls = "") {
@@ -698,9 +701,10 @@ urls.push(page({
     <div class="hero-copy">
       <p class="kicker">Home cleaning · Scarborough &amp; North York</p>
       <h1 class="display">We clean.<br><span class="accent">You rest.</span></h1>
-      <p class="lede">Careful home cleaning by owner ${esc(B.owner)}. Price in seconds, pay after the clean.</p>
+      <p class="lede">Your weekends are for living, not scrubbing. ${esc(B.ownerFirstName)} cleans your home with care, so you come back to calm, and you pay only after the clean.</p>
       <div class="hero-cta">
         <a class="btn btn-primary" href="${L("book/")}" data-track="book_click">Book your clean ${ic("i-arrow")}</a>
+        <a class="btn btn-ghost" href="${L("#how")}">How it works</a>
         ${B.whatsapp ? `<a class="btn btn-wa" data-wa href="${esc(waLink(WA_HELLO))}" target="_blank" rel="noopener" data-track="whatsapp_click">${ic("i-wa")} WhatsApp</a>` : ""}
       </div>
     </div>
@@ -712,9 +716,9 @@ urls.push(page({
       <span class="hero-avatar"><picture><source type="image/webp" srcset="${L("assets/founder-mann-patel-avatar.webp")}"><img src="${L("assets/founder-mann-patel-avatar.jpg")}" alt="" width="76" height="76" decoding="async"></picture></span>
       <span><strong>Cleaned by ${esc(B.owner)}, owner.</strong> Giving families their time back and a fresh, healthy home.</span>
     </p>
-    ${assurances()}
   </div>
 </section>
+${trustStrip()}
 
 ${gift && gift.active ? `<section class="gift-band" data-gift-banner data-months="${gift.bannerMonths.join(",")}" hidden>
   <div class="wrap gift-band-inner">
@@ -726,8 +730,8 @@ ${gift && gift.active ? `<section class="gift-band" data-gift-banner data-months
 
 <section class="section" id="services">
   <div class="wrap">
-    <div class="section-head section-head-row">
-      <div><p class="label">Services</p><h2>Choose the care your home needs.</h2></div>
+    <div class="section-head section-head-center">
+      <p class="label">Services</p><h2>Choose the care your home needs.</h2>
       <a class="text-link" href="${L("pricing/")}">See every price ${ic("i-arrow")}</a>
     </div>
     ${serviceCards(L, allServices, "svc-grid-shop")}
@@ -736,7 +740,7 @@ ${gift && gift.active ? `<section class="gift-band" data-gift-banner data-months
 
 <section class="section section-tint" id="how">
   <div class="wrap">
-    <div class="section-head">
+    <div class="section-head section-head-center">
       <p class="label">Booking</p>
       <h2>${CAL ? "Booked in two minutes. Confirmed instantly." : `Request in two minutes. ${esc(B.ownerFirstName)} confirms.`}</h2>
     </div>
