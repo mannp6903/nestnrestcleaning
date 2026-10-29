@@ -551,7 +551,7 @@ ${noindex ? '<meta name="robots" content="noindex">\n' : ""}<meta name="theme-co
 <link rel="icon" type="image/svg+xml" href="${L("assets/logo-mark.svg")}">
 <link rel="icon" type="image/png" sizes="48x48" href="${L("assets/favicon-48.png")}">
 <link rel="apple-touch-icon" href="${L("assets/apple-touch-icon.png")}">
-<link rel="preload" href="${L("assets/fonts/barlow-condensed-800.woff2")}" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="${L("assets/fonts/plus-jakarta-sans.woff2")}" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="${L("assets/fonts/dm-sans.woff2")}" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="${L("css/site.css")}?v=${ASSET_V.css}">
 ${ld}`;
