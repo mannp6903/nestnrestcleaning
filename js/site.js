@@ -646,7 +646,9 @@
         { form: "booking", service: state.service, home_type: state.homeType, frequency: state.freq, value: q.first, currency: C.currency });
     }
 
-    // "Check your clean": every material detail, each with a way back to change it, before the request is sent.
+    // "Check your clean": what decides the clean and its price comes first, at full size: service, extras, plan,
+    // preferred time and the estimate. Contact details and visit preferences follow as a compact summary.
+    // Every row has a way back to change it before the request is sent.
     var reviewHtml = "";
     function renderReview(q) {
       var box = $("[data-review]");
@@ -655,27 +657,30 @@
       var acc = val("f-access");
       var who = [val("f-name"), val("f-phone"), val("f-email")].filter(Boolean).join(" · ");
       var where = [val("f-address"), normPostal(val("f-postal")).length === 6 ? formatPostal(val("f-postal")) : ""].filter(Boolean).join(", ");
-      var rows = [
+      var main = [
         ["Service", q.s.name + " · " + homeLine(q), 1, 'input[name="service"]:checked'],
         q.checks.length ? ["Your home", listJoin(q.checks.map(function (c) { return c.label; })), 1, 'input[name="check"]'] : null,
         ["Extras", (q.addons.length ? q.addons.map(function (a) { return a.name + " (+" + money(a.price) + ")"; }).join(", ") : "None") +
           (q.included.length ? ". Included: " + listJoin(q.included.map(function (a) { return a.name.toLowerCase(); })) : ""), 1, "[data-addons] input:not(:disabled)"],
         q.s.recurring ? ["Plan", q.freq.label, CAL ? 1 : 2, 'input[name="freq"]:checked'] : null,
         CAL ? null : ["Preferred time", whenLine() || "Not chosen yet", 2, state.flex ? "[data-flex]" : "[data-dates] input:checked, [data-dates] input"],
-        ["Time on site", "About " + q.hours + " hours with " + cleanersText() + ", after arrival"],
-        ["Estimate", priceText(q)],
-        ["Contact", who || "Not added yet", LAST, "#f-name"],
+        ["Estimate", priceText(q) + " About " + q.hours + " hours on site with " + cleanersText() + ".", 0, "", "is-key"]
+      ];
+      var minor = [
+        ["Contact", (who || "Not added yet") + " · confirm by " + radioVal("contactPref").toLowerCase(), LAST, "#f-name"],
         ["Address", where || "Not added yet", LAST, "#f-address"],
-        ["Getting in", acc + buildingText() + (acc === "Lockbox or key code" ? ". " + B.ownerFirstName + " asks for the code by text once your clean is confirmed" : ""), LAST, "#f-access"],
-        ["Pets", radioVal("pets"), LAST, 'input[name="pets"]:checked'],
-        ["Products", radioVal("products"), LAST, 'input[name="products"]:checked'],
-        ["Notes", shortenAtWord(val("f-notes"), 200) || "None", LAST, "#f-notes"],
-        ["Confirm by", radioVal("contactPref"), LAST, 'input[name="contactPref"]:checked']
-      ].filter(Boolean);
-      var html = rows.map(function (r) {
-        return "<div><dt>" + esc(r[0]) + "</dt><dd>" + esc(r[1]) + "</dd>" + (r[2] ? '<dd class="review-edit"><button type="button" class="link-btn" data-edit-step="' + r[2] +
-          '" data-edit-focus="' + esc(r[3]) + '">Edit<span class="sr-only"> ' + esc(r[0].toLowerCase()) + "</span></button></dd>" : "") + "</div>";
-      }).join("");
+        ["Visit", [acc + buildingText() + (acc === "Lockbox or key code" ? " (" + B.ownerFirstName + " asks for the code by text once your clean is confirmed)" : ""),
+          radioVal("pets"), radioVal("products")].join(" · "), LAST, "#f-access"],
+        val("f-notes") ? ["Notes", shortenAtWord(val("f-notes"), 200), LAST, "#f-notes"] : null,
+        val("f-referrer") ? ["Referred by", val("f-referrer"), LAST, "#f-referrer"] : null
+      ];
+      var list = function (rows, cls) {
+        return '<dl class="review-list' + (cls ? " " + cls : "") + '">' + rows.filter(Boolean).map(function (r) {
+          return "<div" + (r[4] ? ' class="' + r[4] + '"' : "") + "><dt>" + esc(r[0]) + "</dt><dd>" + esc(r[1]) + "</dd>" + (r[2] ? '<dd class="review-edit"><button type="button" class="link-btn" data-edit-step="' + r[2] +
+            '" data-edit-focus="' + esc(r[3]) + '">Edit<span class="sr-only"> ' + esc(r[0].toLowerCase()) + "</span></button></dd>" : "") + "</div>";
+        }).join("") + "</dl>";
+      };
+      var html = list(main) + '<p class="review-sub">Your details and visit</p>' + list(minor, "review-minor");
       // Only when something changed: leaving a field fires "change", and replacing the list then would swallow a click on Edit.
       if (html !== reviewHtml) { box.innerHTML = html; reviewHtml = html; }
     }

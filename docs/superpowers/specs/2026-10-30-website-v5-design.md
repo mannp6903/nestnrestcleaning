@@ -113,3 +113,17 @@ Existing tests changed only where a rule changed on purpose: the label vocabular
 **Bug found and fixed along the way:** on phones, tapping a folded section low on the screen moved focus, the focus guard scrolled it to the centre, and the tap's release landed elsewhere, so the section didn't open. The guard now acts only on keyboard-style focus (`:focus-visible`).
 
 **Still needs a real phone:** the phone keyboard, autofill, VoiceOver and TalkBack (`docs/phone-checklist.md`, updated for these flows). Also one real test request to confirm delivery.
+
+## 11. Round 2 (same day, after the re-score of 90)
+
+The outside reviewer re-scored the desktop site at **90/100**: typography 19/20, layout 14/15, navigation 14/15, pricing and booking 23/25; identity 13/15 and imagery 7/10 unchanged. Their next four points:
+
+1. **One price per extra.** The regular-cleaning page showed "Inside fridge and oven +$40", which reads as $40 for both, but the oven and the fridge are separate $40 extras sharing one checklist row. Each room now lists one row per extra, by the extra's own name and price (`roomExtras()`). Heavy pet hair, which belongs to no row, sits under Whole home, so the count line ("8 optional extras") matches the extras list on the same page and on pricing.
+2. **A shorter final review.**
+   - "Check your clean" leads with Service, Extras, Plan, Preferred time and the Estimate. The Estimate is in bold, with the time on site folded in.
+   - Under "Your details and visit", a compact 14px summary: Contact (with how to confirm), Address and Visit (getting in, pets, products). Notes and Referred by appear only when given.
+   - Every row keeps its Edit. Visit's Edit opens the folded preferences on Getting in.
+3. **"Recommended", not "Most popular".** There's no booking data behind a popularity claim yet. The plan flag and the every-2-weeks paragraph in the "How often" guide now say it's the one we recommend.
+4. **Photography:** unchanged, because it needs the owner (see section 7). The empty-home illustration is still in the owner's Canva uploads. The build switches the move-out card to it as soon as the four `empty-home` files are in `assets/photos`.
+
+Verification: two new checks in `tools/qa/v5.test.mjs`, one for the review's two tiers and one for the Recommended flag across the home page, pricing and the guide. The service-scope checks now expect one row per extra.

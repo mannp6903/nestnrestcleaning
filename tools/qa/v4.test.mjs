@@ -12,7 +12,10 @@ export default async function () {
     for (const key of Object.keys(C.services)) {
       const s = C.services[key], col = s.checklistColumn;
       const tasks = C.checklist.filter((r) => !s.rooms || s.rooms.includes(r.room)).flatMap((r) => r.tasks);
-      const want = { yes: tasks.filter((t) => t[col] === "yes").length, add: tasks.filter((t) => t[col] === "add").length, none: tasks.filter((t) => !t[col]).map((t) => t[0]) };
+      // v5.1: extras are counted one per extra (a row with two extras counts two), plus extras tied to no task under Whole home.
+      const linked = (t) => Math.max(1, C.addons.filter((a) => a.task === t[0]).length);
+      const free = C.checklist.some((r) => r.room === "Whole home" && (!s.rooms || s.rooms.includes(r.room))) ? C.addons.filter((a) => !a.task).length : 0;
+      const want = { yes: tasks.filter((t) => t[col] === "yes").length, add: tasks.filter((t) => t[col] === "add").reduce((n, t) => n + linked(t), 0) + free, none: tasks.filter((t) => !t[col]).map((t) => t[0]) };
       await p.goto(url + "/services/" + s.slug + "/");
       const got = await p.evaluate(() => ({
         none: [...document.querySelectorAll("#included li[data-not-included]")].map((li) => li.querySelector("span").textContent.trim()),

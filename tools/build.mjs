@@ -796,7 +796,7 @@ function plansGrid(L) {
       ${Object.keys(C.frequencies).map((k) => {
         const f = C.frequencies[k];
         return `<div class="plan${f.recommended ? " plan-rec" : ""}" data-plan="${k}">
-          ${f.recommended ? '<p class="plan-flag">Most popular</p>' : ""}
+          ${f.recommended ? '<p class="plan-flag">Recommended</p>' : ""}
           <p class="plan-name">${esc(f.label)}</p>
           <p class="plan-price"><b data-plan-price>${money(afterDiscount(examplePrice, f.discount))}</b><span>per visit</span></p>
           <p class="plan-save">${f.discount ? `Save ${f.discount}%` : "No commitment"}</p>
@@ -1136,7 +1136,7 @@ urls.push(page({
               <section class="review span-2" aria-labelledby="review-title">
                 <h2 class="review-title" id="review-title">Check your clean</h2>
                 <p class="field-note">You can change any detail before sending.</p>
-                <dl class="review-list" data-review></dl>
+                <div class="review-body" data-review></div>
               </section>
               <p class="consent-line span-2">${ic("i-check")}<span>${CAL
                 ? `Next, you pick a time on ${esc(B.ownerFirstName)}'s calendar and it's confirmed straight away. Nothing to pay until it's done. Free to change up to ${C.policies.cancelNoticeHours} hours before. ${LATE_FEE_LINE}`
@@ -1217,25 +1217,34 @@ const SVC_PHOTO = { regular: "bedroom", deep: "bathroom", move: "living-room", d
 // part of this clean follow as supporting lists. The not-included list is what customers most often ask about after
 // a visit, so it's listed, not left out.
 const scopeTasks = (s) => C.checklist.filter((r) => !s.rooms || s.rooms.includes(r.room)).flatMap((r) => r.tasks);
-function checklistFor(s) {
-  const col = s.checklistColumn;
+// The extras listed under a room: one row per extra, each with its own price, so a task with two extras
+// ("Inside fridge and oven") never reads as one price for both. Extras tied to no task sit under "Whole home".
+function roomExtras(k, r) {
+  const col = C.services[k].checklistColumn;
+  return r.tasks.filter((t) => t[col] === "add").flatMap((t) => {
+    const linked = C.addons.filter((a) => a.task === t[0]);
+    return linked.length ? linked.map((a) => [a.name, a.price]) : [[t[0], null]];
+  }).concat(r.room === "Whole home" ? C.addons.filter((a) => !a.task && addonStatus(k, a.id) === "extra").map((a) => [a.name, a.price]) : []);
+}
+function checklistFor(k) {
+  const s = C.services[k], col = s.checklistColumn;
   const rooms = C.checklist.filter((r) => !s.rooms || s.rooms.includes(r.room));
   return rooms.map((r) => {
     const by = (v) => r.tasks.filter((t) => (t[col] || "") === v);
-    const extra = (t) => C.addons.find((a) => a.task === t[0]);
-    const add = by("add"), none = by("");
+    const add = roomExtras(k, r), none = by("");
     const more = [
-      add.length ? `<p class="incl-sub">Add as an extra</p><ul>${add.map((t) => `<li class="is-add">${ic("i-plus")}<span>${esc(t[0])}</span>${extra(t) ? `<b>+${money(extra(t).price)}</b>` : ""}</li>`).join("")}</ul>` : "",
+      add.length ? `<p class="incl-sub">Add as an extra</p><ul>${add.map(([name, p]) => `<li class="is-add">${ic("i-plus")}<span>${esc(name)}</span>${p != null ? `<b>+${money(p)}</b>` : ""}</li>`).join("")}</ul>` : "",
       none.length ? `<p class="incl-sub">Not part of this clean</p><ul>${none.map((t) => `<li class="is-none" data-not-included>${ic("i-minus")}<span>${esc(t[0])}</span></li>`).join("")}</ul>` : ""
     ].filter(Boolean).join("");
     return `<div class="incl-room"><h3>${esc(r.room)}</h3><ul class="incl-yes">${by("yes").map((t) => `<li>${ic("i-check")}<span>${esc(t[0])}</span></li>`).join("")}</ul>${more ? `<div class="incl-more">${more}</div>` : ""}</div>`;
   }).join("");
 }
 // The count of what's covered leads; extras and exclusions are the supporting line under it.
-function scopeSummary(s) {
-  const col = s.checklistColumn, t = scopeTasks(s);
+function scopeSummary(k) {
+  const s = C.services[k], col = s.checklistColumn, t = scopeTasks(s);
   const n = (v) => t.filter((x) => (x[col] || "") === v).length;
-  return `<ul class="scope-sum"><li class="scope-main"><b>${n("yes")}</b> tasks in every visit</li>${n("add") ? `<li><b>${n("add")}</b> optional extras</li>` : ""}${n("") ? `<li><b>${n("")}</b> not part of this clean, listed under each room</li>` : ""}</ul>`;
+  const extras = C.checklist.filter((r) => !s.rooms || s.rooms.includes(r.room)).reduce((sum, r) => sum + roomExtras(k, r).length, 0);
+  return `<ul class="scope-sum"><li class="scope-main"><b>${n("yes")}</b> tasks in every visit</li>${extras ? `<li><b>${extras}</b> optional extras</li>` : ""}${n("") ? `<li><b>${n("")}</b> not part of this clean, listed under each room</li>` : ""}</ul>`;
 }
 // Points to the next fuller clean (the smallest step up that covers some of what this one leaves out), when there is one.
 function scopeMore(L, k) {
@@ -1286,8 +1295,8 @@ for (const k of svcKeys) {
 
 <section class="section" id="included">
   <div class="wrap">
-    <div class="section-head"><p class="label">What's included</p><h2>What every visit covers.</h2><p class="muted">Room by room, what ${esc(s.menuName.toLowerCase())} takes care of each time. Under each room: what you can add, and what isn't part of this clean.${addonsWith(k, "none").length ? ` Not offered with this clean: ${esc(listJoin(addonsWith(k, "none").map((a) => a.name.toLowerCase())))}.` : ""}</p>${scopeSummary(s)}</div>
-    <div class="incl-grid">${checklistFor(s)}</div>
+    <div class="section-head"><p class="label">What's included</p><h2>What every visit covers.</h2><p class="muted">Room by room, what ${esc(s.menuName.toLowerCase())} takes care of each time. Under each room: what you can add, and what isn't part of this clean.${addonsWith(k, "none").length ? ` Not offered with this clean: ${esc(listJoin(addonsWith(k, "none").map((a) => a.name.toLowerCase())))}.` : ""}</p>${scopeSummary(k)}</div>
+    <div class="incl-grid">${checklistFor(k)}</div>
     ${scopeMore(L, k)}
   </div>
 </section>
