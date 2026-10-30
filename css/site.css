@@ -919,9 +919,16 @@ a.svc-card:hover .svc-arrow { transform: translateX(4px); }
 .review-list { margin: 4px 0 0; border-top: 1px solid var(--line); }
 .review-list > div { display: grid; grid-template-columns: 7.2em minmax(0, 1fr) auto; gap: 4px 12px; align-items: baseline; padding: 8px 0; border-bottom: 1px solid var(--line); }
 .review-list dt { color: var(--muted); font-size: 0.88rem; }
-.review-list dd { margin: 0; font-size: 0.95rem; overflow-wrap: anywhere; }
+.review-list dd { margin: 0; font-size: 1rem; overflow-wrap: anywhere; }
 .review-list dd.review-edit { justify-self: end; }
 .review-list .link-btn { min-height: 36px; padding-block: 2px; font-size: 0.88rem; }
+.review-list .is-key dd:not(.review-edit) { font-weight: 600; color: var(--ink); }
+/* Contact details and visit preferences: a compact summary under what decides the clean and its price. */
+.review-sub { margin-top: 14px; font-size: var(--fs-support); font-weight: 700; color: var(--muted); }
+.review-minor > div { padding: 5px 0; }
+.review-minor dt, .review-minor dd { font-size: var(--fs-support); }
+.review-minor dd:not(.review-edit) { color: var(--muted); }
+.review-minor .link-btn { min-height: 32px; }
 @media (max-width: 29.9375em) {
   .review-list > div { grid-template-columns: minmax(0, 1fr) auto; }
   .review-list dt { grid-column: 1; }

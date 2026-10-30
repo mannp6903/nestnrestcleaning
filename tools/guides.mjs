@@ -161,7 +161,7 @@ ${cta(L)}`
 <p>Best for families with young children, homes with pets that shed, and anyone who wants the home right every single day. The home never falls behind, so every visit is about keeping it fresh. Saves ${fr.weekly.discount}%.</p>
 
 <h2>Every 2 weeks: ${planPrice("biweekly")} a visit</h2>
-<p>The most popular choice, and the one we recommend for most households. Busy couples and small families find it's the point where the home stays consistently clean without cleaning becoming a weekly event. Saves ${fr.biweekly.discount}%.</p>
+<p>The one we recommend for most households. Busy couples and small families find it's the point where the home stays consistently clean without cleaning becoming a weekly event. Saves ${fr.biweekly.discount}%.</p>
 
 <h2>Every 4 weeks: ${planPrice("monthly")} a visit</h2>
 <p>Good for one or two people who keep up with daily tidying and want a thorough reset each month: bathrooms, kitchen, floors and dusting done properly. Saves ${fr.monthly.discount}%.</p>

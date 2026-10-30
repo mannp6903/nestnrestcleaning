@@ -20,7 +20,7 @@ All tokens sit at the top of `css/site.css`. Dark mode redefines the colour role
 | `--fs-display` / `--fs-h1` / `--fs-h2` / `--fs-h3` | 44–68 / 36–56 / 28–40 / 20–22px | the home slogan, page titles, sections, cards and steps (phone to desktop) |
 | `--fw-head` | 700 | every heading. 800 is kept for big prices only |
 | `--fs-support` | 14px | supporting text people need: what an extra covers, hints, "per visit", table headings. Never smaller |
-| `--fs-badge` | 13.5px | "Most popular", service tags and the "Extra" tag in the comparison |
+| `--fs-badge` | 13.5px | "Recommended", service tags and the "Extra" tag in the comparison |
 | `--fs-money` | 17px | every price in a list or table (price tables, extras, service choices) |
 | `--fs-fine` / `--fs-tag` | 13px / 12px | fine print / tags. Nothing on the site is smaller than 12px |
 | `--money` | Plus Jakarta Sans | every price, with tabular, lining figures (DM Sans's file has no tabular figures) |
@@ -41,7 +41,7 @@ Fonts: Plus Jakarta Sans for headings, buttons and money, DM Sans for text, both
   - On phones the photo is an 88px square beside the name.
   - Below the cards, "Not a regular home?" links Residence Care, Small Office Cleaning and For realtors.
 - **Steps** (`.steps-3`): numbered columns under one hairline, not cards.
-- **Plan strip** (`plansGrid()`): one bordered strip of cells divided by hairlines. "Most popular" is tinted and flagged.
+- **Plan strip** (`plansGrid()`): one bordered strip of cells divided by hairlines. The plan marked `recommended` in `js/config.js` is tinted and flagged "Recommended". Don't call it "Most popular" unless booking records show it is.
   - "Prices shown for: Regular Cleaning · 2-bedroom, 1-bathroom condo" sits above the strip, so its prices aren't mistaken for the price box's.
   - Each plan ends with its own button, "Choose every 2 weeks" and so on, which opens booking with that plan selected (`book/?s=regular&f=biweekly`).
   - Phones: one plan per row (name left, price right, button under). Two across from 600px, four from 1024px.
@@ -59,10 +59,11 @@ Fonts: Plus Jakarta Sans for headings, buttons and money, DM Sans for text, both
   - "Send cleaning request" on the final button.
   - "Choose every 2 weeks" (and so on) on the plans.
   - With the Cal.com calendar on, they change to "Book a clean", "Book this clean" and "Choose your time".
-- **Service scope** (`checklistFor()`, `scopeSummary()`, `scopeMore()`): each room leads with what every visit covers (check). Under it, a quieter box lists "Add as an extra" (plus, with the extra's price) and "Not part of this clean" (dash). The lead line is "16 tasks in every visit"; extras and exclusions are the line under it. A note below the rooms names the smallest step up that covers the exclusions.
+- **Service scope** (`checklistFor()`, `scopeSummary()`, `scopeMore()`): each room leads with what every visit covers (check). Under it, a quieter box lists "Add as an extra" (plus) and "Not part of this clean" (dash). Extras are listed one row per extra with its own price (`roomExtras()`), so a checklist row with two extras ("Inside fridge and oven") shows "Inside oven +$40" and "Inside fridge +$40", never one price for both. Extras tied to no checklist row (heavy pet hair) sit under Whole home. The lead line is "16 tasks in every visit"; extras and exclusions are the line under it. A note below the rooms names the smallest step up that covers the exclusions.
 - **Price box:** the price, then the regular price and time, then the offer as one teal line. No separate offer box.
 - **Booking, step 1:** arriving from a price box, the service and home sit in one card ("Your clean, from the price box") with Edit, which opens the full choices. Arriving from a plan, a note says which plan is selected and where to change it.
-- **Folded sections** (`section()` in the booking page, `.section-box`): optional parts fold away under a summary that says what's chosen in them ("Inside oven · +$40", "I'll be home · Dog · Our products"), so nothing selected is out of sight. Step 1 has "Anything unusual about your home?" and Extras; step 3 has Visit preferences (getting in, building, pets, products, notes) and Referred by a client. An error or an Edit from the review opens its section first. The review, "Check your clean", is unchanged.
+- **Folded sections** (`section()` in the booking page, `.section-box`): optional parts fold away under a summary that says what's chosen in them ("Inside oven · +$40", "I'll be home · Dog · Our products"), so nothing selected is out of sight. Step 1 has "Anything unusual about your home?" and Extras; step 3 has Visit preferences (getting in, building, pets, products, notes) and Referred by a client. An error or an Edit from the review opens its section first.
+- **Check your clean** (`renderReview()` in `js/site.js`): what decides the clean and its price comes first, at full size (Service, Your home when ticked, Extras, Plan, Preferred time, and the Estimate in bold with the time on site). Under "Your details and visit", a compact summary at 14px: Contact (with how to confirm), Address, Visit (getting in, pets, products), and Notes or Referred by when given. Every row keeps its Edit.
 - **Preferred day:** Earlier and Later page through the 21 days a screen at a time, and the line between them says which dates are in view. More days ahead: raise `daysAhead` in `js/config.js`.
 - **Booking errors:** each sits under the choice it's about (`[data-step-error]`), describes every option in it, and takes focus to the first option. The toast is only for confirmations ("Link copied"), never for errors.
 - **Pricing page:** links under the title jump to Estimate, Prices, Plans, Extras and Compare. One tab per service shows one price table at a time, at every width (`bindPriceTabs()` in `js/site.js`); visitors without JavaScript see all four. The room-by-room comparison is folded, and opens from the Compare link.

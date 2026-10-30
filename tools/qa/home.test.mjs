@@ -99,7 +99,8 @@ export default async function () {
     assert(cells.every((c) => c.radius === "0px" && c.border === "0px"), "plan cells shouldn't be cards of their own, got " + JSON.stringify(cells[0]));
     assert(new Set(cells.map((c) => c.top)).size === 1, "the four plans should sit in one row on desktop");
     const flags = await p.$$eval("#plans .plan-flag", (fs) => fs.map((f) => f.textContent.trim()));
-    assert(flags.length === 1 && flags[0] === "Most popular", "one plan should be flagged Most popular, got " + JSON.stringify(flags));
+    // "Recommended", not "Most popular": a popularity claim needs booking data behind it.
+    assert(flags.length === 1 && flags[0] === "Recommended", "one plan should be flagged Recommended, got " + JSON.stringify(flags));
   });
 
   test("the standard band has no card inside it", async ({ browser, url }) => {

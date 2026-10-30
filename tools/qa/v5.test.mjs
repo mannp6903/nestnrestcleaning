@@ -5,6 +5,8 @@ import { test, assert, newPage, mockDelivery, loadConfig, openSection, contrast,
 
 const C = loadConfig();
 const PLANS = Object.keys(C.frequencies);
+// The scope rule from tools/build.mjs: an extra is offered (paid) when its checklist row says "add" for the service.
+const addonOffered = (key, a) => C.checklist.flatMap((r) => r.tasks).find((t) => t[0] === a.task)[C.services[key].checklistColumn] === "add";
 const sideways = (p) => p.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
 // The element that would receive a tap at the middle of this one: covered means a sticky bar is in the way.
 const covered = (p, sel) => p.$eval(sel, (el) => {
@@ -190,10 +192,15 @@ export default async function () {
         extras: [...r.querySelectorAll(".incl-more li.is-add")].map((li) => [li.querySelector("span").textContent, (li.querySelector("b") || {}).textContent || ""])
       })));
       assert(rooms.every((r) => r.first === "incl-yes" && r.yes > 0), `${s.slug}: each room starts with what's covered: ` + JSON.stringify(rooms));
-      for (const [task, price] of rooms.flatMap((r) => r.extras)) {
-        const a = C.addons.find((x) => x.task === task);
-        assert(!a || price === "+$" + a.price, `${s.slug}: ${task} should show +$${a && a.price}, got ${price}`);
+      // v5.1: one row per extra, by the extra's own name and price, so "Inside fridge and oven" never reads as $40 for both.
+      for (const [name, price] of rooms.flatMap((r) => r.extras)) {
+        const a = C.addons.find((x) => x.name === name);
+        const task = C.checklist.flatMap((r) => r.tasks).find((t) => t[0] === name);
+        assert(a ? price === "+$" + a.price : task && !C.addons.some((x) => x.task === name) && price === "", `${s.slug}: extra row "${name}" shows "${price}"`);
       }
+      const shared = C.addons.filter((a) => a.task && addonOffered(key, a) && C.addons.filter((x) => x.task === a.task).length > 1).map((a) => a.name);
+      const names = rooms.flatMap((r) => r.extras.map((x) => x[0]));
+      assert(shared.every((n) => names.includes(n)), `${s.slug}: extras that share a task each get a row: ${shared} in ${names}`);
       const main = (await p.textContent("#included .scope-main")).trim();
       const n = C.checklist.filter((r) => !s.rooms || s.rooms.includes(r.room)).flatMap((r) => r.tasks).filter((t) => t[col] === "yes").length;
       assert(main === `${n} tasks in every visit`, `${s.slug}: lead line: ${main}`);
@@ -258,6 +265,41 @@ export default async function () {
       await p.context().close();
     }
     assert(!bad.length, bad.length + " low-contrast item(s): " + [...new Set(bad)].slice(0, 8).join("; "));
+  });
+
+  test("the final review leads with what decides the clean, then a compact summary", async ({ browser, url }) => {
+    const p = await newPage(browser, { width: 390, height: 844 });
+    await p.goto(url + "/book/?s=regular&h=condo&bd=2&ba=1&f=biweekly");
+    await p.fill("#f-postal", "M2N 5W9");
+    await p.click("[data-next]");
+    await p.click("label.date-chip >> nth=1");
+    await p.click('label.slot[data-slot="morning"]');
+    await p.click("[data-next]");
+    await p.fill("#f-name", "Priya Sample");
+    await p.fill("#f-phone", "647 555 0123");
+    await p.fill("#f-address", "1 Example St");
+    await p.press("#f-address", "Tab");
+    const r = await p.$$eval("[data-review] dl", (ls) => ls.map((l) => ({ minor: l.classList.contains("review-minor"), rows: [...l.children].map((d) => d.querySelector("dt").textContent), size: parseFloat(getComputedStyle(l.querySelector("dd")).fontSize) })));
+    assert(r.length === 2 && !r[0].minor && r[1].minor, "two lists, the compact one second: " + JSON.stringify(r));
+    assert(JSON.stringify(r[0].rows) === '["Service","Extras","Plan","Preferred time","Estimate"]', "what decides the clean: " + r[0].rows);
+    assert(JSON.stringify(r[1].rows) === '["Contact","Address","Visit"]', "the compact summary: " + r[1].rows);
+    assert(r[0].size >= 16 && r[1].size >= 14 && r[1].size < r[0].size, "the compact summary is smaller, never under 14px: " + JSON.stringify(r.map((x) => x.size)));
+    const est = await p.$eval("[data-review] .is-key dd", (d) => d.textContent);
+    assert(/first visit/.test(est) && /every 2 weeks/.test(est) && /hours on site/.test(est), "the estimate row: " + est);
+    const contact = await p.$eval("[data-review] .review-minor div:first-child dd", (d) => d.textContent);
+    assert(contact === "Priya Sample · 647 555 0123 · confirm by text", "contact row: " + contact);
+  });
+
+  test("the recommended plan is called Recommended, not Most popular", async ({ browser, url }) => {
+    const p = await newPage(browser, { width: 1440, height: 900 });
+    for (const path of ["/", "/pricing/", "/guides/how-often-should-you-clean-your-home/"]) {
+      await p.goto(url + path);
+      assert(!/most popular/i.test(await p.textContent("main")), `${path} still claims "most popular"`);
+    }
+    await p.goto(url + "/");
+    const flag = await p.$$eval(".plan-flag", (fs) => fs.map((f) => [f.textContent.trim(), f.closest(".plan").getAttribute("data-plan")]));
+    const rec = Object.keys(C.frequencies).filter((k) => C.frequencies[k].recommended);
+    assert(JSON.stringify(flag) === JSON.stringify(rec.map((k) => ["Recommended", k])), "flag: " + JSON.stringify(flag));
   });
 
   // The review's bar for 90+: a complete booking on a phone at three common widths, every control reachable above the
