@@ -351,12 +351,16 @@
         e.preventDefault();
         var z = zoneFor($("input", form).value);
         var out = $("[data-pc-result]", form);
+        // A page can send the in-area button to its own form (the host page sends it to the host form).
+        var href = form.getAttribute("data-pc-href") || link("book/"), go = form.getAttribute("data-pc-label") || "Book now";
         out.className = "pc-result " + (!z ? "no" : z.area ? "ok" : "out");
         // In the area: a way straight into booking. Outside it: a friendly note and the waitlist. Not a postal code: how to write one.
         out.innerHTML = !z ? "Enter a postal code like M1B 2K3."
-          : z.area ? '<span>Yes, I clean in ' + esc(z.fsa) + " (" + esc(z.area) + ').</span> <a class="btn btn-primary btn-sm" href="' + esc(link("book/")) + '" data-track="book_click">Book now</a>'
+          : z.area ? '<span>Yes, I clean in ' + esc(z.fsa) + " (" + esc(z.area) + ').</span> <a class="btn btn-primary btn-sm" href="' + esc(href) + '" data-track="' + (form.hasAttribute("data-pc-href") ? "host_click" : "book_click") + '">' + esc(go) + "</a>"
           : "<span>Sorry, " + esc(z.fsa) + " is outside Scarborough and North York, where I clean for now. I'm growing one neighbourhood at a time.</span> " +
             '<a class="text-link" href="' + esc(waitlistLink(z.fsa)) + '" data-track="email_click">Join the waitlist by email</a>';
+        var fill = z && z.area && form.getAttribute("data-pc-fill") && document.getElementById(form.getAttribute("data-pc-fill"));
+        if (fill && !fill.value) fill.value = formatPostal($("input", form).value);
         if (z && z.area) {
           // Carried to the booking form in this tab only, like every personal detail.
           var d = store(DETAILS_KEY, undefined, true) || {};

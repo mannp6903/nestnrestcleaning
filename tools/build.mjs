@@ -185,7 +185,7 @@ const ICONS = `
 <symbol id="i-chev" viewBox="0 0 24 24"><path d="m7 9.5 5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
 </defs></svg>`;
 const ic = (id, cls = "ic") => `<svg class="${cls}" aria-hidden="true"><use href="#${id}"/></svg>`;
-const SVC_ICON = { regular: "i-sparkle", deep: "i-layers", move: "i-box", detail: "i-drop", residence: "i-gem", office: "i-building" };
+const SVC_ICON = { regular: "i-sparkle", deep: "i-layers", move: "i-box", detail: "i-drop", residence: "i-gem", office: "i-building", airbnb: "i-key" };
 
 /* ---------- shared fragments ---------- */
 // The header shows the navy logo in light mode and the white one in dark mode (css/site.css swaps them).
@@ -215,7 +215,7 @@ function header(L, opts = {}) {
       ${navLink(L("#services"), "Services", ["service", "quote"].includes(opts.current))}
       ${navLink(L("pricing/"), "Pricing", opts.current === "pricing", true)}
       ${navLink(L("#areas"), "Areas", opts.current === "area")}
-      ${navLink(L("#how"), "How it works", false)}
+      ${navLink(L("services/" + C.quoteServices.airbnb.slug + "/"), "Airbnb hosts", opts.current === "host", true)}
       ${navLink(L("help/"), "Help", opts.current === "help", true)}
     </nav>
     <div class="header-actions">
@@ -577,13 +577,14 @@ function faqBlock(tag, title = "Questions, answered.", cls = "") {
   return { html, schema };
 }
 
-function finalCta(L, title = "Come home to it.", text = `${ACT.minutes} No payment until it's done.`) {
+// cta: { href, label, track } replaces the booking button, for pages whose next step is a form of their own.
+function finalCta(L, title = "Come home to it.", text = `${ACT.minutes} No payment until it's done.`, cta = null) {
   return `<section class="final-cta">
   <div class="wrap final-inner">
     <h2>${esc(title)}</h2>
     <p>${esc(text)}</p>
     <div class="cta-row">
-      <a class="btn btn-light" href="${L("book/")}" data-track="book_click">${ACT.book}</a>
+      ${cta ? `<a class="btn btn-light" href="${cta.href}"${cta.track ? ` data-track="${cta.track}"` : ""}>${esc(cta.label)}</a>` : `<a class="btn btn-light" href="${L("book/")}" data-track="book_click">${ACT.book}</a>`}
       ${B.whatsapp ? `<a class="btn btn-wa" data-wa href="${esc(waLink(WA_HELLO))}" target="_blank" rel="noopener" data-track="whatsapp_click">${ic("i-wa")} WhatsApp</a>` : ""}
       ${PHONE ? `<a class="btn btn-ghost-light" data-tel href="tel:${B.phone}">Call <span class="nowrap">${esc(B.phoneDisplay)}</span></a>`
         : `<a class="btn btn-ghost-light" data-mailto href="mailto:${B.email}" data-track="email_click">Email ${esc(B.ownerFirstName)}</a>`}
@@ -728,7 +729,7 @@ function serviceCards(L, list, cls = "") {
           <span class="svc-top"><span class="svc-ico">${ic(SVC_ICON[s.key] || "i-sparkle")}</span>${s.tag ? `<small class="svc-tag">${esc(s.tag)}</small>` : ""}</span>
           <h3>${esc(s.name)}</h3>
           <p>${esc(s.short)}</p>
-          <span class="svc-foot"><span class="svc-price">${s.quote ? "Free quote" : `From <b data-from="${s.key}">${money(s.base)}</b>`}</span>${ic("i-arrow", "ic svc-arrow")}</span>
+          <span class="svc-foot"><span class="svc-price">${s.host && s.prices[0].price != null ? `From <b>${money(s.prices[0].price)}</b> a turnover` : s.quote ? "Free quote" : `From <b data-from="${s.key}">${money(s.base)}</b>`}</span>${ic("i-arrow", "ic svc-arrow")}</span>
         </a>
       </li>`).join("")}
     </ul>`;
@@ -770,8 +771,11 @@ function hoodChips(L, a, short = false) {
   return `<ul class="hood-list">${names.map((n) => { const h = hoodByName(n); return h ? `<li><a href="${L(hoodPath(h))}">${esc(n)}</a></li>` : `<li><span>${esc(n)}</span></li>`; }).join("")}${rest ? `<li><a class="hood-more" href="${L("areas/" + a.slug + "/")}">+ ${rest} more</a></li>` : ""}</ul>`;
 }
 
-function postalForm(id, label = "Check your postal code") {
-  return `<form class="pc-check" data-pc-form novalidate>
+// In the area, the check offers "Book now" (the booking form). cta sends it somewhere else instead, such as the host form,
+// and fill names a postal-code field on the same page to fill in.
+function postalForm(id, label = "Check your postal code", cta = null) {
+  const extra = cta ? ` data-pc-href="${esc(cta.href)}" data-pc-label="${esc(cta.label)}"${cta.fill ? ` data-pc-fill="${esc(cta.fill)}"` : ""}` : "";
+  return `<form class="pc-check" data-pc-form${extra} novalidate>
         <label for="${id}">${label}</label>
         <div class="pc-row"><input id="${id}" name="pc" autocomplete="postal-code" autocapitalize="characters" placeholder="e.g. M1B 2K3" maxlength="7"><button class="btn btn-primary" type="submit">Check</button></div>
         <p class="pc-result" data-pc-result aria-live="polite"></p>
@@ -853,17 +857,44 @@ function audiences(L) {
     <div class="section-head"><p class="label">Who I clean for</p><h2 id="aud-title">Homes, Airbnbs and small offices.</h2></div>
     <ul class="aud-grid">
       ${card("aud-home", "i-home", "Your home", "Condos, townhouses and houses. Regular, deep and move-out cleans, priced in seconds.", L("#services"), "See home cleaning")}
-      ${card("aud-host", "i-key", "Your Airbnb", `Same-day turnovers between guests, ${DAYS_TEXT}, until ${clock(C.closes)}.`, L("#hosts"), "See how turnovers work", true)}
+      ${card("aud-host", "i-key", "Your Airbnb", `Same-day turnovers between guests, ${DAYS_TEXT}, until ${clock(C.closes)}.`, L(HOST_PATH), "Airbnb turnovers", true)}
       ${card("aud-office", "i-building", "Your office", "Small offices, clinics and studios, cleaned around your opening hours.", L("services/" + C.quoteServices.office.slug + "/"), "Office cleaning")}
     </ul>
   </div>
 </section>`;
 }
 
-// The host's turnover, checkout to check-in. Times are an example; what Mann hasn't confirmed stays a placeholder.
-const HOST_MAIL = `mailto:${B.email}?subject=${encodeURIComponent("Airbnb turnovers")}&body=${encodeURIComponent(`Hi ${B.ownerFirstName}, I host a short-term rental.\n\nArea or postal code:\nNumber of units:\nBedrooms and bathrooms:\nCheckout and check-in times:\nAbout how many turnovers a month:\nListing calendar link (optional):\n`)}`;
-function hostsSection() {
+/* Airbnb turnovers: the home page's host section and the host page share these, and both read js/config.js
+   (quoteServices.airbnb), so a price filled in there shows everywhere. Anything still null stays a visible placeholder. */
+const HOST = C.quoteServices.airbnb;
+const HOST_PATH = "services/" + HOST.slug + "/";
+const orPh = (v, label) => (v == null || v === "" ? ph(label) : esc(v));
+const priceOrPh = (n) => (n == null ? ph("PRICE") : money(n));
+
+// The turnover, checkout to check-in. The times are an example.
+function turnoverTimeline() {
   const step = (time, title, text) => `<li><time>${time}</time><h3>${title}</h3><p>${text}</p></li>`;
+  return `<ol class="turnover">
+      ${step("11am", "Guests check out", "Send me your checkout times, or your listing's calendar link, and I plan my day around them.")}
+      ${step("11:15am", "I let myself in", `With your lockbox or door code. I delete codes within ${C.policies.accessCodeDeleteDays} days of your last scheduled clean.`)}
+      ${step("11:30am", "The full reset", `Kitchen, bathroom, floors and everything guests touch. Beds made with fresh linens. ${orPh(HOST.linens, "to confirm: whose linens")}`)}
+      ${step("2:30pm", "You get photos", `Every room, plus anything broken, missing or left behind. ${orPh(HOST.photoReport, "to confirm")}`)}
+      ${step("4pm", "Next guests arrive", "To a space that's reset and ready.")}
+    </ol>`;
+}
+
+// The host package and the first-turnover offer; the per-turnover price leads on the home page.
+function hostOffers({ perTurnover = true } = {}) {
+  const [p1, p2] = HOST.prices;
+  const pk = HOST.package || {};
+  return `<ul class="host-offers${perTurnover ? "" : " host-offers-2"}">
+      ${perTurnover ? `<li><p class="ho-label">Per turnover</p><p class="ho-price">${priceOrPh(p1.price)}</p><p>${esc(p1.size)}.${p2 ? ` ${priceOrPh(p2.price)} for ${esc(p2.size.toLowerCase())}.` : ""}</p></li>` : ""}
+      <li><p class="ho-label">Host package</p><p class="ho-price">${priceOrPh(pk.price)} <small>a month</small></p><p>${pk.turnovers == null ? ph("X") : esc(pk.turnovers)} turnovers a month, and the same person every time: me.</p></li>
+      <li><p class="ho-label">Your first turnover</p><p class="ho-price">${orPh(HOST.firstOffer, "OFFER")}</p><p>See the standard before you choose a package.</p></li>
+    </ul>`;
+}
+
+function hostsSection(L) {
   return `<section class="section hosts" id="hosts">
   <div class="wrap">
     <div class="section-head">
@@ -871,21 +902,11 @@ function hostsSection() {
       <h2>Guests out at 11. Ready for 4.</h2>
       <p class="muted">A same-day turnover, start to finish. The times are an example: I plan around your listing's checkout and check-in, ${DAYS_TEXT}, until ${clock(C.closes)}.</p>
     </div>
-    <ol class="turnover">
-      ${step("11am", "Guests check out", "Send me your checkout times, or your listing's calendar link, and I plan my day around them.")}
-      ${step("11:15am", "I let myself in", `With your lockbox or door code. I delete codes within ${C.policies.accessCodeDeleteDays} days of your last scheduled clean.`)}
-      ${step("11:30am", "The full reset", `Kitchen, bathroom, floors and everything guests touch. Beds made with fresh linens. ${ph("to confirm: whose linens")}`)}
-      ${step("2:30pm", "You get photos", `Every room, plus anything broken, missing or left behind. ${ph("to confirm")}`)}
-      ${step("4pm", "Next guests arrive", "To a space that's reset and ready.")}
-    </ol>
-    <ul class="host-offers">
-      <li><p class="ho-label">Per turnover</p><p class="ho-price">${ph("PRICE")}</p><p>Studio or 1 bedroom. ${ph("PRICE")} for 2 bedrooms.</p></li>
-      <li><p class="ho-label">Host package</p><p class="ho-price">${ph("PRICE")} <small>a month</small></p><p>${ph("X")} turnovers a month, and the same person every time: me.</p></li>
-      <li><p class="ho-label">Your first turnover</p><p class="ho-price">${ph("OFFER")}</p><p>See the standard before you choose a package.</p></li>
-    </ul>
+    ${turnoverTimeline()}
+    ${hostOffers()}
     <div class="host-cta">
-      <a class="btn btn-primary" href="${esc(HOST_MAIL)}" data-track="email_click">Tell me about your listing ${ic("i-arrow")}</a>
-      <p class="cta-note">Opens an email to ${esc(B.email)} with the questions ready. I reply ${esc(B.replyPromise)}.</p>
+      <a class="btn btn-primary" href="${L(HOST_PATH)}#host-form" data-track="host_click">Tell me about your listing ${ic("i-arrow")}</a>
+      <a class="text-link" href="${L(HOST_PATH)}">Everything a turnover includes ${ic("i-arrow")}</a>
     </div>
   </div>
 </section>`;
@@ -900,7 +921,7 @@ urls.push(page({
 <section class="hero hero-home">
   <div class="wrap hero-grid">
     <div class="hero-copy">
-      <a class="hero-chip" href="${L("#hosts")}"><span class="chip-new">New</span><span>Airbnb turnovers, ${C.openDays.length === 7 ? "daily" : "most days"} until ${clock(C.closes)}</span>${ic("i-arrow")}</a>
+      <a class="hero-chip" href="${L(HOST_PATH)}"><span class="chip-new">New</span><span>Airbnb turnovers, ${C.openDays.length === 7 ? "daily" : "most days"} until ${clock(C.closes)}</span>${ic("i-arrow")}</a>
       <h1 class="hero-title"><span class="hero-what">House cleaning in ${esc(B.areaLabel)}</span> <span class="display">We clean.<br> <span class="accent">You rest.</span></span></h1>
       <p class="lede">Hi, I'm ${esc(B.ownerFirstName)}. I clean every home myself, so your weekends are for living, not scrubbing. You pay only after the clean.</p>
       ${postalForm("pc-home", "Do I come to you? Check your postal code")}
@@ -939,7 +960,7 @@ ${audiences(L)}
   </div>
 </section>
 
-${hostsSection()}
+${hostsSection(L)}
 
 <section class="section section-tint" id="how">
   <div class="wrap">
@@ -1071,7 +1092,8 @@ urls.push(page({
                 ${Object.keys(C.frequencies).map((k) => { const f = C.frequencies[k]; return `<label class="choice"><input type="radio" name="freq" value="${k}"><span class="choice-body"><strong>${esc(f.label)}</strong><span class="choice-desc">${f.discount ? `Save ${f.discount}%` : "No commitment"}</span></span></label>`; }).join("")}
               </div>
             </div>`;
-    const quoteNames = quoteKeys.map((k) => C.quoteServices[k]);
+    // "Larger home or an office?": the quote services for homes and offices, not the Airbnb host service.
+    const quoteNames = quoteKeys.map((k) => C.quoteServices[k]).filter((q) => !q.host);
     // Each Continue says what comes next, so the button matches the step the customer is moving to.
     const NEXT = CAL ? ["Add your details"] : ["Choose a preferred day", "Add your details"];
     // Optional parts fold away under a summary that says what's chosen (js/site.js fills [data-section-status]),
@@ -1430,6 +1452,7 @@ ${finalCta(L)}`
 /* ---------- quote pages ---------- */
 for (const k of quoteKeys) {
   const q = C.quoteServices[k];
+  if (q.host) continue; // the Airbnb host page is built below, with its own sections
   const trail = [["Home", ""], [q.name, "services/" + q.slug + "/"]];
   const fq = faqBlock(k);
   urls.push(page({
@@ -1458,6 +1481,121 @@ for (const k of quoteKeys) {
 </section>
 ${fq.html}
 ${PHONE ? finalCta(L, "Prefer to talk it through?", "Call, text or WhatsApp and we'll answer your questions directly.") : finalCta(L, "Questions first?", "Email us and we'll answer them directly.")}`
+  }));
+}
+
+/* ---------- Airbnb host page ---------- */
+// Hosts get their own page: the turnover, what every turnover covers, prices and the host form.
+// Its prices, checklist and open decisions live in js/config.js (quoteServices.airbnb); anything still null shows as a placeholder.
+{
+  const q = HOST;
+  const trail = [["Home", ""], [q.name, HOST_PATH]];
+  const fq = faqBlock("airbnb", "Host questions, answered.");
+  const from = q.prices[0].price;
+  const largest = q.prices[q.prices.length - 1].size.toLowerCase();
+  const why = [
+    ["i-user", "The same person every time", "Every turnover is done by me, the owner. I get to know your unit, your setup and what your guests need."],
+    ["i-clock", `Turnovers until ${clock(C.closes)}, ${DAYS_TEXT}`, "Late checkouts and evening check-ins can still work. Tell me your times and I'll confirm what I can fit in."],
+    ["i-key", "Your codes stay private", `I never copy keys or write codes on them, and I delete codes within ${C.policies.accessCodeDeleteDays} days of your last scheduled clean.`],
+    ["i-shield", "Not right? I come back", `Tell me within ${C.policies.recleanWindowHours} hours and I'll come back and re-clean those areas, free.`]
+  ];
+  const formCta = { href: "#host-form", label: "Tell me about your listing", track: "host_click" };
+  urls.push(page({
+    depth: 2, pathOut: `services/${q.slug}/index.html`, pageType: "host",
+    title: `Airbnb Cleaning in Scarborough & North York | ${B.name}`,
+    description: metaDesc("Airbnb and short-term rental cleaning in Scarborough and North York, Toronto.", `Same-day turnovers by the owner, ${DAYS_TEXT} until ${clock(C.closes)}.`, "Pay after each clean."),
+    schemas: [
+      { "@context": "https://schema.org", "@type": "Service", name: q.name, serviceType: "Short-term rental turnover cleaning", description: q.intro, provider: { "@id": SITE + "/#business" }, areaServed: C.areas.map(placeSchema),
+        ...(from != null ? { offers: { "@type": "Offer", priceSpecification: { "@type": "PriceSpecification", minPrice: from, priceCurrency: C.currency } } } : {}) },
+      crumbSchema(trail), fq.schema
+    ],
+    body: (L) => `
+<section class="hero hero-sub">
+  <div class="wrap">${breadcrumbs(L, trail)}</div>
+  <div class="wrap hero-grid">
+    <div class="hero-copy">
+      <p class="kicker">For Airbnb and short-term rental hosts</p>
+      <h1 class="display display-sub">Airbnb cleaning in Scarborough &amp; North York</h1>
+      <p class="lede">${esc(q.intro)}</p>
+      <dl class="facts">
+        <div><dt>Per turnover</dt><dd>From ${priceOrPh(from)}</dd></div>
+        ${OPEN_FACT}
+        <div><dt>Who cleans</dt><dd>The owner</dd></div>
+      </dl>
+      <nav class="jump" aria-label="On this page">
+        <ul>${[["turnover", "The turnover"], ["includes", "What's included"], ["prices", "Prices"], ["faq", "Questions"]].map(([id, t]) => `<li><a href="#${id}">${t}</a></li>`).join("")}</ul>
+      </nav>
+      ${photo(L, hasPhoto("mann-linens") ? "mann-linens" : "bedroom", { sizes: "(min-width: 960px) 520px, 92vw", cls: "quote-photo" })}
+    </div>
+    <div class="hero-pricer" id="host-form">
+      ${quoteForm(L, { name: q.name, title: "Tell me about your listing", reply: q.replyPromise, fields: q.fields, button: "Send my listing details" })}
+    </div>
+  </div>
+</section>
+
+<section class="section hosts" id="turnover">
+  <div class="wrap">
+    <div class="section-head">
+      <p class="label">A same-day turnover</p>
+      <h2>Guests out at 11. Ready for 4.</h2>
+      <p class="muted">The times are an example: I plan around your listing's checkout and check-in, ${DAYS_TEXT}, until ${clock(C.closes)}.</p>
+    </div>
+    ${turnoverTimeline()}
+  </div>
+</section>
+
+<section class="section" id="includes">
+  <div class="wrap">
+    <div class="section-head">
+      <p class="label">Every turnover</p>
+      <h2>What I do between guests.</h2>
+      <p class="muted">The same checklist every time, so each guest walks into the same clean, reset unit.</p>
+    </div>
+    <ul class="host-rooms">${q.checklist.map((r) => `<li class="incl-room"><h3>${esc(r.room)}</h3><ul class="ticks">${r.tasks.map((t) => `<li>${ic("i-check")}<span>${esc(t)}</span></li>`).join("")}</ul></li>`).join("")}</ul>
+    <dl class="host-terms">
+      <div><dt>Linens</dt><dd>${orPh(q.linens, "to confirm: whose linens, and who washes them")}</dd></div>
+      <div><dt>Restocking</dt><dd>${orPh(q.restock, "to confirm")}</dd></div>
+      <div><dt>Photos after each turnover</dt><dd>${orPh(q.photoReport, "to confirm")}</dd></div>
+    </dl>
+  </div>
+</section>
+
+<section class="section section-tint" id="prices">
+  <div class="wrap">
+    <div class="section-head">
+      <p class="label">Prices</p>
+      <h2>One price per turnover.</h2>
+      <p class="muted">Supplies and equipment included. ${TAX_TEXT}. No deposit: you pay after each clean, with a receipt for each property.</p>
+    </div>
+    <ul class="host-sizes">${q.prices.map((p) => `<li><span>${esc(p.size)}</span><b>${priceOrPh(p.price)}</b></li>`).join("")}</ul>
+    <p class="fine">Bigger than ${esc(largest)}, or several units in one building? Tell me about them in the form and I'll quote.</p>
+    ${hostOffers({ perTurnover: false })}
+  </div>
+</section>
+
+<section class="section" id="why">
+  <div class="wrap">
+    <div class="section-head"><p class="label">Why hosts book me</p><h2>One cleaner. Every turnover.</h2></div>
+    <ul class="why-grid">${why.map(([i, t, d]) => `<li><span class="aud-ico">${ic(i)}</span><h3>${esc(t)}</h3><p>${esc(d)}</p></li>`).join("")}</ul>
+  </div>
+</section>
+
+<section class="section section-tint" id="start">
+  <div class="wrap">
+    <div class="section-head"><p class="label">Getting started</p><h2>Three steps to your first turnover.</h2></div>
+    <ol class="steps-3">
+      <li><h3>Tell me about your listing</h3><p>Your units, your usual checkout and check-in times, and how often you host. It takes about two minutes.</p></li>
+      <li><h3>I send your price</h3><p>I reply <span data-reply>${esc(q.replyPromise)}</span>, with your price and the times I can do.</p></li>
+      <li><h3>Your first turnover</h3><p>Send me your checkout times or your calendar link, and I plan each turnover around them.</p></li>
+    </ol>
+    <div class="host-start">
+      ${postalForm("pc-host", "Is your listing in my area? Check its postal code", { href: "#host-form", label: "Tell me about your listing", fill: "q-postal" })}
+    </div>
+  </div>
+</section>
+
+${fq.html}
+${finalCta(L, "Ready for your next checkout?", `Tell me about your listing. I reply ${q.replyPromise}.`, formCta)}`
   }));
 }
 
@@ -1570,7 +1708,7 @@ ${priceExplainer()}
 
 <section class="section" id="quotes">
   <div class="wrap">
-    <div class="section-head"><p class="label">By quote</p><h2>Larger homes, offices and realtors.</h2><p class="muted">These are priced after a conversation or a walkthrough, so the quote fits the space. Quotes are free.</p></div>
+    <div class="section-head"><p class="label">By quote</p><h2>Larger homes, offices and Airbnbs.</h2><p class="muted">These are priced after a conversation or a walkthrough, so the quote fits the space. Quotes are free.</p></div>
     ${serviceCards(L, quotes, "svc-grid-compact")}
     <p class="fine">Realtor or property manager? See <a href="${L("realtors/")}">cleaning for listings and rentals</a>.</p>
   </div>

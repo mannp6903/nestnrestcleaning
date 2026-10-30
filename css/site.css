@@ -1423,6 +1423,31 @@ a.svc-card:hover .svc-arrow { transform: translateX(4px); }
   .turnover::before { left: 10px; right: calc((100% - 96px) / 5 - 10px); top: 9px; bottom: auto; border-left: 0; border-top: 2px dashed var(--teal); }
   .turnover li::before { left: 0; top: -36px; }
 }
+/* Airbnb host page (services/airbnb-cleaning/): what every turnover covers, the open decisions, prices and why hosts book */
+.host-rooms { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+.host-rooms h3 { font-size: var(--fs-h3); }
+.host-terms { margin: clamp(24px, 4vw, 36px) 0 0; padding: 20px 0 0; border-top: 1px solid var(--line); display: grid; gap: 14px 32px; }
+.host-terms dt { font-family: var(--display); font-weight: 700; font-size: 1rem; color: var(--ink); }
+.host-terms dd { margin: 4px 0 0; color: var(--muted); }
+.host-sizes { list-style: none; margin: 0; padding: 0; display: grid; border-top: 1px solid var(--line); max-width: 640px; }
+.host-sizes li { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+.host-sizes li > span { font-weight: 600; color: var(--ink); }
+.host-sizes b { font-family: var(--money); font-weight: 800; font-size: var(--fs-money); color: var(--ink); font-variant-numeric: tabular-nums lining-nums; }
+.why-grid { list-style: none; margin: 0; padding: 0; display: grid; gap: 24px; }
+.why-grid li { display: grid; gap: 8px; align-content: start; }
+.why-grid .aud-ico { background: var(--teal-soft); }
+.why-grid h3 { font-size: var(--fs-h3); }
+.why-grid p { color: var(--muted); max-width: 40ch; }
+.host-start { margin-top: clamp(28px, 4vw, 40px); }
+@media (min-width: 37.5em) {
+  .host-rooms, .why-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .host-terms { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (min-width: 47.5em) { .host-offers-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: 820px; } }
+@media (min-width: 64em) {
+  .host-rooms, .why-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
 /* Steps rise gently as they scroll into view. Transform only, so text never fades below its contrast. */
 @supports (animation-timeline: view()) {
   @media (prefers-reduced-motion: no-preference) {

@@ -3,7 +3,7 @@ import { test, assert, newPage, openSection, editHome } from "./lib.mjs";
 
 const PAGES = ["/", "/pricing/", "/services/move-in-move-out-cleaning/", "/services/regular-home-cleaning/",
   "/areas/north-york/", "/areas/north-york/willowdale/", "/help/", "/realtors/", "/privacy/", "/policies/",
-  "/services/residence-care/", "/gift/", "/guides/", "/vision/", "/404.html"];
+  "/services/residence-care/", "/services/airbnb-cleaning/", "/gift/", "/guides/", "/vision/", "/404.html"];
 const WIDTHS = [320, 360, 390, 430, 768, 1024, 1440];
 
 export default async function () {
