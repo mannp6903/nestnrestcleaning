@@ -181,6 +181,7 @@ const ICONS = `
 <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20.5 14.4A8.5 8.5 0 0 1 9.6 3.5a8.5 8.5 0 1 0 10.9 10.9Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
 <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 2.5v2.2M12 19.3v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
 <symbol id="i-play" viewBox="0 0 24 24"><path d="M8.5 5.8v12.4a.8.8 0 0 0 1.2.7l9.6-6.2a.8.8 0 0 0 0-1.4L9.7 5.1a.8.8 0 0 0-1.2.7Z" fill="currentColor"/></symbol>
+<symbol id="i-camera" viewBox="0 0 24 24"><path d="M4 8h3.5l1.8-2.5h5.4L16.5 8H20v11H4Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><circle cx="12" cy="13.2" r="3.4" fill="none" stroke="currentColor" stroke-width="1.7"/></symbol>
 <symbol id="i-chev" viewBox="0 0 24 24"><path d="m7 9.5 5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
 </defs></svg>`;
 const ic = (id, cls = "ic") => `<svg class="${cls}" aria-hidden="true"><use href="#${id}"/></svg>`;
@@ -766,9 +767,9 @@ function hoodChips(L, a, short = false) {
   return `<ul class="hood-list">${names.map((n) => { const h = hoodByName(n); return h ? `<li><a href="${L(hoodPath(h))}">${esc(n)}</a></li>` : `<li><span>${esc(n)}</span></li>`; }).join("")}${rest ? `<li><a class="hood-more" href="${L("areas/" + a.slug + "/")}">+ ${rest} more</a></li>` : ""}</ul>`;
 }
 
-function postalForm(id) {
+function postalForm(id, label = "Check your postal code") {
   return `<form class="pc-check" data-pc-form novalidate>
-        <label for="${id}">Check your postal code</label>
+        <label for="${id}">${label}</label>
         <div class="pc-row"><input id="${id}" name="pc" autocomplete="postal-code" autocapitalize="characters" placeholder="e.g. M1B 2K3" maxlength="7"><button class="btn btn-primary" type="submit">Check</button></div>
         <p class="pc-result" data-pc-result aria-live="polite"></p>
       </form>`;
@@ -806,6 +807,90 @@ function plansGrid(L) {
     </div>`;
 }
 
+/* v6 (warm) home: Mann at work under the hero, who we clean for, and the Airbnb turnover timeline.
+   Anything not confirmed yet shows as a visible [PLACEHOLDER] (.ph), never as an invented fact. */
+const ph = (t) => `<span class="ph">[${esc(t)}]</span>`;
+const DAYS_TEXT = C.openDays.length === 7 ? "7 days a week" : "most days";
+
+// Three photos of Mann at work. Drop name-600/928 .jpg and .webp into assets/photos (like the room photos)
+// and the build uses them; until then each slot is a labelled [PHOTO] placeholder.
+const MANN_SHOTS = [
+  { name: "mann-at-door", caption: "At your door, in house shoes", alt: `${B.ownerFirstName} at a client's door with his kit, changing into house shoes` },
+  { name: "mann-kit", caption: "Separate cloths for kitchen and bath", alt: `${B.ownerFirstName}'s kit laid out: colour-coded cloths, caddy and vacuum` },
+  { name: "mann-linens", caption: "Fresh linens for your next guests", alt: `${B.ownerFirstName} making a bed with fresh linens` }
+];
+MANN_SHOTS.forEach((s) => { PHOTOS[s.name] = s.alt; });
+// On phones the strip scrolls sideways, so it's a focusable region for keyboard users.
+function heroShots(L) {
+  return `<div class="hero-shots" role="region" aria-label="${esc(B.ownerFirstName)} at work" tabindex="0">
+      <p class="hero-owner">
+        <span class="hero-avatar"><picture><source type="image/webp" srcset="${L("assets/founder-mann-patel-avatar.webp")}"><img src="${L("assets/founder-mann-patel-avatar.jpg")}" alt="" width="76" height="76" decoding="async"></picture></span>
+        <span><strong>Every clean is done by ${esc(B.owner)}, the owner.</strong> The person at your door is the person who runs the business.</span>
+      </p>
+      ${MANN_SHOTS.map((s) => `<figure class="shot">
+        ${hasPhoto(s.name)
+          ? photo(L, s.name, { sizes: "(min-width: 60em) 300px, 72vw", cls: "shot-photo" })
+          : `<div class="shot-ph">${ic("i-camera")}<strong>[PHOTO]</strong><small>${esc(s.alt)}</small></div>`}
+        <figcaption>${esc(s.caption)}</figcaption>
+      </figure>`).join("")}
+    </div>`;
+}
+
+// A soft nest under the price box, drawn from the logo's sand and sky swooshes.
+// The price box sits in it, like the house in the logo.
+const HERO_NEST = `<svg class="hero-nest" viewBox="0 0 620 200" aria-hidden="true" focusable="false"><path class="nest-sand" d="M16 14C66 176 554 176 604 14"/><path class="nest-sky" d="M54 26C102 148 518 148 566 26"/></svg>`;
+
+// Who we clean for: one card per kind of client, each with its own way in.
+function audiences(L) {
+  const card = (cls, icon, title, text, href, link, isNew) => `<li class="aud ${cls}">
+        <span class="aud-ico">${ic(icon)}</span>
+        <h3>${title}${isNew ? ' <span class="chip-new">New</span>' : ""}</h3>
+        <p>${text}</p>
+        <a class="text-link" href="${href}">${link} ${ic("i-arrow")}</a>
+      </li>`;
+  return `<section class="section audiences" aria-labelledby="aud-title">
+  <div class="wrap">
+    <div class="section-head"><p class="label">Who I clean for</p><h2 id="aud-title">Homes, Airbnbs and small offices.</h2></div>
+    <ul class="aud-grid">
+      ${card("aud-home", "i-home", "Your home", "Condos, townhouses and houses. Regular, deep and move-out cleans, priced in seconds.", L("#services"), "See home cleaning")}
+      ${card("aud-host", "i-key", "Your Airbnb", `Same-day turnovers between guests, ${DAYS_TEXT}, until ${clock(C.closes)}.`, L("#hosts"), "See how turnovers work", true)}
+      ${card("aud-office", "i-building", "Your office", "Small offices, clinics and studios, cleaned around your opening hours.", L("services/" + C.quoteServices.office.slug + "/"), "Office cleaning")}
+    </ul>
+  </div>
+</section>`;
+}
+
+// The host's turnover, checkout to check-in. Times are an example; what Mann hasn't confirmed stays a placeholder.
+const HOST_MAIL = `mailto:${B.email}?subject=${encodeURIComponent("Airbnb turnovers")}&body=${encodeURIComponent(`Hi ${B.ownerFirstName}, I host a short-term rental.\n\nArea or postal code:\nNumber of units:\nBedrooms and bathrooms:\nCheckout and check-in times:\nAbout how many turnovers a month:\nListing calendar link (optional):\n`)}`;
+function hostsSection() {
+  const step = (time, title, text) => `<li><time>${time}</time><h3>${title}</h3><p>${text}</p></li>`;
+  return `<section class="section hosts" id="hosts">
+  <div class="wrap">
+    <div class="section-head">
+      <p class="label">For Airbnb and short-term rental hosts</p>
+      <h2>Guests out at 11. Ready for 4.</h2>
+      <p class="muted">A same-day turnover, start to finish. The times are an example: I plan around your listing's checkout and check-in, ${DAYS_TEXT}, until ${clock(C.closes)}.</p>
+    </div>
+    <ol class="turnover">
+      ${step("11am", "Guests check out", "Send me your checkout times, or your listing's calendar link, and I plan my day around them.")}
+      ${step("11:15am", "I let myself in", `With your lockbox or door code. I delete codes within ${C.policies.accessCodeDeleteDays} days of your last scheduled clean.`)}
+      ${step("11:30am", "The full reset", `Kitchen, bathroom, floors and everything guests touch. Beds made with fresh linens. ${ph("to confirm: whose linens")}`)}
+      ${step("2:30pm", "You get photos", `Every room, plus anything broken, missing or left behind. ${ph("to confirm")}`)}
+      ${step("4pm", "Next guests arrive", "To a space that's reset and ready.")}
+    </ol>
+    <ul class="host-offers">
+      <li><p class="ho-label">Per turnover</p><p class="ho-price">${ph("PRICE")}</p><p>Studio or 1 bedroom. ${ph("PRICE")} for 2 bedrooms.</p></li>
+      <li><p class="ho-label">Host package</p><p class="ho-price">${ph("PRICE")} <small>a month</small></p><p>${ph("X")} turnovers a month, and the same person every time: me.</p></li>
+      <li><p class="ho-label">Your first turnover</p><p class="ho-price">${ph("OFFER")}</p><p>See the standard before you choose a package.</p></li>
+    </ul>
+    <div class="host-cta">
+      <a class="btn btn-primary" href="${esc(HOST_MAIL)}" data-track="email_click">Tell me about your listing ${ic("i-arrow")}</a>
+      <p class="cta-note">Opens an email to ${esc(B.email)} with the questions ready. I reply ${esc(B.replyPromise)}.</p>
+    </div>
+  </div>
+</section>`;
+}
+
 urls.push(page({
   depth: 0, pathOut: "index.html", pageType: "home",
   title: `Home Cleaning in Scarborough & North York | ${B.name}`,
@@ -815,8 +900,10 @@ urls.push(page({
 <section class="hero hero-home">
   <div class="wrap hero-grid">
     <div class="hero-copy">
+      <a class="hero-chip" href="${L("#hosts")}"><span class="chip-new">New</span><span>Airbnb turnovers, ${C.openDays.length === 7 ? "daily" : "most days"} until ${clock(C.closes)}</span>${ic("i-arrow")}</a>
       <h1 class="hero-title"><span class="hero-what">House cleaning in ${esc(B.areaLabel)}</span> <span class="display">We clean.<br> <span class="accent">You rest.</span></span></h1>
-      <p class="lede">Your weekends are for living, not scrubbing. ${esc(B.ownerFirstName)} cleans your home with care, so you come back to calm, and you pay only after the clean.</p>
+      <p class="lede">Hi, I'm ${esc(B.ownerFirstName)}. I clean every home myself, so your weekends are for living, not scrubbing. You pay only after the clean.</p>
+      ${postalForm("pc-home", "Do I come to you? Check your postal code")}
       <div class="hero-cta">
         <a class="btn btn-primary" href="${L("book/")}" data-track="book_click">${ACT.book} ${ic("i-arrow")}</a>
         <a class="text-link" href="${L("#how")}">How it works ${ic("i-arrow")}</a>
@@ -825,12 +912,10 @@ urls.push(page({
       </div>
     </div>
     <div class="hero-visual">
+      ${HERO_NEST}
       <div class="hero-pricer">${pricer(L)}</div>
     </div>
-    <p class="hero-owner">
-      <span class="hero-avatar"><picture><source type="image/webp" srcset="${L("assets/founder-mann-patel-avatar.webp")}"><img src="${L("assets/founder-mann-patel-avatar.jpg")}" alt="" width="76" height="76" decoding="async"></picture></span>
-      <span><strong>Cleaned by ${esc(B.owner)}, owner.</strong> Giving families their time back and a fresh, healthy home.</span>
-    </p>
+    ${heroShots(L)}
   </div>
 </section>
 ${trustStrip()}
@@ -843,6 +928,8 @@ ${gift && gift.active ? `<section class="gift-band" data-gift-banner data-months
   </div>
 </section>` : ""}
 
+${audiences(L)}
+
 <section class="section" id="services">
   <div class="wrap">
     <div class="section-head section-head-row">
@@ -852,6 +939,8 @@ ${gift && gift.active ? `<section class="gift-band" data-gift-banner data-months
     ${homeServices(L)}
   </div>
 </section>
+
+${hostsSection()}
 
 <section class="section section-tint" id="how">
   <div class="wrap">
@@ -944,7 +1033,7 @@ ${jobsSection(jobs.slice(0, 3), "Recent cleans.", "")}
       <p class="label">Service area</p>
       <h2>Scarborough and North York.</h2>
       <p class="muted">We focus on two districts so we can be on time, every time. Check your postal code to confirm we come to you.</p>
-      ${postalForm("pc-home")}
+      <a class="text-link" href="${L("#pc-home")}">Check your postal code ${ic("i-arrow")}</a>
     </div>
     <div class="district-cards">
       ${C.areas.map((a) => `<div class="district">

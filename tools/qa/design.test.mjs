@@ -80,7 +80,9 @@ export default async function () {
       assert(b.radius === 20, `${sel} should be a 20px panel, got ${b.radius}`);
       assert(b.w < 1440, `${sel} should sit inside the page width, got ${b.w}px wide`);
     }
-    assert((await box("#pc-home")).radius === 12, "fields should have a 12px radius");
+    assert((await box(".hero-home .pricer select")).radius === 12, "fields should have a 12px radius");
+    // v6: the home hero's postal check is one pill, field and button together.
+    assert((await box(".hero-home .pc-row")).radius >= 26, "the hero postal check should be a pill");
     await p.goto(url + "/services/deep-cleaning/");
     const card = await box(".svc-card");
     assert(card.radius === 14 && card.shadow === "none", "service cards should be flat with a 14px radius, got " + JSON.stringify(card));
@@ -210,7 +212,8 @@ export default async function () {
     const p = await newPage(browser, { width: 1440, height: 900 });
     await p.goto(url + "/");
     const lede = (await p.textContent(".hero-home .lede")).trim();
-    assert(lede === "Your weekends are for living, not scrubbing. Mann cleans your home with care, so you come back to calm, and you pay only after the clean.", "hero subheading is: " + lede);
+    // v6: Mann introduces himself in the first person.
+    assert(lede === "Hi, I'm Mann. I clean every home myself, so your weekends are for living, not scrubbing. You pay only after the clean.", "hero subheading is: " + lede);
     const links = await p.$$eval(".hero-cta a", (as) => as.map((a) => [a.textContent.trim(), a.getAttribute("href")]));
     assert(links.some(([t, h]) => t.startsWith("Request a clean") && h.endsWith("book/")), "hero needs Request a clean -> book/: " + JSON.stringify(links));
     assert(links.some(([t, h]) => t.startsWith("How it works") && h.endsWith("#how")), "hero needs How it works -> #how: " + JSON.stringify(links));
