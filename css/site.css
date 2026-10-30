@@ -257,6 +257,13 @@ a[href^="mailto:"] { overflow-wrap: anywhere; }
 .menu-list-sm a { font-family: var(--body); text-transform: none; font-size: 1.05rem; font-weight: 600; }
 .menu-cta { display: grid; gap: 10px; margin-top: 6px; }
 body.menu-open { overflow: hidden; }
+/* A tapped menu link shows it's loading until the next page replaces this one (none of the spin under reduced motion). */
+.menu a.is-loading { color: var(--teal-ink); }
+.menu-list a.is-loading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.menu a.is-loading::after { content: ""; flex: none; width: 18px; height: 18px; border: 2.5px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: nr-spin .7s linear infinite; }
+.menu .btn.is-loading { color: var(--btn-fg); }
+@keyframes nr-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .menu a.is-loading::after { animation: none; border-right-color: currentColor; opacity: .5; } }
 .social { display: flex; gap: 10px; margin-top: 6px; }
 .social-link { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--line-navy); color: var(--on-navy); transition: background-color .2s, border-color .2s; }
 .social-link .ic { width: 20px; height: 20px; }

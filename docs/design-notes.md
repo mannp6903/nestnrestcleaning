@@ -69,6 +69,9 @@ Fonts: Plus Jakarta Sans for headings, buttons and money, DM Sans for text, both
 - **Pricing page:** links under the title jump to Estimate, Prices, Plans, Extras and Compare. One tab per service shows one price table at a time, at every width (`bindPriceTabs()` in `js/site.js`); visitors without JavaScript see all four. The room-by-room comparison is folded, and opens from the Compare link.
 - **Navy panels:** both sit on the content grid (1220px), so their text lines up with the page.
 - **Phone menu:** "Request a clean" first, then Services, Plan your clean and About us. It opens where the header ends.
+  - Tapping a link to another page keeps the menu up with a small spinner on that link until the next page replaces it. Closing it at once showed the old page for a second or two, which looked as if the tap hadn't worked.
+  - Opening the menu fetches its pages quietly in the background, once per page, so they open sooner. This is skipped when the visitor has data saver on or a very slow connection.
+  - A link to a section on the same page ("How booking works" on the home page) closes the menu and lands there at once, without a long smooth scroll.
 - **Booking buttons on phones:** Back is the arrow alone (its name stays for screen readers), so "Send cleaning request" fits beside it and the sticky bar stays one row.
 - **Desktop nav:** the section you're in is underlined in teal; only a link to the page itself gets `aria-current="page"`.
 - **Which clean do I need?** (`chooser()`, pricing page): one situation per service from `CHOOSER`. Keep each line true to the service page.
