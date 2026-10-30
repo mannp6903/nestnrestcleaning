@@ -302,6 +302,30 @@ export default async function () {
     assert(JSON.stringify(flag) === JSON.stringify(rec.map((k) => ["Recommended", k])), "flag: " + JSON.stringify(flag));
   });
 
+  test("the phone menu stays up while the next page loads, and jumps straight to sections", async ({ browser, url }) => {
+    const p = await newPage(browser, { width: 390, height: 844, isMobile: true });
+    await p.goto(url + "/pricing/");
+    await p.click(".menu-btn");
+    await p.waitForTimeout(400);
+    const hints = await p.$$eval('script[type="speculationrules"], link[rel="prefetch"]', (s) => s.map((x) => x.textContent || x.href).join(" "));
+    assert(/deep-cleaning/.test(hints) && /help\//.test(hints), "opening the menu fetches its pages in the background: " + hints.slice(0, 160));
+    // Read the state in the same moment as the tap, before the browser leaves the page.
+    const st = await p.evaluate(() => {
+      const a = document.querySelector('#menu a[href*="deep-cleaning"]');
+      a.click();
+      return { open: !document.querySelector("#menu").hidden, busy: a.getAttribute("aria-busy"), spinner: getComputedStyle(a, "::after").content };
+    });
+    assert(st.open && st.busy === "true" && st.spinner !== "none", "the menu stays up with the tapped link loading: " + JSON.stringify(st));
+    await p.waitForURL(/deep-cleaning/);
+    // A section on the same page: the menu closes and the section is in place at once, not after a long smooth scroll.
+    await p.goto(url + "/");
+    await p.click(".menu-btn");
+    await p.click('#menu a[href$="#how"]');
+    const r = await p.evaluate(() => ({ hidden: document.querySelector("#menu").hidden, hash: location.hash, top: Math.round(document.querySelector("#how").getBoundingClientRect().top),
+      header: Math.round(document.querySelector(".site-header").getBoundingClientRect().bottom), focus: document.activeElement.tagName }));
+    assert(r.hidden && r.hash === "#how" && r.top >= r.header - 2 && r.top - r.header < 40 && r.focus === "H2", "How booking works lands straight away: " + JSON.stringify(r));
+  });
+
   // The review's bar for 90+: a complete booking on a phone at three common widths, every control reachable above the
   // sticky bars, no sideways scroll, an honest failure, and success only on an explicit yes.
   test("a full phone booking works at 360, 390 and 430px", async ({ browser, url }) => {

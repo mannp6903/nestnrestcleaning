@@ -1616,8 +1616,65 @@
         $$("main, .site-footer, [data-action-bar], .announce, .skip").forEach(function (el) { el.toggleAttribute("inert", open); });
         if (!open && returnFocus) btn.focus();
       };
-      btn.addEventListener("click", function () { setMenu(menu.hidden); });
-      menu.addEventListener("click", function (e) { if (e.target.closest("a")) setMenu(false); });
+      btn.addEventListener("click", function () { setMenu(menu.hidden); if (!menu.hidden) setTimeout(prefetchMenu, 150); });
+      // Leaving for another page, the menu stays up with the tapped link loading until the next page replaces it.
+      // Closing it at once showed the page being left for a second or two, which looked as if the tap hadn't worked.
+      // A section on this page is jumped to straight away rather than smooth-scrolled the length of the page.
+      menu.addEventListener("click", function (e) {
+        var a = e.target.closest("a");
+        if (!a) return;
+        var url = new URL(a.href, location.href);
+        if (a.target || url.origin !== location.origin || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) { setMenu(false); return; }
+        if (url.pathname === location.pathname && url.search === location.search) {
+          var to = url.hash ? document.getElementById(decodeURIComponent(url.hash.slice(1))) : document.body;
+          if (!to) { setMenu(false); return; }
+          e.preventDefault();
+          setMenu(false);
+          if (url.hash) history.pushState(null, "", url.hash);
+          var html = document.documentElement;
+          html.style.scrollBehavior = "auto";
+          if (url.hash) to.scrollIntoView({ block: "start" }); else window.scrollTo(0, 0);
+          html.style.scrollBehavior = "";
+          var head = url.hash && (to.querySelector("h2, h1") || to);
+          if (head) { head.setAttribute("tabindex", "-1"); head.focus({ preventScroll: true }); }
+          return;
+        }
+        $$("a.is-loading", menu).forEach(function (x) { x.classList.remove("is-loading"); x.removeAttribute("aria-busy"); });
+        a.classList.add("is-loading");
+        a.setAttribute("aria-busy", "true");
+      });
+      // Coming back with the browser's Back button can restore this page as it was left: close the menu then.
+      window.addEventListener("pageshow", function (e) {
+        if (!e.persisted) return;
+        $$("a.is-loading", menu).forEach(function (x) { x.classList.remove("is-loading"); x.removeAttribute("aria-busy"); });
+        if (!menu.hidden) setMenu(false);
+      });
+      // Once the menu is open, its pages are fetched quietly in the background (once per page), so a tap on one opens
+      // it sooner. Skipped when the visitor has asked to save data or the connection is very slow.
+      var prefetched = {};
+      var prefetchMenu = function () {
+        var c = navigator.connection || {};
+        if (c.saveData || /2g/.test(c.effectiveType || "")) return;
+        var urls = $$("a[href]", menu).map(function (a) { return new URL(a.href, location.href); })
+          .filter(function (u) { return u.origin === location.origin && u.pathname !== location.pathname && !prefetched[u.pathname]; })
+          .map(function (u) { prefetched[u.pathname] = true; return u.origin + u.pathname; });
+        if (!urls.length) return;
+        if (window.HTMLScriptElement && HTMLScriptElement.supports && HTMLScriptElement.supports("speculationrules")) {
+          var rules = document.createElement("script");
+          rules.type = "speculationrules";
+          rules.textContent = JSON.stringify({ prefetch: [{ source: "list", urls: urls }] });
+          document.head.appendChild(rules);
+          return;
+        }
+        var probe = document.createElement("link");
+        urls.forEach(function (u) {
+          if (probe.relList && probe.relList.supports && probe.relList.supports("prefetch")) {
+            var l = document.createElement("link");
+            l.rel = "prefetch"; l.href = u; l.as = "document";
+            document.head.appendChild(l);
+          } else if (window.fetch) fetch(u, { credentials: "same-origin", priority: "low" }).catch(function () {});
+        });
+      };
       document.addEventListener("keydown", function (e) {
         if (e.key !== "Escape" || menu.hidden) return;
         setMenu(false, document.activeElement === btn || menu.contains(document.activeElement));
