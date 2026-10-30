@@ -10,7 +10,7 @@ export default async function () {
       const p = await newPage(browser, { width, height: 900 });
       await p.goto(url + "/");
       const primary = await p.$$eval(".hero-cta .btn-primary", (as) => as.map((a) => a.textContent.trim()));
-      assert(primary.length === 1 && primary[0].startsWith("Book a clean"), `${width}px: the hero should have one main action, Book a clean, got ${JSON.stringify(primary)}`);
+      assert(primary.length === 1 && primary[0].startsWith("Request a clean"), `${width}px: the hero should have one main action, Request a clean, got ${JSON.stringify(primary)}`);
       const how = await p.$$eval(".hero-cta .text-link", (as) => as.map((a) => [a.textContent.trim(), a.getAttribute("href")]));
       assert(how.length === 1 && how[0][0] === "How it works" && how[0][1].endsWith("#how"), `${width}px: How it works should be a text link to #how, got ${JSON.stringify(how)}`);
       const imgs = await p.$$eval(".hero-home img", (is) => is.map((i) => i.getAttribute("src")));
@@ -40,7 +40,7 @@ export default async function () {
       assert(c.img && c.img.lazy && c.img.w && c.img.h && c.img.alt, `${s.name}: the photo should be lazy with a width, height and alt text, got ${JSON.stringify(c.img)}`);
       assert(c.best && c.best.trim() === "Best for: " + s.idealFor[0], `${s.name}: expected "Best for: ${s.idealFor[0]}", got ${c.best}`);
       assert(c.price && c.price.includes("$" + s.base), `${s.name}: the price should show $${s.base}, got ${c.price}`);
-      assert(c.book && c.book[0] === "Book" && c.book[1].endsWith("book/?s=" + HOME_SERVICES[i]), `${s.name}: Book should go to book/?s=${HOME_SERVICES[i]}, got ${JSON.stringify(c.book)}`);
+      assert(c.book && c.book[0] === "Request" && c.book[1].endsWith("book/?s=" + HOME_SERVICES[i]), `${s.name}: Request should go to book/?s=${HOME_SERVICES[i]}, got ${JSON.stringify(c.book)}`);
       assert(c.more && c.more[0] === "What's included" && c.more[1].endsWith("services/" + s.slug + "/#included"), `${s.name}: What's included should go to the service page, got ${JSON.stringify(c.more)}`);
     });
     await p.context().close();

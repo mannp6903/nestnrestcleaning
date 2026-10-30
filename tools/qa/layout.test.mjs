@@ -1,5 +1,5 @@
 // Every page at every common width, in both themes: no sideways scrolling, script errors or missing files.
-import { test, assert, newPage } from "./lib.mjs";
+import { test, assert, newPage, openSection, editHome } from "./lib.mjs";
 
 const PAGES = ["/", "/pricing/", "/services/move-in-move-out-cleaning/", "/services/regular-home-cleaning/",
   "/areas/north-york/", "/areas/north-york/willowdale/", "/help/", "/realtors/", "/privacy/", "/policies/",
@@ -23,7 +23,10 @@ export default async function () {
         }
         await p.goto(url + "/book/?s=move&h=house&bd=3&ba=2");
         await p.fill("#f-postal", "M1P 1A1");
+        await openSection(p, "checks");
+        await openSection(p, "extras");
         await p.click('label.check:has(input[value="halfbath"])');
+        await editHome(p);
         await sideways("book step 1");
         await p.click(".compare-box summary");
         await sideways("book compare open");
@@ -34,6 +37,7 @@ export default async function () {
         await sideways("book step 2");
         await p.click("[data-next]");
         await p.fill("#f-name", "Priya Sample");
+        await openSection(p, "visit");
         await p.selectOption("#f-access", "Concierge or front desk");
         await sideways("book step 3");
         for (const e of p.errors) problems.push(`${theme} ${width}px page error: ${e}`);

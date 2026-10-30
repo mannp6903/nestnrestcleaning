@@ -1,10 +1,12 @@
 // The booking form's large-home route into the Residence Care quote form, and quote dropdowns with no pre-picked answer.
-import { test, assert, newPage } from "./lib.mjs";
+import { test, assert, newPage, openSection } from "./lib.mjs";
 
 const KEY = "nr-quote-handoff";
 async function largeMoveOut(p, url) {
   await p.goto(url + "/book/?s=move&h=house&bd=3&ba=2");
   await p.fill("#f-postal", "M1P 1A1");
+  await openSection(p, "extras");
+  await openSection(p, "checks");
   await p.click('label.extra[data-addon="pets"]');
   await p.click('label.check:has(input[value="halfbath"])');
   await p.click('label.check:has(input[value="large"])');

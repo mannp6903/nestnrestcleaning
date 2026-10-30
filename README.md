@@ -8,8 +8,8 @@ It's built to turn visitors into booked clients and to rank on Google for local 
 | Page | Purpose |
 |---|---|
 | `/` | Home: instant price (visible on the first phone screen), services, how booking works, the Nest & Rest standard and guarantee, plans, founder and founding offer, areas, guides, FAQ |
-| `/pricing/` | Every price by home size and type (one table at a time on phones), plan discounts, extras, a room-by-room comparison of regular, deep and move-out cleaning, pricing FAQ |
-| `/book/` | Focused 3-step booking request: your home → plan & preferred time → your details, ending with "Check your clean", a full review with an Edit link on every detail. With a Cal.com link set: your home & plan → your details → pick a confirmed time on your calendar |
+| `/pricing/` | Links to Estimate, Prices, Plans, Extras and Compare; every price by home size and type (one service's table at a time), plans you can choose, extras, a folded room-by-room comparison of regular, deep and move-out cleaning, pricing FAQ |
+| `/book/` | Focused 3-step booking request: your home → plan & preferred time → your details, ending with "Check your clean", a full review with an Edit link on every detail. From a price box, the service and home show as one card with Edit; from a plan, that plan arrives selected. Extras, unusual homes, visit preferences and referrals fold into sections that say what's chosen. With a Cal.com link set: your home & plan → your details → pick a confirmed time on your calendar |
 | `/services/<service>/` | One page per service (regular, deep, move-in/out, kitchen & bath, residence care, office), each with its own price table and, room by room, what's included, what's a paid extra and what isn't included |
 | `/areas/<district>/` | Scarborough and North York, with their neighbourhoods and postal codes |
 | `/areas/<district>/<neighbourhood>/` | 12 neighbourhood pages (Agincourt, Malvern, Guildwood, Birch Cliff, Highland Creek, Wexford, Willowdale, Don Mills, York Mills, Bayview Village, Bathurst Manor, Lawrence Manor) |
@@ -34,6 +34,7 @@ All settings are in `js/config.js`. Prices and contact details update on every p
 - **Unusual homes:** `homeChecks` are the optional "Anything unusual about your home?" boxes on the booking form. Half baths, a basement, a second kitchen or heavy build-up keep the estimate but tell the customer you'll confirm the price before the clean. "Over about 3,000 sq ft" (`quote: "residence"`) sends them to the Residence Care quote form instead, with their home details filled in.
 - **Founding spots left:** after each new founding household books, add 1 to `offers.founding.claimed`. Set `offers.founding.active` to `false` when they're all taken. The "X of 50 founding spots left" count is off (`showSpotsLeft: false`), so the site says "for our first 50 households" instead. Switch it on only while you update `claimed` after every founding booking.
 - **Live booking calendar (Cal.com):** see [Booking calendar](#booking-calendar-calcom) below. Until `booking.calLink` is set, bookings are requests you confirm by text.
+- **How far ahead people can ask:** `daysAhead` (21 today). The day strip has Earlier and Later buttons, so a longer window stays easy to use.
 - **Earliest day to request:** the site shows the first day a customer can ask for, in Toronto time. These are preferred days, not confirmed openings: nothing is preselected, and the customer either picks a day and an arrival window or ticks "I'm flexible". `booking.leadDays` is how many days' notice you need (1 = tomorrow). Add any day you're full or away to `booking.blockedDates` as `"YYYY-MM-DD"`; it's then never offered.
 - **Arrival windows:** `timeSlots`, each with its earliest (`start`) and latest (`end`) arrival. A window is greyed out when a clean that long couldn't finish by closing time after arriving at the end of the window, so a 7-hour deep clean can't be requested for the evening. "Any time" lets the customer leave it to you. The time on site assumes `booking.cleaners` (1) cleaner.
 - **HST:** `taxRate` is 0, so prices and booking summaries say "No HST charged". Once you're registered, set it to 0.13: HST then shows as its own line. Discounted prices are rounded to the nearest dollar and the discount line is the difference, so every line adds up to the total.
@@ -112,7 +113,7 @@ Keep a note of anyone who opts out and don't message them again. No promotional 
 ## Growth tracking (for ads)
 
 Paste a Google Analytics 4 ID (`G-…`) and/or a Meta Pixel ID into `analytics` in `js/config.js`, and update the Privacy Policy's cookies section at the same time.
-The site then reports: book clicks, call, text, WhatsApp and email taps, `quote_viewed` (a price was on screen), `booking_started` (first real use of the form), `booking_step_completed`, `validation_failed` (step, field and a fixed code), `review_edit`, `request_not_confirmed`, and leads (`generate_lead` for bookings, quotes, gift cards and price requests). Events carry categories and amounts only: never names, contact details, addresses, postal codes, codes or notes.
+The site then reports: book clicks, plan clicks (`plan_click`), call, text, WhatsApp and email taps, `quote_viewed` (a price was on screen), `booking_started` (first real use of the form, with where the visitor came from: `price_box`, `plan` or `direct`), `booking_step_completed`, `validation_failed` (step, field and a fixed code), `review_edit`, `request_not_confirmed`, and leads (`generate_lead` for bookings, quotes, gift cards and price requests). Events carry categories and amounts only: never names, contact details, addresses, postal codes, codes or notes.
 A `generate_lead` means FormSubmit accepted the request, not that a booking is confirmed. Count confirmed bookings from your own replies.
 
 ## Still to do (needs Mann, or a booking system)
@@ -132,7 +133,7 @@ How the site looks and why (tokens, components, the reference patterns behind th
 - **Logo:** `assets/logo.svg` (horizontal), `logo-stacked.svg`, `logo-mark.svg` and their `-white` versions for dark backgrounds. Traced from the original logo artwork; the wordmark is Barlow Condensed.
 - **Colours:** navy `#0A2D5C`, teal `#2FA4A6`, sky `#6FC3E0`, sand `#EFD9AE` on ivory `#F7F3EA`. All tokens are at the top of `css/site.css`.
 - **Fonts:** Plus Jakarta Sans (headlines, sentence case) and DM Sans (text), self-hosted in `assets/fonts` under the SIL Open Font License.
-- **Room photos** in `assets/photos` are AI-generated illustrations, and the footer says so. Replace them with real photos from your own jobs (with the client's permission) as soon as you have them: same file names, 928 × 1152 px.
+- **Room photos** in `assets/photos` are AI-generated illustrations, and the footer says so. An empty-home picture for move-in and move-out is waiting in your Canva uploads: see "Wanted" in `docs/design-notes.md` for the four files to save; the build uses them as soon as they're there. Replace them with real photos from your own jobs (with the client's permission) as soon as you have them: same file names, 928 × 1152 px.
 
 ## Hosting
 
@@ -160,7 +161,8 @@ The checks cover:
 - **layout and design:** screen widths, both themes, type and contrast.
 - **a11y:** text at 200%, keyboard only, what screen readers hear, an axe-core scan, and long names.
 - **sheet:** the Google Sheet script, run against stand-in Google services.
-- **v4:** what's included and not on service pages, booking errors beside their field, tabular prices, the phone price switcher, aligned panels, one set of booking labels, and nothing under 12px.
+- **v4:** what's included and not on service pages, booking errors beside their field, tabular prices, the price switcher, aligned panels, one set of booking labels, and nothing under 12px.
+- **v5:** plans you can choose, prices that say what they're for, the price-box card and folded sections in booking, paged dates, pricing jump links, stage-matched words, service pages that lead with what's covered, the type scale, contrast of the new parts, and a complete phone booking (with a failed send and a retry) at 360, 390 and 430px.
 
 Both need Playwright with Chromium (`npm install -g playwright && npx playwright install chromium`). The checks serve the site from your computer and never send a real booking. For what only a real phone can show (its keyboard, autofill, VoiceOver or TalkBack), use `docs/phone-checklist.md`.
 

@@ -67,6 +67,16 @@ export async function newPage(browser, { width = 1280, height = 900, theme = "li
   return page;
 }
 export function mockDelivery(page, mode) { page.deliveryMode = mode; }
+// The booking form folds its optional parts (extras, unusual homes, visit preferences, referral) into sections.
+// These open one the way a customer does, by its summary.
+export async function openSection(page, name) {
+  const sel = `details[data-section="${name}"]`;
+  if (!(await page.$eval(sel, (d) => d.open))) await page.click(sel + " > summary");
+}
+// Arriving from a price box, the service and home sit in one card; Edit opens the full choices.
+export async function editHome(page) {
+  if (await page.isVisible("[data-picked-edit]")) await page.click("[data-picked-edit]");
+}
 // The Google Sheet script, answered locally (page.sheetPosts collects every request body).
 // ok and dup echo the posted reference; clash answers with a different one, as the script does when a reference is taken.
 async function routeSheet(page) {
@@ -111,6 +121,35 @@ export function contrast(fg, bg) {
   const [hi, lo] = [lum(f), lum(b.slice(0, 3))].sort((x, y) => y - x);
   return (hi + 0.05) / (lo + 0.05);
 }
+
+// Every piece of visible text in scope, with its colour, the solid colour behind it, and the ratio it needs (3:1 when large).
+export const contrastProblems = (p, scope = "body") => p.evaluate((scope) => {
+  // The colour behind an element: translucent backgrounds laid over the first solid one beneath them.
+  const solid = (el) => {
+    const layers = [];
+    for (; el; el = el.parentElement) {
+      const m = getComputedStyle(el).backgroundColor.match(/[\d.]+/g);
+      if (!m) continue;
+      const [r, g, b, a = 1] = m.map(Number);
+      if (a === 0) continue;
+      layers.push([r, g, b, a]);
+      if (a === 1) break;
+    }
+    let base = [255, 255, 255];
+    for (const [r, g, b, a] of layers.reverse()) base = [r * a + base[0] * (1 - a), g * a + base[1] * (1 - a), b * a + base[2] * (1 - a)];
+    return `rgb(${base.map(Math.round).join(", ")})`;
+  };
+  const out = [];
+  document.querySelectorAll(scope + " :is(h1,h2,h3,p,li,a,button,.btn,.label,.kicker,label,dt,dd,.extra-name,.sum-total,summary,small,strong,span)").forEach((el) => {
+    const own = [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim());
+    const r = el.getBoundingClientRect(), s = getComputedStyle(el);
+    if (!own || r.width < 2 || r.height < 2 || s.visibility === "hidden" || el.closest("[hidden], .sr-only, [aria-hidden=true]") || +s.opacity < 1) return;
+    if (el.matches(":disabled, .is-off *") || el.closest(".announce-msgs > span:not(.is-on)")) return;
+    const size = parseFloat(s.fontSize), large = size >= 24 || (size >= 18.66 && +s.fontWeight >= 700);
+    out.push({ text: el.textContent.trim().slice(0, 28), tag: el.tagName.toLowerCase() + (el.className && typeof el.className === "string" ? "." + el.className.split(" ")[0] : ""), fg: s.color, bg: solid(el), min: large ? 3 : 4.5 });
+  });
+  return out;
+}, scope);
 
 export const tests = [];
 export function test(name, fn) { tests.push({ name, fn }); }

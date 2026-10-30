@@ -4,14 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <script>try{if(localStorage.getItem("nr-theme")==="dark")document.documentElement.setAttribute("data-theme","dark")}catch(e){}</script>
-<title>Book a Clean | Nest &amp; Rest</title>
+<title>Request a Clean | Nest &amp; Rest</title>
 <meta name="description" content="Request your home cleaning online in about two minutes. See your price, choose a preferred day and arrival window, and pay after the clean.">
 <meta name="theme-color" content="#FFFFFF">
 <link rel="canonical" href="https://nestnrestcleaning.com/book/">
 <meta property="og:type" content="website">
 <meta property="og:locale" content="en_CA">
 <meta property="og:site_name" content="Nest &amp; Rest Cleaning">
-<meta property="og:title" content="Book a Clean | Nest &amp; Rest">
+<meta property="og:title" content="Request a Clean | Nest &amp; Rest">
 <meta property="og:description" content="Request your home cleaning online in about two minutes. See your price, choose a preferred day and arrival window, and pay after the clean.">
 <meta property="og:url" content="https://nestnrestcleaning.com/book/">
 <meta property="og:image" content="https://nestnrestcleaning.com/assets/og-image.jpg">
@@ -19,7 +19,7 @@
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="Nest &amp; Rest Cleaning: We clean. You rest. Home cleaning in Scarborough and North York.">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Book a Clean | Nest &amp; Rest">
+<meta name="twitter:title" content="Request a Clean | Nest &amp; Rest">
 <meta name="twitter:description" content="Request your home cleaning online in about two minutes. See your price, choose a preferred day and arrival window, and pay after the clean.">
 <meta name="twitter:image" content="https://nestnrestcleaning.com/assets/og-image.jpg">
 <link rel="manifest" href="../site.webmanifest">
@@ -28,7 +28,7 @@
 <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
 <link rel="preload" href="../assets/fonts/plus-jakarta-sans.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="../assets/fonts/dm-sans.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="../css/site.min.css?v=cd7bb84f">
+<link rel="stylesheet" href="../css/site.min.css?v=ff2d4d96">
 
 </head>
 <body data-page="book" data-root="../">
@@ -88,7 +88,7 @@
   <div class="wrap">
     <div class="book-head">
       <div>
-        <h1>Book a clean</h1>
+        <h1>Request a clean</h1>
         <p class="book-sub"><svg class="ic" aria-hidden="true"><use href="#i-cal"/></svg> <span>Earliest day to request: <strong data-next-open>tomorrow</strong>. Mann confirms every booking.</span></p>
       </div>
       <ol class="progress" data-progress aria-label="Booking steps">
@@ -102,8 +102,17 @@
         <form id="booking-form" class="booking-form" novalidate>
           <fieldset class="step" data-step="1">
             <legend>Your home</legend>
-            <p class="prefill-note" data-prefill hidden><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg><span>Your choices from the price box are filled in below. Add the postal code, check the details, and continue.</span></p>
+            <p class="prefill-note" data-plan-note hidden><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg><span data-plan-note-text></span></p>
+            <div class="picked" data-picked hidden>
+              <div class="picked-body">
+                <p class="picked-label">Your clean, from the price box</p>
+                <p class="picked-what" data-picked-what></p>
+                <p class="picked-home" data-picked-home></p>
+              </div>
+              <button type="button" class="link-btn" data-picked-edit aria-controls="home-fields" aria-expanded="false">Edit<span class="sr-only"> service and home</span></button>
+            </div>
             <div class="field"><label for="f-postal">Postal code of the home</label><input id="f-postal" name="postal" autocomplete="postal-code" autocapitalize="characters" maxlength="7" placeholder="e.g. M1B 2K3" required><small class="pc-result" data-pc-booking aria-live="polite"></small></div>
+            <div class="home-fields" id="home-fields" data-home-fields>
             <div class="field"><span class="field-label" id="svc-label">Service</span>
               <div class="choice-grid" role="radiogroup" aria-labelledby="svc-label">
                 <label class="choice"><input type="radio" name="service" value="regular"><span class="choice-body"><strong>Regular Home Cleaning</strong><span class="choice-from">from <b data-from="regular">$145</b></span><span class="choice-desc">The weekly or fortnightly reset that keeps a lived-in home effortless.</span></span></label><label class="choice"><input type="radio" name="service" value="deep"><span class="choice-body"><strong>Deep Cleaning</strong><span class="choice-from">from <b data-from="deep">$235</b></span><span class="choice-desc">A top-to-bottom reset for build-up, edges and everything in between.</span></span></label><label class="choice"><input type="radio" name="service" value="move"><span class="choice-body"><strong>Move-In / Move-Out Cleaning</strong><span class="choice-from">from <b data-from="move">$250</b></span><span class="choice-desc">An empty-home clean for landlord walk-throughs, closings and fresh starts.</span></span></label><label class="choice"><input type="radio" name="service" value="detail"><span class="choice-body"><strong>Kitchen &amp; Bath Detailing</strong><span class="choice-from">from <b data-from="detail">$165</b></span><span class="choice-desc">Just the hardest-working rooms, restored properly.</span></span></label>
@@ -146,24 +155,31 @@
               </div>
               <small class="field-hint">A studio counts as 1 bedroom. Count full bathrooms, with a tub or shower.</small>
             </div>
-            <div class="field"><span class="field-label" id="checks-label">Anything unusual about your home? <span class="opt">optional</span></span>
-              <div class="check-list" role="group" aria-labelledby="checks-label" data-checks>
-                <label class="check"><input type="checkbox" name="check" value="large"> <span>Over about 3,000 sq ft</span></label><label class="check"><input type="checkbox" name="check" value="halfbath"> <span>Half bathrooms (powder rooms)</span></label><label class="check"><input type="checkbox" name="check" value="basement"> <span>A finished basement</span></label><label class="check"><input type="checkbox" name="check" value="kitchen2"> <span>A second kitchen</span></label><label class="check"><input type="checkbox" name="check" value="buildup"> <span>Heavy build-up, or no professional clean in a long while</span></label>
-              </div>
-              <ul class="check-notes" data-check-notes aria-live="polite"></ul>
-              <div class="quote-route" data-quote-route hidden>
-                <p><strong>Homes this size are priced by quote.</strong> Mann starts with a walkthrough and a written care plan, so the price fits the home.</p>
-                <a class="btn btn-teal btn-sm" data-quote-link href="../services/residence-care/">Get a Residence Care quote <svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></a>
-                <small class="field-hint">Your home details are carried over. Nothing is sent until you send the quote form.</small>
-                <p class="field-error" id="err-quote" data-step-error="quote" hidden></p>
-              </div>
             </div>
-            <div class="field"><span class="field-label" id="extras-label">Extras <span class="opt">optional</span></span>
-              <div class="extras" role="group" aria-labelledby="extras-label" data-addons>
-                <label class="extra" data-addon="oven"><input type="checkbox" name="addon" value="oven"><span class="extra-box" aria-hidden="true"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></span><span class="extra-body"><span class="extra-name">Inside oven</span><small class="extra-limit">One oven, inside and racks.</small></span><b class="extra-price" data-addon-price>+$40</b></label><label class="extra" data-addon="fridge"><input type="checkbox" name="addon" value="fridge"><span class="extra-box" aria-hidden="true"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></span><span class="extra-body"><span class="extra-name">Inside fridge</span><small class="extra-limit">One fridge. Please empty it before we arrive.</small></span><b class="extra-price" data-addon-price>+$40</b></label><label class="extra" data-addon="cabinets"><input type="checkbox" name="addon" value="cabinets"><span class="extra-box" aria-hidden="true"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></span><span class="extra-body"><span class="extra-name">Inside kitchen cabinets</span><small class="extra-limit">Kitchen cabinets and drawers. Please empty them first.</small></span><b class="extra-price" data-addon-price>+$45</b></label><label class="extra" data-addon="windows"><input type="checkbox" name="addon" value="windows"><span class="extra-box" aria-hidden="true"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></span><span class="extra-body"><span class="extra-name">Interior windows</span><small class="extra-limit">Inside glass, frames and sills, up to 10 windows. More by quote.</small></span><b class="extra-price" data-addon-price>+$50</b></label><label class="extra" data-addon="walls"><input type="checkbox" name="addon" value="walls"><span class="extra-box" aria-hidden="true"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></span><span class="extra-body"><span class="extra-name">Wall spot cleaning</span><small class="extra-limit">Marks and scuffs on reachable walls. Not a full wall wash.</small></span><b class="extra-price" data-addon-price>+$25</b></label><label class="extra" data-addon="laundry"><input type="checkbox" name="addon" value="laundry"><span class="extra-box" aria-hidden="true"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></span><span class="extra-body"><span class="extra-name">Laundry, wash and fold</span><small class="extra-limit">One load in your machines, washed, dried and folded during the visit.</small></span><b class="extra-price" data-addon-price>+$25</b></label><label class="extra" data-addon="balcony"><input type="checkbox" name="addon" value="balcony"><span class="extra-box" aria-hidden="true"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></span><span class="extra-body"><span class="extra-name">Balcony or patio</span><small class="extra-limit">One balcony or patio, swept and wiped down.</small></span><b class="extra-price" data-addon-price>+$30</b></label><label class="extra" data-addon="pets"><input type="checkbox" name="addon" value="pets"><span class="extra-box" aria-hidden="true"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></span><span class="extra-body"><span class="extra-name">Heavy pet hair</span><small class="extra-limit">Extra time for heavy shedding across the home.</small></span><b class="extra-price" data-addon-price>+$20</b></label>
+            <details class="section-box" data-section="checks">
+              <summary><span class="sb-title">Anything unusual about your home? <span class="opt">optional</span></span><span class="sb-status" data-section-status="checks">None</span><svg class="ic" aria-hidden="true"><use href="#i-chev"/></svg></summary>
+              <div class="section-body">
+                <div class="check-list" role="group" aria-label="Anything unusual about your home?" data-checks>
+                  <label class="check"><input type="checkbox" name="check" value="large"> <span>Over about 3,000 sq ft</span></label><label class="check"><input type="checkbox" name="check" value="halfbath"> <span>Half bathrooms (powder rooms)</span></label><label class="check"><input type="checkbox" name="check" value="basement"> <span>A finished basement</span></label><label class="check"><input type="checkbox" name="check" value="kitchen2"> <span>A second kitchen</span></label><label class="check"><input type="checkbox" name="check" value="buildup"> <span>Heavy build-up, or no professional clean in a long while</span></label>
+                </div>
+                <ul class="check-notes" data-check-notes aria-live="polite"></ul>
+                <div class="quote-route" data-quote-route hidden>
+                  <p><strong>Homes this size are priced by quote.</strong> Mann starts with a walkthrough and a written care plan, so the price fits the home.</p>
+                  <a class="btn btn-teal btn-sm" data-quote-link href="../services/residence-care/">Get a Residence Care quote <svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+                  <small class="field-hint">Your home details are carried over. Nothing is sent until you send the quote form.</small>
+                  <p class="field-error" id="err-quote" data-step-error="quote" hidden></p>
+                </div>
               </div>
-              <p class="scope-note" data-scope-note role="status"></p>
-            </div>
+            </details>
+            <details class="section-box" data-section="extras">
+              <summary><span class="sb-title">Extras <span class="opt">optional</span></span><span class="sb-status" data-section-status="extras">None added</span><svg class="ic" aria-hidden="true"><use href="#i-chev"/></svg></summary>
+              <div class="section-body">
+                <div class="extras" role="group" aria-label="Extras" data-addons>
+                  <label class="extra" data-addon="oven"><input type="checkbox" name="addon" value="oven"><span class="extra-box" aria-hidden="true"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></span><span class="extra-body"><span class="extra-name">Inside oven</span><small class="extra-limit">One oven, inside and racks.</small></span><b class="extra-price" data-addon-price>+$40</b></label><label class="extra" data-addon="fridge"><input type="checkbox" name="addon" value="fridge"><span class="extra-box" aria-hidden="true"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></span><span class="extra-body"><span class="extra-name">Inside fridge</span><small class="extra-limit">One fridge. Please empty it before we arrive.</small></span><b class="extra-price" data-addon-price>+$40</b></label><label class="extra" data-addon="cabinets"><input type="checkbox" name="addon" value="cabinets"><span class="extra-box" aria-hidden="true"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></span><span class="extra-body"><span class="extra-name">Inside kitchen cabinets</span><small class="extra-limit">Kitchen cabinets and drawers. Please empty them first.</small></span><b class="extra-price" data-addon-price>+$45</b></label><label class="extra" data-addon="windows"><input type="checkbox" name="addon" value="windows"><span class="extra-box" aria-hidden="true"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></span><span class="extra-body"><span class="extra-name">Interior windows</span><small class="extra-limit">Inside glass, frames and sills, up to 10 windows. More by quote.</small></span><b class="extra-price" data-addon-price>+$50</b></label><label class="extra" data-addon="walls"><input type="checkbox" name="addon" value="walls"><span class="extra-box" aria-hidden="true"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></span><span class="extra-body"><span class="extra-name">Wall spot cleaning</span><small class="extra-limit">Marks and scuffs on reachable walls. Not a full wall wash.</small></span><b class="extra-price" data-addon-price>+$25</b></label><label class="extra" data-addon="laundry"><input type="checkbox" name="addon" value="laundry"><span class="extra-box" aria-hidden="true"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></span><span class="extra-body"><span class="extra-name">Laundry, wash and fold</span><small class="extra-limit">One load in your machines, washed, dried and folded during the visit.</small></span><b class="extra-price" data-addon-price>+$25</b></label><label class="extra" data-addon="balcony"><input type="checkbox" name="addon" value="balcony"><span class="extra-box" aria-hidden="true"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></span><span class="extra-body"><span class="extra-name">Balcony or patio</span><small class="extra-limit">One balcony or patio, swept and wiped down.</small></span><b class="extra-price" data-addon-price>+$30</b></label><label class="extra" data-addon="pets"><input type="checkbox" name="addon" value="pets"><span class="extra-box" aria-hidden="true"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></span><span class="extra-body"><span class="extra-name">Heavy pet hair</span><small class="extra-limit">Extra time for heavy shedding across the home.</small></span><b class="extra-price" data-addon-price>+$20</b></label>
+                </div>
+              </div>
+            </details>
+            <p class="scope-note" data-scope-note role="status"></p>
             
           </fieldset>
 
@@ -176,7 +192,12 @@
             </div>
             <div class="field"><span class="field-label" id="date-label">Preferred day</span>
               <p class="field-note">Choose your preferred day. Mann will confirm availability. Requests from <strong data-next-open>tomorrow</strong>, any day of the week.</p>
-              <div class="date-strip" role="radiogroup" aria-labelledby="date-label" data-dates></div>
+              <div class="date-nav" data-date-nav hidden>
+                <button type="button" class="date-step" data-date-step="-1" aria-controls="date-strip" aria-label="Earlier dates"><svg class="ic" aria-hidden="true"><use href="#i-back"/></svg></button>
+                <p class="date-range" data-date-range></p>
+                <button type="button" class="date-step" data-date-step="1" aria-controls="date-strip" aria-label="Later dates"><svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></button>
+              </div>
+              <div class="date-strip" id="date-strip" role="radiogroup" aria-labelledby="date-label" data-dates></div>
               <label class="check"><input type="checkbox" id="flex-date" data-flex> <span>I'm flexible. Please offer the earliest suitable appointment.</span></label>
               <p class="field-error" id="err-date" data-step-error="date" hidden></p>
             </div>
@@ -199,31 +220,6 @@
               <div class="field"><label for="f-phone">Mobile</label><input id="f-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="e.g. 647 555 0123" required></div>
               <div class="field span-2"><label for="f-email">Email <span class="opt">optional, if you'd like replies by email</span></label><input id="f-email" name="email" type="email" inputmode="email" autocomplete="email"></div>
               <div class="field span-2"><label for="f-address">Street address and unit</label><input id="f-address" name="address" autocomplete="street-address" required></div>
-              <div class="field span-2"><label for="f-access">Getting in</label><div class="select-wrap"><select id="f-access" name="access"><option>I'll be home</option><option>Concierge or front desk</option><option>Lockbox or key code</option><option>Let's discuss</option></select><svg class="ic" aria-hidden="true"><use href="#i-chev"/></svg></div>
-                <p class="field-hint" data-code-note hidden>No codes here, please. Mann asks for the code by text once your clean is confirmed.</p>
-              </div>
-              <div class="field span-2 building" data-building hidden>
-                <p class="field-label">Your building <span class="opt">optional, so the visit starts on time</span></p>
-                <div class="field"><label for="f-parking">Parking for the cleaner</label><div class="select-wrap"><select id="f-parking" name="parking"><option>Not sure</option><option>Visitor parking</option><option>Street or paid parking nearby</option><option>No parking: let's discuss</option></select><svg class="ic" aria-hidden="true"><use href="#i-chev"/></svg></div></div>
-                <label class="check"><input type="checkbox" id="f-elevator" name="elevator"> <span>The service elevator needs booking</span></label>
-                <label class="check"><input type="checkbox" id="f-register" name="register"> <span>Cleaners must be registered with the concierge</span></label>
-              </div>
-              <div class="field span-2"><span class="field-label" id="pets-label">Pets</span>
-                <div class="seg" role="radiogroup" aria-labelledby="pets-label">
-                  <label><input type="radio" name="pets" value="No pets" checked><span>No pets</span></label>
-                  <label><input type="radio" name="pets" value="Dog"><span>Dog</span></label>
-                  <label><input type="radio" name="pets" value="Cat or other"><span>Cat / other</span></label>
-                </div>
-              </div>
-              <div class="field span-2"><span class="field-label" id="products-label">Products</span>
-                <div class="seg" role="radiogroup" aria-labelledby="products-label">
-                  <label><input type="radio" name="products" value="Our products" checked><span>Our products</span></label>
-                  <label><input type="radio" name="products" value="Fragrance-free"><span>Fragrance-free</span></label>
-                  <label><input type="radio" name="products" value="Use my products"><span>Use mine</span></label>
-                </div>
-              </div>
-              <div class="field span-2"><label for="f-referrer">Referred by a client? <span class="opt">optional, their first and last name</span></label><input id="f-referrer" name="referrer" autocomplete="off" autocapitalize="words" placeholder="First and last name"><small class="field-hint">We'll give them $25 off their next clean once yours is done and paid.</small></div>
-              <div class="field span-2"><label for="f-notes">Notes <span class="opt">optional</span></label><textarea id="f-notes" name="notes" rows="3" placeholder="Rooms to focus on, things to leave alone"></textarea><small class="field-hint">Please don't type door or lockbox codes here. We'll ask for them by text once your booking is confirmed.</small></div>
               <div class="field span-2"><span class="field-label" id="pref-label">Confirm by</span>
                 <div class="seg" role="radiogroup" aria-labelledby="pref-label">
                   <label><input type="radio" name="contactPref" value="Text" checked><span>Text</span></label>
@@ -231,6 +227,43 @@
                   <label><input type="radio" name="contactPref" value="Call"><span>Call</span></label>
                   <label><input type="radio" name="contactPref" value="Email"><span>Email</span></label>
                 </div>
+              </div>
+              <div class="span-2 section-stack">
+              <details class="section-box" data-section="visit">
+              <summary><span class="sb-title">Visit preferences</span><span class="sb-status" data-section-status="visit">I'll be home · No pets · Our products</span><svg class="ic" aria-hidden="true"><use href="#i-chev"/></svg></summary>
+              <div class="section-body">
+                <div class="field"><label for="f-access">Getting in</label><div class="select-wrap"><select id="f-access" name="access"><option>I'll be home</option><option>Concierge or front desk</option><option>Lockbox or key code</option><option>Let's discuss</option></select><svg class="ic" aria-hidden="true"><use href="#i-chev"/></svg></div>
+                  <p class="field-hint" data-code-note hidden>No codes here, please. Mann asks for the code by text once your clean is confirmed.</p>
+                </div>
+                <div class="field building" data-building hidden>
+                  <p class="field-label">Your building <span class="opt">optional, so the visit starts on time</span></p>
+                  <div class="field"><label for="f-parking">Parking for the cleaner</label><div class="select-wrap"><select id="f-parking" name="parking"><option>Not sure</option><option>Visitor parking</option><option>Street or paid parking nearby</option><option>No parking: let's discuss</option></select><svg class="ic" aria-hidden="true"><use href="#i-chev"/></svg></div></div>
+                  <label class="check"><input type="checkbox" id="f-elevator" name="elevator"> <span>The service elevator needs booking</span></label>
+                  <label class="check"><input type="checkbox" id="f-register" name="register"> <span>Cleaners must be registered with the concierge</span></label>
+                </div>
+                <div class="field"><span class="field-label" id="pets-label">Pets</span>
+                  <div class="seg" role="radiogroup" aria-labelledby="pets-label">
+                    <label><input type="radio" name="pets" value="No pets" checked><span>No pets</span></label>
+                    <label><input type="radio" name="pets" value="Dog"><span>Dog</span></label>
+                    <label><input type="radio" name="pets" value="Cat or other"><span>Cat / other</span></label>
+                  </div>
+                </div>
+                <div class="field"><span class="field-label" id="products-label">Products</span>
+                  <div class="seg" role="radiogroup" aria-labelledby="products-label">
+                    <label><input type="radio" name="products" value="Our products" checked><span>Our products</span></label>
+                    <label><input type="radio" name="products" value="Fragrance-free"><span>Fragrance-free</span></label>
+                    <label><input type="radio" name="products" value="Use my products"><span>Use mine</span></label>
+                  </div>
+                </div>
+                <div class="field"><label for="f-notes">Notes <span class="opt">optional</span></label><textarea id="f-notes" name="notes" rows="3" placeholder="Rooms to focus on, things to leave alone"></textarea><small class="field-hint">Please don't type door or lockbox codes here. We'll ask for them by text once your booking is confirmed.</small></div>
+              </div>
+            </details>
+              <details class="section-box" data-section="referral">
+              <summary><span class="sb-title">Referred by a client? <span class="opt">optional</span></span><span class="sb-status" data-section-status="referral">No</span><svg class="ic" aria-hidden="true"><use href="#i-chev"/></svg></summary>
+              <div class="section-body">
+                <div class="field"><label for="f-referrer">Their first and last name</label><input id="f-referrer" name="referrer" autocomplete="off" autocapitalize="words" placeholder="First and last name"><small class="field-hint">We'll give them $25 off their next clean once yours is done and paid.</small></div>
+              </div>
+            </details>
               </div>
               <section class="review span-2" aria-labelledby="review-title">
                 <h2 class="review-title" id="review-title">Check your clean</h2>
@@ -246,9 +279,9 @@
           </fieldset>
 
           <div class="step-nav">
-            <button type="button" class="btn btn-ghost" data-prev hidden><svg class="ic" aria-hidden="true"><use href="#i-back"/></svg> Back</button>
-            <button type="button" class="btn btn-primary btn-grow" data-next>Continue <svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></button>
-            <button type="submit" class="btn btn-primary btn-grow" data-submit hidden>Request this clean</button>
+            <button type="button" class="btn btn-ghost" data-prev hidden><svg class="ic" aria-hidden="true"><use href="#i-back"/></svg><span class="prev-label">Back</span></button>
+            <button type="button" class="btn btn-primary btn-grow" data-next data-next-labels="[&quot;Choose a preferred day&quot;,&quot;Add your details&quot;]"><span data-next-label>Choose a preferred day</span> <svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></button>
+            <button type="submit" class="btn btn-primary btn-grow" data-submit hidden>Send cleaning request</button>
           </div>
         </form>
 
@@ -292,6 +325,6 @@
 <div class="toast" data-toast role="status" aria-live="polite" hidden></div>
 <script defer src="../js/config.js?v=277d64b6"></script>
 
-<script defer src="../js/site.min.js?v=3f7fb91e"></script>
+<script defer src="../js/site.min.js?v=5a21598b"></script>
 </body>
 </html>

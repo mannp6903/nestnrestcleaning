@@ -43,6 +43,9 @@
   --fs-small: 0.9375rem;  /* 15px supporting text */
   --fs-fine: 0.8125rem;   /* 13px captions and fine print */
   --fs-tag: 0.75rem;      /* 12px: the smallest text on the site */
+  --fs-support: 0.875rem; /* 14px: supporting text people need (what a price covers, hints, per visit), never smaller */
+  --fs-badge: 0.84rem;    /* 13.5px: Extra, Not included, Most popular */
+  --fs-money: 1.0625rem;  /* 17px: every price in a list or table */
   --ls-display: -0.022em;
   --ls-h1: -0.02em;
   --ls-h2: -0.018em;
@@ -167,7 +170,7 @@ a[href^="mailto:"] { overflow-wrap: anywhere; }
 .label-sm { margin-top: 26px; }
 .lede { font-size: var(--fs-lede); line-height: 1.5; color: var(--muted); max-width: 44ch; }
 .muted { color: var(--muted); max-width: 54ch; }
-.fine { font-size: 0.85rem; color: var(--muted); margin-top: 18px; }
+.fine { font-size: var(--fs-support); color: var(--muted); margin-top: 18px; }
 .fine a { color: var(--ink); text-underline-offset: 3px; }
 .opt { font-weight: 400; color: var(--muted); text-transform: none; letter-spacing: 0; font-family: var(--body); font-size: 0.85em; }
 .text-link { display: inline-flex; align-items: center; gap: 8px; font-family: var(--display); font-weight: 700; font-size: 1rem; text-decoration: none; color: var(--ink); border-bottom: 2px solid var(--teal); padding-bottom: 3px; justify-self: start; }
@@ -286,7 +289,7 @@ body.menu-open { overflow: hidden; }
 .crumbs a:hover { text-decoration: underline; }
 /* Columns size to their content, so short facts like "9am–11pm" stay on one line and the longest one gets the room. */
 .facts { display: grid; grid-template-columns: repeat(3, auto); justify-content: start; gap: 8px clamp(20px, 5vw, 40px); margin: 4px 0 0; padding: 18px 0 0; border-top: 1px solid var(--line-2); }
-.facts dt { font-family: var(--display); font-weight: 700; font-size: 0.82rem; color: var(--muted); }
+.facts dt { font-family: var(--display); font-weight: 700; font-size: var(--fs-support); color: var(--muted); }
 .facts dd { margin: 2px 0 0; font-family: var(--display); font-weight: 700; font-size: clamp(1.25rem, 4.4vw, 1.5rem); line-height: 1.15; font-variant-numeric: tabular-nums; }
 .photo.quote-photo, .photo.hero-photo { display: none; }
 
@@ -304,10 +307,11 @@ body.menu-open { overflow: hidden; }
 .pricer-offer { justify-self: start; display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; font-size: 0.86rem; font-weight: 600; color: var(--ink); background: var(--sky-soft); border-radius: 12px; padding: 7px 12px; line-height: 1.35; }
 .spots { color: var(--teal-ink); font-weight: 700; }
 .pricer-result { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; padding: 12px 16px; border-radius: var(--field-radius); background: var(--ivory); }
+.pricer-for { flex: 1 1 100%; font-size: var(--fs-small); font-weight: 600; line-height: 1.4; color: var(--ink); }
 .pricer-amount { font-family: var(--display); font-weight: 800; font-size: clamp(2.3rem, 9vw, 2.75rem); line-height: 1; font-variant-numeric: tabular-nums; }
 .pricer-unit { font-family: var(--body); font-size: 1rem; font-weight: 600; color: var(--muted); letter-spacing: 0; }
-.pricer-meta { font-size: 0.88rem; color: var(--muted); line-height: 1.4; flex: 1 1 100%; }
-.pricer-deal { flex: 1 1 100%; margin-top: 2px; font-size: 0.88rem; line-height: 1.4; font-weight: 600; color: var(--teal-ink); }
+.pricer-meta { font-size: 0.9rem; color: var(--muted); line-height: 1.4; flex: 1 1 100%; }
+.pricer-deal { flex: 1 1 100%; margin-top: 2px; font-size: 0.9rem; line-height: 1.4; font-weight: 600; color: var(--teal-ink); }
 .pricer-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .pricer-row > [hidden] + .stepper { grid-column: 1 / -1; }
 .pricer-next { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.9rem; color: var(--muted); }
@@ -339,14 +343,14 @@ body.menu-open { overflow: hidden; }
 .textme .pc-row { flex-wrap: wrap; }
 .textme .pc-row input { flex: 1 1 180px; }
 .textme .pc-row .btn { flex: 1 0 auto; }
-.pricer-fine { font-size: 0.8rem; color: var(--muted); text-align: center; }
+.pricer-fine { font-size: var(--fs-fine); color: var(--muted); text-align: center; }
 
 /* Fields */
 .field { display: grid; gap: 7px; min-width: 0; }
 /* Form labels are working text, so they use the body face in sentence case. Barlow Condensed stays for short brand headings. */
 .field > label, .field-label, .stepper-label { font-family: var(--body); font-weight: 600; font-size: 0.95rem; line-height: 1.4; letter-spacing: 0; color: var(--ink); }
 .field-note { font-size: 0.9rem; color: var(--muted); }
-.field-hint { font-size: 0.83rem; color: var(--muted); }
+.field-hint { font-size: var(--fs-support); color: var(--muted); }
 .field-note a { color: var(--ink); text-underline-offset: 3px; }
 input:not([type="radio"]):not([type="checkbox"]), select, textarea {
   width: 100%; min-height: 52px; padding: 13px 16px; border-radius: var(--field-radius); border: 1.5px solid var(--field);
@@ -405,8 +409,8 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--i
 .svc-top { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 8px 10px; margin-bottom: 6px; }
 .svc-ico { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 12px; background: var(--teal-soft); color: var(--teal-ink); }
 .svc-ico .ic { width: 22px; height: 22px; }
-.svc-tag { font-family: var(--body); font-weight: 700; font-size: 0.78rem; color: var(--warn-ink); background: var(--sand-soft); border-radius: 999px; padding: 4px 10px; }
-.svc-card h3 { font-size: 1.3rem; font-weight: 700; line-height: 1.2; }
+.svc-tag { font-family: var(--body); font-weight: 700; font-size: var(--fs-badge); color: var(--warn-ink); background: var(--sand-soft); border-radius: 999px; padding: 4px 10px; }
+.svc-card h3 { font-size: var(--fs-h3); font-weight: 700; line-height: 1.2; }
 .svc-card p { color: var(--muted); font-size: 0.98rem; line-height: 1.5; }
 .svc-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--line); }
 .svc-price { font-size: 0.95rem; color: var(--muted); }
@@ -414,7 +418,7 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--i
 .svc-arrow { width: 24px; height: 24px; color: var(--teal-ink); transition: transform .2s; }
 a.svc-card:hover .svc-arrow { transform: translateX(4px); }
 .svc-grid-compact .svc-card { padding: 18px; }
-.svc-grid-compact .svc-card h3 { font-size: 1.2rem; }
+.svc-grid-compact .svc-card h3 { font-size: var(--fs-h3); }
 
 /* Home services: four photo cards. One column, two from 600px, four from 1024px. */
 .svc-feature { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
@@ -422,7 +426,7 @@ a.svc-card:hover .svc-arrow { transform: translateX(4px); }
 .svc-feature-card .photo { border-radius: 0; box-shadow: none; }
 .svc-feature-card .photo img { aspect-ratio: 3 / 2; }
 .svc-feature-body { display: flex; flex-direction: column; gap: 6px; padding: 18px 20px 20px; }
-.svc-feature-card h3 { font-size: 1.22rem; font-weight: 700; line-height: 1.2; }
+.svc-feature-card h3 { font-size: var(--fs-h3); font-weight: 700; line-height: 1.2; }
 .svc-best { color: var(--muted); font-size: 0.95rem; line-height: 1.45; }
 .svc-feature-card .svc-price { margin-top: auto; padding-top: 6px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 6px; }
 .svc-feature-card .svc-first { margin-left: 0; flex-basis: 100%; }
@@ -486,19 +490,31 @@ a.svc-card:hover .svc-arrow { transform: translateX(4px); }
 .standard-guarantee .ticks .ic { color: var(--teal); }
 .standard-guarantee .text-link { color: var(--on-navy); }
 
-/* Plans: one strip of four cells divided by hairlines. One across, two from 352px (one when text is enlarged), four from 760px.
+/* Plans: one strip of cells divided by hairlines, each ending with its own Choose button. The home they're priced for sits above.
+   Phones: one plan per row, the name on the left and the price on the right. Two across from 600px, four from 1024px.
    Each cell draws the rule on its top and left; the strip clips the ones on its outer edge. */
+.plan-for { margin: 0 0 14px; font-size: var(--fs-small); color: var(--muted); }
+.plan-for strong { color: var(--ink); font-weight: 600; }
 .plan-strip { display: grid; grid-template-columns: minmax(0, 1fr); background: var(--paper); border: 1px solid var(--line); border-radius: var(--card-radius); overflow: hidden; }
-.plan { padding: 20px; display: grid; gap: 4px; align-content: start; box-shadow: -1px -1px 0 var(--line); }
+.plan { padding: 18px 20px; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 2px 14px; box-shadow: -1px -1px 0 var(--line); }
 .plan-rec { background: var(--choice-on); }
-@media (min-width: 22em) { .plan-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (min-width: 47.5em) { .plan-strip { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
-.plan-flag { justify-self: start; margin-bottom: 6px; background: var(--teal-fill); color: #fff; font-family: var(--display); font-weight: 700; font-size: 0.78rem; padding: 3px 10px; border-radius: 999px; }
+.plan-flag, .plan .plan-go { grid-column: 1 / -1; }
+.plan-price { grid-column: 2; grid-row: span 2; justify-items: end; text-align: right; }
+.plan .plan-go { margin-top: 10px; min-height: 44px; padding: 8px 14px; font-size: 0.94rem; white-space: normal; text-wrap: balance; }
+@media (min-width: 37.5em) {
+  .plan-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .plan { display: flex; flex-direction: column; gap: 4px; padding: 20px; }
+  .plan-price { justify-items: start; text-align: left; }
+  .plan-save { margin-bottom: 14px; }
+  .plan .plan-go { margin-top: auto; align-self: stretch; }
+}
+@media (min-width: 64em) { .plan-strip { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.plan-flag { justify-self: start; align-self: flex-start; margin-bottom: 6px; background: var(--teal-fill); color: #fff; font-family: var(--display); font-weight: 700; font-size: var(--fs-badge); padding: 3px 10px; border-radius: 999px; }
 .plan-name { font-family: var(--display); font-weight: 700; font-size: 1.05rem; }
 .plan-price { display: grid; gap: 0; }
 .plan-price b { font-family: var(--display); font-weight: 800; font-size: clamp(1.9rem, 5.5vw, 2.3rem); font-variant-numeric: tabular-nums; line-height: 1; }
-.plan-price span { font-size: 0.84rem; color: var(--muted); }
-.plan-save { font-size: 0.86rem; font-weight: 700; color: var(--teal-ink); }
+.plan-price span { font-size: var(--fs-support); color: var(--muted); }
+.plan-save { font-size: 0.875rem; font-weight: 700; color: var(--teal-ink); }
 
 /* How your price is worked out: four steps beside two worked examples. */
 .price-explain { display: grid; grid-template-columns: minmax(0, 1fr); gap: clamp(28px, 5vw, 64px); }
@@ -561,7 +577,7 @@ a.svc-card:hover .svc-arrow { transform: translateX(4px); }
 .district-head small { grid-column: 1; }
 .district-head .ic { grid-column: 2; grid-row: 1 / span 2; }
 .district-head span { font-family: var(--display); font-weight: 700; font-size: 1.5rem; line-height: 1; }
-.district-head small { font-size: 0.84rem; color: var(--muted); }
+.district-head small { font-size: var(--fs-support); color: var(--muted); }
 .district-head .ic { color: var(--teal-ink); width: 26px; height: 26px; transition: transform .2s; }
 .district-head:hover .ic { transform: translateX(4px); }
 .hood-list { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; align-content: start; }
@@ -581,7 +597,7 @@ a.svc-card:hover .svc-arrow { transform: translateX(4px); }
 .area-list a > small { grid-column: 1; }
 .area-list a > .ic { grid-column: 2; grid-row: 1 / span 2; }
 .area-list span { font-family: var(--display); font-weight: 700; font-size: 1.2rem; line-height: 1.05; }
-.area-list small { font-size: 0.84rem; color: var(--muted); }
+.area-list small { font-size: var(--fs-support); color: var(--muted); }
 .area-list .ic { color: var(--teal-ink); transition: transform .2s; }
 .area-list a:hover .ic { transform: translateX(4px); }
 
@@ -592,7 +608,7 @@ a.svc-card:hover .svc-arrow { transform: translateX(4px); }
 .guide-photo { border-radius: 14px; box-shadow: none; }
 .guide-photo img { aspect-ratio: 1 / 1; }
 .guide-body { display: grid; gap: 6px; }
-.guide-body small { font-family: var(--display); font-weight: 700; font-size: 0.82rem; color: var(--teal-ink); }
+.guide-body small { font-family: var(--display); font-weight: 700; font-size: var(--fs-support); color: var(--teal-ink); }
 .guide-body strong { font-family: var(--display); font-weight: 700; font-size: 1.15rem; line-height: 1.25; }
 
 /* FAQ */
@@ -653,30 +669,36 @@ a.svc-card:hover .svc-arrow { transform: translateX(4px); }
 
 /* Service pages */
 .incl-grid { display: grid; gap: 18px; }
-.incl-room { background: var(--paper); border: 1px solid var(--card-line); border-radius: var(--card-radius); padding: 22px; }
-.incl-room h3 { font-size: 1.2rem; font-weight: 700; padding-bottom: 10px; border-bottom: 2px solid var(--teal); }
+.incl-room { display: grid; align-content: start; gap: 14px; background: var(--paper); border: 1px solid var(--card-line); border-radius: var(--card-radius); padding: 22px; }
+.incl-room h3 { font-size: var(--fs-h3); font-weight: 700; padding-bottom: 10px; border-bottom: 2px solid var(--teal); }
 .incl-room ul { list-style: none; margin: 0; padding: 0; }
-/* One icon column (check, plus or dash), the task, then a tag on the right for extras and exclusions: every task name lines up. */
+/* What a visit covers leads, in full-size rows. One icon column, then the task, so every task name lines up. */
 .incl-room li { display: grid; grid-template-columns: 1.2em minmax(0, 1fr) auto; gap: 4px 12px; align-items: baseline; padding: 11px 0; border-bottom: 1px solid var(--line); }
-.incl-room li > .add-tag, .incl-room li > .none-tag { justify-self: end; }
-.incl-room li.is-add .ic { color: var(--sand-ink); }
-.incl-room li.is-none .ic { color: var(--field); }
+.incl-yes li:first-child { padding-top: 0; }
 .incl-room li:last-child { border-bottom: 0; padding-bottom: 0; }
 .incl-room li .ic { color: var(--teal-ink); position: relative; top: 3px; }
-.incl-room li.is-add { color: var(--muted); }
-.incl-room li.is-none { color: var(--muted); }
-.none-tag { flex: none; font-family: var(--body); font-weight: 700; font-size: var(--fs-tag); line-height: 1.5; color: var(--muted); border: 1px dashed var(--field); padding: 0 6px; border-radius: 6px; position: relative; top: -1px; white-space: nowrap; }
-.scope-sum { display: flex; flex-wrap: wrap; gap: 4px 18px; margin: 0; padding: 0; list-style: none; font-size: var(--fs-small); color: var(--muted); }
+/* Extras (with their prices) and what isn't part of this clean: supporting lists in a quieter box under the room. */
+.incl-more { display: grid; gap: 4px; padding: 14px 16px; border-radius: var(--field-radius); background: var(--section-tint); }
+.incl-sub { font-size: var(--fs-support); font-weight: 700; color: var(--muted); }
+.incl-sub ~ .incl-sub { margin-top: 10px; }
+.incl-more li { padding: 3px 0; border-bottom: 0; font-size: var(--fs-small); color: var(--muted); }
+.incl-more li:last-child { padding-bottom: 0; }
+.incl-more li b { font-family: var(--money); font-variant-numeric: tabular-nums lining-nums; font-size: var(--fs-small); color: var(--ink); }
+.incl-room li.is-add .ic { color: var(--sand-ink); }
+.incl-room li.is-none .ic { color: var(--field); }
+.scope-sum { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 18px; margin: 0; padding: 0; list-style: none; font-size: var(--fs-small); color: var(--muted); }
+.scope-sum .scope-main { flex-basis: 100%; font-family: var(--display); font-weight: 700; font-size: 1.15rem; color: var(--ink); }
+.scope-sum .scope-main b { color: var(--teal-ink); }
 .scope-sum b { color: var(--ink); font-family: var(--money); font-variant-numeric: tabular-nums; }
 .scope-more { margin-top: clamp(20px, 3vw, 28px); padding: 16px 18px; border-radius: var(--field-radius); background: var(--section-tint); display: flex; flex-wrap: wrap; align-items: center; gap: 8px 24px; }
 .scope-more p { max-width: 62ch; }
-.add-tag { flex: none; font-family: var(--display); font-weight: 700; font-size: var(--fs-tag); color: var(--ink); background: var(--sand-soft); border: 1px solid var(--sand); padding: 1px 6px; border-radius: 6px; position: relative; top: -1px; }
+.add-tag { flex: none; font-family: var(--display); font-weight: 700; font-size: var(--fs-badge); color: var(--ink); background: var(--sand-soft); border: 1px solid var(--sand); padding: 1px 6px; border-radius: 6px; position: relative; top: -1px; }
 .ticks { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 10px; }
 .ticks li { display: flex; gap: 12px; align-items: baseline; }
 .ticks .ic { color: var(--teal-ink); position: relative; top: 3px; }
 .price-list { list-style: none; margin: 12px 0 0; padding: 0; border-top: 1px solid var(--line-2); }
 .price-list li { display: flex; justify-content: space-between; gap: 16px; padding: 13px 0; border-bottom: 1px solid var(--line-2); }
-.price-list b { font-family: var(--display); font-weight: 700; font-size: 1.15rem; font-variant-numeric: tabular-nums; }
+.price-list b { font-family: var(--display); font-weight: 700; font-size: var(--fs-money); font-variant-numeric: tabular-nums; }
 .price-list b .ic { color: var(--teal-ink); }
 .ideal-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: clamp(28px, 5vw, 56px); align-items: start; }
 .photo.ideal-photo { display: none; }
@@ -688,28 +710,35 @@ a.svc-card:hover .svc-arrow { transform: translateX(4px); }
 .price-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
 .price-table th, .price-table td { padding: 12px 0 12px 8px; text-align: right; border-bottom: 1px solid var(--card-line); white-space: nowrap; }
 .price-table tr > :first-child { padding-left: 0; text-align: left; }
-.price-table thead th { padding-top: 0; font-family: var(--body); font-weight: 600; font-size: 0.85rem; color: var(--muted); border-bottom: 1.5px solid var(--line-2); }
+.price-table thead th { padding-top: 0; font-family: var(--body); font-weight: 600; font-size: var(--fs-support); color: var(--muted); border-bottom: 1.5px solid var(--line-2); }
 .price-table tbody th { font-weight: 500; font-size: 0.9rem; }
-.price-table td { font-family: var(--display); font-weight: 700; font-size: 1.1rem; }
+.price-table td { font-family: var(--display); font-weight: 700; font-size: var(--fs-money); }
 .price-cards { display: grid; gap: 16px; }
 .price-card { background: var(--paper); border: 1px solid var(--card-line); border-radius: var(--card-radius); padding: clamp(16px, 4vw, 30px); display: grid; gap: 16px; align-content: start; min-width: 0; }
 .price-card-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 16px; }
-.price-card h3 { font-size: clamp(1.25rem, 3.4vw, 1.45rem); font-weight: 700; }
+.price-card h3 { font-size: var(--fs-h3); font-weight: 700; }
 .price-card h3 a { text-decoration: none; }
 .price-card h3 a:hover { color: var(--teal-ink); }
 .price-card-from { font-size: 0.95rem; color: var(--muted); }
 .price-card-from b { color: var(--ink); font-family: var(--display); font-size: 1.3rem; font-variant-numeric: tabular-nums; }
 .price-card-foot { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; margin-top: 4px; }
-/* Phones and tablets: one price table at a time, picked from a switcher that js/site.js adds. Without the script, all four show. */
-.price-tabs { display: none; }
-@media (max-width: 59.9375em) {
-  /* The dividers are the gaps showing the border colour, so the tabs can wrap onto two rows when text is enlarged. */
-  .price-cards.is-tabbed .price-tabs { display: flex; flex-wrap: wrap; gap: 1.5px; border: 1.5px solid var(--field); border-radius: var(--field-radius); overflow: hidden; background: var(--field); }
-  .price-tabs button { flex: 1 1 4.5em; min-width: 0; min-height: 52px; padding: 6px 4px; border: 0; background: var(--paper); cursor: pointer; font-weight: 600; font-size: 0.9rem; line-height: 1.2; color: var(--ink); overflow-wrap: break-word; }
-  .price-tabs button[aria-selected="true"] { background: var(--sel-bg); color: var(--sel-fg); }
-  .price-tabs button:focus-visible { outline: 3px solid var(--sky); outline-offset: -4px; }
-  .price-cards.is-tabbed > .price-card:not(.is-active) { display: none; }
-}
+/* One price table at a time, at every width, picked from tabs that js/site.js adds. Without the script, all four show.
+   The dividers are the gaps showing the border colour, so the tabs can wrap onto two rows when text is enlarged. */
+.price-tabs { display: flex; flex-wrap: wrap; gap: 1.5px; border: 1.5px solid var(--field); border-radius: var(--field-radius); overflow: hidden; background: var(--field); }
+.price-tabs button { flex: 1 1 4.5em; min-width: 0; min-height: 52px; padding: 6px 4px; border: 0; background: var(--paper); cursor: pointer; font-weight: 600; font-size: 0.94rem; line-height: 1.2; color: var(--ink); overflow-wrap: break-word; }
+.price-tabs button[aria-selected="true"] { background: var(--sel-bg); color: var(--sel-fg); }
+.price-tabs button:focus-visible { outline: 3px solid var(--sky); outline-offset: -4px; }
+.price-cards.is-tabbed { max-width: 860px; }
+.price-cards.is-tabbed > .price-card:not(.is-active) { display: none; }
+/* Pricing: links to each part of the page, under the title. */
+.jump ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.jump a { display: inline-flex; align-items: center; min-height: 44px; padding: 8px 16px; border: 1.5px solid var(--line-2); border-radius: 999px; background: var(--paper); font-family: var(--display); font-weight: 700; font-size: 0.94rem; color: var(--ink); text-decoration: none; transition: border-color .15s; }
+.jump a:hover { border-color: var(--ink); }
+.jump a:focus-visible { outline: 3px solid var(--sky); outline-offset: 2px; }
+.compare-fold > summary { min-height: 56px; font-size: 1rem; }
+.compare-fold .if-open, .compare-fold[open] .if-closed { display: none; }
+.compare-fold[open] .if-open { display: inline; }
+.compare-fold > .table-scroll { margin: 0 14px 14px; }
 
 /* Service comparison */
 /* No overflow: hidden here: it would stop the task column sticking. The corner cells carry the rounding instead. */
@@ -725,7 +754,7 @@ a.svc-card:hover .svc-arrow { transform: translateX(4px); }
 .compare thead th { font-family: var(--body); font-weight: 600; font-size: 0.85rem; line-height: 1.25; padding-block: 16px; border-bottom: 1.5px solid var(--line-2); width: 18%; }
 .compare tbody th { font-size: 0.9rem; line-height: 1.4; }
 .cmp-long { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; } /* phones show the short name; screen readers still hear this one */
-.compare .add-tag { font-size: var(--fs-tag); padding: 1px 5px; }
+.compare .add-tag { font-size: var(--fs-badge); padding: 1px 5px; }
 .compare thead th:first-child { width: auto; }
 .compare .cmp-room th { text-align: left; padding-top: 18px; font-family: var(--display); font-weight: 700; font-size: 1rem; background: var(--section-tint); }
 .compare td .ic { color: var(--teal-ink); vertical-align: middle; }
@@ -786,9 +815,9 @@ a.svc-card:hover .svc-arrow { transform: translateX(4px); }
 .choice input { position: absolute; opacity: 0; pointer-events: none; }
 .choice-body { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; padding: 15px 17px; border: 1.5px solid var(--field); border-radius: var(--field-radius); background: var(--paper); transition: border-color .15s, box-shadow .15s, background-color .15s; }
 .choice-body strong { font-family: var(--display); font-weight: 700; font-size: 1.05rem; line-height: 1.1; }
-.choice-from { font-size: 0.84rem; color: var(--muted); text-align: right; }
-.choice-from b { color: var(--ink); font-family: var(--display); font-size: 1.1rem; }
-.choice-desc { grid-column: 1 / -1; font-size: 0.88rem; color: var(--muted); }
+.choice-from { font-size: var(--fs-support); color: var(--muted); text-align: right; }
+.choice-from b { color: var(--ink); font-family: var(--display); font-size: var(--fs-money); }
+.choice-desc { grid-column: 1 / -1; font-size: var(--fs-support); color: var(--muted); }
 .choice input:checked + .choice-body { border-color: var(--teal); box-shadow: inset 0 0 0 1.5px var(--teal); background: var(--choice-on); }
 .choice input:focus-visible + .choice-body { outline: 3px solid var(--sky); outline-offset: 2px; }
 .seg { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); border: 1.5px solid var(--field); border-radius: var(--field-radius); overflow: hidden; background: var(--paper); }
@@ -808,7 +837,6 @@ a.svc-card:hover .svc-arrow { transform: translateX(4px); }
   .seg-home { grid-auto-flow: row; }
   .seg-home label + label { border-left: 0; border-top: 1.5px solid var(--field); }
   .price-table th, .price-table td { padding-left: 5px; }
-  .price-table td { font-size: 1.05rem; }
 }
 /* Extras: what each price covers sits beside it. The scope rule marks each one included, paid or not offered. */
 .extras { display: grid; gap: 8px; }
@@ -818,8 +846,8 @@ a.svc-card:hover .svc-arrow { transform: translateX(4px); }
 .extra-box .ic { width: 16px; height: 16px; }
 .extra-body { display: grid; gap: 2px; min-width: 0; }
 .extra-name { font-weight: 600; font-size: 0.98rem; line-height: 1.35; }
-.extra-limit { font-size: 0.86rem; line-height: 1.4; color: var(--muted); }
-.extra-price { font-weight: 700; font-size: 0.98rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.extra-limit { font-size: var(--fs-support); line-height: 1.4; color: var(--muted); }
+.extra-price { font-weight: 700; font-size: var(--fs-money); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .extra input:checked ~ .extra-box { background: var(--sel-bg); border-color: var(--sel-bg); color: var(--sel-fg); }
 .extra:has(input:checked) { border-color: var(--teal); background: var(--choice-on); }
 .extra input:focus-visible ~ .extra-box { outline: 3px solid var(--sky); outline-offset: 2px; }
@@ -842,6 +870,27 @@ a.svc-card:hover .svc-arrow { transform: translateX(4px); }
 .compare-box[open] summary .ic { transform: rotate(45deg); }
 .compare-box > .field-note, .compare-box > .table-scroll { margin: 0 14px 14px; }
 .compare-box .compare { font-size: 0.9rem; }
+/* Booking: optional parts fold into sections. The summary says what's chosen inside, so nothing selected is out of sight. */
+.section-stack { display: grid; gap: 12px; }
+.section-box { min-width: 0; border: 1.5px solid var(--field); border-radius: var(--field-radius); background: var(--paper); }
+.section-box > summary { list-style: none; cursor: pointer; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; align-items: center; min-height: 56px; padding: 12px 16px; border-radius: inherit; }
+.section-box > summary::-webkit-details-marker { display: none; }
+.section-box > summary:focus-visible { outline: 3px solid var(--sky); outline-offset: 2px; }
+.sb-title { font-weight: 600; font-size: 0.95rem; line-height: 1.4; color: var(--ink); }
+.sb-status { grid-column: 1; font-size: var(--fs-small); line-height: 1.4; color: var(--muted); overflow-wrap: anywhere; }
+.sb-status.is-set { color: var(--teal-ink); font-weight: 600; }
+.section-box > summary > .ic { grid-column: 2; grid-row: 1 / span 2; color: var(--teal-ink); transition: transform .2s; }
+.section-box[open] > summary > .ic { transform: rotate(180deg); }
+.section-box[open] > summary { border-bottom: 1px solid var(--line); border-radius: var(--field-radius) var(--field-radius) 0 0; }
+.section-body { display: grid; gap: 18px; padding: 16px; }
+/* From a price box: the service and home in one card, with Edit to open the full choices. */
+.home-fields { display: grid; gap: 24px; }
+.picked { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 16px; align-items: start; padding: 14px 16px; border: 1.5px solid var(--teal); border-radius: var(--field-radius); background: var(--choice-on); }
+.picked-body { display: grid; gap: 2px; min-width: 0; }
+.picked-label { font-size: 0.875rem; font-weight: 700; color: var(--teal-ink); }
+.picked-what { font-family: var(--display); font-weight: 700; font-size: 1.1rem; line-height: 1.25; color: var(--ink); }
+.picked-home { font-size: var(--fs-small); color: var(--muted); }
+.picked .link-btn { margin-top: -6px; }
 .check-list { display: grid; gap: 10px; }
 .check-notes { margin: 0; padding: 10px 14px 10px 30px; display: grid; gap: 6px; font-size: 0.9rem; color: var(--ink); background: var(--sky-soft); border-radius: var(--field-radius); }
 .quote-route { display: grid; gap: 10px; justify-items: start; padding: 14px 16px; border: 1.5px solid var(--teal); border-radius: var(--field-radius); background: var(--choice-on); font-size: 0.95rem; }
@@ -852,7 +901,7 @@ a.svc-card:hover .svc-arrow { transform: translateX(4px); }
 .slot input { position: absolute; opacity: 0; pointer-events: none; }
 .slot span { display: grid; gap: 2px; align-content: center; min-height: 56px; padding: 8px 12px; border: 1.5px solid var(--field); border-radius: var(--field-radius); background: var(--paper); line-height: 1.25; }
 .slot strong { font-weight: 600; font-size: 0.95rem; }
-.slot small { font-size: 0.82rem; color: var(--muted); }
+.slot small { font-size: var(--fs-support); color: var(--muted); }
 .slot input:checked + span { background: var(--sel-bg); border-color: var(--sel-bg); color: var(--sel-fg); }
 .slot input:checked + span small { color: var(--sel-fg-2); }
 .slot input:focus-visible + span { outline: 3px solid var(--sky); outline-offset: 2px; }
@@ -883,12 +932,20 @@ a.svc-card:hover .svc-arrow { transform: translateX(4px); }
 .freq-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 6.5em), 1fr)); gap: 10px; }
 .freq-grid .choice-body { grid-template-columns: 1fr; }
 .freq-grid .choice-desc { color: var(--teal-ink); font-weight: 700; }
-.date-strip { display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 10px; scroll-snap-type: x proximity; scrollbar-width: thin; }
+.date-strip { position: relative; display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 10px; scroll-snap-type: x proximity; scrollbar-width: thin; }
+/* Earlier and Later page through the dates; the line between them says which are in view. */
+.date-nav { display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; align-items: center; gap: 8px; }
+.date-range { text-align: center; font-family: var(--display); font-weight: 700; font-size: 0.98rem; font-variant-numeric: tabular-nums; color: var(--ink); }
+.date-step { display: grid; place-items: center; width: 44px; height: 44px; border: 1.5px solid var(--field); border-radius: 50%; background: var(--paper); color: var(--ink); cursor: pointer; transition: border-color .15s, background-color .15s; }
+.date-step:hover:not(:disabled) { border-color: var(--ink); background: var(--sky-soft); }
+.date-step:focus-visible { outline: 3px solid var(--sky); outline-offset: 2px; }
+.date-step:disabled { opacity: .35; cursor: not-allowed; }
+.date-strip.is-disabled ~ .date-nav, .date-nav:has(~ .date-strip.is-disabled) { opacity: .35; pointer-events: none; }
 .date-strip.is-disabled { opacity: .35; pointer-events: none; }
 .date-chip { position: relative; flex: none; scroll-snap-align: start; cursor: pointer; }
 .date-chip input { position: absolute; opacity: 0; pointer-events: none; }
 .date-chip span { display: grid; place-items: center; width: 66px; padding: 9px 4px; border: 1.5px solid var(--field); border-radius: var(--field-radius); line-height: 1.1; background: var(--paper); }
-.date-chip small { font-size: 0.78rem; color: var(--muted); font-weight: 600; }
+.date-chip small { font-size: var(--fs-fine); color: var(--muted); font-weight: 600; }
 .date-chip strong { font-family: var(--display); font-weight: 700; font-size: 1.35rem; font-variant-numeric: tabular-nums; }
 .date-chip input:checked + span { background: var(--sel-bg); border-color: var(--sel-bg); color: var(--sel-fg); }
 .date-chip input:checked + span small { color: var(--sel-fg-2); }
@@ -896,6 +953,11 @@ a.svc-card:hover .svc-arrow { transform: translateX(4px); }
 .step-nav { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; position: sticky; bottom: var(--sum-h, 62px); z-index: 5; background: var(--paper); padding-block: 10px; margin-inline: calc(-1 * clamp(20px, 4vw, 38px)); padding-inline: clamp(20px, 4vw, 38px); border-top: 1px solid var(--line); }
 .step-nav .btn { padding-inline: 16px; font-size: 1.02rem; white-space: nowrap; }
 .step-nav .btn-grow { flex: 1 1 auto; } /* beside Back when it fits; its own line when the text is too large */
+/* Phones: Back is the arrow alone (its name stays for screen readers), so "Send cleaning request" fits beside it. */
+@media (max-width: 37.4375em) {
+  .step-nav [data-prev] { flex: none; width: 52px; padding-inline: 0; }
+  .step-nav .prev-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+}
 
 .summary { position: sticky; bottom: 0; z-index: 20; background: var(--navy); color: var(--on-navy); border-radius: 0 0 var(--r-lg) var(--r-lg); padding-bottom: env(safe-area-inset-bottom, 0px); box-shadow: 0 -12px 30px -12px rgba(10, 45, 92, 0.35); }
 .summary-toggle { width: 100%; display: flex; align-items: center; gap: 12px; padding: 12px 20px; background: none; border: 0; color: inherit; cursor: pointer; text-align: left; }
@@ -947,12 +1009,12 @@ a.svc-card:hover .svc-arrow { transform: translateX(4px); }
 .done-refer strong { color: var(--ink); }
 .quote-done .ref strong { font-family: var(--display); font-size: 1.15rem; }
 
-.privacy-note { font-size: 0.8rem; color: var(--muted); }
+.privacy-note { font-size: var(--fs-fine); color: var(--muted); }
 .privacy-note .link-btn-sm { text-decoration-thickness: 1px; text-underline-offset: 3px; }
 
 /* Extras lists on service and pricing pages: the limit sits under each name */
 .extras-list li > span { display: grid; gap: 2px; }
-.extras-list small { font-size: 0.86rem; color: var(--muted); line-height: 1.4; }
+.extras-list small { font-size: var(--fs-support); color: var(--muted); line-height: 1.4; }
 .extras-list li.is-included b { color: var(--teal-ink); font-family: var(--body); font-size: 0.95rem; font-weight: 700; }
 .extras-list li.is-none { color: var(--muted); }
 .extras-list li.is-none b { font-family: var(--body); font-size: 0.95rem; font-weight: 600; color: var(--muted); }
@@ -1001,7 +1063,7 @@ a.svc-card:hover .svc-arrow { transform: translateX(4px); }
 .article-cta { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; margin-top: 14px; padding: 22px; border-radius: var(--card-radius); background: var(--sky-soft); }
 .article-cta a { text-decoration: none; color: inherit; }
 .article-cta .btn-primary { color: var(--btn-fg); }
-.article-body .price-table td { font-size: 1.1rem; }
+.article-body .price-table td { font-size: var(--fs-money); }
 
 /* Legal pages */
 .legal-page .wrap { display: grid; gap: 18px; }
@@ -1035,8 +1097,8 @@ a.svc-card:hover .svc-arrow { transform: translateX(4px); }
   .svc-top { display: contents; }
   .svc-ico { grid-row: 1 / span 3; width: 44px; height: 44px; border-radius: 12px; margin: 0; }
   .svc-ico .ic { width: 22px; height: 22px; }
-  .svc-tag { justify-self: start; grid-column: 2; font-size: var(--fs-tag); padding: 2px 8px; }
-  .svc-card h3, .svc-grid-compact .svc-card h3 { grid-column: 2; font-size: 1.32rem; }
+  .svc-tag { justify-self: start; grid-column: 2; font-size: var(--fs-badge); padding: 2px 8px; }
+  .svc-card h3, .svc-grid-compact .svc-card h3 { grid-column: 2; font-size: var(--fs-h3); }
   .svc-card p { grid-column: 2; font-size: 0.93rem; }
   .svc-foot { grid-column: 2; margin-top: 4px; padding-top: 10px; }
   .svc-grid { gap: 10px; }
@@ -1165,7 +1227,7 @@ a.svc-card:hover .svc-arrow { transform: translateX(4px); }
 
   .standard-grid { grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr); align-items: start; }
   .standard-guarantee { position: sticky; top: calc(var(--header-h) + 28px); border-top: 0; padding: 8px 0 0 clamp(28px, 4vw, 48px); border-left: 1px solid rgba(255, 255, 255, 0.18); }
-  .price-cards { grid-template-columns: 1fr 1fr; }
+  .price-cards:not(.is-tabbed) { grid-template-columns: 1fr 1fr; }
   .split { grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); align-items: start; }
   .faq-section .split-head { position: sticky; top: calc(var(--header-h) + 28px); }
   .founder-grid { grid-template-columns: minmax(300px, 0.8fr) minmax(0, 1.2fr); align-items: start; }

@@ -1,5 +1,5 @@
 // The redesign's rules (docs/superpowers/specs/2026-10-28-modern-redesign-design.md): type, surfaces, components, hero.
-import { test, assert, newPage, contrast } from "./lib.mjs";
+import { test, assert, newPage, contrast, contrastProblems } from "./lib.mjs";
 
 const JAKARTA = /^"?Plus Jakarta Sans"?/;
 const px = (v) => Math.round(parseFloat(v));
@@ -149,33 +149,6 @@ export default async function () {
   });
 
   // Text colour against the first solid background behind it, for every text element on a page.
-  const contrastProblems = (p, scope = "body") => p.evaluate((scope) => {
-    // The colour behind an element: translucent backgrounds laid over the first solid one beneath them.
-    const solid = (el) => {
-      const layers = [];
-      for (; el; el = el.parentElement) {
-        const m = getComputedStyle(el).backgroundColor.match(/[\d.]+/g);
-        if (!m) continue;
-        const [r, g, b, a = 1] = m.map(Number);
-        if (a === 0) continue;
-        layers.push([r, g, b, a]);
-        if (a === 1) break;
-      }
-      let base = [255, 255, 255];
-      for (const [r, g, b, a] of layers.reverse()) base = [r * a + base[0] * (1 - a), g * a + base[1] * (1 - a), b * a + base[2] * (1 - a)];
-      return `rgb(${base.map(Math.round).join(", ")})`;
-    };
-    const out = [];
-    document.querySelectorAll(scope + " :is(h1,h2,h3,p,li,a,button,.btn,.label,.kicker,label,dt,dd,.extra-name,.sum-total,summary,small,strong,span)").forEach((el) => {
-      const own = [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim());
-      const r = el.getBoundingClientRect(), s = getComputedStyle(el);
-      if (!own || r.width < 2 || r.height < 2 || s.visibility === "hidden" || el.closest("[hidden], .sr-only, [aria-hidden=true]") || +s.opacity < 1) return;
-      if (el.matches(":disabled, .is-off *") || el.closest(".announce-msgs > span:not(.is-on)")) return;
-      const size = parseFloat(s.fontSize), large = size >= 24 || (size >= 18.66 && +s.fontWeight >= 700);
-      out.push({ text: el.textContent.trim().slice(0, 28), tag: el.tagName.toLowerCase() + (el.className && typeof el.className === "string" ? "." + el.className.split(" ")[0] : ""), fg: s.color, bg: solid(el), min: large ? 3 : 4.5 });
-    });
-    return out;
-  }, scope);
 
   test("contrast helper measures known pairs", async () => {
     const near = (a, b) => Math.abs(a - b) < 0.02;
@@ -239,7 +212,7 @@ export default async function () {
     const lede = (await p.textContent(".hero-home .lede")).trim();
     assert(lede === "Your weekends are for living, not scrubbing. Mann cleans your home with care, so you come back to calm, and you pay only after the clean.", "hero subheading is: " + lede);
     const links = await p.$$eval(".hero-cta a", (as) => as.map((a) => [a.textContent.trim(), a.getAttribute("href")]));
-    assert(links.some(([t, h]) => t.startsWith("Book a clean") && h.endsWith("book/")), "hero needs Book a clean -> book/: " + JSON.stringify(links));
+    assert(links.some(([t, h]) => t.startsWith("Request a clean") && h.endsWith("book/")), "hero needs Request a clean -> book/: " + JSON.stringify(links));
     assert(links.some(([t, h]) => t.startsWith("How it works") && h.endsWith("#how")), "hero needs How it works -> #how: " + JSON.stringify(links));
   });
 

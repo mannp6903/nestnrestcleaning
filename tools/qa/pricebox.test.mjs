@@ -1,7 +1,7 @@
 // The price box: while the founding offer runs, the first-visit price is the big number.
 import fs from "node:fs";
 import path from "node:path";
-import { test, assert, newPage, withConfig, ROOT } from "./lib.mjs";
+import { test, assert, newPage, withConfig, ROOT, openSection } from "./lib.mjs";
 
 const txt = async (p, sel) => (await p.textContent(sel)).trim();
 const AMT = "[data-pricer] [data-p-amount]", UNIT = "[data-pricer] [data-p-unit]", META = "[data-pricer] [data-p-meta]";
@@ -57,6 +57,7 @@ export default async function () {
 
     await p.goto(url + "/book/?s=deep&h=house&bd=3&ba=2");
     await p.fill("#f-postal", "M1P 1A1");
+    await openSection(p, "extras");
     await p.click('label.extra[data-addon="oven"]');
     assert(await txt(p, "[data-total]") === "$392", "booking: deep 3/2 house with inside oven: " + await txt(p, "[data-total]"));
   });
