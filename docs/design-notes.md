@@ -79,6 +79,20 @@ Fonts: Plus Jakarta Sans for headings, buttons and money, DM Sans for text, both
 - **Labels above headings:** only where they add something the heading doesn't say. Not above FAQ headings, which already say "questions".
 - **Compact files:** the pages load `css/site.min.css` and `js/site.min.js`. Edit `css/site.css` and `js/site.js`, then run the build.
 
+## v6 preview: warm, not loud (30 October 2026, home page only)
+
+Mann asked whether the site looked boring. It read like a well-made template: mostly text, one layout pattern repeated, AI room photos, Mann hidden, and the brand's sand and sky barely used. v6 keeps the calm system above and adds warmth in a few places. It's a preview for Mann to approve; the rest of the site is unchanged.
+
+- **Hero** (`.hero-home`, ivory): a "New · Airbnb turnovers" link above the headline (`.hero-chip`, to `#hosts`), Mann introducing himself in the first person, and the postal check moved up from the areas section as one pill (`.hero-home .pc-row`, still `#pc-home`). The price box stays on the first phone screen and sits in the nest from the logo, the way the house does in the logo (`assets/logo-nest.svg`: the logo mark without its house, a decorative background on `.hero-visual::before`, on phones and computers).
+- **Postal check** (`bindPostalChecks()` in `js/site.js`, on the home hero, area and neighbourhood pages): checks the first three characters against the 41 postal areas in `serviceArea` (17 in Scarborough, 24 in North York, confirmed by Mann on 30 October 2026). In the area: "Yes, I clean in M1B (Scarborough)." and **Book now**, which opens booking with the postal code filled in. Outside: a calm note (ink, not the error red) and **Join the waitlist by email**, with the postal area in the subject. Anything that isn't a real postal area gets "Enter a postal code like M1B 2K3."
+- **Founder** (`#founder`): moved up to follow "How it works", on white, with a heading ("I clean every home myself.") so the quote reads as Mann's words, not a second headline.
+- **Insurance badge:** its spot is an HTML comment at the end of the trust strip (`trustStrip()`), to switch on when the policy starts in November 2026, with wording taken from the policy. Until then the site never says insured, bonded or fully covered.
+- **Mann at work** (`heroShots()`): an owner card, then three photo slots. Phones swipe through them (a focusable region); computers see one row. Each slot is a labelled `[PHOTO]` until its files exist in `assets/photos` as `mann-at-door`, `mann-kit` and `mann-linens` (`-600`/`-928` `.jpg` and `.webp`, like the room photos); the build then uses the photo. When the first one arrives, update the home test "hero has one main action and no decorative photo", which allows only the avatar today.
+- **Who I clean for** (`audiences()`): three tinted cards (sand for homes, sky for Airbnbs, teal for offices), each with its own way in.
+- **Airbnb turnovers** (`hostsSection()`, `#hosts`, sky): a timeline from an example 11am checkout to a 4pm check-in, down the page on phones and across on computers, then three offer cards and an email that opens with the host's questions ready.
+- **Placeholders** (`ph()`, `.ph`): anything Mann hasn't confirmed shows as a dashed sand tag, such as `[PRICE]`, `[OFFER]`, `[X]` or `[to confirm: whose linens]`. Never replace one with a guess.
+- **Motion:** the timeline steps and the audience cards rise 22px as they scroll into view, only where the browser supports scroll-driven animation and the visitor hasn't asked for less motion. Transform only, so text never fades below its contrast.
+
 ## Reference patterns
 
 v4 rendered the reference sites remotely on 29 October 2026 (they are blocked from this build environment directly). Earlier patterns keep their original evidence labels. All are original executions; no wording, images, code or page layouts were copied.

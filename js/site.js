@@ -261,7 +261,7 @@
     var assure = $("[data-assure]");
     var bd = C.badges || {};
     if (assure) {
-      [[bd.insured, "i-shield", "Fully insured"], [bd.ecoProducts, "i-leaf", "Eco-friendly, pet-safe products"], [bd.backgroundChecked, "i-user", "Police-checked cleaners"]]
+      [[bd.ecoProducts, "i-leaf", "Eco-friendly, pet-safe products"], [bd.backgroundChecked, "i-user", "Police-checked cleaners"]]
         .filter(function (x) { return x[0]; })
         .forEach(function (x) { assure.insertAdjacentHTML("beforeend", '<li><svg class="ic" aria-hidden="true"><use href="#' + x[1] + '"/></svg>' + esc(x[2]) + "</li>"); });
     }
@@ -326,7 +326,8 @@
   function formatPostal(v) { var p = normPostal(v); return p.length > 3 ? p.slice(0, 3) + " " + p.slice(3, 6) : p; }
   function zoneFor(v) {
     var p = normPostal(v);
-    if (!/^[A-Z]\d[A-Z]/.test(p)) return null;
+    // A real postal area: letter, digit, letter, from the letters Canada Post uses.
+    if (!/^[ABCEGHJ-NPRSTVXY]\d[ABCEGHJ-NPRSTV-Z]/.test(p)) return null;
     var fsa = p.slice(0, 3);
     var hit = C.serviceArea.districts.filter(function (d) {
       return d.prefixes.some(function (x) { return fsa.indexOf(x) === 0; });
@@ -339,15 +340,24 @@
     if (z.area) return { cls: "ok", text: "Yes, " + z.fsa + " is in our " + z.area + " area." };
     return { cls: "no", text: "This postal area (" + z.fsa + ") is outside our usual coverage of Scarborough and North York. If you're close by, " + REACH + " to ask whether we can help." };
   }
+  // Outside the area: an email that asks to join the waitlist, with the postal area filled in.
+  function waitlistLink(fsa) {
+    return "mailto:" + B.email + "?subject=" + encodeURIComponent("Waitlist: " + fsa) +
+      "&body=" + encodeURIComponent("Hi " + B.ownerFirstName + ", please let me know when you start cleaning in " + fsa + ".\n\nMy postal code: \nWhat I'd like cleaned (home, Airbnb or office): \n");
+  }
   function bindPostalChecks() {
     $$("[data-pc-form]").forEach(function (form) {
       form.addEventListener("submit", function (e) {
         e.preventDefault();
-        var m = zoneMessage(zoneFor($("input", form).value));
+        var z = zoneFor($("input", form).value);
         var out = $("[data-pc-result]", form);
-        out.className = "pc-result " + m.cls;
-        out.textContent = m.text;
-        if (m.cls === "ok") {
+        out.className = "pc-result " + (!z ? "no" : z.area ? "ok" : "out");
+        // In the area: a way straight into booking. Outside it: a friendly note and the waitlist. Not a postal code: how to write one.
+        out.innerHTML = !z ? "Enter a postal code like M1B 2K3."
+          : z.area ? '<span>Yes, I clean in ' + esc(z.fsa) + " (" + esc(z.area) + ').</span> <a class="btn btn-primary btn-sm" href="' + esc(link("book/")) + '" data-track="book_click">Book now</a>'
+          : "<span>Sorry, " + esc(z.fsa) + " is outside Scarborough and North York, where I clean for now. I'm growing one neighbourhood at a time.</span> " +
+            '<a class="text-link" href="' + esc(waitlistLink(z.fsa)) + '" data-track="email_click">Join the waitlist by email</a>';
+        if (z && z.area) {
           // Carried to the booking form in this tab only, like every personal detail.
           var d = store(DETAILS_KEY, undefined, true) || {};
           d.fields = d.fields || {};

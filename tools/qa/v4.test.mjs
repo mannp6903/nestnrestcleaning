@@ -116,7 +116,8 @@ export default async function () {
   test("links into booking use one vocabulary", async ({ browser, url }) => {
     // v5: the words match the stage. Into the form, "Request a clean" ("Request" where space is short); from a price, the day comes next;
     // from a plan, its name (docs/superpowers/specs/2026-10-30-website-v5-design.md).
-    const ok = ["Request a clean", "Choose a preferred day", "Request", "Request again", ...Object.values(C.frequencies).map((f) => "Choose " + f.label.toLowerCase())];
+    // v6: the postal check offers "Book now" once a postal code is in the area (Mann's wording).
+    const ok = ["Request a clean", "Choose a preferred day", "Request", "Request again", "Book now", ...Object.values(C.frequencies).map((f) => "Choose " + f.label.toLowerCase())];
     const p = await newPage(browser, { width: 390, height: 844, isMobile: true });
     const bad = [];
     for (const path of ["/", "/pricing/", "/services/deep-cleaning/", "/areas/scarborough/"]) {

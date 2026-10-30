@@ -49,7 +49,7 @@ All settings are in `js/config.js`. Prices and contact details update on every p
 - **Real jobs:** add finished cleans to `jobs` (only with the client's permission, and never a street, building or unit). They appear on the matching area and neighbourhood pages and the home page. This is the strongest proof the site can show.
 - **Guides:** the articles are in `tools/guides.mjs`. Prices inside them come from `js/config.js`.
 - **Adding a service or area, or changing page wording:** edit `js/config.js` or `tools/build.mjs`, then run `node tools/build.mjs` to regenerate the pages.
-- **Trust badges** (insured, eco-friendly, police-checked) are off. Switch each on in `badges` only once it's true and documented.
+- **Trust badges** (eco-friendly products, police-checked) are off. Switch each on in `badges` only once it's true and documented. The insurance badge's spot is commented out in the trust strip (`trustStrip()` in `tools/build.mjs`) until the policy starts in November 2026: write its wording from the policy itself.
 - **Service area:** postal-code prefixes for Scarborough and North York are in `serviceArea`. Requests from anywhere else are declined politely.
 - **Social icons:** hidden until you paste your Facebook and Instagram profile URLs into `business.facebookUrl` / `business.instagramUrl`. Run the build and the icons appear as links and are added to Google's business data.
 - **Hours and arrival windows:** open every day, 9am to 11pm. Change `business.hours`, `openDays`, `opens`/`closes` and `timeSlots` in `js/config.js`, then run the build.

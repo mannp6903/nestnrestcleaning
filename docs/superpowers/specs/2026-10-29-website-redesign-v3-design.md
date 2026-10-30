@@ -35,7 +35,7 @@ Evidence used instead, labelled by strength:
 4. **Separate paths for different customers** (MaidThis residential vs host paths, unverified). Below the four home services, a slim row reads: not a regular home? Residence Care, offices, realtors. Only existing services; no Airbnb service is added.
 5. **Explain the price in steps, with a worked example** (Maid Sailors-style add-on pricing, unverified; a common convention). The pricing page shows: base, then extras, then one discount, then estimate, then Mann confirms.
 
-**Not adopted:** a contact form in front of the price, repeated CTAs, national clutter, and any claim this business can't support (insured, bonded, reviews, counts, years).
+**Not adopted:** a contact form in front of the price, repeated CTAs, national clutter, and any claim this business can't support (insurance or bonding, reviews, counts, years).
 
 ## 2. Baseline audit (observed in local renders of `35051ad`)
 
