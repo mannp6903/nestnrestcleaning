@@ -55,9 +55,10 @@ window.NR_CONFIG = {
     metaPixelId: ""   // e.g. "123456789012345" from Meta Events Manager
   },
 
-  /* Trust badges. Switch one to true only once it's actually true for your business. */
+  /* Trust badges. Switch one to true only once it's actually true for your business.
+     The insurance badge isn't here: its spot is commented out in the trust strip (trustStrip() in tools/build.mjs)
+     until the policy starts in November 2026. */
   badges: {
-    insured: false,
     ecoProducts: false,
     backgroundChecked: false
   },
@@ -285,11 +286,13 @@ window.NR_CONFIG = {
   openDays: [0, 1, 2, 3, 4, 5, 6],   // 0 = Sunday
   daysAhead: 21,
 
-  /* Where we clean, by postal code (first 3 characters). Requests from anywhere else are declined politely. */
+  /* Where we clean, by postal area: the first 3 characters of a postal code (the FSA). 41 areas, confirmed by Mann
+     on 30 Oct 2026. In an area, the postal check offers "Book now"; anywhere else, a friendly note and a waitlist email.
+     The area pages list these, so the page and the check always agree. */
   serviceArea: {
     label: "Scarborough & North York",
     districts: [
-      { name: "Scarborough", prefixes: ["M1"] },
+      { name: "Scarborough", prefixes: ["M1B", "M1C", "M1E", "M1G", "M1H", "M1J", "M1K", "M1L", "M1M", "M1N", "M1P", "M1R", "M1S", "M1T", "M1V", "M1W", "M1X"] },
       { name: "North York", prefixes: ["M2H", "M2J", "M2K", "M2L", "M2M", "M2N", "M2P", "M2R", "M3A", "M3B", "M3C", "M3H", "M3J", "M3K", "M3L", "M3M", "M3N", "M4A", "M5M", "M6A", "M6B", "M6L", "M9L", "M9M"] }
     ]
   },

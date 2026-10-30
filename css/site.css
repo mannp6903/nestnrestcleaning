@@ -1340,13 +1340,23 @@ a.svc-card:hover .svc-arrow { transform: translateX(4px); }
 .hero-home .pc-row .btn { min-height: 44px; padding-inline: 22px; }
 .hero-home .pc-result:empty { min-height: 0; }
 
-/* A soft nest under the price box (computers only) */
-.hero-visual { position: relative; }
-.hero-nest { display: none; overflow: visible; }
-.hero-nest path { fill: none; stroke-linecap: round; }
-.hero-nest .nest-sand { stroke: var(--sand); stroke-width: 34; opacity: .8; }
-.hero-nest .nest-sky { stroke: var(--sky); stroke-width: 12; opacity: .7; }
-:root[data-theme="dark"] .hero-nest { opacity: .35; }
+/* The price box sits in the nest from the logo (assets/logo-nest.svg, the logo mark without its house),
+   the way the house does in the logo: the swooshes curl up beside the box and under it. Decorative, so a background. */
+.hero-home .hero-visual { position: relative; margin-bottom: 30px; }
+.hero-home .hero-visual::before { content: ""; position: absolute; z-index: 0; left: -22px; right: -22px; bottom: -40px; aspect-ratio: 1887 / 1169;
+  background: url("../assets/logo-nest.svg") center bottom / contain no-repeat; pointer-events: none; }
+.hero-home .hero-pricer { position: relative; z-index: 1; }
+:root[data-theme="dark"] .hero-home .hero-visual::before { opacity: .7; }
+
+/* Postal check results: in the area, a way into booking; outside it, a calm note and the waitlist (not an error colour) */
+.pc-result.ok:not(:empty), .pc-result.out { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+.pc-result.out { color: var(--ink); font-weight: 600; }
+.pc-result .btn { flex: none; }
+.pc-result .text-link { font-size: 0.95rem; }
+
+/* Founder: a heading says what matters (Mann cleans every home), so the quote under it reads as his words, not a second headline */
+.founder-head { margin-bottom: 0; }
+.founder-head + .founder-quote blockquote p:first-child { font-size: var(--fs-lede); font-weight: 600; line-height: 1.45; }
 
 /* Mann at work: an owner card, then three photos. Phones swipe through them; computers see one row. */
 .hero-shots { grid-area: shots; display: grid; grid-auto-flow: column; grid-auto-columns: min(74%, 300px); gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; scrollbar-width: none;
@@ -1405,9 +1415,9 @@ a.svc-card:hover .svc-arrow { transform: translateX(4px); }
 }
 @media (min-width: 60em) {
   .hero-home .hero-grid { grid-template-areas: "copy visual" "shots shots"; grid-template-rows: auto auto; }
-  .hero-home .hero-nest { display: block; position: absolute; z-index: 0; left: -56px; width: calc(100% + 112px); height: auto; bottom: -96px; pointer-events: none; }
-  .hero-home .hero-pricer { position: relative; z-index: 1; }
-  .hero-shots { grid-auto-flow: row; grid-template-columns: minmax(0, 0.9fr) repeat(3, minmax(0, 1fr)); overflow: visible; margin: 36px 0 0; padding: 0; position: relative; z-index: 1; }
+  .hero-home .hero-visual { margin-bottom: 0; }
+  .hero-home .hero-visual::before { left: -64px; right: -64px; bottom: -78px; }
+  .hero-shots { grid-auto-flow: row; grid-template-columns: minmax(0, 0.9fr) repeat(3, minmax(0, 1fr)); overflow: visible; margin: 52px 0 0; padding: 0; position: relative; z-index: 1; }
   .turnover { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 24px; padding: 36px 0 0; }
   /* The line runs from the first dot to the last: the last column's width (less the dot's centre) is left uncovered. */
   .turnover::before { left: 10px; right: calc((100% - 96px) / 5 - 10px); top: 9px; bottom: auto; border-left: 0; border-top: 2px dashed var(--teal); }

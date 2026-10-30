@@ -508,8 +508,11 @@ function trustStrip() {
     ["i-clock", "Open 7 days, 9am to 11pm"],
     ["i-pin", "Scarborough & North York"]
   ];
+  // The insurance badge waits here until the policy starts (November 2026). To switch it on, move the <li> out of the
+  // comment, write its wording from the policy itself, and check the trust strip still lays out (tablet test).
+  const insuranceSpot = `<!-- Insurance badge, from November 2026: <li>${ic("i-shield")}<span>[BADGE TEXT FROM YOUR POLICY]</span></li> -->`;
   return `<section class="trust-strip" aria-label="Our promises">
-  <div class="wrap"><ul class="trust" data-assure>${items.map(([i, t]) => `<li>${ic(i)}<span>${esc(t)}</span></li>`).join("")}</ul></div>
+  <div class="wrap"><ul class="trust" data-assure>${items.map(([i, t]) => `<li>${ic(i)}<span>${esc(t)}</span></li>`).join("")}${insuranceSpot}</ul></div>
 </section>`;
 }
 
@@ -836,9 +839,6 @@ function heroShots(L) {
     </div>`;
 }
 
-// A soft nest under the price box, drawn from the logo's sand and sky swooshes.
-// The price box sits in it, like the house in the logo.
-const HERO_NEST = `<svg class="hero-nest" viewBox="0 0 620 200" aria-hidden="true" focusable="false"><path class="nest-sand" d="M16 14C66 176 554 176 604 14"/><path class="nest-sky" d="M54 26C102 148 518 148 566 26"/></svg>`;
 
 // Who we clean for: one card per kind of client, each with its own way in.
 function audiences(L) {
@@ -912,7 +912,6 @@ urls.push(page({
       </div>
     </div>
     <div class="hero-visual">
-      ${HERO_NEST}
       <div class="hero-pricer">${pricer(L)}</div>
     </div>
     ${heroShots(L)}
@@ -960,6 +959,23 @@ ${hostsSection()}
   </div>
 </section>
 
+<section class="section founder" id="founder" aria-labelledby="founder-title">
+  <div class="wrap founder-grid">
+    ${founderPhoto(L)}
+    <div class="founder-body">
+      <div class="section-head founder-head"><p class="label">Meet your cleaner</p><h2 id="founder-title">I clean every home myself.</h2></div>
+      <figure class="founder-quote">
+        <blockquote>
+          <p>“I started Nest &amp; Rest to give families their time back and a fresh, healthy home, with the best care and value in every visit.</p>
+          <p class="founder-promise">If anything isn't right, tell me, and I'll come back and make it right.”</p>
+        </blockquote>
+        <figcaption><strong data-owner>${esc(B.owner)}</strong><span>Founder &amp; Owner</span></figcaption>
+      </figure>
+      <a class="text-link" href="${L("vision/")}">Read ${esc(B.ownerFirstName)}'s vision ${ic("i-arrow")}</a>
+    </div>
+  </div>
+</section>
+
 <section class="section standard" id="standard">
   <div class="wrap standard-grid">
     <div>
@@ -999,23 +1015,6 @@ ${hostsSection()}
     </div>
     ${plansGrid(L)}
     <p class="fine">Choosing a plan opens the booking form with it selected. Your own home's price is worked out there.</p>
-  </div>
-</section>
-
-<section class="section section-tint founder" id="founder">
-  <div class="wrap founder-grid">
-    ${founderPhoto(L)}
-    <div class="founder-body">
-      <figure class="founder-quote">
-        <p class="label">From our founder</p>
-        <blockquote>
-          <p>“I started Nest &amp; Rest to give families their time back and a fresh, healthy home, with the best care and value in every visit.</p>
-          <p class="founder-promise">If anything isn't right, tell me, and I'll come back and make it right.”</p>
-        </blockquote>
-        <figcaption><strong data-owner>${esc(B.owner)}</strong><span>Founder &amp; Owner</span></figcaption>
-      </figure>
-      <a class="text-link" href="${L("vision/")}">Read ${esc(B.ownerFirstName)}'s vision ${ic("i-arrow")}</a>
-    </div>
   </div>
 </section>
 
