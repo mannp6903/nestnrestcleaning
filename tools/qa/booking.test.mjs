@@ -1,5 +1,5 @@
 // The booking form's behaviour: one scope rule, honest request status, private drafts, dates, screening, focus.
-import { test, assert, newPage, mockDelivery, loadConfig } from "./lib.mjs";
+import { test, assert, newPage, mockDelivery, loadConfig, openSection, editHome } from "./lib.mjs";
 
 const total = async (p) => (await p.textContent("[data-total]")).trim();
 const extra = (id) => `label.extra[data-addon="${id}"]`;
@@ -24,11 +24,13 @@ export default async function () {
     const p = await newPage(browser);
     await p.goto(url + "/book/?s=deep&h=house&bd=3&ba=2");
     await p.fill("#f-postal", "M1P 1A1");
+    await openSection(p, "extras");
     await p.click(extra("oven"));
     await p.click(extra("pets"));
     assert(await total(p) === "$408", "deep 3/2 house + oven + pets should be $408, got " + await total(p));
     await p.click(extra("laundry"));
     assert(await total(p) === "$428", "adding laundry should give $428, got " + await total(p));
+    await editHome(p);
     await p.check('input[name="service"][value="move"]', { force: true });
     assert(await total(p) === "$392", "move-out should be $392, got " + await total(p));
     const walls = await p.$eval(extra("walls"), (el) => [el.className, el.querySelector("input").disabled, el.querySelector("input").checked, el.querySelector("[data-addon-price]").textContent]);
@@ -103,6 +105,7 @@ export default async function () {
     const p = await newPage(browser, { width: 390, height: 844 });
     await toDetails(p, url);
     await fillDetails(p);
+    await openSection(p, "visit");
     await p.fill("#f-notes", "Focus on the kitchen");
     const date = await p.$eval("[data-dates] input:checked", (i) => i.value);
     await p.click('[data-review] button[data-edit-step="2"] >> nth=0');
@@ -131,6 +134,7 @@ export default async function () {
     const p = await newPage(browser);
     await p.goto(url + "/book/?s=deep&h=house&bd=3&ba=2");
     await p.fill("#f-postal", "M1P 1A1");
+    await openSection(p, "extras");
     await p.click(extra("oven"));
     await p.click(extra("pets"));
     await p.click("[data-next]");
@@ -143,6 +147,7 @@ export default async function () {
     const p = await newPage(browser);
     await p.goto(url + "/book/?s=deep&h=house&bd=3&ba=2");
     await p.fill("#f-postal", "M1P 1A1");
+    await openSection(p, "checks");
     await p.click('label.check:has(input[value="large"])');
     assert(await p.isVisible("[data-quote-route]"), "the quote route should appear");
     await p.click("[data-next]");
@@ -199,6 +204,7 @@ export default async function () {
     const p = await newPage(browser);
     await toDetails(p, url);
     await fillDetails(p);
+    await openSection(p, "visit");
     await p.click('label:has(input[name="pets"][value="Dog"])');
     await p.fill("#f-notes", "<b>Ring twice</b>");
     await p.press("#f-notes", "Tab");
@@ -212,6 +218,7 @@ export default async function () {
     await toDetails(p, url);
     await fillDetails(p);
     const notes = Array(60).fill("kitchen").join(" ");
+    await openSection(p, "visit");
     await p.fill("#f-notes", notes);
     await p.press("#f-notes", "Tab");
     const v = await reviewValue(p, "Notes");
@@ -224,7 +231,11 @@ export default async function () {
     const p = await newPage(browser);
     await toDetails(p, url);
     await fillDetails(p);
+    await openSection(p, "visit");
     await p.click('label:has(input[name="pets"][value="Dog"])');
+    // Folded again, Edit still lands on the control: the section opens first.
+    await p.click('details[data-section="visit"] > summary');
+    assert(await p.isHidden("#f-notes"), "visit preferences should fold away");
     await p.click('[data-review] button[data-edit-focus*="pets"]');
     const pets = await p.evaluate(() => [document.activeElement.name, document.activeElement.value, document.activeElement.checked]);
     assert(pets[0] === "pets" && pets[1] === "Dog" && pets[2], "pets edit focus: " + pets.join(" | "));

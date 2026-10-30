@@ -70,7 +70,7 @@ export default async function () {
     assert(title === "Thank you, Priya.", "done title: " + title);
   });
 
-  test("pricing shows one table at a time on phones, all four on computers", async ({ browser, url }) => {
+  test("pricing shows one table at a time, at every width", async ({ browser, url }) => {
     const p = await newPage(browser, { width: 390, height: 844, isMobile: true });
     await p.goto(url + "/pricing/");
     const shown = () => p.$$eval(".price-card", (cs) => cs.filter((c) => c.offsetParent).map((c) => c.id));
@@ -84,9 +84,10 @@ export default async function () {
     assert((await shown())[0] === "prices-detail", "End moves to the last table");
     await p.goto(url + "/pricing/#prices-move");
     assert(JSON.stringify(await shown()) === '["prices-move"]', "a link to #prices-move opens that table: " + await shown());
+    // v5: computers get the tabs too, so the page doesn't stack four long tables.
     await p.setViewportSize({ width: 1280, height: 900 });
     await p.waitForTimeout(100);
-    assert((await shown()).length === 4 && await p.locator(".price-tabs").count() === 0, "computers see every table and no tabs");
+    assert(JSON.stringify(await shown()) === '["prices-move"]' && await p.isVisible(".price-tabs"), "computers see one table, with the tabs: " + await shown());
   });
 
   test("navy panels line up with the page", async ({ browser, url }) => {
@@ -110,7 +111,9 @@ export default async function () {
   });
 
   test("links into booking use one vocabulary", async ({ browser, url }) => {
-    const ok = ["Book a clean", "Book this clean", "Book", "Book again"];
+    // v5: the words match the stage. Into the form, "Request a clean" ("Request" where space is short); from a price, the day comes next;
+    // from a plan, its name (docs/superpowers/specs/2026-10-30-website-v5-design.md).
+    const ok = ["Request a clean", "Choose a preferred day", "Request", "Request again", ...Object.values(C.frequencies).map((f) => "Choose " + f.label.toLowerCase())];
     const p = await newPage(browser, { width: 390, height: 844, isMobile: true });
     const bad = [];
     for (const path of ["/", "/pricing/", "/services/deep-cleaning/", "/areas/scarborough/"]) {
@@ -124,7 +127,7 @@ export default async function () {
     assert(!bad.length, "unexpected booking labels: " + [...new Set(bad)].join("; "));
   });
 
-  test("the phone menu leads with Book a clean, fully in view", async ({ browser, url }) => {
+  test("the phone menu leads with Request a clean, fully in view", async ({ browser, url }) => {
     const p = await newPage(browser, { width: 390, height: 844 });
     for (const y of [0, 600]) {
       await p.goto(url + "/");
@@ -134,7 +137,7 @@ export default async function () {
         const first = document.querySelector("#menu a"), b = first.getBoundingClientRect(), hit = document.elementFromPoint(b.left + b.width / 2, b.top + 4);
         return { text: first.textContent.trim(), clear: !!(hit && first.contains(hit)), groups: [...document.querySelectorAll("#menu .label")].map((l) => l.textContent.trim()) };
       });
-      assert(r.text === "Book a clean" && r.clear, `scrolled ${y}px: the menu should open with Book a clean in full view: ` + JSON.stringify(r));
+      assert(r.text === "Request a clean" && r.clear, `scrolled ${y}px: the menu should open with Request a clean in full view: ` + JSON.stringify(r));
       assert(JSON.stringify(r.groups) === '["Services","Plan your clean","About us"]', "menu groups: " + r.groups);
     }
   });
@@ -176,9 +179,9 @@ export default async function () {
   test("booking says when the price box filled things in", async ({ browser, url }) => {
     const p = await newPage(browser, { width: 390, height: 844 });
     await p.goto(url + "/book/?s=deep&h=house&bd=3&ba=2");
-    assert(await p.isVisible("[data-prefill]"), "arriving from a price box shows the note");
+    assert(await p.isVisible("[data-picked]"), "arriving from a price box shows its choices in a card");
     await p.goto(url + "/book/");
-    assert(await p.isHidden("[data-prefill]"), "arriving directly shows no note");
+    assert(await p.isHidden("[data-picked]") && await p.isVisible("[data-home-fields]"), "arriving directly shows the full choices");
   });
 
   test("headings never hyphenate", async ({ browser, url }) => {

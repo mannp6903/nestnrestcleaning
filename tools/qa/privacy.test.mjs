@@ -1,5 +1,5 @@
 // Analytics events carry categories and amounts only, never what a customer typed.
-import { test, assert, newPage } from "./lib.mjs";
+import { test, assert, newPage, openSection } from "./lib.mjs";
 
 export default async function () {
   test("analytics never receives personal data", async ({ browser, url }) => {
@@ -15,6 +15,7 @@ export default async function () {
     await p.fill("#f-phone", "416 555 0199");
     await p.fill("#f-email", "zed@example.com");
     await p.fill("#f-address", "99 Hidden Lane");
+    await openSection(p, "visit");
     await p.fill("#f-notes", "gate code 4321");
     await p.waitForTimeout(1700); // let quote_viewed fire
     await p.click("[data-submit]");

@@ -306,6 +306,11 @@
     var b = key === "detail" ? 1 : beds;
     return roundTo((s.base + Math.max(0, b - 1) * s.perBed + Math.max(0, baths - 1) * s.perBath) * f, 5);
   }
+  // What a price is for, the same wording as priceFor in tools/build.mjs: "Regular Cleaning · 1-bedroom, 1-bathroom condo".
+  function priceFor(key, beds, baths, home) {
+    var h = (C.homeTypes[home] || C.homeTypes.condo).short.toLowerCase();
+    return C.services[key].menuName + " · " + (key === "detail" ? "kitchen and " + baths + " bathroom" + (baths > 1 ? "s" : "") + ", " + h : beds + "-bedroom, " + baths + "-bathroom " + h);
+  }
   function hoursFor(key, beds, baths, home, addons) {
     var s = C.services[key];
     var f = (C.homeTypes[home] || C.homeTypes.condo).factor;
@@ -380,6 +385,8 @@
       var p = price(st.service, st.beds, st.baths, st.home);
       // While the founding offer runs, the first-visit price leads and the regular price sits under it (the booking total's rule).
       var f = C.offers.founding, on = !!(f && f.active), h = hoursFor(st.service, st.beds, st.baths, st.home);
+      var pf = $("[data-p-for]", form);
+      if (pf) pf.textContent = priceFor(st.service, st.beds, st.baths, st.home);
       var amt = $("[data-p-amount]", form), shown = money(on ? afterDiscount(p, f.percent) : p);
       if (touched && amt.textContent !== shown) pulse($(".pricer-result", form));
       amt.textContent = shown;
@@ -481,6 +488,21 @@
       $$(STEP_TARGETS[name], form).forEach(function (el) { if (msg) el.setAttribute("aria-describedby", box.id); else el.removeAttribute("aria-describedby"); });
     }
     function firstOption(sel) { return $$(sel + " input", form).filter(function (i) { return !i.disabled; })[0]; }
+    // Arriving from a price box, the service and home sit in one card with Edit; optional parts fold into sections.
+    // Anything about to take focus (an error, an Edit from the review) is unfolded first.
+    var homeFields = $("[data-home-fields]"), picked = $("[data-picked]");
+    function showHomeFields(focus) {
+      if (!homeFields) return;
+      homeFields.hidden = false;
+      if (picked) picked.hidden = true;
+      if (focus) { var i = $('input[name="service"]:checked', form) || $('input[name="service"]', form); if (i) i.focus(); }
+    }
+    function reveal(el) {
+      if (!el) return;
+      var d = el.closest("details");
+      if (d) d.open = true;
+      if (homeFields && homeFields.hidden && homeFields.contains(el)) showHomeFields(false);
+    }
     // One reference per request. A retry after a failed send keeps it, so a request that arrives twice is easy to spot.
     var ref = null, attempt = null;
     var started = false;
@@ -509,6 +531,34 @@
       return '<label class="date-chip"><input type="radio" name="date" value="' + iso(d) + '" aria-label="' + esc(longDate(iso(d))) + '"><span><small>' +
         wd.format(d) + "</small><strong>" + d.getDate() + "</strong><small>" + mo.format(d) + "</small></span></label>";
     }).join("");
+    // Earlier and Later page through the strip a screen at a time, and the line between them says which dates are in view.
+    var dateNav = $("[data-date-nav]");
+    function dateChips() { return $$(".date-chip", datesBox); }
+    function dateRange() {
+      if (!dateNav || !datesBox.clientWidth) return;
+      var x = datesBox.scrollLeft, w = datesBox.clientWidth;
+      var seen = dateChips().filter(function (c) { return c.offsetLeft >= x - 2 && c.offsetLeft + c.offsetWidth <= x + w + 2; });
+      if (!seen.length) return;
+      $("[data-date-range]", dateNav).textContent = shortDate($("input", seen[0]).value) + " – " + shortDate($("input", seen[seen.length - 1]).value);
+      var steps = $$("[data-date-step]", dateNav);
+      steps[0].disabled = x <= 2;
+      steps[1].disabled = x + w >= datesBox.scrollWidth - 2;
+    }
+    if (dateNav && datesBox) {
+      dateNav.hidden = false;
+      $$("[data-date-step]", dateNav).forEach(function (b) {
+        b.addEventListener("click", function () {
+          var dir = +b.getAttribute("data-date-step"), x = datesBox.scrollLeft, w = datesBox.clientWidth, chips = dateChips(), to;
+          // Later: the first date cut off on the right comes first. Earlier: the date before the first in view comes last.
+          if (dir > 0) { var next = chips.filter(function (c) { return c.offsetLeft + c.offsetWidth > x + w + 2; })[0]; to = next ? next.offsetLeft - 2 : x + w; }
+          else { var prev = chips.filter(function (c) { return c.offsetLeft < x - 2; }).pop(); to = prev ? prev.offsetLeft + prev.offsetWidth + 2 - w : 0; }
+          var still = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+          datesBox.scrollTo({ left: Math.max(0, to), behavior: still ? "auto" : "smooth" });
+        });
+      });
+      datesBox.addEventListener("scroll", function () { cancelAnimationFrame(dateRange.f); dateRange.f = requestAnimationFrame(dateRange); }, { passive: true });
+      window.addEventListener("resize", dateRange);
+    }
 
     function quote() {
       var s = C.services[state.service];
@@ -584,6 +634,7 @@
       html += line("Time on site", "about " + q.hours + " hrs, " + (CLEANERS === 1 ? "1 cleaner" : CLEANERS + " cleaners"), "then");
       if (q.review && !q.quoteOnly) html += line("Final price", esc(B.ownerFirstName) + " confirms", "then warn");
       $("[data-lines]").innerHTML = html;
+      renderSections(q);
       var tot = $("[data-total]"), shownTotal = q.quoteOnly ? "Quote" : moneyC(q.first);
       if (started && tot.textContent !== shownTotal) pulse(tot);
       tot.textContent = shownTotal;
@@ -629,6 +680,25 @@
       if (html !== reviewHtml) { box.innerHTML = html; reviewHtml = html; }
     }
 
+    // Each folded section's summary says what's chosen in it.
+    function renderSections(q) {
+      q = q || quote();
+      var set = function (name, text, on) {
+        var el = $('[data-section-status="' + name + '"]', form);
+        if (!el) return;
+        el.textContent = text;
+        el.classList.toggle("is-set", !!on);
+      };
+      set("checks", q.checks.length ? q.checks.map(function (c) { return c.label; }).join(" · ") : "None", q.checks.length);
+      var extra = q.addons.reduce(function (t, a) { return t + a.price; }, 0);
+      set("extras", q.addons.length ? q.addons.map(function (a) { return a.name; }).join(" · ") + " · +" + money(extra)
+        : "None added" + (q.included.length ? " · " + q.included.length + " included in " + q.s.menuName : ""), q.addons.length);
+      var visit = [val("f-access") || "I'll be home", radioVal("pets"), radioVal("products")];
+      if (val("f-notes")) visit.push("Notes added");
+      set("visit", visit.join(" · "), visit.join(" · ") !== "I'll be home · No pets · Our products");
+      set("referral", val("f-referrer") || "No", val("f-referrer"));
+    }
+
     // Extras this service includes or doesn't offer can't stay selected. Say what changed, rather than change it silently.
     function normalizeAddons(notify) {
       var s = C.services[state.service], msgs = [];
@@ -667,6 +737,10 @@
       $("[data-inc]", baths).disabled = state.baths >= 6;
       beds.hidden = state.service === "detail";
       var s = C.services[state.service];
+      if (picked) {
+        $("[data-picked-what]", picked).textContent = s.name;
+        $("[data-picked-home]", picked).textContent = homeLine(quote());
+      }
       var incl = [], none = [];
       $$("[data-addon]", form).forEach(function (row) {
         var id = row.getAttribute("data-addon"), input = $("input", row), st = addonStatus(state.service, id), a = addonById(id);
@@ -728,6 +802,13 @@
       markDots(n);
       $("[data-prev]").hidden = n === 1;
       $("[data-next]").hidden = n === LAST;
+      var nextLabel = (JSON.parse($("[data-next]").getAttribute("data-next-labels") || "[]"))[n - 1];
+      if (nextLabel) $("[data-next-label]").textContent = nextLabel;
+      if (datesBox && n === 2) {
+        var on = $("[data-dates] input:checked");
+        if (on) datesBox.scrollLeft = Math.max(0, on.parentNode.offsetLeft - 2);
+        dateRange();
+      }
       $("[data-submit]").hidden = n !== LAST;
       $("[data-form-error]").hidden = true;
       Object.keys(STEP_TARGETS).forEach(function (k) { stepError(k, ""); });
@@ -771,6 +852,7 @@
           failed(1, "home", "needs_quote");
           stepError("quote", "Homes over about 3,000 sq ft are priced by quote. Use the Residence Care button, or untick that box.");
           var ql = $("[data-quote-link]");
+          reveal(ql);
           if (ql) ql.focus();
           return false;
         }
@@ -791,7 +873,7 @@
           var el = $("#" + id);
           if (!checkField(el)) { failed(n, id.slice(2), "invalid"); if (!first) first = el; }
         });
-        if (first) { msg = "Please fix the highlighted fields."; first.focus(); }
+        if (first) { msg = "Please fix the highlighted fields."; reveal(first); first.focus(); }
       }
       if (msg) {
         var err = $("[data-form-error]");
@@ -831,6 +913,8 @@
       var bd = parseInt(q.get("bd"), 10), ba = parseInt(q.get("ba"), 10);
       if (bd >= 1) state.beds = bd;
       if (ba >= 1) state.baths = ba;
+      // A plan chosen on the plans strip (?f=biweekly) arrives selected.
+      if (q.get("f") && C.frequencies[q.get("f")]) state.freq = q.get("f");
       // Anything saved on the device or typed into the address bar is checked again before it's used.
       if (!C.services[state.service]) state.service = "regular";
       if (!C.homeTypes[state.homeType]) state.homeType = "condo";
@@ -858,7 +942,7 @@
     function start() {
       if (started) return;
       started = true;
-      track("booking_started", { service: state.service, source: /[?&]s=/.test(location.search) ? "price_box" : "direct" });
+      track("booking_started", { service: state.service, source: /[?&]f=/.test(location.search) ? "plan" : /[?&]s=/.test(location.search) ? "price_box" : "direct" });
     }
 
     form.addEventListener("change", function (e) {
@@ -883,7 +967,7 @@
       start();
       if (e.target.classList.contains("invalid")) checkField(e.target);
       if (e.target.id === "f-postal") onPostal();
-      else renderReview();
+      else { renderReview(); renderSections(); }
       clearTimeout(form.t);
       form.t = setTimeout(save, 400);
     });
@@ -906,6 +990,7 @@
       var n = +b.getAttribute("data-edit-step");
       if (n !== state.step) showStep(n, false);
       var el = $(b.getAttribute("data-edit-focus"), form);
+      reveal(el);
       if (el) { el.focus({ preventScroll: true }); el.scrollIntoView({ block: "center" }); }
       track("review_edit", { step: n });
     });
@@ -925,8 +1010,12 @@
     form.addEventListener("focusin", function (e) {
       var el = e.target;
       if (window.innerWidth >= 960 || el.closest(".step-nav")) return;
+      // A tap that focuses a summary or button must not scroll it away before the tap ends, or the tap is lost.
+      try { if (!el.matches(":focus-visible")) return; } catch (err) { /* older browsers: keep the guard */ }
       var box = (el.matches("input[type=radio], input[type=checkbox]") && el.closest("label")) || el;
-      if (box.getBoundingClientRect().bottom > window.innerHeight - 150) box.scrollIntoView({ block: "center", behavior: "instant" });
+      // The bars' real height: larger text can wrap the buttons onto two rows.
+      var bars = $(".step-nav", form).getBoundingClientRect().height + (sumBar ? sumBar.getBoundingClientRect().height : 0) + 16;
+      if (box.getBoundingClientRect().bottom > window.innerHeight - Math.max(150, bars)) box.scrollIntoView({ block: "center", behavior: "instant" });
     });
     $("[data-summary-toggle]").addEventListener("click", function () {
       var open = !sum.classList.contains("open");
@@ -1172,9 +1261,20 @@
     });
 
     restore();
-    // Arriving from a price box: say that its choices came along, so nothing looks asked twice.
-    var pre = $("[data-prefill]");
-    if (pre && /[?&]s=/.test(location.search)) pre.hidden = false;
+    var qs = new URLSearchParams(location.search);
+    // Arriving from a price box: its choices sit in one card with Edit, so nothing looks asked twice.
+    if (picked && homeFields && qs.get("s") && qs.get("h")) {
+      picked.hidden = false;
+      homeFields.hidden = true;
+      $("[data-picked-edit]", picked).addEventListener("click", function () { showHomeFields(true); });
+    }
+    // Arriving from a plan: say it's selected, and where to change it.
+    var planNote = $("[data-plan-note]"), fr = C.frequencies[qs.get("f")];
+    if (planNote && fr && C.services[state.service].recurring) {
+      $("[data-plan-note-text]", planNote).innerHTML = "<strong>" + esc(fr.label) + "</strong> selected" + (fr.discount ? ", " + fr.discount + "% off every visit" : "") +
+        ". Add your home below for your price. You can change the plan " + (CAL ? "below." : "on the next step.");
+      planNote.hidden = false;
+    }
     // A saved draft or an old link can't carry an extra this service includes or doesn't offer.
     normalizeAddons(true);
     normalizeSlot(false);
@@ -1609,12 +1709,21 @@
   /* ---------- Pricing: one price table at a time on phones and tablets ---------- */
   // A tab per service above the tables (css/site.css hides the other tables while .is-tabbed is on).
   // Wider screens, and anyone without this script, see all four. A link to #prices-deep opens that table.
+  // Pricing: one service's price table at a time, at every width, picked from tabs. Without the script, all four show.
+  // A link to #compare opens the room-by-room comparison it lands on.
   function bindPriceTabs() {
+    var cmp = $("[data-compare]");
+    if (cmp) {
+      var openCmp = function () { if (location.hash === "#compare") cmp.open = true; };
+      openCmp();
+      window.addEventListener("hashchange", openCmp);
+      $$('a[href="#compare"]').forEach(function (a) { a.addEventListener("click", function () { cmp.open = true; }); });
+    }
     var box = $(".price-cards");
-    if (!box || !window.matchMedia) return;
+    if (!box) return;
     var cards = $$(".price-card[data-tab-label]", box);
     if (cards.length < 2) return;
-    var mq = window.matchMedia("(max-width: 59.9375em)"), list = null, current = 0;
+    var list = null, current = 0;
     cards.forEach(function (c, i) { if (location.hash === "#" + c.id) current = i; });
     function select(i, focus) {
       current = i;
@@ -1653,16 +1762,7 @@
       box.classList.add("is-tabbed");
       select(current);
     }
-    function off() {
-      if (!list) return;
-      list.parentNode.removeChild(list);
-      list = null;
-      box.classList.remove("is-tabbed");
-      cards.forEach(function (c) { c.classList.remove("is-active"); c.removeAttribute("role"); c.removeAttribute("aria-labelledby"); });
-    }
-    function apply() { if (mq.matches) on(); else off(); }
-    apply();
-    if (mq.addEventListener) mq.addEventListener("change", apply); else if (mq.addListener) mq.addListener(apply);
+    on();
     window.addEventListener("hashchange", function () {
       cards.forEach(function (c, i) { if (location.hash === "#" + c.id) { current = i; if (list) select(i); } });
     });

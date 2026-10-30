@@ -7,25 +7,30 @@ Note anything that looks wrong or confusing (a screenshot helps) and send it to 
 ## 1. Book to the last step (3 minutes)
 
 1. Open the home page. In the price box, change bedrooms and bathrooms.
+   - The line above the big number should say what it's for, e.g. "Regular Cleaning · 2-bedroom, 1-bathroom condo".
    - The big number should be the first-visit price.
    - "Regular price" should sit under it.
-2. Tap **Book this clean**.
+2. Tap **Choose a preferred day**.
+   - Your service and home should show as one card with **Edit**.
    - Type your postal code with the phone keyboard. A postal-style keyboard is a plus.
-   - Tap Continue.
-3. Pick a day and an arrival time, then tap Continue.
+   - Tap **Extras**: it should open with one tap. Add one, close it, and check its name and price show on the closed section.
+   - Tap **Choose a preferred day**.
+3. Tap the **→** beside the dates: later dates should slide in and the date range between the arrows should change. Pick a day and an arrival time, then tap **Add your details**.
 4. On Your details, let the phone autofill your name, phone and address if it offers to.
-   - Pick a pet and type a short note.
+   - Open **Visit preferences**, pick a pet and type a short note.
 5. Check that **Check your clean** shows your Pets choice and your note.
    - Tap one of its **Edit** links: it should jump to that field.
 6. Don't send it (unless the Google Sheet is switched on and you want a test row).
 
-## 2. Text me this price (1 minute)
+## 2. Choose a plan and text me this price (1 minute)
 
-On the home page, tap **Text me this price**. The phone number box should open and be easy to type in. Don't send it.
+On the home page, scroll to the plans and tap **Choose every 2 weeks**. The booking form should say "Every 2 weeks selected". Go back.
+
+Then tap **Text me this price** in the price box. The phone number box should open and be easy to type in. Don't send it.
 
 ## 3. A large home (2 minutes)
 
-1. Start a booking, tick **Over about 3,000 sq ft**, and tap **Get a Residence Care quote**.
+1. Start a booking, open **Anything unusual about your home?**, tick **Over about 3,000 sq ft**, and tap **Get a Residence Care quote**.
 2. On the quote form, check:
    - your postal code and "How often" are filled in;
    - the notes start with "From the booking form";

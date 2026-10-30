@@ -1,7 +1,7 @@
 // Bigger text, keyboard-only booking, what screen readers are told, an axe-core scan, and stress cases.
 // Real phones, phone keyboards and VoiceOver/TalkBack can't be run here: docs/phone-checklist.md covers those.
 import path from "node:path";
-import { test, assert, newPage, ROOT } from "./lib.mjs";
+import { test, assert, newPage, ROOT, openSection } from "./lib.mjs";
 
 const PAGES = ["/", "/pricing/", "/services/deep-cleaning/", "/areas/north-york/willowdale/", "/help/", "/services/residence-care/", "/gift/"];
 const AXE = path.join(ROOT, "tools/qa/vendor/axe.min.js");
@@ -161,6 +161,7 @@ export default async function () {
     await p.click("label.date-chip >> nth=1");
     await p.click('label.slot[data-slot="morning"]');
     await p.click("[data-next]");
+    await openSection(p, "visit");
     await p.fill("#f-notes", "Ring twice");
     const problems = [];
     await tabTo(p, '[data-review] button[data-edit-focus="#f-notes"]', problems, 120);
@@ -191,6 +192,7 @@ export default async function () {
     const p = await newPage(browser, { width: 360, height: 780 });
     await p.goto(url + "/book/?s=deep&h=house&bd=5&ba=4");
     await p.fill("#f-postal", "M1P 1A1");
+    await openSection(p, "extras");
     for (const ex of await p.$$("label.extra:not(.is-none):not(.is-included)")) await ex.click();
     await p.click("[data-next]");
     await p.click("label.date-chip >> nth=1");

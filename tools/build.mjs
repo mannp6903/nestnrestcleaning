@@ -55,6 +55,11 @@ const founding = C.offers.founding;
 const spotsLeft = founding ? Math.max(0, founding.spots - (founding.claimed || 0)) : 0;
 // Live calendar: with a Cal.com link in booking.calLink, booking ends with picking a confirmed time.
 const CAL = !!(C.booking && C.booking.calLink);
+// Action words, one per stage: every way into the booking form, the price box (a price is calculated, so the day comes next),
+// and the final send. Without the calendar a booking is a request Mann confirms, so the words say request.
+const ACT = CAL
+  ? { book: "Book a clean", short: "Book", again: "Book again", go: "Book this clean", send: "Choose your time", minutes: "Book in two minutes." }
+  : { book: "Request a clean", short: "Request", again: "Request again", go: "Choose a preferred day", send: "Send cleaning request", minutes: "Request in two minutes." };
 // Google Analytics runs only once analytics.ga4Id is set; the privacy policy describes it from then on.
 const GA = !!(C.analytics && C.analytics.ga4Id);
 // The business mailing address (CASL and Ontario's Consumer Protection Act). Shown everywhere once it's set in config.
@@ -96,6 +101,11 @@ function price(key, beds, baths, home = "condo") {
   const b = key === "detail" ? 1 : beds;
   return roundTo((s.base + Math.max(0, b - 1) * s.perBed + Math.max(0, baths - 1) * s.perBath) * f, 5);
 }
+// What a price is for, said right above it: "Regular Cleaning · 1-bedroom, 1-bathroom condo". js/site.js (priceFor) words it the same way.
+function priceFor(key, beds, baths, home = "condo") {
+  const h = C.homeTypes[home].short.toLowerCase();
+  return C.services[key].menuName + " · " + (key === "detail" ? `kitchen and ${baths} bathroom${baths > 1 ? "s" : ""}, ${h}` : `${beds}-bedroom, ${baths}-bathroom ${h}`);
+}
 function hours(key, beds, baths) {
   const s = C.services[key];
   const b = key === "detail" ? 1 : beds;
@@ -121,8 +131,12 @@ const PHOTOS = {
   kitchen: "A spotless kitchen counter and sink with a folded teal cloth and a glass spray bottle",
   bedroom: "A freshly made bed with white linen, a sand-coloured throw and navy and teal pillows",
   bathroom: "A clean white bathroom with a clear glass shower and folded towels on a wooden stool",
-  entryway: "Grey house slippers on a doormat inside a navy front door, on a freshly mopped wooden floor"
+  entryway: "Grey house slippers on a doormat inside a navy front door, on a freshly mopped wooden floor",
+  "empty-home": "An empty, freshly cleaned room on move-in day: a bare oak floor, white walls and an empty closet with its doors open"
 };
+// A photo is used once all four of its files are in assets/photos (600 and 928 wide, JPEG and WebP).
+// Until then a page keeps the photo it had, so a new photo can be dropped in without touching the code.
+const hasPhoto = (name) => ["-600.jpg", "-600.webp", "-928.jpg", "-928.webp"].every((x) => fs.existsSync(path.join(ROOT, "assets/photos", name + x)));
 function photo(L, name, { sizes = "(min-width: 960px) 520px, 92vw", cls = "", eager = false } = {}) {
   const base = L(`assets/photos/${name}`);
   return `<picture class="photo${cls ? " " + cls : ""}">
@@ -207,14 +221,14 @@ function header(L, opts = {}) {
       ${PHONE ? `<a class="header-phone" data-tel href="tel:${B.phone}">${ic("i-phone")}<span class="sr-only">Call <span data-phone-text>${esc(B.phoneDisplay)}</span></span></a>` : ""}
       ${B.whatsapp ? `<a class="header-wa" data-wa href="${esc(waLink(WA_HELLO))}" target="_blank" rel="noopener" aria-label="WhatsApp ${esc(B.ownerFirstName)}" data-track="whatsapp_click">${ic("i-wa")}</a>` : ""}
       ${themeBtn()}
-      <a class="btn btn-primary header-book" href="${L("book/")}" data-track="book_click"><span class="hb-long">Book a clean</span><span class="hb-short">Book</span></a>
+      <a class="btn btn-primary header-book" href="${L("book/")}" data-track="book_click"><span class="hb-long">${ACT.book}</span><span class="hb-short">${ACT.short}</span></a>
       <button class="menu-btn" type="button" aria-controls="menu" aria-expanded="false" aria-label="Open menu">${ic("i-menu")}</button>
     </div>
   </div>
 </header>
 <div class="menu" id="menu" hidden>
   <div class="wrap menu-inner">
-    <a class="btn btn-primary btn-block menu-book" href="${L("book/")}" data-track="book_click">Book a clean</a>
+    <a class="btn btn-primary btn-block menu-book" href="${L("book/")}" data-track="book_click">${ACT.book}</a>
     <p class="label">Services</p>
     <ul class="menu-list">
       ${allServices.map((s) => `<li><a href="${L("services/" + s.slug + "/")}">${esc(s.menuName)}</a></li>`).join("")}
@@ -343,7 +357,7 @@ function actionBar(L) {
   <a class="ab-link ab-phone" data-sms href="sms:${B.phone}" data-track="text_click">${ic("i-sms")}<span>Text</span></a>` : ""}
   ${B.whatsapp ? `<a class="ab-link ab-wa" data-wa href="${esc(waLink(WA_HELLO))}" target="_blank" rel="noopener" data-track="whatsapp_click">${ic("i-wa")}<span>WhatsApp</span></a>` : ""}
   <a class="ab-link${PHONE ? " ab-desk" : ""}" data-mailto href="mailto:${B.email}" data-track="email_click">${ic("i-mail")}<span>Email</span></a>
-  <a class="btn btn-primary ab-book" href="${L("book/")}" data-track="book_click"><span class="ab-long">Book a clean</span><span class="ab-short">Book</span></a>
+  <a class="btn btn-primary ab-book" href="${L("book/")}" data-track="book_click"><span class="ab-long">${ACT.book}</span><span class="ab-short">${ACT.short}</span></a>
 </nav>`;
 }
 
@@ -435,6 +449,7 @@ function pricer(L, defaultKey = "regular", heading = "Your price, in seconds", {
     ${ratingPill()}
   </div>
   <div class="pricer-result" aria-live="polite">
+    <p class="pricer-for" data-p-for>${esc(priceFor(defaultKey, 1, 1))}</p>
     <p class="pricer-amount"><span data-p-amount>${money(on ? afterDiscount(p, founding.percent) : p)}</span> <span class="pricer-unit" data-p-unit${on ? "" : " hidden"}>first visit</span></p>
     <p class="pricer-meta" data-p-meta>${on ? `Regular price ${money(p)} · estimate, about ${h} hours on site` : `Estimate · about ${h} hours on site`}</p>
     ${offerLine()}
@@ -455,7 +470,7 @@ function pricer(L, defaultKey = "regular", heading = "Your price, in seconds", {
     ${stepper("p-beds", "Bedrooms", 1, "data-p-beds")}
     ${stepper("p-baths", "Bathrooms", 1, "data-p-baths")}
   </div>
-  <a class="btn btn-primary btn-block" href="${L("book/")}" data-p-go data-track="pricer_continue">Book this clean ${ic("i-arrow")}</a>
+  <a class="btn btn-primary btn-block" href="${L("book/")}" data-p-go data-track="pricer_continue">${ACT.go} ${ic("i-arrow")}</a>
   <p class="pricer-next">${ic("i-cal")}<span>${CAL ? "Bookings from" : "Earliest day to request:"} <strong data-next-open>tomorrow</strong></span></p>
   ${owner ? `<p class="pricer-owner"><picture><source type="image/webp" srcset="${L("assets/founder-mann-patel-avatar.webp")}"><img src="${L("assets/founder-mann-patel-avatar.jpg")}" alt="" width="40" height="40" loading="lazy" decoding="async"></picture><span><strong>${esc(B.owner)}, owner,</strong> ${CAL ? "checks in after you pick a time." : "confirms your day, time and final price."}</span></p>` : ""}
   <div class="pricer-alt">
@@ -558,13 +573,13 @@ function faqBlock(tag, title = "Questions, answered.", cls = "") {
   return { html, schema };
 }
 
-function finalCta(L, title = "Come home to it.", text = "Book in two minutes. No payment until it's done.") {
+function finalCta(L, title = "Come home to it.", text = `${ACT.minutes} No payment until it's done.`) {
   return `<section class="final-cta">
   <div class="wrap final-inner">
     <h2>${esc(title)}</h2>
     <p>${esc(text)}</p>
     <div class="cta-row">
-      <a class="btn btn-light" href="${L("book/")}" data-track="book_click">Book a clean</a>
+      <a class="btn btn-light" href="${L("book/")}" data-track="book_click">${ACT.book}</a>
       ${B.whatsapp ? `<a class="btn btn-wa" data-wa href="${esc(waLink(WA_HELLO))}" target="_blank" rel="noopener" data-track="whatsapp_click">${ic("i-wa")} WhatsApp</a>` : ""}
       ${PHONE ? `<a class="btn btn-ghost-light" data-tel href="tel:${B.phone}">Call <span class="nowrap">${esc(B.phoneDisplay)}</span></a>`
         : `<a class="btn btn-ghost-light" data-mailto href="mailto:${B.email}" data-track="email_click">Email ${esc(B.ownerFirstName)}</a>`}
@@ -716,7 +731,8 @@ function serviceCards(L, list, cls = "") {
 }
 
 // Home: the four bookable services as photo cards, each with who it suits, its price and two next steps.
-const HOME_PHOTOS = { regular: "living-room", deep: "kitchen", move: "entryway", detail: "bathroom" };
+// Move-in and move-out shows an empty, cleaned home once assets/photos/empty-home-* exists (see docs/design-notes.md).
+const HOME_PHOTOS = { regular: "living-room", deep: "kitchen", move: hasPhoto("empty-home") ? "empty-home" : "entryway", detail: "bathroom" };
 function homeServices(L) {
   const first = founding && founding.active && spotsLeft > 0 ? (b) => money(afterDiscount(b, founding.percent)) : null;
   return `<ul class="svc-feature">
@@ -727,7 +743,7 @@ function homeServices(L) {
           <p class="svc-best">Best for: ${esc(s.idealFor[0])}</p>
           <p class="svc-price">From <b data-from="${k}">${money(s.base)}</b>${first ? ` <span class="svc-first">${first(s.base)} first visit</span>` : ""}</p>
           <div class="svc-feature-actions">
-            <a class="btn btn-primary btn-sm" href="${L("book/")}?s=${k}" data-track="book_click">Book</a>
+            <a class="btn btn-primary btn-sm" href="${L("book/")}?s=${k}" data-track="book_click">${ACT.short}</a>
             <a class="text-link" href="${L("services/" + s.slug + "/#included")}">What's included</a>
           </div>
         </div>
@@ -772,8 +788,11 @@ const example = { beds: 2, baths: 1 };
 const examplePrice = price("regular", example.beds, example.baths);
 const gift = C.offers.gift;
 
-function plansGrid() {
-  return `<div class="plan-strip" data-plans data-beds="${example.beds}" data-baths="${example.baths}">
+// Plans: the home they're priced for sits above them, and each one is a way into booking with that plan chosen (?f=).
+// The plan's name is in the button ("Choose every 2 weeks"), so it reads on its own in a list of links.
+function plansGrid(L) {
+  return `<p class="plan-for">Prices shown for: <strong>${esc(priceFor("regular", example.beds, example.baths))}</strong></p>
+    <div class="plan-strip" data-plans data-beds="${example.beds}" data-baths="${example.baths}">
       ${Object.keys(C.frequencies).map((k) => {
         const f = C.frequencies[k];
         return `<div class="plan${f.recommended ? " plan-rec" : ""}" data-plan="${k}">
@@ -781,6 +800,7 @@ function plansGrid() {
           <p class="plan-name">${esc(f.label)}</p>
           <p class="plan-price"><b data-plan-price>${money(afterDiscount(examplePrice, f.discount))}</b><span>per visit</span></p>
           <p class="plan-save">${f.discount ? `Save ${f.discount}%` : "No commitment"}</p>
+          <a class="btn btn-primary btn-sm plan-go" href="${L("book/")}?s=regular&amp;f=${k}" data-track="plan_click">Choose ${esc(f.label.toLowerCase())}</a>
         </div>`;
       }).join("")}
     </div>`;
@@ -798,7 +818,7 @@ urls.push(page({
       <h1 class="hero-title"><span class="hero-what">House cleaning in ${esc(B.areaLabel)}</span> <span class="display">We clean.<br> <span class="accent">You rest.</span></span></h1>
       <p class="lede">Your weekends are for living, not scrubbing. ${esc(B.ownerFirstName)} cleans your home with care, so you come back to calm, and you pay only after the clean.</p>
       <div class="hero-cta">
-        <a class="btn btn-primary" href="${L("book/")}" data-track="book_click">Book a clean ${ic("i-arrow")}</a>
+        <a class="btn btn-primary" href="${L("book/")}" data-track="book_click">${ACT.book} ${ic("i-arrow")}</a>
         <a class="text-link" href="${L("#how")}">How it works ${ic("i-arrow")}</a>
         ${B.whatsapp ? `<a class="btn btn-wa" data-wa href="${esc(waLink(WA_HELLO))}" target="_blank" rel="noopener" data-track="whatsapp_click">${ic("i-wa")} WhatsApp</a>` : ""}
         <p class="cta-note">${CAL ? "About two minutes. You pick a confirmed time on the calendar." : `About two minutes. ${esc(B.ownerFirstName)} confirms your day and time.`}</p>
@@ -847,7 +867,7 @@ ${gift && gift.active ? `<section class="gift-band" data-gift-banner data-months
         : `<li><h3>Request your day</h3><p>Pick a preferred day and arrival window, or tell us you're flexible. Requests from <strong data-next-open>tomorrow</strong>, any day of the week.</p></li>
       <li><h3>${esc(B.ownerFirstName)} confirms</h3><p>${esc(B.ownerFirstName)} replies <span data-reply>${esc(B.replyPromise)}</span> to agree your time and final price. Your time is held once it's confirmed. You pay after the clean.</p></li>`}
     </ol>
-    <div class="center-cta"><a class="btn btn-primary" href="${L("book/")}" data-track="book_click">Book a clean</a> <a class="text-link" href="${L("help/")}">What happens after you request ${ic("i-arrow")}</a></div>
+    <div class="center-cta"><a class="btn btn-primary" href="${L("book/")}" data-track="book_click">${ACT.book}</a> <a class="text-link" href="${L("help/")}">What happens after you request ${ic("i-arrow")}</a></div>
   </div>
 </section>
 
@@ -888,8 +908,8 @@ ${gift && gift.active ? `<section class="gift-band" data-gift-banner data-months
       <h2>Set it once. Stay ahead.</h2>
       <p class="muted">Recurring visits cost less and keep your home consistently right. Pause or change anytime with ${C.policies.cancelNoticeHours} hours' notice.</p>
     </div>
-    ${plansGrid()}
-    <p class="fine">Example prices for a ${example.beds}-bedroom, ${example.baths}-bathroom condo, regular clean.</p>
+    ${plansGrid(L)}
+    <p class="fine">Choosing a plan opens the booking form with it selected. Your own home's price is worked out there.</p>
   </div>
 </section>
 
@@ -953,7 +973,7 @@ ${finalCta(L)}
 /* ---------- booking ---------- */
 urls.push(page({
   depth: 1, pathOut: "book/index.html", pageType: "book", minimal: true, noBar: true,
-  title: `Book a Clean | ${B.name}`,
+  title: `${CAL ? "Book" : "Request"} a Clean | ${B.name}`,
   description: CAL
     ? "Book your home cleaning online in about two minutes. See your price, pick a time on our calendar, and pay after the clean."
     : "Request your home cleaning online in about two minutes. See your price, choose a preferred day and arrival window, and pay after the clean.",
@@ -964,13 +984,23 @@ urls.push(page({
               </div>
             </div>`;
     const quoteNames = quoteKeys.map((k) => C.quoteServices[k]);
+    // Each Continue says what comes next, so the button matches the step the customer is moving to.
+    const NEXT = CAL ? ["Add your details"] : ["Choose a preferred day", "Add your details"];
+    // Optional parts fold away under a summary that says what's chosen (js/site.js fills [data-section-status]),
+    // so a selected extra or preference is never out of sight.
+    const section = (name, title, status, body, cls = "") => `<details class="section-box${cls}" data-section="${name}">
+              <summary><span class="sb-title">${title}</span><span class="sb-status" data-section-status="${name}">${status}</span>${ic("i-chev")}</summary>
+              <div class="section-body">
+                ${body}
+              </div>
+            </details>`;
     return `
 <section class="book">
   <noscript><div class="wrap"><p class="form-error">Booking needs JavaScript. Please ${PHONE ? `call or text <a href="tel:${B.phone}">${esc(B.phoneDisplay)}</a>` : `email <a href="mailto:${B.email}">${esc(B.email)}</a>`} and we'll book you in.</p></div></noscript>
   <div class="wrap">
     <div class="book-head">
       <div>
-        <h1>Book a clean</h1>
+        <h1>${ACT.book}</h1>
         <p class="book-sub">${ic("i-cal")} <span>${CAL ? "Bookings from" : "Earliest day to request:"} <strong data-next-open>tomorrow</strong>${CAL ? "" : `. ${esc(B.ownerFirstName)} confirms every booking.`}</span></p>
       </div>
       <ol class="progress" data-progress aria-label="Booking steps">
@@ -982,8 +1012,17 @@ urls.push(page({
         <form id="booking-form" class="booking-form" novalidate>
           <fieldset class="step" data-step="1">
             <legend>Your home</legend>
-            <p class="prefill-note" data-prefill hidden>${ic("i-check")}<span>Your choices from the price box are filled in below. Add the postal code, check the details, and continue.</span></p>
+            <p class="prefill-note" data-plan-note hidden>${ic("i-check")}<span data-plan-note-text></span></p>
+            <div class="picked" data-picked hidden>
+              <div class="picked-body">
+                <p class="picked-label">Your clean, from the price box</p>
+                <p class="picked-what" data-picked-what></p>
+                <p class="picked-home" data-picked-home></p>
+              </div>
+              <button type="button" class="link-btn" data-picked-edit aria-controls="home-fields" aria-expanded="false">Edit<span class="sr-only"> service and home</span></button>
+            </div>
             <div class="field"><label for="f-postal">Postal code of the home</label><input id="f-postal" name="postal" autocomplete="postal-code" autocapitalize="characters" maxlength="7" placeholder="e.g. M1B 2K3" required><small class="pc-result" data-pc-booking aria-live="polite"></small></div>
+            <div class="home-fields" id="home-fields" data-home-fields>
             <div class="field"><span class="field-label" id="svc-label">Service</span>
               <div class="choice-grid" role="radiogroup" aria-labelledby="svc-label">
                 ${svcKeys.map((k) => { const s = C.services[k]; return `<label class="choice"><input type="radio" name="service" value="${k}"><span class="choice-body"><strong>${esc(s.name)}</strong><span class="choice-from">from <b data-from="${k}">${money(s.base)}</b></span><span class="choice-desc">${esc(s.short)}</span></span></label>`; }).join("")}
@@ -1008,24 +1047,21 @@ urls.push(page({
               </div>
               <small class="field-hint">A studio counts as 1 bedroom. Count full bathrooms, with a tub or shower.</small>
             </div>
-            ${(C.homeChecks || []).length ? `<div class="field"><span class="field-label" id="checks-label">Anything unusual about your home? <span class="opt">optional</span></span>
-              <div class="check-list" role="group" aria-labelledby="checks-label" data-checks>
-                ${C.homeChecks.map((c) => `<label class="check"><input type="checkbox" name="check" value="${esc(c.id)}"> <span>${esc(c.label)}</span></label>`).join("")}
-              </div>
-              <ul class="check-notes" data-check-notes aria-live="polite"></ul>
-              <div class="quote-route" data-quote-route hidden>
-                <p><strong>Homes this size are priced by quote.</strong> ${esc(B.ownerFirstName)} starts with a walkthrough and a written care plan, so the price fits the home.</p>
-                <a class="btn btn-teal btn-sm" data-quote-link href="${L("services/residence-care/")}">Get a Residence Care quote ${ic("i-arrow")}</a>
-                <small class="field-hint">Your home details are carried over. Nothing is sent until you send the quote form.</small>
-                <p class="field-error" id="err-quote" data-step-error="quote" hidden></p>
-              </div>
-            </div>` : ""}
-            <div class="field"><span class="field-label" id="extras-label">Extras <span class="opt">optional</span></span>
-              <div class="extras" role="group" aria-labelledby="extras-label" data-addons>
-                ${C.addons.map((a) => `<label class="extra" data-addon="${a.id}"><input type="checkbox" name="addon" value="${a.id}"><span class="extra-box" aria-hidden="true">${ic("i-check")}</span><span class="extra-body"><span class="extra-name">${esc(a.name)}</span>${a.limit ? `<small class="extra-limit">${esc(a.limit)}</small>` : ""}</span><b class="extra-price" data-addon-price>+${money(a.price)}</b></label>`).join("")}
-              </div>
-              <p class="scope-note" data-scope-note role="status"></p>
             </div>
+            ${(C.homeChecks || []).length ? section("checks", `Anything unusual about your home? <span class="opt">optional</span>`, "None", `<div class="check-list" role="group" aria-label="Anything unusual about your home?" data-checks>
+                  ${C.homeChecks.map((c) => `<label class="check"><input type="checkbox" name="check" value="${esc(c.id)}"> <span>${esc(c.label)}</span></label>`).join("")}
+                </div>
+                <ul class="check-notes" data-check-notes aria-live="polite"></ul>
+                <div class="quote-route" data-quote-route hidden>
+                  <p><strong>Homes this size are priced by quote.</strong> ${esc(B.ownerFirstName)} starts with a walkthrough and a written care plan, so the price fits the home.</p>
+                  <a class="btn btn-teal btn-sm" data-quote-link href="${L("services/residence-care/")}">Get a Residence Care quote ${ic("i-arrow")}</a>
+                  <small class="field-hint">Your home details are carried over. Nothing is sent until you send the quote form.</small>
+                  <p class="field-error" id="err-quote" data-step-error="quote" hidden></p>
+                </div>`) : ""}
+            ${section("extras", `Extras <span class="opt">optional</span>`, "None added", `<div class="extras" role="group" aria-label="Extras" data-addons>
+                  ${C.addons.map((a) => `<label class="extra" data-addon="${a.id}"><input type="checkbox" name="addon" value="${a.id}"><span class="extra-box" aria-hidden="true">${ic("i-check")}</span><span class="extra-body"><span class="extra-name">${esc(a.name)}</span>${a.limit ? `<small class="extra-limit">${esc(a.limit)}</small>` : ""}</span><b class="extra-price" data-addon-price>+${money(a.price)}</b></label>`).join("")}
+                </div>`)}
+            <p class="scope-note" data-scope-note role="status"></p>
             ${CAL ? freqField : ""}
           </fieldset>
 
@@ -1034,7 +1070,12 @@ urls.push(page({
             ${freqField}
             <div class="field"><span class="field-label" id="date-label">Preferred day</span>
               <p class="field-note">Choose your preferred day. ${esc(B.ownerFirstName)} will confirm availability. Requests from <strong data-next-open>tomorrow</strong>, any day of the week.</p>
-              <div class="date-strip" role="radiogroup" aria-labelledby="date-label" data-dates></div>
+              <div class="date-nav" data-date-nav hidden>
+                <button type="button" class="date-step" data-date-step="-1" aria-controls="date-strip" aria-label="Earlier dates">${ic("i-back")}</button>
+                <p class="date-range" data-date-range></p>
+                <button type="button" class="date-step" data-date-step="1" aria-controls="date-strip" aria-label="Later dates">${ic("i-arrow")}</button>
+              </div>
+              <div class="date-strip" id="date-strip" role="radiogroup" aria-labelledby="date-label" data-dates></div>
               <label class="check"><input type="checkbox" id="flex-date" data-flex> <span>I'm flexible. Please offer the earliest suitable appointment.</span></label>
               <p class="field-error" id="err-date" data-step-error="date" hidden></p>
             </div>
@@ -1057,31 +1098,6 @@ urls.push(page({
               <div class="field"><label for="f-phone">Mobile</label><input id="f-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="e.g. 647 555 0123" required></div>
               <div class="field span-2"><label for="f-email">Email <span class="opt">optional, if you'd like replies by email</span></label><input id="f-email" name="email" type="email" inputmode="email" autocomplete="email"></div>
               <div class="field span-2"><label for="f-address">Street address and unit</label><input id="f-address" name="address" autocomplete="street-address" required></div>
-              <div class="field span-2"><label for="f-access">Getting in</label><div class="select-wrap"><select id="f-access" name="access"><option>I'll be home</option><option>Concierge or front desk</option><option>Lockbox or key code</option><option>Let's discuss</option></select>${ic("i-chev")}</div>
-                <p class="field-hint" data-code-note hidden>No codes here, please. ${esc(B.ownerFirstName)} asks for the code by text once your clean is confirmed.</p>
-              </div>
-              <div class="field span-2 building" data-building hidden>
-                <p class="field-label">Your building <span class="opt">optional, so the visit starts on time</span></p>
-                <div class="field"><label for="f-parking">Parking for the cleaner</label><div class="select-wrap"><select id="f-parking" name="parking"><option>Not sure</option><option>Visitor parking</option><option>Street or paid parking nearby</option><option>No parking: let's discuss</option></select>${ic("i-chev")}</div></div>
-                <label class="check"><input type="checkbox" id="f-elevator" name="elevator"> <span>The service elevator needs booking</span></label>
-                <label class="check"><input type="checkbox" id="f-register" name="register"> <span>Cleaners must be registered with the concierge</span></label>
-              </div>
-              <div class="field span-2"><span class="field-label" id="pets-label">Pets</span>
-                <div class="seg" role="radiogroup" aria-labelledby="pets-label">
-                  <label><input type="radio" name="pets" value="No pets" checked><span>No pets</span></label>
-                  <label><input type="radio" name="pets" value="Dog"><span>Dog</span></label>
-                  <label><input type="radio" name="pets" value="Cat or other"><span>Cat / other</span></label>
-                </div>
-              </div>
-              <div class="field span-2"><span class="field-label" id="products-label">Products</span>
-                <div class="seg" role="radiogroup" aria-labelledby="products-label">
-                  <label><input type="radio" name="products" value="Our products" checked><span>Our products</span></label>
-                  <label><input type="radio" name="products" value="Fragrance-free"><span>Fragrance-free</span></label>
-                  <label><input type="radio" name="products" value="Use my products"><span>Use mine</span></label>
-                </div>
-              </div>
-              <div class="field span-2"><label for="f-referrer">Referred by a client? <span class="opt">optional, their first and last name</span></label><input id="f-referrer" name="referrer" autocomplete="off" autocapitalize="words" placeholder="First and last name"><small class="field-hint">We'll give them $${C.offers.referral} off their next clean once yours is done and paid.</small></div>
-              <div class="field span-2"><label for="f-notes">Notes <span class="opt">optional</span></label><textarea id="f-notes" name="notes" rows="3" placeholder="Rooms to focus on, things to leave alone"></textarea><small class="field-hint">Please don't type door or lockbox codes here. We'll ask for them by text once your booking is confirmed.</small></div>
               <div class="field span-2"><span class="field-label" id="pref-label">Confirm by</span>
                 <div class="seg${B.whatsapp ? " seg-4" : ""}" role="radiogroup" aria-labelledby="pref-label">
                   <label><input type="radio" name="contactPref" value="Text" checked><span>Text</span></label>
@@ -1089,6 +1105,33 @@ urls.push(page({
                   <label><input type="radio" name="contactPref" value="Call"><span>Call</span></label>
                   <label><input type="radio" name="contactPref" value="Email"><span>Email</span></label>
                 </div>
+              </div>
+              <div class="span-2 section-stack">
+              ${section("visit", "Visit preferences", "I'll be home · No pets · Our products", `<div class="field"><label for="f-access">Getting in</label><div class="select-wrap"><select id="f-access" name="access"><option>I'll be home</option><option>Concierge or front desk</option><option>Lockbox or key code</option><option>Let's discuss</option></select>${ic("i-chev")}</div>
+                  <p class="field-hint" data-code-note hidden>No codes here, please. ${esc(B.ownerFirstName)} asks for the code by text once your clean is confirmed.</p>
+                </div>
+                <div class="field building" data-building hidden>
+                  <p class="field-label">Your building <span class="opt">optional, so the visit starts on time</span></p>
+                  <div class="field"><label for="f-parking">Parking for the cleaner</label><div class="select-wrap"><select id="f-parking" name="parking"><option>Not sure</option><option>Visitor parking</option><option>Street or paid parking nearby</option><option>No parking: let's discuss</option></select>${ic("i-chev")}</div></div>
+                  <label class="check"><input type="checkbox" id="f-elevator" name="elevator"> <span>The service elevator needs booking</span></label>
+                  <label class="check"><input type="checkbox" id="f-register" name="register"> <span>Cleaners must be registered with the concierge</span></label>
+                </div>
+                <div class="field"><span class="field-label" id="pets-label">Pets</span>
+                  <div class="seg" role="radiogroup" aria-labelledby="pets-label">
+                    <label><input type="radio" name="pets" value="No pets" checked><span>No pets</span></label>
+                    <label><input type="radio" name="pets" value="Dog"><span>Dog</span></label>
+                    <label><input type="radio" name="pets" value="Cat or other"><span>Cat / other</span></label>
+                  </div>
+                </div>
+                <div class="field"><span class="field-label" id="products-label">Products</span>
+                  <div class="seg" role="radiogroup" aria-labelledby="products-label">
+                    <label><input type="radio" name="products" value="Our products" checked><span>Our products</span></label>
+                    <label><input type="radio" name="products" value="Fragrance-free"><span>Fragrance-free</span></label>
+                    <label><input type="radio" name="products" value="Use my products"><span>Use mine</span></label>
+                  </div>
+                </div>
+                <div class="field"><label for="f-notes">Notes <span class="opt">optional</span></label><textarea id="f-notes" name="notes" rows="3" placeholder="Rooms to focus on, things to leave alone"></textarea><small class="field-hint">Please don't type door or lockbox codes here. We'll ask for them by text once your booking is confirmed.</small></div>`)}
+              ${section("referral", `Referred by a client? <span class="opt">optional</span>`, "No", `<div class="field"><label for="f-referrer">Their first and last name</label><input id="f-referrer" name="referrer" autocomplete="off" autocapitalize="words" placeholder="First and last name"><small class="field-hint">We'll give them $${C.offers.referral} off their next clean once yours is done and paid.</small></div>`)}
               </div>
               <section class="review span-2" aria-labelledby="review-title">
                 <h2 class="review-title" id="review-title">Check your clean</h2>
@@ -1106,9 +1149,9 @@ urls.push(page({
           </fieldset>
 
           <div class="step-nav">
-            <button type="button" class="btn btn-ghost" data-prev hidden>${ic("i-back")} Back</button>
-            <button type="button" class="btn btn-primary btn-grow" data-next>Continue ${ic("i-arrow")}</button>
-            <button type="submit" class="btn btn-primary btn-grow" data-submit hidden>${CAL ? `Choose your time ${ic("i-arrow")}` : "Request this clean"}</button>
+            <button type="button" class="btn btn-ghost" data-prev hidden>${ic("i-back")}<span class="prev-label">Back</span></button>
+            <button type="button" class="btn btn-primary btn-grow" data-next data-next-labels="${esc(JSON.stringify(NEXT))}"><span data-next-label>${NEXT[0]}</span> ${ic("i-arrow")}</button>
+            <button type="submit" class="btn btn-primary btn-grow" data-submit hidden>${ACT.send}${CAL ? " " + ic("i-arrow") : ""}</button>
           </div>
         </form>
 
@@ -1170,27 +1213,29 @@ function extrasList(key) {
 /* ---------- service pages ---------- */
 // The hero shows the same room as the home page's card for the service; the "Ideal for" section shows a different one.
 const SVC_PHOTO = { regular: "bedroom", deep: "bathroom", move: "living-room", detail: "kitchen", residence: "living-room", office: "kitchen" };
-// Every task in the service's rooms, in three groups: included, a paid extra, and not part of this clean.
-// The not-included group is what customers most often ask about after a visit, so it's listed, not left out.
-const SCOPE_ORDER = { yes: 0, add: 1, "": 2 };
+// Every task in the service's rooms. What a visit covers leads each room; paid extras (with their prices) and what isn't
+// part of this clean follow as supporting lists. The not-included list is what customers most often ask about after
+// a visit, so it's listed, not left out.
 const scopeTasks = (s) => C.checklist.filter((r) => !s.rooms || s.rooms.includes(r.room)).flatMap((r) => r.tasks);
 function checklistFor(s) {
   const col = s.checklistColumn;
   const rooms = C.checklist.filter((r) => !s.rooms || s.rooms.includes(r.room));
   return rooms.map((r) => {
-    const tasks = r.tasks.slice().sort((a, b) => SCOPE_ORDER[a[col] || ""] - SCOPE_ORDER[b[col] || ""]);
-    return `<div class="incl-room"><h3>${esc(r.room)}</h3><ul>${tasks.map((t) => {
-      const v = t[col] || "";
-      if (v === "yes") return `<li>${ic("i-check")}<span>${esc(t[0])}</span></li>`;
-      if (v === "add") return `<li class="is-add">${ic("i-plus")}<span>${esc(t[0])}</span><span class="add-tag">Extra</span></li>`;
-      return `<li class="is-none" data-not-included>${ic("i-minus")}<span>${esc(t[0])}</span><span class="none-tag">Not included</span></li>`;
-    }).join("")}</ul></div>`;
+    const by = (v) => r.tasks.filter((t) => (t[col] || "") === v);
+    const extra = (t) => C.addons.find((a) => a.task === t[0]);
+    const add = by("add"), none = by("");
+    const more = [
+      add.length ? `<p class="incl-sub">Add as an extra</p><ul>${add.map((t) => `<li class="is-add">${ic("i-plus")}<span>${esc(t[0])}</span>${extra(t) ? `<b>+${money(extra(t).price)}</b>` : ""}</li>`).join("")}</ul>` : "",
+      none.length ? `<p class="incl-sub">Not part of this clean</p><ul>${none.map((t) => `<li class="is-none" data-not-included>${ic("i-minus")}<span>${esc(t[0])}</span></li>`).join("")}</ul>` : ""
+    ].filter(Boolean).join("");
+    return `<div class="incl-room"><h3>${esc(r.room)}</h3><ul class="incl-yes">${by("yes").map((t) => `<li>${ic("i-check")}<span>${esc(t[0])}</span></li>`).join("")}</ul>${more ? `<div class="incl-more">${more}</div>` : ""}</div>`;
   }).join("");
 }
+// The count of what's covered leads; extras and exclusions are the supporting line under it.
 function scopeSummary(s) {
   const col = s.checklistColumn, t = scopeTasks(s);
   const n = (v) => t.filter((x) => (x[col] || "") === v).length;
-  return `<ul class="scope-sum"><li><b>${n("yes")}</b> tasks included</li><li><b>${n("add")}</b> paid extras</li><li><b>${n("")}</b> not included</li></ul>`;
+  return `<ul class="scope-sum"><li class="scope-main"><b>${n("yes")}</b> tasks in every visit</li>${n("add") ? `<li><b>${n("add")}</b> optional extras</li>` : ""}${n("") ? `<li><b>${n("")}</b> not part of this clean, listed under each room</li>` : ""}</ul>`;
 }
 // Points to the next fuller clean (the smallest step up that covers some of what this one leaves out), when there is one.
 function scopeMore(L, k) {
@@ -1204,7 +1249,7 @@ function scopeMore(L, k) {
   if (!none.length || !best || !best.n) return "";
   const o = C.services[best.o];
   const count = best.n === none.length ? (best.n === 1 ? "it" : best.n === 2 ? "both" : "all of them") : `${best.n} of the ${none.length}`;
-  return `<div class="scope-more"><p>Need something marked “Not included”? ${esc(o.name)} includes ${count}${best.o === "move" ? ", for an empty home" : ""}.</p><a class="text-link" href="${L("services/" + o.slug + "/#included")}">See ${esc(o.menuName)} ${ic("i-arrow")}</a></div>`;
+  return `<div class="scope-more"><p>Need something that isn't part of this clean? ${esc(o.name)} includes ${count}${best.o === "move" ? ", for an empty home" : ""}.</p><a class="text-link" href="${L("services/" + o.slug + "/#included")}">See ${esc(o.menuName)} ${ic("i-arrow")}</a></div>`;
 }
 
 for (const k of svcKeys) {
@@ -1241,7 +1286,7 @@ for (const k of svcKeys) {
 
 <section class="section" id="included">
   <div class="wrap">
-    <div class="section-head"><p class="label">What's included</p><h2>Room by room.</h2><p class="muted">What every ${esc(s.menuName.toLowerCase())} visit covers, what you can add, and what isn't part of it.${addonsWith(k, "none").length ? ` Not offered with this clean: ${esc(listJoin(addonsWith(k, "none").map((a) => a.name.toLowerCase())))}.` : ""}</p>${scopeSummary(s)}</div>
+    <div class="section-head"><p class="label">What's included</p><h2>What every visit covers.</h2><p class="muted">Room by room, what ${esc(s.menuName.toLowerCase())} takes care of each time. Under each room: what you can add, and what isn't part of this clean.${addonsWith(k, "none").length ? ` Not offered with this clean: ${esc(listJoin(addonsWith(k, "none").map((a) => a.name.toLowerCase())))}.` : ""}</p>${scopeSummary(s)}</div>
     <div class="incl-grid">${checklistFor(s)}</div>
     ${scopeMore(L, k)}
   </div>
@@ -1340,6 +1385,9 @@ ${PHONE ? finalCta(L, "Prefer to talk it through?", "Call, text or WhatsApp and 
     <div class="hero-copy">
       <h1 class="display display-sub">House cleaning prices, up front.</h1>
       <p class="lede">Your price is set by the service, the size and type of your home, and any extras you choose. You see it before you book, there's no deposit, and you pay after the clean.</p>
+      <nav class="jump" aria-label="On this page">
+        <ul>${[["estimate", "Estimate"], ["by-size", "Prices"], ["plans", "Plans"], ["extras", "Extras"], ["compare", "Compare"]].map(([id, t]) => `<li><a href="#${id}">${t}</a></li>`).join("")}</ul>
+      </nav>
       <dl class="facts">
         <div><dt>Regular</dt><dd>From <span data-from="regular">${money(C.services.regular.base)}</span></dd></div>
         <div><dt>Deep</dt><dd>From <span data-from="deep">${money(C.services.deep.base)}</span></dd></div>
@@ -1347,7 +1395,7 @@ ${PHONE ? finalCta(L, "Prefer to talk it through?", "Call, text or WhatsApp and 
       </dl>
       ${photo(L, "kitchen", { sizes: "(min-width: 960px) 520px, 92vw", cls: "hero-photo" })}
     </div>
-    <div class="hero-pricer">${pricer(L, "regular", "Price your home", { owner: true })}</div>
+    <div class="hero-pricer" id="estimate">${pricer(L, "regular", "Price your home", { owner: true })}</div>
   </div>
 </section>
 
@@ -1373,7 +1421,7 @@ ${priceExplainer()}
         ${priceTable(k)}
         <div class="price-card-foot">
           <a class="text-link" href="${L("services/" + s.slug + "/")}">What's included ${ic("i-arrow")}</a>
-          <a class="btn btn-primary btn-sm" href="${L("book/")}?s=${k}" data-track="book_click">Book</a>
+          <a class="btn btn-primary btn-sm" href="${L("book/")}?s=${k}" data-track="book_click">${ACT.short}</a>
         </div>
       </article>`; }).join("\n      ")}
     </div>
@@ -1387,8 +1435,8 @@ ${priceExplainer()}
       <h2>Book regular visits. Pay less for each one.</h2>
       <p class="muted">Plans apply to regular cleaning. Pause or change your plan anytime with ${C.policies.cancelNoticeHours} hours' notice.</p>
     </div>
-    ${plansGrid()}
-    <p class="fine">Example prices for a ${example.beds}-bedroom, ${example.baths}-bathroom condo, regular clean. A plan discount and the founding discount aren't combined: your first visit gets the larger one. Discounted prices are rounded to the nearest dollar, and the discount shown is the difference, so every line adds up.</p>
+    ${plansGrid(L)}
+    <p class="fine">Choosing a plan opens the booking form with it selected, and your own home's price is worked out there. A plan discount and the founding discount aren't combined: your first visit gets the larger one. Discounted prices are rounded to the nearest dollar, and the discount shown is the difference, so every line adds up.</p>
   </div>
 </section>
 
@@ -1416,7 +1464,10 @@ ${priceExplainer()}
       <h2>Regular, deep or move-out: what's the difference?</h2>
       <p class="muted">A regular clean keeps a home right. A deep clean adds the detail work that builds up over months. A move-in or move-out clean covers an empty home inside every cabinet, drawer and closet.</p>
     </div>
-    ${compareTable()}
+    <details class="compare-box compare-fold" data-compare>
+      <summary>${ic("i-plus")}<span><span class="if-closed">Show</span><span class="if-open">Hide</span> the room-by-room comparison</span></summary>
+      ${compareTable()}
+    </details>
   </div>
 </section>
 
@@ -1986,7 +2037,7 @@ ${founding && founding.active
     <div class="cta-row help-actions">
       <a class="btn btn-primary" href="${esc(mail("Change my booking", "Reference: NR-\nWhat I'd like to change: "))}" data-track="manage_change">${ic("i-mail")} Change a booking</a>
       <a class="text-link" href="${esc(mail("Cancel my booking", "Reference: NR-\n"))}" data-track="manage_cancel">Cancel a booking ${ic("i-arrow")}</a>
-      <a class="text-link" href="${L("book/")}" data-track="book_click">Book again ${ic("i-arrow")}</a>
+      <a class="text-link" href="${L("book/")}" data-track="book_click">${ACT.again} ${ic("i-arrow")}</a>
     </div>
     <p class="fine">On the device you booked from, the booking form remembers your home and extras for ${DRAFT_DAYS} days, so booking again takes a moment.</p>
     </div>
@@ -2220,7 +2271,7 @@ ${THEME_BOOT}
 <a class="brand" href="${L404()}"><img class="logo-light" src="${L404("assets/logo.svg")}" alt="${esc(B.name)}" width="772" height="210" style="height:56px;width:auto"><img class="logo-dark" src="${L404("assets/logo-white.svg")}" alt="${esc(B.name)}" width="772" height="210" style="height:56px;width:auto"></a>
 <h1 class="display display-sub" style="margin-top:48px">This page has moved.</h1>
 <p class="lede">Everything you need is a tap away.</p>
-<p class="cta-row" style="margin-top:24px"><a class="btn btn-primary" href="${L404("book/")}">Book a clean</a> <a class="text-link" href="${L404()}">Go to the home page</a></p>
+<p class="cta-row" style="margin-top:24px"><a class="btn btn-primary" href="${L404("book/")}">${ACT.book}</a> <a class="text-link" href="${L404()}">Go to the home page</a></p>
 </div></main></body></html>
 `);
 }
