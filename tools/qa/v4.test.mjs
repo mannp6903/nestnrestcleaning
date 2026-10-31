@@ -97,11 +97,13 @@ export default async function () {
     const p = await newPage(browser, { width: 1440, height: 900 });
     await p.goto(url + "/");
     const x = await p.evaluate(() => {
-      const l = (s) => Math.round(document.querySelector(s).getBoundingClientRect().left);
-      return { std: l("section.standard"), cta: l(".final-cta .final-inner"), stdText: l("section.standard h2"), ctaText: l(".final-cta h2"), page: l("#services h2") };
+      const b = (s) => document.querySelector(s).getBoundingClientRect();
+      return { ctaText: Math.round(b(".final-cta h2").left), page: Math.round(b("#services h2").left), pageRight: Math.round(b("#services .section-head").right),
+        std: [Math.round(b(".how-standard").left), Math.round(b(".how-standard").right)] };
     });
-    assert(x.std === x.cta, "both navy panels should share an edge: " + JSON.stringify(x));
-    assert(x.stdText === x.page && x.ctaText === x.page, "text inside the panels should line up with the page's: " + JSON.stringify(x));
+    assert(x.ctaText === x.page, "text inside the closing panel should line up with the page's: " + JSON.stringify(x));
+    // v8: the standard is a panel in the page's own column, inside the text edges.
+    assert(x.std[0] >= x.page && x.std[1] <= x.pageRight + 1, "the standard panel should sit inside the page's text column: " + JSON.stringify(x));
   });
 
   test("headline full stops sit close, and the words don't change", async ({ browser, url }) => {
@@ -116,14 +118,17 @@ export default async function () {
   test("links into booking use one vocabulary", async ({ browser, url }) => {
     // v5: the words match the stage. Into the form, "Request a clean" ("Request" where space is short); from a price, the day comes next;
     // from a plan, its name (docs/superpowers/specs/2026-10-30-website-v5-design.md).
-    // v6: the postal check offers "Book now" once a postal code is in the area (Mann's wording).
-    const ok = ["Request a clean", "Choose a preferred day", "Request", "Request again", "Book now", ...Object.values(C.frequencies).map((f) => "Choose " + f.label.toLowerCase())];
+    // v8: the postal check's in-area button says "Request a clean" too, like every other way into the form.
+    const ok = ["Request a clean", "Choose a preferred day", "Request", "Request again", ...Object.values(C.frequencies).map((f) => "Choose " + f.label.toLowerCase())];
     const p = await newPage(browser, { width: 390, height: 844, isMobile: true });
     const bad = [];
     for (const path of ["/", "/pricing/", "/services/deep-cleaning/", "/areas/scarborough/"]) {
       for (const width of [390, 1440]) {
         await p.setViewportSize({ width, height: 900 });
         await p.goto(url + path);
+        // An in-area postal check adds a booking button of its own.
+        const pc = p.locator("[data-pc-form]:not([data-pc-href]) input").first();
+        if (await pc.isVisible()) { await pc.fill("M1B 2K3"); await pc.press("Enter"); }
         const labels = await p.$$eval('a[href*="book/"]', (as) => as.filter((a) => a.getClientRects().length).map((a) => [...a.childNodes].filter((n) => n.nodeType === 3 || (n.nodeType === 1 && getComputedStyle(n).display !== "none" && n.tagName !== "svg")).map((n) => n.textContent).join("").replace(/\s+/g, " ").trim()));
         bad.push(...labels.filter((t) => !ok.includes(t)).map((t) => `${path}@${width} "${t}"`));
       }

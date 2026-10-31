@@ -352,7 +352,7 @@
         var z = zoneFor($("input", form).value);
         var out = $("[data-pc-result]", form);
         // A page can send the in-area button to its own form (the host page sends it to the host form).
-        var href = form.getAttribute("data-pc-href") || link("book/"), go = form.getAttribute("data-pc-label") || "Book now";
+        var href = form.getAttribute("data-pc-href") || link("book/"), go = form.getAttribute("data-pc-label") || "Request a clean";
         out.className = "pc-result " + (!z ? "no" : z.area ? "ok" : "out");
         // In the area: a way straight into booking. Outside it: a friendly note and the waitlist. Not a postal code: how to write one.
         out.innerHTML = !z ? "Enter a postal code like M1B 2K3."
@@ -1396,7 +1396,7 @@
   function newIds(prefix) { return { ref: newRef(prefix), attempt: newAttempt() }; }
   // Only an explicit success counts as sent. An empty, unreadable or unexpected reply is treated as a failure,
   // so the customer is never told "sent" without that confirmation.
-  // form: booking | quote | gift | review | pricetext. ids: { ref, attempt }, kept by the form until a success.
+  // form: booking | quote | gift | review | pricetext | change. ids: { ref, attempt }, kept by the form until a success.
   function send(data, form, ids) {
     if (PREVIEW || !C.delivery || C.delivery.provider === "none") return Promise.resolve({ skipped: true });
     if (C.delivery.provider === "sheet") return sendSheet(data, form, ids || newIds("NR"));
@@ -1462,12 +1462,56 @@
     var checked = "[data-required], [data-phone], [data-email], [data-postal]";
     form.addEventListener("focusout", function (e) { if (e.target.matches(checked) && e.target.value.trim()) qCheck(e.target); });
     form.addEventListener("input", function (e) { if (e.target.classList.contains("invalid")) qCheck(e.target); });
+    var err = $("[data-q-error]", form);
+    var submitBtn = $('button[type="submit"]', form), submitLabel = submitBtn.innerHTML;
+    // Checks every field in scope (the whole form, or one step); says what to fix and puts the cursor on the first.
+    function qValid(scope) {
+      var first = null;
+      $$(checked, scope).forEach(function (el) { if (!qCheck(el) && !first) first = el; });
+      if (first) { err.textContent = "Please fix the highlighted fields."; err.hidden = false; first.focus(); return false; }
+      err.hidden = true;
+      return true;
+    }
+    // Two steps (the host form): one shows at a time, under its progress. Answers stay in the form while you move between
+    // the steps, and the browser's Back button returns to the first step instead of leaving the page. Nothing is stored.
+    var steps = form.hasAttribute("data-steps") ? $$("[data-q-step]", form) : [], step = 1;
+    function showStep(n, focus) {
+      step = n;
+      steps.forEach(function (fs, i) { fs.hidden = i + 1 !== n; });
+      $$("[data-q-dot]", form).forEach(function (li) {
+        var k = +li.getAttribute("data-q-dot");
+        li.classList.toggle("is-done", k < n);
+        if (k === n) li.setAttribute("aria-current", "step"); else li.removeAttribute("aria-current");
+      });
+      $("[data-q-next]", form).hidden = n !== 1;
+      $("[data-q-back]", form).hidden = n === 1;
+      submitBtn.hidden = n === 1;
+      err.hidden = true;
+      if (focus) $(".q-step-title", steps[n - 1]).focus();
+    }
+    if (steps.length) {
+      showStep(1);
+      $("[data-q-next]", form).addEventListener("click", function () {
+        if (!qValid(steps[0])) return;
+        try { history.pushState({ nrQuoteStep: 2 }, ""); } catch (e) { /* history off: the Back button still works */ }
+        showStep(2, true);
+      });
+      $("[data-q-back]", form).addEventListener("click", function () {
+        if (history.state && history.state.nrQuoteStep === 2) history.back();
+        else showStep(1, true);
+      });
+      window.addEventListener("popstate", function () {
+        if (form.hidden) return;
+        var want = history.state && history.state.nrQuoteStep === 2 ? 2 : 1;
+        if (want !== step) showStep(want, true);
+      });
+    }
     form.addEventListener("submit", function (e) {
       e.preventDefault();
-      var err = $("[data-q-error]"), first = null;
-      $$(checked, form).forEach(function (el) { if (!qCheck(el) && !first) first = el; });
-      if (first) { err.textContent = "Please fix the highlighted fields."; err.hidden = false; first.focus(); return; }
-      err.hidden = true;
+      // Enter on the first step moves on, like Next.
+      if (steps.length && step === 1) { $("[data-q-next]", form).click(); return; }
+      if (steps.length && !qValid(steps[0])) { showStep(1); qValid(steps[0]); return; }
+      if (!qValid(form)) return;
       var data = { _subject: "New quote request: " + name, _template: "table", _captcha: "false", "Service": name };
       $$("input, select, textarea", form).forEach(function (el) {
         if (el.name === "_honey") data._honey = el.value;
@@ -1479,7 +1523,7 @@
         data._autoresponse = autoReply((C.emails || {}).quote, { name: String(data.Name).split(/\s+/)[0], reply: form.getAttribute("data-reply-time"), phone: B.phoneDisplay });
       }
       delete data.Email;
-      var btn = $('button[type="submit"]', form);
+      var btn = submitBtn;
       btn.disabled = true; btn.textContent = "Sending…";
       qIds = qIds || newIds("NR");
       send(data, "quote", qIds).then(function (res) {
@@ -1501,7 +1545,87 @@
         err.innerHTML = "We couldn't send that online. Please <a href=\"mailto:" + B.email + "?subject=" + encodeURIComponent("Quote request: " + name) +
           "&body=" + encodeURIComponent(body) + "\">email it to us</a>" + (B.phone ? " or call " + esc(B.phoneDisplay) : "") + ".";
         err.hidden = false;
-      }).then(function () { btn.disabled = false; btn.textContent = "Request a free quote"; });
+      }).then(function () { btn.disabled = false; btn.innerHTML = submitLabel; });
+    });
+  }
+
+  /* ---------- Change or cancel a booking (help page) ---------- */
+  // A request, not a change: the booking stays as it is until Mann confirms. Asks for the reference, the change and one
+  // way to reply (the field for the chosen way only), and sends just those. Nothing is kept in the browser.
+  function changeRef(v) {
+    var s = String(v || "").toUpperCase().replace(/[\s.]/g, "");
+    var m = s.match(/^(?:NR-?)?([A-Z0-9]{4,10})$/);
+    return m ? "NR-" + m[1] : "";
+  }
+  function bindChange() {
+    var form = $("[data-change-form]");
+    if (!form) return;
+    var err = $("[data-c-error]", form), ids = null;
+    var phoneBox = $("[data-c-phone]", form), emailBox = $("[data-c-email]", form);
+    var phone = $("#c-phone", form), email = $("#c-email", form), ref = $("#c-ref", form), change = $("#c-change", form);
+    function val(name) { var r = $('input[name="' + name + '"]:checked', form); return r ? r.value : ""; }
+    function syncReply() {
+      var byEmail = val("Reply by") === "Email";
+      phoneBox.hidden = byEmail; emailBox.hidden = !byEmail;
+      fieldError(byEmail ? phone : email, "");
+    }
+    function syncWhat() {
+      change.placeholder = val("Request") === "Cancel" ? "e.g. Please cancel my clean on Saturday" : val("Request") === "Change the day or time" ? "e.g. Move it to Saturday afternoon" : "e.g. Add inside the oven";
+    }
+    form.addEventListener("change", function (e) { if (e.target.name === "Reply by") syncReply(); if (e.target.name === "Request") syncWhat(); });
+    syncReply(); syncWhat();
+    function check(el) {
+      var v = el.value.trim(), m = "";
+      if (el === ref && !changeRef(v)) m = "Enter your booking reference, like NR-7K2P. It's in your confirmation.";
+      if (el.id === "c-name" && v.length < 2) m = "Add your name.";
+      if (el === change && v.length < 3 && val("Request") !== "Cancel") m = "Tell " + B.ownerFirstName + " the change you'd like.";
+      if (el === phone && !phoneOk(v)) m = "Enter a 10-digit mobile number, like 647 555 0123.";
+      if (el === email && (!v || !emailOk(v))) m = "Enter your email address, like name@example.com.";
+      fieldError(el, m);
+      return !m;
+    }
+    function fields() { return [ref, $("#c-name", form), change, val("Reply by") === "Email" ? email : phone]; }
+    form.addEventListener("focusout", function (e) { if (fields().indexOf(e.target) > -1 && e.target.value.trim()) check(e.target); });
+    form.addEventListener("input", function (e) { if (e.target.classList.contains("invalid")) check(e.target); });
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var first = null;
+      fields().forEach(function (el) { if (!check(el) && !first) first = el; });
+      if (first) { err.textContent = "Please fix the highlighted fields."; err.hidden = false; first.focus(); return; }
+      err.hidden = true;
+      var by = val("Reply by"), what = val("Request"), name = $("#c-name", form).value.trim(), r = changeRef(ref.value);
+      var data = { _subject: "Change request: " + r, _template: "table", _captcha: "false",
+        "Booking reference": r, "Request": what, "Requested change": change.value.trim() || "Please cancel this booking.", "Name": name, "Reply by": by };
+      if (by === "Email") { data.Email = email.value.trim(); data._replyto = data.email = data.Email; }
+      else data.Phone = phone.value.trim();
+      data._honey = $('input[name="_honey"]', form).value;
+      var btn = $('button[type="submit"]', form), label = btn.textContent;
+      btn.disabled = true; btn.textContent = "Sending…";
+      ids = ids || newIds("NR");
+      send(data, "change", ids).then(function (res) {
+        ids = null;
+        track("change_request", { request: what });
+        form.hidden = true;
+        var done = $("[data-change-done]");
+        var how = by === "Email" ? "by email" : by === "Call" ? "with a call" : "by text";
+        if (res && res.skipped) {
+          $("[data-cd-title]").textContent = "Preview only.";
+          $("[data-cd-text]").textContent = "On the live site, " + B.ownerFirstName + " receives this change request by email. Nothing was sent.";
+        } else {
+          $("[data-cd-title]").textContent = "Thank you, " + name.split(/\s+/)[0] + ".";
+          $("[data-cd-text]").textContent = "Your booking stays as it is until " + B.ownerFirstName + " confirms the change with you. " +
+            B.ownerFirstName + " will reply " + (form.getAttribute("data-reply-time") || B.replyPromise) + ", " + how + ".";
+        }
+        $("[data-cd-list]").innerHTML = [["Booking", r], ["You asked to", what.charAt(0).toLowerCase() + what.slice(1)], ["Reply", how]]
+          .map(function (x) { return "<div><dt>" + esc(x[0]) + "</dt><dd>" + esc(x[1]) + "</dd></div>"; }).join("");
+        done.hidden = false;
+        done.focus();
+      }).catch(function () {
+        var body = Object.keys(data).filter(function (k) { return k[0] !== "_" && k !== "email"; }).map(function (k) { return k + ": " + data[k]; }).join("\n");
+        err.innerHTML = "We couldn't send that online. Please <a href=\"mailto:" + B.email + "?subject=" + encodeURIComponent("Change my booking " + r) +
+          "&body=" + encodeURIComponent(body) + "\">email it instead</a>" + (B.phone ? " or call " + esc(B.phoneDisplay) : "") + ".";
+        err.hidden = false;
+      }).then(function () { btn.disabled = false; btn.textContent = label; });
     });
   }
 
@@ -1930,6 +2054,7 @@
   bindPriceTabs();
   bindBooking();
   bindQuote();
+  bindChange();
   bindReview();
   bindGift();
   bindClear();

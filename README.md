@@ -7,18 +7,18 @@ It's built to turn visitors into booked clients and to rank on Google for local 
 
 | Page | Purpose |
 |---|---|
-| `/` | Home: a local hero (original landmark art of North York Centre and the Scarborough Bluffs, Mann in the first person, the postal check, and the instant price in the logo's nest), services with routes for Airbnb hosts, larger homes, offices and realtors, a room-by-room explorer, how booking works, Mann, the Nest & Rest standard, Airbnb turnovers, plans, districts with a neighbourhood search, guides, FAQ |
+| `/` | Home: a local hero (original landmark art of North York Centre and the Scarborough Bluffs, Mann in the first person, the postal check, and the instant price in the logo's nest), services with plans under them and routes for Airbnb hosts, larger homes, offices and realtors, a room-by-room explorer, How it works (the three steps, Mann, his re-clean guarantee and the five-step standard in one section), Airbnb turnovers, districts with a neighbourhood search, FAQ with the latest guides beside it |
 | `/pricing/` | Links to Estimate, Prices, Plans, Extras and Compare; every price by home size and type (one service's table at a time), plans you can choose, extras, a folded room-by-room comparison of regular, deep and move-out cleaning, pricing FAQ |
 | `/book/` | Focused 3-step booking request: your home → plan & preferred time → your details, ending with "Check your clean", a full review with an Edit link on every detail. From a price box, the service and home show as one card with Edit; from a plan, that plan arrives selected. Extras, unusual homes, visit preferences and referrals fold into sections that say what's chosen. With a Cal.com link set: your home & plan → your details → pick a confirmed time on your calendar |
 | `/services/<service>/` | One page per service (regular, deep, move-in/out, kitchen & bath, residence care, office), each with its own price table and, room by room, what's included, what's a paid extra and what isn't included |
 | `/areas/<district>/` | Scarborough and North York, with their neighbourhoods and postal codes |
 | `/areas/<district>/<neighbourhood>/` | 12 neighbourhood pages (Agincourt, Malvern, Guildwood, Birch Cliff, Highland Creek, Wexford, Willowdale, Don Mills, York Mills, Bayview Village, Bathurst Manor, Lawrence Manor) |
-| `/services/airbnb-cleaning/` | Airbnb and short-term rental hosts: the same-day turnover timeline, what every turnover covers room by room, prices per turnover, the host package and first-turnover offer, why hosts book Mann, three steps to start, a postal check, host questions, and the host form (units, bedrooms, turnovers a month, checkout and check-in times, linens, listing link) |
+| `/services/airbnb-cleaning/` | Airbnb and short-term rental hosts: the same-day turnover timeline, what every turnover covers room by room, prices per turnover, the host package and first-turnover offer, why hosts book Mann, three steps to start, a postal check, host questions, and the host form in two steps (you and your listing; then turnovers a month, checkout and check-in times, linens and a listing link), with progress above and Back keeping every answer |
 | `/realtors/` | Listing-prep, move-out and between-tenant cleaning for realtors, landlords and property managers, with a quote form |
 | `/gift/` | Gift a clean: gift card request form (pay by e-Transfer, never expires) |
 | `/guides/` | Five helpful articles: Toronto cleaning prices, move-out checklist, deep vs regular, preparing for a cleaner, how often to clean |
 | `/vision/` | Our vision: Mann's note, what we believe, always/never promises, the road ahead, hours given back, work with us |
-| `/help/` | Help with a booking: what happens after a request, change, cancel or book again by reference, reply times, codes and saved details |
+| `/help/` | Help with a booking: a change request form (booking reference, the change, and how to reply: text, call or email), email links as another way, what happens after a request, reply times, codes and saved details |
 | `/review/` | Review form to text clients after each clean (no rewards for reviews: Google and the Competition Bureau forbid undisclosed incentives). Hidden from search engines. |
 | `/privacy/` | Privacy Policy (PIPEDA) |
 | `/policies/` | Service Policies: booking, cancellation, payment, re-clean, gift cards, damage, keys, pets, safety |
@@ -70,7 +70,7 @@ You can switch to saving every request in your own Google Sheet instead (see the
 - **Request, then confirmation.** A booking request is not a booked time. The customer sees "Request received · not confirmed yet" and that their time is held only once you confirm. Each request email has a **Status**, the preferred day and window, what's included, extras with prices, "Price to confirm" (half baths, a basement, more than 8 hours…), the time on site, the price version, building details and product preference.
 - **Received means received.** The site shows "Request received" only when FormSubmit (or the Google Sheet) answers with an explicit success. An empty or unexpected answer is treated as a failure: the customer gets an email button with everything filled in (plus text and WhatsApp while those numbers are set) and can try again.
 - **One reference per request.** A retry keeps the same reference (NR-…, or GIFT-… for gift cards), so if a request reaches you twice, the matching reference tells you it's one request. With the Google Sheet switched on, a retry never adds a second row.
-- **Changes and rebooking:** customers email you with their reference from the done screen or the Help page. On the same device, the booking form remembers their home and extras for a repeat booking.
+- **Changes and rebooking:** customers send a change request from the Help page (their reference, what to change, and text, call or email for your reply), or email you with their reference from the done screen or the Help page. A change request is only a request: the customer is told their booking stays as it is until you confirm. On the same device, the booking form remembers their home and extras for a repeat booking.
 - **Saved details:** home choices are kept on the customer's device for 14 days. Name, contact details, address and notes are kept only in the open browser tab and are deleted once the request is sent. "Clear my details from this device" is on the booking form and the Help page.
 
 ## Saving form requests to a Google Sheet
@@ -164,6 +164,7 @@ The checks cover:
 - **a11y:** text at 200%, keyboard only, what screen readers hear, an axe-core scan, and long names.
 - **sheet:** the Google Sheet script, run against stand-in Google services.
 - **v4:** what's included and not on service pages, booking errors beside their field, tabular prices, the price switcher, aligned panels, one set of booking labels, and nothing under 12px.
+- **v8:** the desktop hero's headline, art, button and price box on the first screen; the home page within 10 desktop screens; the Help page's change request (sent, failed, by text or by email) and its Google Sheet tab; "Request a clean" everywhere, and the re-clean's hours always described as a window for reporting.
 - **v7:** no placeholder on any page, the landmark art's names, the room explorer with and without JavaScript, the neighbourhood search, and the home price box and booking agreeing with the pricing formula. **host:** the Airbnb host page, its form and the ways into it.
 - **v5:** plans you can choose, prices that say what they're for, the price-box card and folded sections in booking, paged dates, pricing jump links, stage-matched words, service pages that lead with what's covered, the type scale, contrast of the new parts, and a complete phone booking (with a failed send and a retry) at 360, 390 and 430px.
 
@@ -179,5 +180,6 @@ js/site.js         pricing, booking, forms, WhatsApp, tracking (the build writes
 tools/build.mjs    page generator
 tools/guides.mjs   the guide articles
 tools/qa/          browser checks (see Checking the site)
+tools/add_photo.py turns one photo into the four files a photo slot needs (python3 tools/add_photo.py photo.jpg empty-home)
 assets/            logo, icons, founder photo, room photos, social-share image, fonts
 ```

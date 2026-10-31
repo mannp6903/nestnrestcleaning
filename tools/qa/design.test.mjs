@@ -75,7 +75,7 @@ export default async function () {
     const small = await box("#services .btn-sm");
     assert(Math.abs(small.h - 44) <= 1 && small.radius >= 22, "small button should be a 44px pill, got " + JSON.stringify(small));
     assert((await box(".hero-home .pricer")).radius === 14, "the price box should have a 14px radius");
-    for (const sel of ["section.standard", ".final-cta .final-inner"]) {
+    for (const sel of [".how-standard", ".final-cta .final-inner"]) {
       const b = await box(sel);
       assert(b.radius === 20, `${sel} should be a 20px panel, got ${b.radius}`);
       assert(b.w < 1440, `${sel} should sit inside the page width, got ${b.w}px wide`);
