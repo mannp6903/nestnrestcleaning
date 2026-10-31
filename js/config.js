@@ -268,10 +268,11 @@ window.NR_CONFIG = {
       fields: [
         { id: "units", label: "Number of units", type: "select", options: ["1", "2", "3 to 5", "6 or more"] },
         { id: "bedrooms", label: "Bedrooms (your largest unit)", type: "select", options: ["Studio", "1", "2", "3", "4 or more"] },
-        { id: "turnovers", label: "Turnovers a month, about", type: "select", options: ["1 to 4", "5 to 8", "9 to 15", "16 or more", "Not sure yet"] },
-        { id: "times", label: "Usual checkout and check-in", type: "select", options: ["11am out, 4pm in", "10am out, 3pm in", "12pm out, 4pm in", "It varies"] },
-        { id: "linens", label: "Linens", type: "select", options: ["I keep spare sets in the unit", "I'd like them washed for me", "Not sure yet"] },
-        { id: "calendar", label: "Listing or calendar link", type: "text", span: 2 }
+        // step: 2 puts a field on the form's second step ("Turnovers and linens"), after contact and property details.
+        { id: "turnovers", label: "Turnovers a month, about", type: "select", options: ["1 to 4", "5 to 8", "9 to 15", "16 or more", "Not sure yet"], step: 2 },
+        { id: "times", label: "Usual checkout and check-in", type: "select", options: ["11am out, 4pm in", "10am out, 3pm in", "12pm out, 4pm in", "It varies"], step: 2 },
+        { id: "linens", label: "Linens", type: "select", options: ["I keep spare sets in the unit", "I'd like them washed for me", "Not sure yet"], step: 2 },
+        { id: "calendar", label: "Listing or calendar link", type: "text", span: 2, step: 2 }
       ],
       replyPromise: "within 2 hours during business hours"
     }
@@ -324,7 +325,7 @@ window.NR_CONFIG = {
   daysAhead: 21,
 
   /* Where we clean, by postal area: the first 3 characters of a postal code (the FSA). 41 areas, confirmed by Mann
-     on 30 Oct 2026. In an area, the postal check offers "Book now"; anywhere else, a friendly note and a waitlist email.
+     on 30 Oct 2026. In an area, the postal check offers "Request a clean"; anywhere else, a friendly note and a waitlist email.
      The area pages list these, so the page and the check always agree. */
   serviceArea: {
     label: "Scarborough & North York",
@@ -453,12 +454,12 @@ window.NR_CONFIG = {
     { q: "How does payment work for my listings?", a: "You pay after each turnover by Interac e-Transfer, credit or debit card, or cash. There's no deposit, and each property gets its own receipt.", on: ["airbnb"] },
     { q: "How is my price calculated?", a: "Your price is based on the service, the number of bedrooms and bathrooms, the type of home and any extras you add. You see it before you book. If your home needs much more or less time than expected, we tell you before we start, never after.", on: ["home", "regular", "deep", "move", "detail", "area", "pricing"] },
     { q: "Do I pay when I book?", a: "No. There's no deposit. You pay after the clean by Interac e-Transfer, credit or debit card, or cash.", on: ["home", "regular", "deep", "move", "detail", "area", "pricing"] },
-    { q: "What if something is missed?", a: "Tell us within 24 hours and we'll come back and re-clean those areas, free of charge.", on: ["home", "regular", "deep", "move", "detail", "residence", "area", "help", "airbnb"] },
+    { q: "What if something is missed?", a: "Report it within 24 hours of your clean and I'll come back and re-clean those areas, free of charge.", on: ["home", "regular", "deep", "move", "detail", "residence", "area", "help", "airbnb"] },
     { q: "Do you bring supplies and equipment?", a: "Yes. We bring cloths, mops, a vacuum and our products. If you'd like us to use your own products, or need fragrance-free, choose it under Products when you book.", on: ["home", "regular", "deep", "detail", "office"] },
     { q: "Do I need to be home?", a: "No. You can leave access with a concierge, lockbox or key code. Choose how we get in when you book and we'll confirm the details by text.", on: ["home", "regular", "deep", "area"] },
-    { q: "Can I reschedule or cancel?", a: "Yes. Let us know at least 24 hours before your arrival window and there's no charge.", on: ["home", "regular", "deep", "move", "detail", "office", "area", "help", "airbnb"] },
+    { q: "Can I reschedule or cancel?", a: "Yes. Send a change request from the Help page, or email Mann, at least 24 hours before your arrival window and there's no charge.", on: ["home", "regular", "deep", "move", "detail", "office", "area", "help", "airbnb"] },
     { q: "Is my clean booked as soon as I send the form?", a: "Not yet. Sending the form is a request. Mann replies within 2 hours during business hours to agree your day, arrival window and final price. Your time is held once Mann confirms it with you.", on: ["home", "help"], requestsOnly: true },
-    { q: "How do I change or cancel a booking?", a: "Email Mann with your reference (it starts with NR-), or reply to your confirmation message. Changes are free up to 24 hours before your arrival window.", on: ["help"] },
+    { q: "How do I change or cancel a booking?", a: "Use the change request form at the top of this page with your reference (it starts with NR-), or email Mann, or reply to your confirmation message. Your booking stays as it is until Mann confirms the change. Changes are free up to 24 hours before your arrival window.", on: ["help"] },
     { q: "How do I book again?", a: "Use the booking form any time. On the same device, it remembers your home and the extras you chose last time, so you only check them and pick a day.", on: ["help"] },
     { q: "Are pets OK?", a: "Absolutely. Tell us about them when you book. For heavy shedding, add the pet hair extra so we schedule enough time.", on: ["home", "regular", "deep"] },
     { q: "Why do you wear house shoes?", a: "Street shoes carry grit and salt, especially in a Toronto winter. We change into indoor-only shoes at your door, so your floors only meet clean soles.", on: ["home", "residence"] },

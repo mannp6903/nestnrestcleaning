@@ -4,7 +4,7 @@
    The website sends one JSON request per attempt: { form, reference, attempt, honey, email, fields }.
    The answer is { ok: true, reference, duplicate } once the row is saved, or { ok: false, error }. */
 
-var TABS = { booking: "Bookings", quote: "Quotes", gift: "Gifts", review: "Reviews", pricetext: "Price texts" };
+var TABS = { booking: "Bookings", quote: "Quotes", gift: "Gifts", review: "Reviews", pricetext: "Price texts", change: "Changes" };
 
 // The Status dropdown for each tab. New rows start as "Received".
 var STATUSES = {
@@ -12,7 +12,8 @@ var STATUSES = {
   "Quotes": ["Received", "Quoted", "Won", "Lost"],
   "Gifts": ["Received", "Paid", "Sent", "Redeemed"],
   "Reviews": ["Received", "Published", "Not published"],
-  "Price texts": ["Received", "Texted"]
+  "Price texts": ["Received", "Texted"],
+  "Changes": ["Received", "Done", "Couldn't do"]
 };
 
 // Columns for Mann to fill in himself, right after Status.
@@ -28,7 +29,8 @@ var KNOWN_FIELDS = {
   quote: ["Service", "Name", "Phone", "Email", "Postal code", "Notes"],
   gift: ["Amount", "Send", "Your name", "Your phone", "Email", "Gift for", "Their postal code", "Their email", "Message"],
   review: ["Rating", "Name", "Neighbourhood", "Service", "Review", "Booked with"],
-  pricetext: ["Text this price to", "Quote", "Estimated time", "Page"]
+  pricetext: ["Text this price to", "Quote", "Estimated time", "Page"],
+  change: ["Booking reference", "Request", "Requested change", "Name", "Reply by", "Phone", "Email"]
 };
 
 // What each form must include. phoneOrEmail: that field or the customer's email will do.
@@ -37,7 +39,8 @@ var REQUIRED = {
   quote: { all: ["Name"], phoneOrEmail: "Phone" },
   gift: { all: ["Your name"], phoneOrEmail: "Your phone" },
   review: { all: ["Name", "Rating"] },
-  pricetext: { all: ["Text this price to"] }
+  pricetext: { all: ["Text this price to"] },
+  change: { all: ["Booking reference", "Name", "Requested change"], phoneOrEmail: "Phone" }
 };
 
 // Headers the script fills itself. A form field with one of these names is saved as "Form <name>" instead.
@@ -50,7 +53,7 @@ var RECEIPTS = {
   quote: { subject: "We got your quote request {ref}", line: "We got your quote request {ref}. Mann will reply within one business day." },
   gift: { subject: "We got your gift card request {ref}", line: "We got your gift card request {ref}. Mann will text you within 2 hours during business hours to confirm and send an Interac e-Transfer request." }
 };
-var ALERT_SUBJECTS = { booking: "New booking request", quote: "New quote request", gift: "New gift card request", review: "New review", pricetext: "New price text request" };
+var ALERT_SUBJECTS = { booking: "New booking request", quote: "New quote request", gift: "New gift card request", review: "New review", pricetext: "New price text request", change: "New change request" };
 var DEFAULT_OWNER = "nestnrestcleaning@gmail.com";
 var MAX_TRIES = 5;
 var RECEIPTS_PER_DAY = 50;

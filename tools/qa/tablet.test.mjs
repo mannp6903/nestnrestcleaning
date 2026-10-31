@@ -14,12 +14,12 @@ export default async function () {
     }
   });
 
-  test("one rule, not two, above the guarantee", async ({ browser, url }) => {
-    for (const [width, want] of [[390, "0px"], [700, "0px"], [1440, "1px"]]) {
+  test("the standard panel ends on its last step, not on a stray rule", async ({ browser, url }) => {
+    for (const width of [390, 700, 1440]) {
       const p = await newPage(browser, { width, height: 900 });
       await p.goto(url + "/");
-      const b = await p.$eval(".ritual li:last-child", (e) => getComputedStyle(e).borderBottomWidth);
-      assert(b === want, `${width}px: the last standard step's bottom rule should be ${want}, got ${b}`);
+      const b = await p.$eval(".how-standard .ritual li:last-child", (e) => getComputedStyle(e).borderBottomWidth);
+      assert(b === "0px", `${width}px: the last standard step shouldn't have a bottom rule, got ${b}`);
       await p.context().close();
     }
   });

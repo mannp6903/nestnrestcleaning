@@ -69,6 +69,9 @@ const LATE_FEE_LINE = `Later changes, or if we can't get in at the agreed time, 
 // One rounding rule, the same as js/site.js: a discounted price is rounded to the nearest dollar.
 const afterDiscount = (amount, pct) => Math.round(amount * (100 - pct) / 100);
 const TAX_TEXT = C.taxRate ? `Prices are before ${Math.round(C.taxRate * 100)}% HST` : "No HST charged";
+// The re-clean guarantee: the hours are a window for reporting what was missed, so every mention says so.
+const RECLEAN_H = C.policies.recleanWindowHours;
+const GUARANTEE_LINE = `Report anything missed within ${RECLEAN_H} hours of your clean and I'll come back and re-clean those areas, free.`;
 const SHOW_SPOTS = !!(founding && founding.showSpotsLeft);
 // Opening hours for the facts row, from opens and closes: "9am–11pm". The label fits a third of a phone screen.
 const clock = (t) => { const [h, m] = t.split(":").map(Number); return (h % 12 || 12) + (m ? ":" + String(m).padStart(2, "0") : "") + (h >= 12 ? "pm" : "am"); };
@@ -133,7 +136,9 @@ const PHOTOS = {
   bedroom: "A freshly made bed with white linen, a sand-coloured throw and navy and teal pillows",
   bathroom: "A clean white bathroom with a clear glass shower and folded towels on a wooden stool",
   entryway: "Grey house slippers on a doormat inside a navy front door, on a freshly mopped wooden floor",
-  "empty-home": "An empty, freshly cleaned room on move-in day: a bare oak floor, white walls and an empty closet with its doors open"
+  "empty-home": "An empty, freshly cleaned room on move-in day: a bare oak floor, white walls and an empty closet with its doors open",
+  // A close-up result, so a deep clean looks different from a regular one. Describe the real photo here once it's in.
+  "deep-detail": "A close-up of a degreased stovetop and a spotless tiled backsplash after a deep clean"
 };
 // A photo is used once all four of its files are in assets/photos (600 and 928 wide, JPEG and WebP).
 // Until then a page keeps the photo it had, so a new photo can be dropped in without touching the code.
@@ -505,7 +510,7 @@ function stepper(id, label, value, attr) {
 // The four promises, in a strip under the home hero. js/site.js adds any switched-on badges to [data-assure].
 function trustStrip() {
   const items = [
-    ["i-shield", "Free re-clean within 24 hours"],
+    ["i-shield", `Free re-clean if reported within ${RECLEAN_H} hours`],
     ["i-card", "No deposit. Pay after your clean"],
     ["i-clock", "Open 7 days, 9am to 11pm"],
     ["i-pin", "Scarborough & North York"]
@@ -561,7 +566,8 @@ function compareTable() {
     </table></div>`;
 }
 
-function faqBlock(tag, title = "Questions, answered.", cls = "") {
+// aside: extra HTML under the heading in the side column (the home page puts its guides there).
+function faqBlock(tag, title = "Questions, answered.", cls = "", aside = "") {
   const list = C.faqs.filter((f) => f.on.includes(tag));
   if (!list.length) return { html: "", schema: null };
   const html = `<section class="section faq-section${cls ? " " + cls : ""}" id="faq">
@@ -569,6 +575,7 @@ function faqBlock(tag, title = "Questions, answered.", cls = "") {
     <div class="split-head">
       <h2>${esc(title)}</h2>
       <p class="muted">Anything else? ${PHONE ? `Call or text <a data-tel href="tel:${B.phone}" data-phone-text>${esc(B.phoneDisplay)}</a>` : `Email <a data-mailto href="mailto:${B.email}">${esc(B.email)}</a>`}${B.whatsapp ? `, or <a data-wa href="${esc(waLink(WA_HELLO))}" target="_blank" rel="noopener">message on WhatsApp</a>` : ""}.</p>
+      ${aside}
     </div>
     <div class="faq-list">
       ${list.map((f) => `<details><summary><span>${esc(f.q)}</span>${ic("i-plus")}</summary><p>${esc(f.a)}</p></details>`).join("")}
@@ -698,26 +705,47 @@ ${bodyInner}
 }
 
 // A quote request card, shared by the quote-only services and the realtors page.
-function quoteForm(L, { name, title = "Request a free quote", reply, fields, button = "Request a free quote", note }) {
+// steps: [first, second] splits it in two, for a form with operational questions (the host form). Fields marked step: 2
+// in js/config.js, and the notes, go on the second step; contact details, the postal code and the rest on the first.
+// js/site.js shows one step at a time with the progress above them; without JavaScript both steps show, one after the other.
+function quoteForm(L, { name, title = "Request a free quote", reply, fields, button = "Request a free quote", note, steps = null }) {
   const field = (f) => {
     const span = f.span === 2 ? " span-2" : "";
     if (f.type === "select") return `<div class="field${span}"><label for="q-${f.id}">${esc(f.label)}</label><div class="select-wrap"><select id="q-${f.id}" name="${esc(f.label)}"><option value="" selected>Choose one</option>${f.options.map((o) => `<option>${esc(o)}</option>`).join("")}</select>${ic("i-chev")}</div></div>`;
     return `<div class="field${span}"><label for="q-${f.id}">${esc(f.label)}${f.required ? "" : ' <span class="opt">optional</span>'}</label><input id="q-${f.id}" name="${esc(f.label)}"${f.required ? " required data-required" : ""}></div>`;
   };
-  return `<form class="quote-form" data-quote-form data-quote-name="${esc(name)}" data-reply-time="${esc(reply)}" novalidate>
-        <p class="pricer-title">${esc(title)}</p>
-        <p class="field-note">All fields are required unless marked optional.</p>
-        <div class="form-grid">
-          <div class="field"><label for="q-name">Your name</label><input id="q-name" name="Name" autocomplete="name" required data-required></div>
+  const contact = `<div class="field"><label for="q-name">Your name</label><input id="q-name" name="Name" autocomplete="name" required data-required></div>
           <div class="field"><label for="q-phone">Phone</label><input id="q-phone" name="Phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="e.g. 647 555 0123" required data-phone></div>
-          <div class="field span-2"><label for="q-email">Email <span class="opt">optional, if you'd like replies by email</span></label><input id="q-email" name="Email" type="email" inputmode="email" autocomplete="email" data-email></div>
+          <div class="field span-2"><label for="q-email">Email <span class="opt">optional, if you'd like replies by email</span></label><input id="q-email" name="Email" type="email" inputmode="email" autocomplete="email" data-email></div>`;
+  const postal = `<div class="field"><label for="q-postal">Postal code</label><input id="q-postal" name="Postal code" autocomplete="postal-code" autocapitalize="characters" maxlength="7" placeholder="e.g. M1B 2K3" required data-postal></div>`;
+  const notes = `<div class="field span-2"><label for="q-notes">Anything else? <span class="opt">optional</span></label><textarea id="q-notes" name="Notes" rows="3"></textarea></div>`;
+  const honey = `<input type="text" name="_honey" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">`;
+  const body = steps
+    ? `<ol class="q-progress" data-q-progress aria-label="Form steps">${steps.map((t, i) => `<li data-q-dot="${i + 1}"${i ? "" : ' aria-current="step"'}><span>${esc(t)}</span></li>`).join("")}</ol>
+        <p class="field-note">All fields are required unless marked optional.</p>
+        ${steps.map((t, i) => `<fieldset class="q-step" data-q-step="${i + 1}">
+          <legend class="q-step-title" tabindex="-1"><span class="q-step-count">Step ${i + 1} of ${steps.length}</span><span class="sr-only">: ${esc(t)}</span></legend>
+          <div class="form-grid">
+          ${i === 0 ? contact + postal + fields.filter((f) => f.step !== 2).map(field).join("") : fields.filter((f) => f.step === 2).map(field).join("") + notes + honey}
+          </div>
+        </fieldset>`).join("")}`
+    : `<p class="field-note">All fields are required unless marked optional.</p>
+        <div class="form-grid">
+          ${contact}
           ${fields.map(field).join("")}
-          <div class="field"><label for="q-postal">Postal code</label><input id="q-postal" name="Postal code" autocomplete="postal-code" autocapitalize="characters" maxlength="7" placeholder="e.g. M1B 2K3" required data-postal></div>
-          <div class="field span-2"><label for="q-notes">Anything else? <span class="opt">optional</span></label><textarea id="q-notes" name="Notes" rows="3"></textarea></div>
-          <input type="text" name="_honey" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
-        </div>
+          ${postal}
+          ${notes}
+          ${honey}
+        </div>`;
+  return `<form class="quote-form${steps ? " quote-steps" : ""}" data-quote-form data-quote-name="${esc(name)}" data-reply-time="${esc(reply)}"${steps ? " data-steps" : ""} novalidate>
+        <p class="pricer-title">${esc(title)}</p>
+        ${body}
         <p class="form-error" data-q-error role="alert" hidden></p>
-        <button type="submit" class="btn btn-primary btn-block">${esc(button)}</button>
+        ${steps ? `<div class="q-nav">
+          <button type="button" class="btn btn-primary btn-block" data-q-next hidden>Next: ${esc(steps[1].toLowerCase())} ${ic("i-arrow")}</button>
+          <button type="button" class="link-btn q-back" data-q-back hidden>${ic("i-back")}<span>Back to ${esc(steps[0].toLowerCase())}</span></button>
+          <button type="submit" class="btn btn-primary btn-block" data-q-submit>${esc(button)}</button>
+        </div>` : `<button type="submit" class="btn btn-primary btn-block">${esc(button)}</button>`}
         <p class="pricer-fine">Reply ${esc(reply)} · No obligation</p>
         <p class="privacy-note">${note ? esc(note) + " " : ""}${SENT_VIA} See our <a href="${L("privacy/")}">Privacy Policy</a>.</p>
       </form>
@@ -738,8 +766,10 @@ function serviceCards(L, list, cls = "") {
 }
 
 // Home: the four bookable services as photo cards, each with who it suits, its price and two next steps.
-// Move-in and move-out shows an empty, cleaned home once assets/photos/empty-home-* exists (see docs/design-notes.md).
-const HOME_PHOTOS = { regular: "living-room", deep: "kitchen", move: hasPhoto("empty-home") ? "empty-home" : "entryway", detail: "bathroom" };
+// Each card's photo should say what's different about that clean. Move-In / Move-Out shows an empty, cleaned home once
+// assets/photos/empty-home-* exists, and Deep Cleaning a close-up result once assets/photos/deep-detail-* exists
+// (docs/design-notes.md, "Images"). Until then they keep the illustrations they have.
+const HOME_PHOTOS = { regular: "living-room", deep: hasPhoto("deep-detail") ? "deep-detail" : "kitchen", move: hasPhoto("empty-home") ? "empty-home" : "entryway", detail: "bathroom" };
 function homeServices(L) {
   const first = founding && founding.active && spotsLeft > 0 ? (b) => money(afterDiscount(b, founding.percent)) : null;
   return `<ul class="svc-feature">
@@ -756,6 +786,7 @@ function homeServices(L) {
         </div>
       </li>`; }).join("")}
     </ul>
+    ${homePlans(L)}
     <div class="svc-paths">
       <p>Not a regular home?</p>
       <ul>
@@ -774,10 +805,10 @@ function hoodChips(L, a, short = false) {
   return `<ul class="hood-list">${names.map((n) => { const h = hoodByName(n); return h ? `<li><a href="${L(hoodPath(h))}">${esc(n)}</a></li>` : `<li><span>${esc(n)}</span></li>`; }).join("")}${rest ? `<li><a class="hood-more" href="${L("areas/" + a.slug + "/")}">+ ${rest} more</a></li>` : ""}</ul>`;
 }
 
-// In the area, the check offers "Book now" (the booking form). cta sends it somewhere else instead, such as the host form,
-// and fill names a postal-code field on the same page to fill in.
+// In the area, the check offers the booking button in the site's own words ("Request a clean"). cta sends it somewhere
+// else instead, such as the host form, and fill names a postal-code field on the same page to fill in.
 function postalForm(id, label = "Check your postal code", cta = null) {
-  const extra = cta ? ` data-pc-href="${esc(cta.href)}" data-pc-label="${esc(cta.label)}"${cta.fill ? ` data-pc-fill="${esc(cta.fill)}"` : ""}` : "";
+  const extra = cta ? ` data-pc-href="${esc(cta.href)}" data-pc-label="${esc(cta.label)}"${cta.fill ? ` data-pc-fill="${esc(cta.fill)}"` : ""}` : ` data-pc-label="${esc(ACT.book)}"`;
   return `<form class="pc-check" data-pc-form${extra} novalidate>
         <label for="${id}">${label}</label>
         <div class="pc-row"><input id="${id}" name="pc" autocomplete="postal-code" autocapitalize="characters" placeholder="e.g. M1B 2K3" maxlength="7"><button class="btn btn-primary" type="submit">Check</button></div>
@@ -790,6 +821,50 @@ function guideCards(L, list) {
         ${photo(L, g.photo, { sizes: "(min-width: 960px) 360px, 92vw", cls: "guide-photo" })}
         <span class="guide-body"><small>${esc(g.kicker)} · ${g.minutes} min read</small><strong>${esc(g.h1)}</strong></span>
       </a></li>`).join("")}</ul>`;
+}
+
+// Help page: change or cancel a booking without leaving the site. A request, not a change: the booking stays as it is
+// until Mann confirms. Asks only for what's needed to find the booking and reply (no address, no codes).
+function changeForm(L) {
+  const seg = (name, label, opts) => `<div class="field span-2"><span class="field-label" id="c-${name}-label">${label}</span>
+          <div class="seg" role="radiogroup" aria-labelledby="c-${name}-label">
+            ${opts.map(([v, t], i) => `<label><input type="radio" name="${name === "what" ? "Request" : "Reply by"}" value="${esc(v)}"${i ? "" : " checked"}><span>${esc(t)}</span></label>`).join("")}
+          </div>
+        </div>`;
+  return `<noscript><p class="form-error">Sending a change here needs JavaScript. Please use the email links instead.</p></noscript>
+      <form class="change-form quote-form" data-change-form data-reply-time="${esc(B.replyPromise)}" novalidate>
+        <p class="pricer-title">Request a change</p>
+        <p class="field-note">All fields are required unless marked optional.</p>
+        <div class="form-grid">
+          <div class="field"><label for="c-ref">Booking reference</label><input id="c-ref" name="Booking reference" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="12" placeholder="e.g. NR-7K2P" data-ref></div>
+          <div class="field"><label for="c-name">Your name</label><input id="c-name" name="Name" autocomplete="name" data-required></div>
+          ${seg("what", "What would you like to do?", [["Change the day or time", "Change day or time"], ["Change what's cleaned", "Change the clean"], ["Cancel", "Cancel"]])}
+          <div class="field span-2"><label for="c-change">The change you'd like</label><textarea id="c-change" name="Requested change" rows="3" maxlength="1000" placeholder="e.g. Move it to Saturday afternoon" data-required></textarea><small class="field-hint">Please don't type door or lockbox codes here.</small></div>
+          ${seg("reply", `How should ${esc(B.ownerFirstName)} reply?`, [["Text", "Text"], ["Call", "Call"], ["Email", "Email"]])}
+          <div class="field span-2" data-c-phone><label for="c-phone">Mobile</label><input id="c-phone" name="Phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="e.g. 647 555 0123"></div>
+          <div class="field span-2" data-c-email><label for="c-email">Email</label><input id="c-email" name="Email" type="email" inputmode="email" autocomplete="email"></div>
+          <input type="text" name="_honey" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+        </div>
+        <p class="form-error" data-c-error role="alert" hidden></p>
+        <button type="submit" class="btn btn-primary btn-block">Send change request</button>
+        <p class="consent-line">${ic("i-check")}<span>This is a request. Your booking stays as it is until ${esc(B.ownerFirstName)} confirms the change with you.</span></p>
+        <p class="privacy-note">${SENT_VIA} See our <a href="${L("privacy/")}">Privacy Policy</a>.</p>
+      </form>
+      <div class="quote-done change-done" data-change-done hidden tabindex="-1">
+        <p class="label" data-cd-label>Change request received · not changed yet</p>
+        <h2 data-cd-title>Thank you.</h2>
+        <p data-cd-text></p>
+        <dl class="done-list" data-cd-list></dl>
+      </div>`;
+}
+
+// Home: the newest guides as a short list beside the questions, not a section of their own.
+function guideLinks(L) {
+  return `<div class="faq-guides">
+        <p class="label">Guides</p>
+        <ul class="guide-links">${guides.slice(0, 3).map((g) => `<li><a href="${L("guides/" + g.slug + "/")}"><small>${esc(g.kicker)} · ${g.minutes} min read</small><span>${esc(g.h1)}</span></a></li>`).join("")}</ul>
+        <a class="text-link" href="${L("guides/")}">All guides ${ic("i-arrow")}</a>
+      </div>`;
 }
 
 /* ---------- home ---------- */
@@ -814,6 +889,19 @@ function plansGrid(L) {
           <a class="btn btn-primary btn-sm plan-go" href="${L("book/")}?s=regular&amp;f=${k}" data-track="plan_click">Choose ${esc(f.label.toLowerCase())}</a>
         </div>`;
       }).join("")}
+    </div>`;
+}
+
+// Home: the plans sit under the service cards (how often comes after which clean), not in a section of their own.
+function homePlans(L) {
+  return `<div class="home-plans" id="plans">
+      <div class="home-plans-head">
+        <p class="label">Regular care</p>
+        <h3>Set it once. Stay ahead.</h3>
+        <p class="muted">Recurring visits cost less and keep your home consistently right. Pause or change anytime with ${C.policies.cancelNoticeHours} hours' notice.</p>
+      </div>
+      ${plansGrid(L)}
+      <p class="fine">Choosing a plan opens the booking form with it selected. Your own home's price is worked out there.</p>
     </div>`;
 }
 
@@ -911,10 +999,10 @@ function roomExplorer(L) {
     <div class="section-head">
       <p class="label">Room by room</p>
       <h2 id="rooms-title">See exactly what's included.</h2>
-      <p class="muted">The same checklist your price and your booking use. Choose a clean, then a room.</p>
+      <p class="muted">Choose a service and room to see what we clean.</p>
     </div>
     <fieldset class="ex-svc" data-ex-svc>
-      <legend>Show what's included in</legend>
+      <legend class="sr-only">Show what's included in</legend>
       <div class="ex-svc-opts">${EXPLORE.map((k, i) => `<label><input type="radio" name="ex-svc" value="${k}"${i ? "" : " checked"}><span>${esc(C.services[k].menuName)}</span></label>`).join("")}</div>
     </fieldset>
     <div class="ex-rooms" data-explorer>
@@ -946,6 +1034,7 @@ function areasSection(L) {
       <h2 id="areas-title">Scarborough and North York.</h2>
       <p class="muted">Two districts, so I can be on time, every time. Your exact address is confirmed when ${esc(B.ownerFirstName)} replies.</p>
     </div>
+    <div class="areas-grid">
     <ul class="area-cards">
       ${C.areas.map((a) => `<li><a class="area-card" href="${L("areas/" + a.slug + "/")}">
         <span class="area-art">${districtScene(a.slug, { decorative: true })}</span>
@@ -962,6 +1051,7 @@ function areasSection(L) {
         ${C.areas.map((a) => `<div class="hood-group" data-hood-group><h3>${esc(a.name)}</h3>${hoodChips(L, a)}</div>`).join("")}
       </div>
       <p class="hood-empty" data-hood-empty hidden>Not listed? Your street may still be in my area. <a href="#pc-home">Check your postal code</a>.</p>
+    </div>
     </div>
   </div>
 </section>`;
@@ -1019,11 +1109,11 @@ ${gift && gift.active ? `<section class="gift-band" data-gift-banner data-months
 
 ${roomExplorer(L)}
 
-<section class="section" id="how">
+<section class="section how" id="how" aria-labelledby="how-title">
   <div class="wrap">
-    <div class="section-head">
-      <p class="label">Booking</p>
-      <h2>${CAL ? "Booked in two minutes. Confirmed instantly." : `Request in two minutes. ${esc(B.ownerFirstName)} confirms.`}</h2>
+    <div class="section-head section-head-row">
+      <div><p class="label">How it works</p><h2 id="how-title">${CAL ? "Booked in two minutes. Confirmed instantly." : `Request in two minutes. ${esc(B.ownerFirstName)} confirms.`}</h2></div>
+      <a class="text-link" href="${L("help/")}">What happens after you request ${ic("i-arrow")}</a>
     </div>
     <ol class="steps-3">
       <li><h3>See your price</h3><p>From your home's size and the extras you choose. No contact details and no estimate visit needed.</p></li>
@@ -1033,71 +1123,45 @@ ${roomExplorer(L)}
         : `<li><h3>Request your day</h3><p>Pick a preferred day and arrival window, or tell us you're flexible. Requests from <strong data-next-open>tomorrow</strong>, any day of the week.</p></li>
       <li><h3>${esc(B.ownerFirstName)} confirms</h3><p>${esc(B.ownerFirstName)} replies <span data-reply>${esc(B.replyPromise)}</span> to agree your time and final price. Your time is held once it's confirmed. You pay after the clean.</p></li>`}
     </ol>
-    <div class="center-cta"><a class="btn btn-primary" href="${L("book/")}" data-track="book_click">${ACT.book}</a> <a class="text-link" href="${L("help/")}">What happens after you request ${ic("i-arrow")}</a></div>
-  </div>
-</section>
-
-<section class="section section-tint founder" id="founder" aria-labelledby="founder-title">
-  <div class="wrap founder-grid">
-    ${founderPhoto(L)}
-    <div class="founder-body">
-      <div class="section-head founder-head"><p class="label">Meet your cleaner</p><h2 id="founder-title">I clean every home myself.</h2></div>
-      <figure class="founder-quote">
-        <blockquote>
-          <p>“I started Nest &amp; Rest to give families their time back and a fresh, healthy home, with the best care and value in every visit.</p>
-          <p class="founder-promise">If anything isn't right, tell me, and I'll come back and make it right.”</p>
-        </blockquote>
-        <figcaption><strong data-owner>${esc(B.owner)}</strong><span>Founder &amp; Owner</span></figcaption>
-      </figure>
-      <a class="text-link" href="${L("vision/")}">Read ${esc(B.ownerFirstName)}'s vision ${ic("i-arrow")}</a>
-    </div>
-  </div>
-  ${mannAtWork(L) ? `<div class="wrap">${mannAtWork(L)}</div>` : ""}
-</section>
-
-<section class="section standard" id="standard">
-  <div class="wrap standard-grid">
-    <div>
-      <div class="standard-head">
-        <p class="label label-light">The Nest &amp; Rest standard</p>
-        <h2>Five things happen at every visit.</h2>
-        <p>You should never wonder who is in your home, or how it's being cleaned. So every visit follows the same five steps.</p>
+    <div class="how-trust">
+      <div class="how-left">
+        <figure class="how-meet" aria-labelledby="meet-title">
+          ${founderPhoto(L, "how-photo")}
+          <figcaption class="how-meet-body">
+            <p class="label">Meet your cleaner</p>
+            <h3 id="meet-title">I clean every home myself.</h3>
+            <blockquote><p>“I started Nest &amp; Rest to give families their time back and a fresh, healthy home, with the best care and value in every visit.”</p></blockquote>
+            <p class="how-name"><strong data-owner>${esc(B.owner)}</strong><span>Founder &amp; Owner</span></p>
+            <a class="text-link" href="${L("vision/")}">Read ${esc(B.ownerFirstName)}'s vision ${ic("i-arrow")}</a>
+          </figcaption>
+        </figure>
+        <div class="how-guarantee" id="guarantee">
+          <span class="how-guarantee-ico">${ic("i-shield")}</span>
+          <div>
+            <p class="guarantee-title" id="guarantee-title">Not quite right? I come back and fix it, free.</p>
+            <p>${GUARANTEE_LINE}</p>
+            <a class="text-link" href="${L("policies/#guarantee")}">Read the service policies ${ic("i-arrow")}</a>
+          </div>
+        </div>
       </div>
-      <ol class="ritual">
-        <li><h3>Introduced by name</h3><p>You'll know who is coming before we arrive. We ring once and introduce ourselves at your door.</p></li>
-        <li><h3>Street shoes off, house shoes on</h3><p>Your floors only ever meet clean soles.</p></li>
-        <li><h3>Your priorities first</h3><p>A quick word on what matters most today, so the time goes where you want it.</p></li>
-        <li><h3>Separate cloths for kitchen and bath</h3><p>What cleans a bathroom never touches your kitchen.</p></li>
-        <li><h3>A final check before we leave</h3><p>Every room checked against the checklist. Nothing left behind.</p></li>
-      </ol>
+      <div class="standard how-standard" id="standard">
+        <p class="label">The Nest &amp; Rest standard</p>
+        <h3 class="how-standard-title">Five things happen at every visit.</h3>
+        <ol class="ritual">
+          <li><h4>Introduced by name</h4><p>You'll know who's coming before I arrive.</p></li>
+          <li><h4>Street shoes off, house shoes on</h4><p>Your floors only ever meet clean soles.</p></li>
+          <li><h4>Your priorities first</h4><p>A quick word on what matters most today.</p></li>
+          <li><h4>Separate cloths for kitchen and bath</h4><p>What cleans a bathroom never touches your kitchen.</p></li>
+          <li><h4>A final check before I leave</h4><p>Every room checked against the checklist.</p></li>
+        </ol>
+      </div>
     </div>
-    <aside class="standard-guarantee" aria-labelledby="guarantee-title">
-        <p class="label label-light">Our guarantee</p>
-        <p class="guarantee-title" id="guarantee-title">Not quite right? We come back and fix it, free.</p>
-        <p>Tell us within ${C.policies.recleanWindowHours} hours of your clean and we'll re-clean those areas at no charge.</p>
-        <ul class="ticks">
-          <li>${ic("i-check")}No deposit to book</li>
-          <li>${ic("i-check")}Your price agreed before we start</li>
-          <li>${ic("i-check")}Pay after the clean</li>
-        </ul>
-        <a class="text-link" href="${L("policies/#guarantee")}">Read our service policies ${ic("i-arrow")}</a>
-    </aside>
+    ${mannAtWork(L)}
+    <div class="center-cta"><a class="btn btn-primary" href="${L("book/")}" data-track="book_click">${ACT.book}</a></div>
   </div>
 </section>
 
 ${hostsSection(L)}
-
-<section class="section" id="plans">
-  <div class="wrap">
-    <div class="section-head">
-      <p class="label">Regular care</p>
-      <h2>Set it once. Stay ahead.</h2>
-      <p class="muted">Recurring visits cost less and keep your home consistently right. Pause or change anytime with ${C.policies.cancelNoticeHours} hours' notice.</p>
-    </div>
-    ${plansGrid(L)}
-    <p class="fine">Choosing a plan opens the booking form with it selected. Your own home's price is worked out there.</p>
-  </div>
-</section>
 
 ${jobsSection(jobs.slice(0, 3), "Recent cleans.", "")}
 <section class="section reviews" id="reviews" data-reviews hidden>
@@ -1109,17 +1173,7 @@ ${jobsSection(jobs.slice(0, 3), "Recent cleans.", "")}
 
 ${areasSection(L)}
 
-<section class="section section-tint home-guides" id="guides">
-  <div class="wrap">
-    <div class="section-head section-head-row">
-      <div><p class="label">Guides</p><h2>Helpful, before you book.</h2></div>
-      <a class="text-link" href="${L("guides/")}">All guides ${ic("i-arrow")}</a>
-    </div>
-    ${guideCards(L, guides.slice(0, 3))}
-  </div>
-</section>
-
-${homeFaq.html}
+${faqBlock("home", "Questions, answered.", "", guideLinks(L)).html}
 <figure class="page-scene">${heroWide()}<figcaption><span>North York Centre</span><span>Scarborough Bluffs</span></figcaption></figure>
 ${finalCta(L)}
 `
@@ -1544,7 +1598,7 @@ ${PHONE ? finalCta(L, "Prefer to talk it through?", "Call, text or WhatsApp and 
     ["i-user", "The same person every time", "Every turnover is done by me, the owner. I get to know your unit, your setup and what your guests need."],
     ["i-clock", `Turnovers until ${clock(C.closes)}, ${DAYS_TEXT}`, "Late checkouts and evening check-ins can still work. Tell me your times and I'll confirm what I can fit in."],
     ["i-key", "Your codes stay private", `I never copy keys or write codes on them, and I delete codes within ${C.policies.accessCodeDeleteDays} days of your last scheduled clean.`],
-    ["i-shield", "Not right? I come back", `Tell me within ${C.policies.recleanWindowHours} hours and I'll come back and re-clean those areas, free.`]
+    ["i-shield", "Not right? I come back", `Report anything missed within ${RECLEAN_H} hours of the turnover and I'll come back and re-clean those areas, free.`]
   ];
   const formCta = { href: "#host-form", label: HOST_PRICED ? "Tell me about your listing" : "Get a turnover quote", track: "host_click" };
   // Only what Mann has decided: each is null in js/config.js until then, and stays off the page.
@@ -1577,7 +1631,7 @@ ${PHONE ? finalCta(L, "Prefer to talk it through?", "Call, text or WhatsApp and 
       ${photo(L, hasPhoto("mann-linens") ? "mann-linens" : "bedroom", { sizes: "(min-width: 960px) 520px, 92vw", cls: "quote-photo" })}
     </div>
     <div class="hero-pricer" id="host-form">
-      ${quoteForm(L, { name: q.name, title: "Tell me about your listing", reply: q.replyPromise, fields: q.fields, button: "Send my listing details" })}
+      ${quoteForm(L, { name: q.name, title: "Tell me about your listing", reply: q.replyPromise, fields: q.fields, button: "Send my listing details", steps: ["You and your listing", "Turnovers and linens"] })}
     </div>
   </div>
 </section>
@@ -1734,7 +1788,7 @@ ${priceExplainer()}
       <p class="label label-sm">Included in every price</p>
       <ul class="ticks">
         <li>${ic("i-check")}Products and equipment</li>
-        <li>${ic("i-check")}A free re-clean within ${C.policies.recleanWindowHours} hours if anything isn't right</li>
+        <li>${ic("i-check")}A free re-clean if you report anything missed within ${RECLEAN_H} hours</li>
         <li>${ic("i-check")}No deposit, and payment after the clean</li>
       </ul>
     </div>
@@ -1986,7 +2040,7 @@ ${finalCta(L, `Book your ${h.name} clean.`)}`
         <li>${ic("i-check")}Cleaned the day before photos or a showing, whenever possible</li>
         <li>${ic("i-check")}No need to be there: lockbox, concierge or key pickup</li>
         <li>${ic("i-check")}Pay after each clean, with a receipt per property</li>
-        <li>${ic("i-check")}Free re-clean within ${C.policies.recleanWindowHours} hours if anything isn't right</li>
+        <li>${ic("i-check")}A free re-clean if you report anything missed within ${RECLEAN_H} hours</li>
       </ul>
     </div>
     <div class="hero-pricer">
@@ -2316,15 +2370,16 @@ ${founding && founding.active
     <div class="split-head">
       <p class="label">Manage your booking</p>
       <h2>Change, cancel or book again.</h2>
-      <p class="muted">Email ${esc(B.ownerFirstName)} with your reference${PHONE ? `, or call or text <a data-tel href="tel:${B.phone}">${esc(B.phoneDisplay)}</a>` : ""}. Changes are free up to ${P0.cancelNoticeHours} hours before your arrival window. ${LATE_FEE_LINE}</p>
+      <p class="muted">Send a change request here with your reference${PHONE ? `, or call or text <a data-tel href="tel:${B.phone}">${esc(B.phoneDisplay)}</a>` : ""}. Changes are free up to ${P0.cancelNoticeHours} hours before your arrival window. ${LATE_FEE_LINE}</p>
+      <ul class="help-alt">
+        <li><a class="text-link" href="${esc(mail("Change my booking", "Reference: NR-\nWhat I'd like to change: "))}" data-track="manage_change">${ic("i-mail")} Or email a change</a></li>
+        <li><a class="text-link" href="${esc(mail("Cancel my booking", "Reference: NR-\n"))}" data-track="manage_cancel">${ic("i-mail")} Or email to cancel</a></li>
+        <li><a class="text-link" href="${L("book/")}" data-track="book_click">${ACT.again} ${ic("i-arrow")}</a></li>
+      </ul>
+      <p class="fine">On the device you booked from, the booking form remembers your home and extras for ${DRAFT_DAYS} days, so booking again takes a moment.</p>
     </div>
     <div class="help-manage">
-    <div class="cta-row help-actions">
-      <a class="btn btn-primary" href="${esc(mail("Change my booking", "Reference: NR-\nWhat I'd like to change: "))}" data-track="manage_change">${ic("i-mail")} Change a booking</a>
-      <a class="text-link" href="${esc(mail("Cancel my booking", "Reference: NR-\n"))}" data-track="manage_cancel">Cancel a booking ${ic("i-arrow")}</a>
-      <a class="text-link" href="${L("book/")}" data-track="book_click">${ACT.again} ${ic("i-arrow")}</a>
-    </div>
-    <p class="fine">On the device you booked from, the booking form remembers your home and extras for ${DRAFT_DAYS} days, so booking again takes a moment.</p>
+      ${changeForm(L)}
     </div>
   </div>
 </section>
@@ -2353,7 +2408,7 @@ ${founding && founding.active
     <ul class="ticks help-list">
       <li>${ic("i-clock")}<span><strong>Booking requests:</strong> ${esc(B.replyPromise)} (${esc(B.hours.toLowerCase())}).</span></li>
       <li>${ic("i-clock")}<span><strong>Quotes</strong> for Residence Care, offices, realtors and property managers: within one business day.</span></li>
-      <li>${ic("i-shield")}<span><strong>Something not right after a clean?</strong> Tell us within ${P0.recleanWindowHours} hours for a free re-clean, or within ${P0.damageReportHours} hours about any damage. <a href="${L("policies/#guarantee")}">How it works</a></span></li>
+      <li>${ic("i-shield")}<span><strong>Something not right after a clean?</strong> Report anything missed within ${P0.recleanWindowHours} hours of your clean for a free re-clean, and any damage within ${P0.damageReportHours} hours. <a href="${L("policies/#guarantee")}">How it works</a></span></li>
     </ul>
   </div>
 </section>
@@ -2522,7 +2577,7 @@ legalPage({
     { id: "payment", h: "Payment", html: () => `<p>There's no deposit to book. You pay after your clean by Interac e-Transfer, credit or debit card, or cash.</p>` },
     { id: "changes", h: "Rescheduling and cancellation", html: () => `<p>You can reschedule or cancel at no charge with at least ${P.cancelNoticeHours} hours' notice before your arrival window. With less notice, or if we can't get into your home at the agreed time, a late-cancellation fee of ${esc(P.lateCancelFee)} may apply. We'll always tell you before charging it.</p>
       <p>If we ever need to reschedule because of illness or severe weather, we'll tell you as early as possible and offer the next available time.</p>` },
-    { id: "guarantee", h: "Our re-clean guarantee", html: () => `<p>If something isn't right, tell us within ${P.recleanWindowHours} hours of your clean, with photos if you can. We'll come back and re-clean those areas at no charge. If a re-clean doesn't put it right, contact ${esc(B.ownerFirstName)} and we'll agree a fair solution together.</p>` },
+    { id: "guarantee", h: "Our re-clean guarantee", html: () => `<p>If something was missed, report it within ${P.recleanWindowHours} hours of your clean, with photos if you can. We'll come back and re-clean those areas at no charge. If a re-clean doesn't put it right, contact ${esc(B.ownerFirstName)} and we'll agree a fair solution together.</p>` },
     { id: "gift", h: "Gift cards", html: () => `<p>Gift cards are issued once paid. They never expire, can be used toward any service in our service area, and any balance left after a clean stays on the card.</p>` },
     { id: "referral", h: "Referral credit", html: () => { const r = money(C.offers.referral); return `<p>When someone you refer books their first clean with us, you each get ${r} off:</p>
       <ul>

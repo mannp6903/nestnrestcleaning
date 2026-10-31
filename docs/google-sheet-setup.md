@@ -15,7 +15,7 @@ It takes about 15 minutes. Do it on a computer, signed in to the Google account 
    - In the function menu at the top, choose **setup**, then click **Run**.
    - Google asks for permission because the script reads and writes this sheet, sends email as you, and runs on a timer. Choose your account.
    - If you see "Google hasn't verified this app", click **Advanced → Go to (project name)**. It's your own script.
-   - When it finishes, the sheet has five tabs: Bookings, Quotes, Gifts, Reviews and Price texts.
+   - When it finishes, the sheet has six tabs: Bookings, Quotes, Gifts, Reviews, Price texts and Changes (change and cancel requests from the help page).
 4. **Publish it.**
    - Click **Deploy → New deployment**.
    - Choose the type **Web app**, set **Execute as: Me** and **Who has access: Anyone**, then click **Deploy**.

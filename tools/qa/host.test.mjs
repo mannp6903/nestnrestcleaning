@@ -20,12 +20,69 @@ export default async function () {
     const rooms = await p.$$eval(".host-rooms > li", (ls) => ls.length);
     assert(rooms === want, `the checklist should show ${want} rooms, got ${rooms}`);
     await p.fill("#q-name", "Quinn Sample"); await p.fill("#q-phone", "647 555 0199"); await p.fill("#q-postal", "M2N 5W9");
-    await p.selectOption("#q-units", "2"); await p.selectOption("#q-times", "11am out, 4pm in");
+    await p.selectOption("#q-units", "2");
+    await p.click("[data-q-next]");
+    await p.selectOption("#q-times", "11am out, 4pm in");
     await p.click("[data-quote-form] button[type=submit]");
     await p.waitForSelector("[data-quote-done]:not([hidden])");
     const sent = p.posts.at(-1) || {};
     assert(sent["Number of units"] === "2" && sent["Usual checkout and check-in"] === "11am out, 4pm in" && /Airbnb/.test(JSON.stringify(sent)),
       "the request should carry the host's answers and the service, sent: " + JSON.stringify(sent).slice(0, 300));
+  });
+
+  test("host form: two short steps with progress, and going back keeps every answer", async ({ browser, url }) => {
+    const p = await newPage(browser, { width: 390, height: 844, isMobile: true });
+    await p.goto(url + PAGE);
+    const state = () => p.evaluate(() => ({
+      one: !document.querySelector('[data-q-step="1"]').hidden, two: !document.querySelector('[data-q-step="2"]').hidden,
+      next: !document.querySelector("[data-q-next]").hidden, back: !document.querySelector("[data-q-back]").hidden,
+      send: !document.querySelector("[data-q-submit]").hidden,
+      current: (document.querySelector('[data-q-progress] [aria-current="step"]') || {}).textContent,
+      focus: document.activeElement && (document.activeElement.id || document.activeElement.className)
+    }));
+    let s = await state();
+    assert(s.one && !s.two && s.next && !s.back && !s.send && /You and your listing/.test(s.current), "starts on step 1 of 2: " + JSON.stringify(s));
+    // Step 1 is contact and property only; turnovers and linens wait for step 2.
+    const ids = (n) => p.$$eval(`[data-q-step="${n}"] input:not(.hp), [data-q-step="${n}"] select, [data-q-step="${n}"] textarea`, (es) => es.map((e) => e.id));
+    assert(JSON.stringify(await ids(1)) === JSON.stringify(["q-name", "q-phone", "q-email", "q-postal", "q-units", "q-bedrooms"]), "step 1 fields: " + await ids(1));
+    assert(JSON.stringify(await ids(2)) === JSON.stringify(["q-turnovers", "q-times", "q-linens", "q-calendar", "q-notes"]), "step 2 fields: " + await ids(2));
+    await p.click("[data-q-next]");
+    s = await state();
+    assert(s.one && !s.two && s.focus === "q-name" && await p.isVisible("[data-q-error]"), "an empty step 1 stays put and points at the name: " + JSON.stringify(s));
+    await p.fill("#q-name", "Quinn Sample"); await p.fill("#q-phone", "647 555 0199"); await p.fill("#q-postal", "m2n5w9");
+    await p.selectOption("#q-units", "3 to 5"); await p.selectOption("#q-bedrooms", "2");
+    await p.press("#q-postal", "Enter");
+    s = await state();
+    assert(!s.one && s.two && !s.next && s.back && s.send && /Turnovers and linens/.test(s.current) && /q-step-title/.test(s.focus), "Enter moves to step 2: " + JSON.stringify(s));
+    assert(p.posts.length === 0, "nothing is sent until step 2");
+    await p.selectOption("#q-times", "It varies"); await p.selectOption("#q-linens", "I'd like them washed for me");
+    await p.click("[data-q-back]");
+    s = await state();
+    assert(s.one && !s.two && /q-step-title/.test(s.focus), "Back shows step 1: " + JSON.stringify(s));
+    assert(await p.inputValue("#q-name") === "Quinn Sample" && await p.inputValue("#q-units") === "3 to 5", "step 1 answers are kept");
+    await p.click("[data-q-next]");
+    assert(await p.inputValue("#q-times") === "It varies" && await p.inputValue("#q-linens") === "I'd like them washed for me", "step 2 answers are kept");
+    // The browser's Back button returns to step 1 on the same page; Forward goes to step 2 again.
+    await p.goBack();
+    s = await state();
+    assert(p.url().includes(PAGE) && s.one && !s.two, "browser Back returns to step 1, not off the page: " + p.url() + " " + JSON.stringify(s));
+    await p.goForward();
+    s = await state();
+    assert(s.two && !s.one && await p.inputValue("#q-times") === "It varies", "browser Forward returns to step 2 with its answers");
+    await p.click("[data-q-submit]");
+    await p.waitForSelector("[data-quote-done]:not([hidden])");
+    const sent = p.posts.at(-1) || {};
+    assert(sent.Name === "Quinn Sample" && sent["Number of units"] === "3 to 5" && sent["Usual checkout and check-in"] === "It varies" && sent.Linens === "I'd like them washed for me",
+      "both steps are sent together: " + JSON.stringify(sent).slice(0, 300));
+    const stored = JSON.stringify(await p.evaluate(() => ({ ...localStorage, ...sessionStorage })));
+    assert(!stored.includes("Quinn") && !stored.includes("647 555"), "no answer is stored in the browser: " + stored.slice(0, 200));
+    await p.context().close();
+    // Without JavaScript: both steps show, one after the other, with the send button.
+    const ctx = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 390, height: 844 } });
+    const q = await ctx.newPage();
+    await q.goto(url + PAGE);
+    assert(await q.isVisible('[data-q-step="1"]') && await q.isVisible('[data-q-step="2"]') && await q.isVisible("[data-q-submit]") && !(await q.isVisible("[data-q-next]")), "no JavaScript: one long form");
+    await ctx.close();
   });
 
   test("host page: what isn't decided stays off the page, and turnovers are quoted until prices are set", async ({ browser, url }) => {

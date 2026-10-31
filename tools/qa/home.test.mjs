@@ -103,15 +103,24 @@ export default async function () {
     assert(flags.length === 1 && flags[0] === "Recommended", "one plan should be flagged Recommended, got " + JSON.stringify(flags));
   });
 
-  test("the standard band has no card inside it", async ({ browser, url }) => {
-    for (const [width, side] of [[1440, "borderLeftWidth"], [390, "borderTopWidth"]]) {
+  // v8: booking, Mann, the standard and the guarantee are one section, so the reassurance is said once.
+  test("how it works is one section: the steps, who's coming, the standard and the guarantee", async ({ browser, url }) => {
+    for (const width of [1440, 390]) {
       const p = await newPage(browser, { width, height: 900 });
       await p.goto(url + "/");
-      assert(await p.locator(".standard img").count() === 0, `${width}px: the standard band shouldn't hold a photo`);
-      const g = await p.$eval(".standard .standard-guarantee", (e) => { const s = getComputedStyle(e); return { bg: s.backgroundColor, shadow: s.boxShadow, title: (e.querySelector("#guarantee-title") || {}).textContent, left: s.borderLeftWidth, top: s.borderTopWidth }; });
-      assert(g.bg === "rgba(0, 0, 0, 0)" && g.shadow === "none", `${width}px: the guarantee should sit on the band, not in a card: ${JSON.stringify(g)}`);
-      assert(g.title && g.title.startsWith("Not quite right?"), `${width}px: the guarantee heading is missing`);
-      assert((side === "borderLeftWidth" ? g.left : g.top) === "1px", `${width}px: the guarantee should sit beside a rule (${side}), got ${JSON.stringify(g)}`);
+      const r = await p.evaluate(() => {
+        const how = document.querySelector("#how");
+        return { steps: how.querySelectorAll("ol.steps-3 > li").length, photo: !!how.querySelector(".how-meet img"), meet: (how.querySelector(".how-meet h3") || {}).textContent,
+          rituals: how.querySelectorAll(".how-standard .ritual > li").length, navyImg: how.querySelectorAll(".how-standard img, .how-standard .standard-guarantee").length,
+          title: (how.querySelector("#guarantee-title") || {}).textContent, line: (how.querySelector(".how-guarantee p:not(.guarantee-title)") || {}).textContent,
+          old: document.querySelectorAll("#founder, section.standard, #guides").length };
+      });
+      assert(r.steps === 3 && r.photo && r.meet === "I clean every home myself." && r.rituals === 5, `${width}px: ${JSON.stringify(r)}`);
+      assert(r.navyImg === 0, `${width}px: the navy panel holds the five steps only, no photo or card`);
+      assert(r.title.startsWith("Not quite right?") && /^Report anything missed within 24 hours of your clean/.test(r.line), `${width}px: the guarantee: ${JSON.stringify(r)}`);
+      assert(r.old === 0, `${width}px: the old founder, standard and guides sections should be gone`);
+      const g = await p.$eval(".how-guarantee", (e) => { const s = getComputedStyle(e); return { bg: s.backgroundColor, shadow: s.boxShadow }; });
+      assert(g.bg === "rgba(0, 0, 0, 0)" && g.shadow === "none", `${width}px: the guarantee isn't a card: ${JSON.stringify(g)}`);
       await p.context().close();
     }
   });

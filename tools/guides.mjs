@@ -50,7 +50,7 @@ ${ul([
   "<strong>Is there a deposit?</strong> And what does it cost to cancel or reschedule?",
   "<strong>What if something is missed?</strong> A free re-clean within a day or two is a good sign."
 ])}
-<p>Our answers: no HST is added today, supplies are included, every service has a <a href="${L("pricing/#compare")}">room-by-room list</a>, there's no deposit, changes are free up to ${C.policies.cancelNoticeHours} hours before, and if we miss a spot, tell us within ${C.policies.recleanWindowHours} hours and we'll re-clean it free.</p>
+<p>Our answers: no HST is added today, supplies are included, every service has a <a href="${L("pricing/#compare")}">room-by-room list</a>, there's no deposit, changes are free up to ${C.policies.cancelNoticeHours} hours before, and if we miss a spot, report it within ${C.policies.recleanWindowHours} hours of your clean and we'll re-clean it free.</p>
 ${cta(L)}`
     },
     {
