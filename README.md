@@ -182,4 +182,5 @@ tools/guides.mjs   the guide articles
 tools/qa/          browser checks (see Checking the site)
 tools/add_photo.py turns one photo into the four files a photo slot needs (python3 tools/add_photo.py photo.jpg empty-home)
 assets/            logo, icons, founder photo, room photos, social-share image, fonts
+marketing/social/  social posts: content-calendar.md (captions, dates, Reel scripts), voice-profile.md, images by month, and the tools that render them
 ```
