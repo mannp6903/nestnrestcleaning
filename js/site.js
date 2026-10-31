@@ -1844,9 +1844,87 @@
     });
   }
 
+  /* ---------- Room by room (home) ----------
+     The rooms become tabs (arrow keys, Home and End move between them, as screen-reader users expect of tabs).
+     The clean switch shows that clean's list in every room and points the booking button at it.
+     Without JavaScript every room shows the regular clean, one after another. */
+  function bindExplorer() {
+    var box = $("[data-explorer]");
+    if (!box) return;
+    var rooms = $$(".ex-room[data-tab-label]", box);
+    if (rooms.length < 2) return;
+    var list = document.createElement("div"), current = 0;
+    list.className = "ex-tabs";
+    list.setAttribute("role", "tablist");
+    list.setAttribute("aria-label", "Rooms");
+    function select(i, focus) {
+      current = i;
+      rooms.forEach(function (r, j) { r.classList.toggle("is-active", j === i); });
+      $$('[role="tab"]', list).forEach(function (t, j) {
+        t.setAttribute("aria-selected", String(j === i));
+        t.tabIndex = j === i ? 0 : -1;
+        if (j === i && focus) t.focus();
+      });
+    }
+    rooms.forEach(function (r, i) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.id = "tab-" + r.id;
+      b.setAttribute("role", "tab");
+      b.setAttribute("aria-controls", r.id);
+      b.textContent = r.getAttribute("data-tab-label");
+      b.addEventListener("click", function () { select(i); });
+      list.appendChild(b);
+      r.setAttribute("role", "tabpanel");
+      r.setAttribute("aria-labelledby", b.id);
+      r.tabIndex = 0;
+    });
+    list.addEventListener("keydown", function (e) {
+      var n = rooms.length, i = { ArrowRight: (current + 1) % n, ArrowLeft: (current - 1 + n) % n, Home: 0, End: n - 1 }[e.key];
+      if (i === undefined) return;
+      e.preventDefault();
+      select(i, true);
+    });
+    box.parentNode.insertBefore(list, box);
+    box.classList.add("is-tabbed");
+    select(0);
+    var svc = $("[data-ex-svc]"), book = $("[data-ex-book]");
+    function show(k) {
+      $$("[data-ex-for]", box).forEach(function (l) { l.hidden = l.getAttribute("data-ex-for") !== k; });
+      if (book) book.href = book.href.replace(/([?&]s=)[^&#]*/, "$1" + encodeURIComponent(k));
+    }
+    if (svc) {
+      var on = $("input:checked", svc);
+      if (on) show(on.value); // a restored page keeps the clean it showed
+      svc.addEventListener("change", function (e) { show(e.target.value); track("service_select", { service: e.target.value, source: "rooms" }); });
+    }
+  }
+
+  /* ---------- Neighbourhood finder (home) ----------
+     Filters the neighbourhood list as you type, ignoring case, accents and punctuation ("lamoreaux" finds L'Amoreaux).
+     Nothing typed here is stored or sent anywhere. Without JavaScript the full list shows and the search box stays hidden. */
+  function bindHoodFinder() {
+    var box = $("[data-hood-finder]");
+    if (!box) return;
+    var search = $("[data-hood-search]", box), q = $("[data-hood-q]", box), count = $("[data-hood-count]", box), empty = $("[data-hood-empty]", box);
+    if (!search || !q) return;
+    search.hidden = false;
+    var items = $$(".hood-list li", box);
+    var norm = function (s) { return String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]/g, ""); };
+    q.addEventListener("input", function () {
+      var v = norm(q.value), shown = 0;
+      items.forEach(function (li) { var hit = !v || norm(li.textContent).indexOf(v) !== -1; li.hidden = !hit; if (hit) shown++; });
+      $$("[data-hood-group]", box).forEach(function (g) { g.hidden = !$$(".hood-list li", g).some(function (li) { return !li.hidden; }); });
+      count.textContent = !v ? "" : shown ? shown + (shown > 1 ? " neighbourhoods match." : " neighbourhood matches.") : "No neighbourhoods match.";
+      empty.hidden = !v || shown > 0;
+    });
+  }
+
   initAnalytics();
   fillCommon();
   renderReviews();
+  bindExplorer();
+  bindHoodFinder();
   bindPostalChecks();
   bindPricer();
   bindPriceTabs();

@@ -239,8 +239,9 @@ window.NR_CONFIG = {
       replyPromise: "within one business day"
     },
     /* Airbnb and short-term rental turnovers: its own page (/services/airbnb-cleaning/) and the host section on the home page.
-       Anything still null shows on the site as a visible placeholder ([PRICE], [OFFER], [to confirm]) until you decide it.
-       Fill each one in here, then run `node tools/build.mjs`; the host page and the home page both update. */
+       Anything still null stays off the site: until prices are set, turnovers are "quoted per unit" through the host form,
+       and linens, restocking and photo reports aren't mentioned. Fill each one in here, then run `node tools/build.mjs`;
+       the host page and the home page both update. Every turnover follows the regular-clean checklist further down. */
     airbnb: {
       host: true,
       slug: "airbnb-cleaning",
@@ -264,13 +265,6 @@ window.NR_CONFIG = {
       photoReport: null,
       // Whether you restock supplies, as it should read, e.g. "I restock toilet paper, soap and coffee from your supply."
       restock: null,
-      // What every turnover covers, room by room. Each line is a promise to hosts: keep it true.
-      checklist: [
-        { room: "Kitchen", tasks: ["Guests' dishes washed and put away", "Counters, sink and taps cleaned", "Stovetop, microwave and appliance fronts wiped", "Fridge cleared of anything guests left", "Floors vacuumed and mopped"] },
-        { room: "Bathrooms", tasks: ["Toilet cleaned inside and out", "Tub, shower and glass cleaned", "Sink, counter and mirror cleaned", "Floors washed"] },
-        { room: "Bedrooms and living", tasks: ["Beds stripped and made", "Surfaces and décor dusted", "Under beds and sofa cushions checked for left items", "Floors vacuumed and mopped"] },
-        { room: "Whole unit", tasks: ["Bins emptied and bags taken out", "Door handles, light switches and remotes wiped", "Lights off, windows closed, door locked", "A final walk-through before I leave"] }
-      ],
       fields: [
         { id: "units", label: "Number of units", type: "select", options: ["1", "2", "3 to 5", "6 or more"] },
         { id: "bedrooms", label: "Bedrooms (your largest unit)", type: "select", options: ["Studio", "1", "2", "3", "4 or more"] },
