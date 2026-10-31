@@ -7,6 +7,7 @@ import vm from "node:vm";
 import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
 import guideList from "./guides.mjs";
+import { heroWide, heroNarrow, districtScene } from "./landmarks.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const args = process.argv.slice(2);
@@ -185,11 +186,12 @@ const ICONS = `
 <symbol id="i-chev" viewBox="0 0 24 24"><path d="m7 9.5 5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
 </defs></svg>`;
 const ic = (id, cls = "ic") => `<svg class="${cls}" aria-hidden="true"><use href="#${id}"/></svg>`;
-const SVC_ICON = { regular: "i-sparkle", deep: "i-layers", move: "i-box", detail: "i-drop", residence: "i-gem", office: "i-building" };
+const SVC_ICON = { regular: "i-sparkle", deep: "i-layers", move: "i-box", detail: "i-drop", residence: "i-gem", office: "i-building", airbnb: "i-key" };
 
 /* ---------- shared fragments ---------- */
 // The header shows the navy logo in light mode and the white one in dark mode (css/site.css swaps them).
-const logoImg = (L) => `<img class="logo-light" src="${L("assets/logo.svg")}" alt="${esc(B.name)}" width="772" height="210"><img class="logo-dark" src="${L("assets/logo-white.svg")}" alt="${esc(B.name)}" width="772" height="210">`;
+// The white logo is lazy: hidden in light mode, it then isn't fetched at all, leaving the first moments to the fonts and the page.
+const logoImg = (L) => `<img class="logo-light" src="${L("assets/logo.svg")}" alt="${esc(B.name)}" width="772" height="210"><img class="logo-dark" src="${L("assets/logo-white.svg")}" alt="${esc(B.name)}" width="772" height="210" loading="lazy">`;
 const themeBtn = () => `<button type="button" class="theme-btn" data-theme-toggle aria-pressed="false" aria-label="Dark mode">${ic("i-moon", "ic theme-moon")}${ic("i-sun", "ic theme-sun")}</button>`;
 // Every visit opens light; a visitor who chose dark gets it back before the page paints, so it never flashes.
 const THEME_BOOT = `<script>try{if(localStorage.getItem("nr-theme")==="dark")document.documentElement.setAttribute("data-theme","dark")}catch(e){}</script>`;
@@ -215,7 +217,7 @@ function header(L, opts = {}) {
       ${navLink(L("#services"), "Services", ["service", "quote"].includes(opts.current))}
       ${navLink(L("pricing/"), "Pricing", opts.current === "pricing", true)}
       ${navLink(L("#areas"), "Areas", opts.current === "area")}
-      ${navLink(L("#how"), "How it works", false)}
+      ${navLink(L("services/" + C.quoteServices.airbnb.slug + "/"), "Airbnb hosts", opts.current === "host", true)}
       ${navLink(L("help/"), "Help", opts.current === "help", true)}
     </nav>
     <div class="header-actions">
@@ -577,13 +579,14 @@ function faqBlock(tag, title = "Questions, answered.", cls = "") {
   return { html, schema };
 }
 
-function finalCta(L, title = "Come home to it.", text = `${ACT.minutes} No payment until it's done.`) {
+// cta: { href, label, track } replaces the booking button, for pages whose next step is a form of their own.
+function finalCta(L, title = "Come home to it.", text = `${ACT.minutes} No payment until it's done.`, cta = null) {
   return `<section class="final-cta">
   <div class="wrap final-inner">
     <h2>${esc(title)}</h2>
     <p>${esc(text)}</p>
     <div class="cta-row">
-      <a class="btn btn-light" href="${L("book/")}" data-track="book_click">${ACT.book}</a>
+      ${cta ? `<a class="btn btn-light" href="${cta.href}"${cta.track ? ` data-track="${cta.track}"` : ""}>${esc(cta.label)}</a>` : `<a class="btn btn-light" href="${L("book/")}" data-track="book_click">${ACT.book}</a>`}
       ${B.whatsapp ? `<a class="btn btn-wa" data-wa href="${esc(waLink(WA_HELLO))}" target="_blank" rel="noopener" data-track="whatsapp_click">${ic("i-wa")} WhatsApp</a>` : ""}
       ${PHONE ? `<a class="btn btn-ghost-light" data-tel href="tel:${B.phone}">Call <span class="nowrap">${esc(B.phoneDisplay)}</span></a>`
         : `<a class="btn btn-ghost-light" data-mailto href="mailto:${B.email}" data-track="email_click">Email ${esc(B.ownerFirstName)}</a>`}
@@ -728,7 +731,7 @@ function serviceCards(L, list, cls = "") {
           <span class="svc-top"><span class="svc-ico">${ic(SVC_ICON[s.key] || "i-sparkle")}</span>${s.tag ? `<small class="svc-tag">${esc(s.tag)}</small>` : ""}</span>
           <h3>${esc(s.name)}</h3>
           <p>${esc(s.short)}</p>
-          <span class="svc-foot"><span class="svc-price">${s.quote ? "Free quote" : `From <b data-from="${s.key}">${money(s.base)}</b>`}</span>${ic("i-arrow", "ic svc-arrow")}</span>
+          <span class="svc-foot"><span class="svc-price">${s.host && s.prices[0].price != null ? `From <b>${money(s.prices[0].price)}</b> a turnover` : s.quote ? "Free quote" : `From <b data-from="${s.key}">${money(s.base)}</b>`}</span>${ic("i-arrow", "ic svc-arrow")}</span>
         </a>
       </li>`).join("")}
     </ul>`;
@@ -756,6 +759,7 @@ function homeServices(L) {
     <div class="svc-paths">
       <p>Not a regular home?</p>
       <ul>
+        <li><a href="${L("services/" + C.quoteServices.airbnb.slug + "/")}"><strong>Airbnb turnovers</strong> <span class="chip-new">New</span>${ic("i-arrow")}<span>Same-day resets between guests</span></a></li>
         <li><a href="${L("services/" + C.quoteServices.residence.slug + "/")}"><strong>${esc(C.quoteServices.residence.name)}</strong>${ic("i-arrow")}<span>Larger homes and fine finishes</span></a></li>
         <li><a href="${L("services/" + C.quoteServices.office.slug + "/")}"><strong>${esc(C.quoteServices.office.name)}</strong>${ic("i-arrow")}<span>Offices, clinics and studios</span></a></li>
         <li><a href="${L("realtors/")}"><strong>For realtors</strong>${ic("i-arrow")}<span>Listings and rentals</span></a></li>
@@ -770,8 +774,11 @@ function hoodChips(L, a, short = false) {
   return `<ul class="hood-list">${names.map((n) => { const h = hoodByName(n); return h ? `<li><a href="${L(hoodPath(h))}">${esc(n)}</a></li>` : `<li><span>${esc(n)}</span></li>`; }).join("")}${rest ? `<li><a class="hood-more" href="${L("areas/" + a.slug + "/")}">+ ${rest} more</a></li>` : ""}</ul>`;
 }
 
-function postalForm(id, label = "Check your postal code") {
-  return `<form class="pc-check" data-pc-form novalidate>
+// In the area, the check offers "Book now" (the booking form). cta sends it somewhere else instead, such as the host form,
+// and fill names a postal-code field on the same page to fill in.
+function postalForm(id, label = "Check your postal code", cta = null) {
+  const extra = cta ? ` data-pc-href="${esc(cta.href)}" data-pc-label="${esc(cta.label)}"${cta.fill ? ` data-pc-fill="${esc(cta.fill)}"` : ""}` : "";
+  return `<form class="pc-check" data-pc-form${extra} novalidate>
         <label for="${id}">${label}</label>
         <div class="pc-row"><input id="${id}" name="pc" autocomplete="postal-code" autocapitalize="characters" placeholder="e.g. M1B 2K3" maxlength="7"><button class="btn btn-primary" type="submit">Check</button></div>
         <p class="pc-result" data-pc-result aria-live="polite"></p>
@@ -810,60 +817,59 @@ function plansGrid(L) {
     </div>`;
 }
 
-/* v6 (warm) home: Mann at work under the hero, who we clean for, and the Airbnb turnover timeline.
-   Anything not confirmed yet shows as a visible [PLACEHOLDER] (.ph), never as an invented fact. */
-const ph = (t) => `<span class="ph">[${esc(t)}]</span>`;
+/* v7 home: local, visual and quick to act on. Original landmark artwork (tools/landmarks.mjs) gives the page its place;
+   the room explorer and the services explain the clean; nothing unconfirmed is ever shown. Details still to decide live in
+   the owner's private handover list, not on the site. */
 const DAYS_TEXT = C.openDays.length === 7 ? "7 days a week" : "most days";
 
-// Three photos of Mann at work. Drop name-600/928 .jpg and .webp into assets/photos (like the room photos)
-// and the build uses them; until then each slot is a labelled [PHOTO] placeholder.
+// Photos of Mann at work. Drop name-600/928 .jpg and .webp into assets/photos (like the room photos) and the build uses
+// them in the founder section; until a photo exists, its slot isn't shown at all.
 const MANN_SHOTS = [
   { name: "mann-at-door", caption: "At your door, in house shoes", alt: `${B.ownerFirstName} at a client's door with his kit, changing into house shoes` },
   { name: "mann-kit", caption: "Separate cloths for kitchen and bath", alt: `${B.ownerFirstName}'s kit laid out: colour-coded cloths, caddy and vacuum` },
-  { name: "mann-linens", caption: "Fresh linens for your next guests", alt: `${B.ownerFirstName} making a bed with fresh linens` }
+  { name: "mann-linens", caption: "Beds made, every visit", alt: `${B.ownerFirstName} making a bed` }
 ];
 MANN_SHOTS.forEach((s) => { PHOTOS[s.name] = s.alt; });
-// On phones the strip scrolls sideways, so it's a focusable region for keyboard users.
-function heroShots(L) {
-  return `<div class="hero-shots" role="region" aria-label="${esc(B.ownerFirstName)} at work" tabindex="0">
-      <p class="hero-owner">
-        <span class="hero-avatar"><picture><source type="image/webp" srcset="${L("assets/founder-mann-patel-avatar.webp")}"><img src="${L("assets/founder-mann-patel-avatar.jpg")}" alt="" width="76" height="76" decoding="async"></picture></span>
-        <span><strong>Every clean is done by ${esc(B.owner)}, the owner.</strong> The person at your door is the person who runs the business.</span>
-      </p>
-      ${MANN_SHOTS.map((s) => `<figure class="shot">
-        ${hasPhoto(s.name)
-          ? photo(L, s.name, { sizes: "(min-width: 60em) 300px, 72vw", cls: "shot-photo" })
-          : `<div class="shot-ph">${ic("i-camera")}<strong>[PHOTO]</strong><small>${esc(s.alt)}</small></div>`}
+function mannAtWork(L) {
+  const shots = MANN_SHOTS.filter((s) => hasPhoto(s.name));
+  if (!shots.length) return "";
+  return `<ul class="mann-shots" aria-label="${esc(B.ownerFirstName)} at work">${shots.map((s) => `<li><figure class="shot">
+        ${photo(L, s.name, { sizes: "(min-width: 60em) 300px, 80vw", cls: "shot-photo" })}
         <figcaption>${esc(s.caption)}</figcaption>
-      </figure>`).join("")}
-    </div>`;
+      </figure></li>`).join("")}</ul>`;
 }
 
+/* Airbnb turnovers: the home page's host section and the host page share these, and both read js/config.js
+   (quoteServices.airbnb). Prices, the package and the first-turnover offer appear only once they're filled in there;
+   until then turnovers are quoted through the host form. */
+const HOST = C.quoteServices.airbnb;
+const HOST_PATH = "services/" + HOST.slug + "/";
+const HOST_PRICED = HOST.prices.some((p) => p.price != null);
 
-// Who we clean for: one card per kind of client, each with its own way in.
-function audiences(L) {
-  const card = (cls, icon, title, text, href, link, isNew) => `<li class="aud ${cls}">
-        <span class="aud-ico">${ic(icon)}</span>
-        <h3>${title}${isNew ? ' <span class="chip-new">New</span>' : ""}</h3>
-        <p>${text}</p>
-        <a class="text-link" href="${href}">${link} ${ic("i-arrow")}</a>
-      </li>`;
-  return `<section class="section audiences" aria-labelledby="aud-title">
-  <div class="wrap">
-    <div class="section-head"><p class="label">Who I clean for</p><h2 id="aud-title">Homes, Airbnbs and small offices.</h2></div>
-    <ul class="aud-grid">
-      ${card("aud-home", "i-home", "Your home", "Condos, townhouses and houses. Regular, deep and move-out cleans, priced in seconds.", L("#services"), "See home cleaning")}
-      ${card("aud-host", "i-key", "Your Airbnb", `Same-day turnovers between guests, ${DAYS_TEXT}, until ${clock(C.closes)}.`, L("#hosts"), "See how turnovers work", true)}
-      ${card("aud-office", "i-building", "Your office", "Small offices, clinics and studios, cleaned around your opening hours.", L("services/" + C.quoteServices.office.slug + "/"), "Office cleaning")}
-    </ul>
-  </div>
-</section>`;
-}
-
-// The host's turnover, checkout to check-in. Times are an example; what Mann hasn't confirmed stays a placeholder.
-const HOST_MAIL = `mailto:${B.email}?subject=${encodeURIComponent("Airbnb turnovers")}&body=${encodeURIComponent(`Hi ${B.ownerFirstName}, I host a short-term rental.\n\nArea or postal code:\nNumber of units:\nBedrooms and bathrooms:\nCheckout and check-in times:\nAbout how many turnovers a month:\nListing calendar link (optional):\n`)}`;
-function hostsSection() {
+// The turnover, checkout to check-in. The times are an example; every step is something the site already promises.
+function turnoverTimeline() {
   const step = (time, title, text) => `<li><time>${time}</time><h3>${title}</h3><p>${text}</p></li>`;
+  return `<ol class="turnover">
+      ${step("11am", "Guests check out", "Send me your checkout times, or your listing's calendar link, and I plan my day around them.")}
+      ${step("11:15am", "I let myself in", `With your lockbox or door code. I delete codes within ${C.policies.accessCodeDeleteDays} days of your last scheduled clean.`)}
+      ${step("11:30am", "The full reset", "Kitchen, bathroom, floors and everything guests touch, beds made, done the same careful way every time.")}
+      ${step("4pm", "Next guests arrive", "To a space that's reset and ready.")}
+    </ol>`;
+}
+
+// The host package and the first-turnover offer, each shown only once it's set in js/config.js.
+function hostOffers({ perTurnover = true } = {}) {
+  const [p1, p2] = HOST.prices;
+  const pk = HOST.package || {};
+  const cards = [
+    perTurnover && p1.price != null ? `<li><p class="ho-label">Per turnover</p><p class="ho-price">${money(p1.price)}</p><p>${esc(p1.size)}.${p2 && p2.price != null ? ` ${money(p2.price)} for ${esc(p2.size.toLowerCase())}.` : ""}</p></li>` : "",
+    pk.price != null && pk.turnovers != null ? `<li><p class="ho-label">Host package</p><p class="ho-price">${money(pk.price)} <small>a month</small></p><p>${esc(pk.turnovers)} turnovers a month, and the same person every time: me.</p></li>` : "",
+    HOST.firstOffer ? `<li><p class="ho-label">Your first turnover</p><p class="ho-price">${esc(HOST.firstOffer)}</p><p>See the standard before you choose a package.</p></li>` : ""
+  ].filter(Boolean);
+  return cards.length ? `<ul class="host-offers${cards.length === 2 ? " host-offers-2" : ""}">${cards.join("")}</ul>` : "";
+}
+
+function hostsSection(L) {
   return `<section class="section hosts" id="hosts">
   <div class="wrap">
     <div class="section-head">
@@ -871,21 +877,91 @@ function hostsSection() {
       <h2>Guests out at 11. Ready for 4.</h2>
       <p class="muted">A same-day turnover, start to finish. The times are an example: I plan around your listing's checkout and check-in, ${DAYS_TEXT}, until ${clock(C.closes)}.</p>
     </div>
-    <ol class="turnover">
-      ${step("11am", "Guests check out", "Send me your checkout times, or your listing's calendar link, and I plan my day around them.")}
-      ${step("11:15am", "I let myself in", `With your lockbox or door code. I delete codes within ${C.policies.accessCodeDeleteDays} days of your last scheduled clean.`)}
-      ${step("11:30am", "The full reset", `Kitchen, bathroom, floors and everything guests touch. Beds made with fresh linens. ${ph("to confirm: whose linens")}`)}
-      ${step("2:30pm", "You get photos", `Every room, plus anything broken, missing or left behind. ${ph("to confirm")}`)}
-      ${step("4pm", "Next guests arrive", "To a space that's reset and ready.")}
-    </ol>
-    <ul class="host-offers">
-      <li><p class="ho-label">Per turnover</p><p class="ho-price">${ph("PRICE")}</p><p>Studio or 1 bedroom. ${ph("PRICE")} for 2 bedrooms.</p></li>
-      <li><p class="ho-label">Host package</p><p class="ho-price">${ph("PRICE")} <small>a month</small></p><p>${ph("X")} turnovers a month, and the same person every time: me.</p></li>
-      <li><p class="ho-label">Your first turnover</p><p class="ho-price">${ph("OFFER")}</p><p>See the standard before you choose a package.</p></li>
-    </ul>
+    ${turnoverTimeline()}
+    ${hostOffers()}
     <div class="host-cta">
-      <a class="btn btn-primary" href="${esc(HOST_MAIL)}" data-track="email_click">Tell me about your listing ${ic("i-arrow")}</a>
-      <p class="cta-note">Opens an email to ${esc(B.email)} with the questions ready. I reply ${esc(B.replyPromise)}.</p>
+      <a class="btn btn-primary" href="${L(HOST_PATH)}#host-form" data-track="host_click">${HOST_PRICED ? "Tell me about your listing" : "Get a turnover quote"} ${ic("i-arrow")}</a>
+      <a class="text-link" href="${L(HOST_PATH)}">How turnovers work ${ic("i-arrow")}</a>
+      ${HOST_PRICED ? "" : `<p class="cta-note">Turnovers are quoted per unit, so the price fits your listing. I reply ${esc(HOST.replyPromise)}.</p>`}
+    </div>
+  </div>
+</section>`;
+}
+
+/* Room by room: the same checklist and extras the service pages, pricing and booking use (checklist and addons in
+   js/config.js), so the three can never disagree. Without JavaScript every room shows the regular clean, one after another;
+   js/site.js turns the rooms into tabs and the clean choice into a switch. */
+const EXPLORE = ["regular", "deep", "move"];
+const ROOM_PHOTO = { Kitchen: "kitchen", Bathrooms: "bathroom", "Bedrooms & living": "bedroom", "Whole home": "entryway" };
+const roomId = (room) => "room-" + room.toLowerCase().replace(/[^a-z]+/g, "-").replace(/-$/, "");
+function roomList(k, r) {
+  const s = C.services[k], col = s.checklistColumn;
+  const by = (v) => r.tasks.filter((t) => (t[col] || "") === v);
+  const yes = by("yes"), add = roomExtras(k, r), none = by("");
+  return `<div class="ex-list" data-ex-for="${k}"${k === EXPLORE[0] ? "" : " hidden"}>
+          <p class="ex-count"><b>${yes.length}</b> included in ${esc(s.name)}</p>
+          <ul class="ex-yes">${yes.map((t) => `<li>${ic("i-check")}<span>${esc(t[0])}</span></li>`).join("")}</ul>
+          ${add.length ? `<p class="incl-sub">Add as an extra</p><ul class="ex-add">${add.map(([name, p]) => `<li>${ic("i-plus")}<span>${esc(name)}</span>${p != null ? `<b>+${money(p)}</b>` : ""}</li>`).join("")}</ul>` : ""}
+          ${none.length ? `<p class="incl-sub">Not part of this clean</p><ul class="ex-none">${none.map((t) => `<li>${ic("i-minus")}<span>${esc(t[0])}</span></li>`).join("")}</ul>` : ""}
+        </div>`;
+}
+function roomExplorer(L) {
+  return `<section class="section section-tint explorer" id="rooms" aria-labelledby="rooms-title">
+  <div class="wrap">
+    <div class="section-head">
+      <p class="label">Room by room</p>
+      <h2 id="rooms-title">See exactly what's included.</h2>
+      <p class="muted">The same checklist your price and your booking use. Choose a clean, then a room.</p>
+    </div>
+    <fieldset class="ex-svc" data-ex-svc>
+      <legend>Show what's included in</legend>
+      <div class="ex-svc-opts">${EXPLORE.map((k, i) => `<label><input type="radio" name="ex-svc" value="${k}"${i ? "" : " checked"}><span>${esc(C.services[k].menuName)}</span></label>`).join("")}</div>
+    </fieldset>
+    <div class="ex-rooms" data-explorer>
+      ${C.checklist.map((r) => `<div class="ex-room" id="${roomId(r.room)}" data-tab-label="${esc(r.room)}">
+        ${photo(L, ROOM_PHOTO[r.room] || "living-room", { sizes: "(min-width: 60em) 420px, 92vw", cls: "ex-photo" })}
+        <div class="ex-body">
+          <h3 class="ex-room-name">${esc(r.room)}</h3>
+          ${EXPLORE.map((k) => roomList(k, r)).join("")}
+        </div>
+      </div>`).join("")}
+    </div>
+    <div class="ex-foot">
+      <a class="btn btn-primary" href="${L("book/")}?s=${EXPLORE[0]}" data-ex-book data-track="book_click">${ACT.book}</a>
+      <a class="text-link" href="${L("pricing/#compare")}">Compare every task side by side ${ic("i-arrow")}</a>
+    </div>
+    <p class="fine">Room photos are illustrations, not photos of client homes.</p>
+  </div>
+</section>`;
+}
+
+/* Local discovery: the two districts with their landmark art, every neighbourhood in a list that filters as you type,
+   and the postal-code check (the 41 postal areas in serviceArea) for anything not listed. */
+function areasSection(L) {
+  const fsas = (a) => (C.serviceArea.districts.find((d) => d.name === a.name) || { prefixes: [] }).prefixes.length;
+  return `<section class="section areas" id="areas" aria-labelledby="areas-title">
+  <div class="wrap">
+    <div class="section-head">
+      <p class="label">Service area</p>
+      <h2 id="areas-title">Scarborough and North York.</h2>
+      <p class="muted">Two districts, so I can be on time, every time. Your exact address is confirmed when ${esc(B.ownerFirstName)} replies.</p>
+    </div>
+    <ul class="area-cards">
+      ${C.areas.map((a) => `<li><a class="area-card" href="${L("areas/" + a.slug + "/")}">
+        <span class="area-art">${districtScene(a.slug, { decorative: true })}</span>
+        <span class="area-text"><strong>${esc(a.name)}</strong><small>${a.neighbourhoods.length} neighbourhoods · ${fsas(a)} postal areas</small></span>${ic("i-arrow")}
+      </a></li>`).join("")}
+    </ul>
+    <div class="hood-finder" data-hood-finder>
+      <div class="hood-search" data-hood-search hidden>
+        <label for="hood-q">Find your neighbourhood</label>
+        <input id="hood-q" type="search" autocomplete="off" spellcheck="false" placeholder="e.g. Agincourt or Willowdale" data-hood-q>
+        <p class="hood-count" data-hood-count aria-live="polite"></p>
+      </div>
+      <div class="hood-groups">
+        ${C.areas.map((a) => `<div class="hood-group" data-hood-group><h3>${esc(a.name)}</h3>${hoodChips(L, a)}</div>`).join("")}
+      </div>
+      <p class="hood-empty" data-hood-empty hidden>Not listed? Your street may still be in my area. <a href="#pc-home">Check your postal code</a>.</p>
     </div>
   </div>
 </section>`;
@@ -900,9 +976,10 @@ urls.push(page({
 <section class="hero hero-home">
   <div class="wrap hero-grid">
     <div class="hero-copy">
-      <a class="hero-chip" href="${L("#hosts")}"><span class="chip-new">New</span><span>Airbnb turnovers, ${C.openDays.length === 7 ? "daily" : "most days"} until ${clock(C.closes)}</span>${ic("i-arrow")}</a>
+      <a class="hero-chip" href="${L(HOST_PATH)}"><span class="chip-new">New</span><span>Airbnb turnovers, ${C.openDays.length === 7 ? "daily" : "most days"} until ${clock(C.closes)}</span>${ic("i-arrow")}</a>
       <h1 class="hero-title"><span class="hero-what">House cleaning in ${esc(B.areaLabel)}</span> <span class="display">We clean.<br> <span class="accent">You rest.</span></span></h1>
       <p class="lede">Hi, I'm ${esc(B.ownerFirstName)}. I clean every home myself, so your weekends are for living, not scrubbing. You pay only after the clean.</p>
+      <figure class="hero-scene">${heroNarrow()}<figcaption><span>North York Centre</span><span>Scarborough Bluffs</span></figcaption></figure>
       ${postalForm("pc-home", "Do I come to you? Check your postal code")}
       <div class="hero-cta">
         <a class="btn btn-primary" href="${L("book/")}" data-track="book_click">${ACT.book} ${ic("i-arrow")}</a>
@@ -914,7 +991,10 @@ urls.push(page({
     <div class="hero-visual">
       <div class="hero-pricer">${pricer(L)}</div>
     </div>
-    ${heroShots(L)}
+    <p class="hero-owner">
+      <span class="hero-avatar"><picture><source type="image/webp" srcset="${L("assets/founder-mann-patel-avatar.webp")}"><img src="${L("assets/founder-mann-patel-avatar.jpg")}" alt="" width="76" height="76" decoding="async"></picture></span>
+      <span><strong>Every clean is done by ${esc(B.owner)}, the owner.</strong> The person at your door runs the business.</span>
+    </p>
   </div>
 </section>
 ${trustStrip()}
@@ -927,8 +1007,6 @@ ${gift && gift.active ? `<section class="gift-band" data-gift-banner data-months
   </div>
 </section>` : ""}
 
-${audiences(L)}
-
 <section class="section" id="services">
   <div class="wrap">
     <div class="section-head section-head-row">
@@ -939,9 +1017,9 @@ ${audiences(L)}
   </div>
 </section>
 
-${hostsSection()}
+${roomExplorer(L)}
 
-<section class="section section-tint" id="how">
+<section class="section" id="how">
   <div class="wrap">
     <div class="section-head">
       <p class="label">Booking</p>
@@ -959,7 +1037,7 @@ ${hostsSection()}
   </div>
 </section>
 
-<section class="section founder" id="founder" aria-labelledby="founder-title">
+<section class="section section-tint founder" id="founder" aria-labelledby="founder-title">
   <div class="wrap founder-grid">
     ${founderPhoto(L)}
     <div class="founder-body">
@@ -974,6 +1052,7 @@ ${hostsSection()}
       <a class="text-link" href="${L("vision/")}">Read ${esc(B.ownerFirstName)}'s vision ${ic("i-arrow")}</a>
     </div>
   </div>
+  ${mannAtWork(L) ? `<div class="wrap">${mannAtWork(L)}</div>` : ""}
 </section>
 
 <section class="section standard" id="standard">
@@ -1006,6 +1085,8 @@ ${hostsSection()}
   </div>
 </section>
 
+${hostsSection(L)}
+
 <section class="section" id="plans">
   <div class="wrap">
     <div class="section-head">
@@ -1026,22 +1107,7 @@ ${jobsSection(jobs.slice(0, 3), "Recent cleans.", "")}
   </div>
 </section>
 
-<section class="section areas" id="areas">
-  <div class="wrap split">
-    <div class="split-head">
-      <p class="label">Service area</p>
-      <h2>Scarborough and North York.</h2>
-      <p class="muted">We focus on two districts so we can be on time, every time. Check your postal code to confirm we come to you.</p>
-      <a class="text-link" href="${L("#pc-home")}">Check your postal code ${ic("i-arrow")}</a>
-    </div>
-    <div class="district-cards">
-      ${C.areas.map((a) => `<div class="district">
-        <a class="district-head" href="${L("areas/" + a.slug + "/")}"><span>${esc(a.name)}</span><small>${a.neighbourhoods.length} neighbourhoods</small>${ic("i-arrow")}</a>
-        ${hoodChips(L, a, true)}
-      </div>`).join("")}
-    </div>
-  </div>
-</section>
+${areasSection(L)}
 
 <section class="section section-tint home-guides" id="guides">
   <div class="wrap">
@@ -1054,6 +1120,7 @@ ${jobsSection(jobs.slice(0, 3), "Recent cleans.", "")}
 </section>
 
 ${homeFaq.html}
+<figure class="page-scene">${heroWide()}<figcaption><span>North York Centre</span><span>Scarborough Bluffs</span></figcaption></figure>
 ${finalCta(L)}
 `
 }));
@@ -1071,7 +1138,8 @@ urls.push(page({
                 ${Object.keys(C.frequencies).map((k) => { const f = C.frequencies[k]; return `<label class="choice"><input type="radio" name="freq" value="${k}"><span class="choice-body"><strong>${esc(f.label)}</strong><span class="choice-desc">${f.discount ? `Save ${f.discount}%` : "No commitment"}</span></span></label>`; }).join("")}
               </div>
             </div>`;
-    const quoteNames = quoteKeys.map((k) => C.quoteServices[k]);
+    // "Larger home or an office?": the quote services for homes and offices, not the Airbnb host service.
+    const quoteNames = quoteKeys.map((k) => C.quoteServices[k]).filter((q) => !q.host);
     // Each Continue says what comes next, so the button matches the step the customer is moving to.
     const NEXT = CAL ? ["Add your details"] : ["Choose a preferred day", "Add your details"];
     // Optional parts fold away under a summary that says what's chosen (js/site.js fills [data-section-status]),
@@ -1430,6 +1498,7 @@ ${finalCta(L)}`
 /* ---------- quote pages ---------- */
 for (const k of quoteKeys) {
   const q = C.quoteServices[k];
+  if (q.host) continue; // the Airbnb host page is built below, with its own sections
   const trail = [["Home", ""], [q.name, "services/" + q.slug + "/"]];
   const fq = faqBlock(k);
   urls.push(page({
@@ -1458,6 +1527,125 @@ for (const k of quoteKeys) {
 </section>
 ${fq.html}
 ${PHONE ? finalCta(L, "Prefer to talk it through?", "Call, text or WhatsApp and we'll answer your questions directly.") : finalCta(L, "Questions first?", "Email us and we'll answer them directly.")}`
+  }));
+}
+
+/* ---------- Airbnb host page ---------- */
+// Hosts get their own page: the turnover, what every turnover covers, prices and the host form.
+// Its prices and decisions live in js/config.js (quoteServices.airbnb). Until prices are set, turnovers are quoted through the host form;
+// linens, restocking and photo reports appear only once they're decided. What every turnover covers is the regular-clean checklist.
+{
+  const q = HOST;
+  const trail = [["Home", ""], [q.name, HOST_PATH]];
+  const fq = faqBlock("airbnb", "Host questions, answered.");
+  const from = q.prices[0].price;
+  const largest = q.prices[q.prices.length - 1].size.toLowerCase();
+  const why = [
+    ["i-user", "The same person every time", "Every turnover is done by me, the owner. I get to know your unit, your setup and what your guests need."],
+    ["i-clock", `Turnovers until ${clock(C.closes)}, ${DAYS_TEXT}`, "Late checkouts and evening check-ins can still work. Tell me your times and I'll confirm what I can fit in."],
+    ["i-key", "Your codes stay private", `I never copy keys or write codes on them, and I delete codes within ${C.policies.accessCodeDeleteDays} days of your last scheduled clean.`],
+    ["i-shield", "Not right? I come back", `Tell me within ${C.policies.recleanWindowHours} hours and I'll come back and re-clean those areas, free.`]
+  ];
+  const formCta = { href: "#host-form", label: HOST_PRICED ? "Tell me about your listing" : "Get a turnover quote", track: "host_click" };
+  // Only what Mann has decided: each is null in js/config.js until then, and stays off the page.
+  const hostTerms = [["Linens", q.linens], ["Restocking", q.restock], ["Photos after each turnover", q.photoReport]].filter(([, d]) => d);
+  urls.push(page({
+    depth: 2, pathOut: `services/${q.slug}/index.html`, pageType: "host",
+    title: `Airbnb Cleaning in Scarborough & North York | ${B.name}`,
+    description: metaDesc("Airbnb and short-term rental cleaning in Scarborough and North York, Toronto.", `Same-day turnovers by the owner, ${DAYS_TEXT} until ${clock(C.closes)}.`, "Pay after each clean."),
+    schemas: [
+      { "@context": "https://schema.org", "@type": "Service", name: q.name, serviceType: "Short-term rental turnover cleaning", description: q.intro, provider: { "@id": SITE + "/#business" }, areaServed: C.areas.map(placeSchema),
+        ...(from != null ? { offers: { "@type": "Offer", priceSpecification: { "@type": "PriceSpecification", minPrice: from, priceCurrency: C.currency } } } : {}) },
+      crumbSchema(trail), fq.schema
+    ],
+    body: (L) => `
+<section class="hero hero-sub">
+  <div class="wrap">${breadcrumbs(L, trail)}</div>
+  <div class="wrap hero-grid">
+    <div class="hero-copy">
+      <p class="kicker">For Airbnb and short-term rental hosts</p>
+      <h1 class="display display-sub">Airbnb cleaning in Scarborough &amp; North York</h1>
+      <p class="lede">${esc(q.intro)}</p>
+      <dl class="facts">
+        <div><dt>Per turnover</dt><dd>${from != null ? "From " + money(from) : "By quote"}</dd></div>
+        ${OPEN_FACT}
+        <div><dt>Who cleans</dt><dd>The owner</dd></div>
+      </dl>
+      <nav class="jump" aria-label="On this page">
+        <ul>${[["turnover", "The turnover"], ["includes", "What's included"], ["prices", "Pricing"], ["faq", "Questions"]].map(([id, t]) => `<li><a href="#${id}">${t}</a></li>`).join("")}</ul>
+      </nav>
+      ${photo(L, hasPhoto("mann-linens") ? "mann-linens" : "bedroom", { sizes: "(min-width: 960px) 520px, 92vw", cls: "quote-photo" })}
+    </div>
+    <div class="hero-pricer" id="host-form">
+      ${quoteForm(L, { name: q.name, title: "Tell me about your listing", reply: q.replyPromise, fields: q.fields, button: "Send my listing details" })}
+    </div>
+  </div>
+</section>
+
+<section class="section hosts" id="turnover">
+  <div class="wrap">
+    <div class="section-head">
+      <p class="label">A same-day turnover</p>
+      <h2>Guests out at 11. Ready for 4.</h2>
+      <p class="muted">The times are an example: I plan around your listing's checkout and check-in, ${DAYS_TEXT}, until ${clock(C.closes)}.</p>
+    </div>
+    ${turnoverTimeline()}
+  </div>
+</section>
+
+<section class="section" id="includes">
+  <div class="wrap">
+    <div class="section-head">
+      <p class="label">Every turnover</p>
+      <h2>What I do between guests.</h2>
+      <p class="muted">Each turnover follows my ${esc(C.services.regular.name.toLowerCase())} checklist, room by room, the same careful way every time. Anything your listing needs on top, tell me in the form and I'll include it in your quote.</p>
+    </div>
+    <ul class="host-rooms">${C.checklist.map((r) => ({ room: r.room, tasks: r.tasks.filter((t) => t[C.services.regular.checklistColumn] === "yes") })).filter((r) => r.tasks.length).map((r) => `<li class="incl-room"><h3>${esc(r.room)}</h3><ul class="ticks">${r.tasks.map((t) => `<li>${ic("i-check")}<span>${esc(t[0])}</span></li>`).join("")}</ul></li>`).join("")}</ul>
+    ${hostTerms.length ? `<dl class="host-terms">${hostTerms.map(([t, d]) => `<div><dt>${t}</dt><dd>${esc(d)}</dd></div>`).join("")}</dl>` : ""}
+  </div>
+</section>
+
+<section class="section section-tint" id="prices">
+  <div class="wrap">
+    ${HOST_PRICED ? `<div class="section-head">
+      <p class="label">Prices</p>
+      <h2>One price per turnover.</h2>
+      <p class="muted">Supplies and equipment included. ${TAX_TEXT}. No deposit: you pay after each clean, with a receipt for each property.</p>
+    </div>
+    <ul class="host-sizes">${q.prices.filter((p) => p.price != null).map((p) => `<li><span>${esc(p.size)}</span><b>${money(p.price)}</b></li>`).join("")}</ul>
+    <p class="fine">Bigger than ${esc(largest)}, or several units in one building? Tell me about them in the form and I'll quote.</p>
+    ${hostOffers({ perTurnover: false })}` : `<div class="section-head">
+      <p class="label">Pricing</p>
+      <h2>Quoted per unit, so it fits your listing.</h2>
+      <p class="muted">Turnover times change with the size of the unit, how many guests stay and how often you host. Tell me about your listing and I'll reply ${esc(q.replyPromise)} with a price for each turnover. No deposit: you pay after each clean, with a receipt for each property. ${TAX_TEXT}.</p>
+    </div>
+    <a class="btn btn-primary" href="#host-form" data-track="host_click">Get a turnover quote</a>`}
+  </div>
+</section>
+
+<section class="section" id="why">
+  <div class="wrap">
+    <div class="section-head"><p class="label">Why hosts book me</p><h2>One cleaner. Every turnover.</h2></div>
+    <ul class="why-grid">${why.map(([i, t, d]) => `<li><span class="aud-ico">${ic(i)}</span><h3>${esc(t)}</h3><p>${esc(d)}</p></li>`).join("")}</ul>
+  </div>
+</section>
+
+<section class="section section-tint" id="start">
+  <div class="wrap">
+    <div class="section-head"><p class="label">Getting started</p><h2>Three steps to your first turnover.</h2></div>
+    <ol class="steps-3">
+      <li><h3>Tell me about your listing</h3><p>Your units, your usual checkout and check-in times, and how often you host. It takes about two minutes.</p></li>
+      <li><h3>I send your price</h3><p>I reply <span data-reply>${esc(q.replyPromise)}</span>, with your price and the times I can do.</p></li>
+      <li><h3>Your first turnover</h3><p>Send me your checkout times or your calendar link, and I plan each turnover around them.</p></li>
+    </ol>
+    <div class="host-start">
+      ${postalForm("pc-host", "Is your listing in my area? Check its postal code", { href: "#host-form", label: "Tell me about your listing", fill: "q-postal" })}
+    </div>
+  </div>
+</section>
+
+${fq.html}
+${finalCta(L, "Ready for your next checkout?", `Tell me about your listing. I reply ${q.replyPromise}.`, formCta)}`
   }));
 }
 
@@ -1570,7 +1758,7 @@ ${priceExplainer()}
 
 <section class="section" id="quotes">
   <div class="wrap">
-    <div class="section-head"><p class="label">By quote</p><h2>Larger homes, offices and realtors.</h2><p class="muted">These are priced after a conversation or a walkthrough, so the quote fits the space. Quotes are free.</p></div>
+    <div class="section-head"><p class="label">By quote</p><h2>Larger homes, offices and Airbnbs.</h2><p class="muted">These are priced after a conversation or a walkthrough, so the quote fits the space. Quotes are free.</p></div>
     ${serviceCards(L, quotes, "svc-grid-compact")}
     <p class="fine">Realtor or property manager? See <a href="${L("realtors/")}">cleaning for listings and rentals</a>.</p>
   </div>
@@ -1644,7 +1832,7 @@ for (const a of C.areas) {
         ${OPEN_FACT}
         <div><dt>Payment</dt><dd>After the clean</dd></div>
       </dl>
-      ${photo(L, AREA_PHOTO[a.slug] || "living-room", { sizes: "(min-width: 960px) 520px, 92vw", cls: "hero-photo" })}
+      ${districtScene(a.slug) ? `<figure class="area-hero-art">${districtScene(a.slug)}</figure>` : photo(L, AREA_PHOTO[a.slug] || "living-room", { sizes: "(min-width: 960px) 520px, 92vw", cls: "hero-photo" })}
     </div>
     <div class="hero-pricer">${pricer(L, "regular", "Your price in " + a.name, { owner: true })}</div>
   </div>

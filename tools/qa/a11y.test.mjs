@@ -3,7 +3,7 @@
 import path from "node:path";
 import { test, assert, newPage, ROOT, openSection } from "./lib.mjs";
 
-const PAGES = ["/", "/pricing/", "/services/deep-cleaning/", "/areas/north-york/willowdale/", "/help/", "/services/residence-care/", "/gift/"];
+const PAGES = ["/", "/pricing/", "/services/deep-cleaning/", "/areas/north-york/willowdale/", "/help/", "/services/residence-care/", "/gift/", "/services/airbnb-cleaning/"];
 const AXE = path.join(ROOT, "tools/qa/vendor/axe.min.js");
 
 // Visits the three booking steps, calling check(label) at each.

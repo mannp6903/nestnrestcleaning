@@ -163,7 +163,7 @@ export default async function () {
     const bad = [];
     for (const theme of ["light", "dark"]) {
       const p = await newPage(browser, { width: 1440, height: 900, theme });
-      for (const path of ["/", "/pricing/", "/book/", "/help/"]) {
+      for (const path of ["/", "/pricing/", "/book/", "/help/", "/services/airbnb-cleaning/"]) {
         await p.goto(url + path);
         await p.evaluate(() => document.getAnimations().forEach((a) => a.finish()));
         for (const t of await contrastProblems(p)) {
