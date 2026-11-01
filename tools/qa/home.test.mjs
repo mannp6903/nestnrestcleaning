@@ -1,4 +1,5 @@
-// The v3 homepage (docs/superpowers/specs/2026-10-29-website-redesign-v3-design.md, section 5): one main action, photo service cards, quote paths, calmer bands.
+// The home page. v9 (short): a strong hero with one main action, compact service cards with plans, extras and quote paths,
+// How to book, questions and Contact. Rules that still hold from earlier versions are kept (docs/superpowers/specs).
 import { test, assert, newPage, loadConfig } from "./lib.mjs";
 
 const C = loadConfig();
@@ -22,13 +23,14 @@ export default async function () {
     }
   });
 
-  test("home services: four photo cards with who they're for, price and two next steps", async ({ browser, url }) => {
+  // v9: four compact cards, no photos: name, who it's for, the price and two next steps.
+  test("home services: four cards with who they're for, price and two next steps", async ({ browser, url }) => {
     const p = await newPage(browser, { width: 1440, height: 900 });
     await p.goto(url + "/");
-    const cards = await p.$$eval("#services .svc-feature > li.svc-feature-card", (ls) => ls.map((l) => {
-      const img = l.querySelector("img"), book = l.querySelector("a.btn-primary"), more = l.querySelector("a.text-link");
+    const cards = await p.$$eval("#services .svc-cards > li.svc-card-home", (ls) => ls.map((l) => {
+      const book = l.querySelector("a.btn-primary"), more = l.querySelector("a.text-link");
       return {
-        img: img && { lazy: img.loading === "lazy", w: img.getAttribute("width"), h: img.getAttribute("height"), alt: img.alt },
+        imgs: l.querySelectorAll("img").length,
         name: (l.querySelector("h3") || {}).textContent, best: (l.querySelector(".svc-best") || {}).textContent, price: (l.querySelector(".svc-price") || {}).textContent,
         book: book && [book.textContent.trim(), book.getAttribute("href")], more: more && [more.textContent.trim(), more.getAttribute("href")]
       };
@@ -37,7 +39,7 @@ export default async function () {
     cards.forEach((c, i) => {
       const s = C.services[HOME_SERVICES[i]];
       assert(c.name && c.name.trim() === s.name, `card ${i + 1} should be ${s.name}, got ${c.name}`);
-      assert(c.img && c.img.lazy && c.img.w && c.img.h && c.img.alt, `${s.name}: the photo should be lazy with a width, height and alt text, got ${JSON.stringify(c.img)}`);
+      assert(c.imgs === 0, `${s.name}: the cards carry no photos, to keep the page short`);
       assert(c.best && c.best.trim() === "Best for: " + s.idealFor[0], `${s.name}: expected "Best for: ${s.idealFor[0]}", got ${c.best}`);
       assert(c.price && c.price.includes("$" + s.base), `${s.name}: the price should show $${s.base}, got ${c.price}`);
       assert(c.book && c.book[0] === "Request" && c.book[1].endsWith("book/?s=" + HOME_SERVICES[i]), `${s.name}: Request should go to book/?s=${HOME_SERVICES[i]}, got ${JSON.stringify(c.book)}`);
@@ -48,7 +50,7 @@ export default async function () {
       const q = await newPage(browser, { width, height: 900 });
       await q.goto(url + "/");
       const r = await q.evaluate(() => {
-        const tops = [...document.querySelectorAll(".svc-feature-card")].map((l) => Math.round(l.getBoundingClientRect().top));
+        const tops = [...document.querySelectorAll(".svc-card-home")].map((l) => Math.round(l.getBoundingClientRect().top));
         return { perRow: tops.filter((t) => t === tops[0]).length, wide: document.documentElement.scrollWidth - innerWidth };
       });
       assert(r.perRow === want, `${width}px: expected ${want} card(s) per row, got ${r.perRow}`);
@@ -57,23 +59,12 @@ export default async function () {
     }
   });
 
-  // On phones the photos are 88px squares, so even a 3x screen should get the 600px file, not the 928px one.
-  test("phone service thumbnails load the small photo", async ({ browser, url }) => {
-    const p = await newPage(browser, { width: 390, height: 844, isMobile: true });
-    await p.goto(url + "/");
-    await p.$$eval(".svc-feature-card img", (is) => is.forEach((i) => { i.loading = "eager"; }));
-    await p.waitForFunction(() => [...document.querySelectorAll(".svc-feature-card img")].every((i) => i.complete && i.currentSrc));
-    const srcs = await p.$$eval(".svc-feature-card img", (is) => is.map((i) => i.currentSrc.split("/").pop()));
-    assert(srcs.length === 4 && srcs.every((s) => /-600\./.test(s)), "phone thumbnails should use the 600px photos, got " + srcs.join(", "));
-  });
-
-  test("not a regular home? links the quote services and realtors", async ({ browser, url }) => {
+  test("priced by quote links the quote services and realtors", async ({ browser, url }) => {
     const p = await newPage(browser, { width: 1440, height: 900 });
     await p.goto(url + "/");
-    const text = await p.textContent("#services .svc-paths");
-    assert(text.includes("Not a regular home?"), "the quote-path row should ask Not a regular home?");
-    const hrefs = await p.$$eval("#services .svc-paths a", (as) => as.map((a) => a.getAttribute("href")));
-    for (const want of ["services/residence-care/", "services/office-cleaning/", "realtors/"]) {
+    assert((await p.textContent("#services .pf-quote h3")).trim() === "Priced by quote", "the quote row should be called Priced by quote");
+    const hrefs = await p.$$eval("#services .pf-quote a", (as) => as.map((a) => a.getAttribute("href")));
+    for (const want of ["services/" + C.quoteServices.airbnb.slug + "/", "services/residence-care/", "services/office-cleaning/", "realtors/"]) {
       assert(hrefs.some((h) => h.endsWith(want)), `missing a link to ${want}: ${hrefs.join(", ")}`);
     }
   });
@@ -88,41 +79,55 @@ export default async function () {
     assert(firsts.length === 4 && firsts.every((t) => /^\$\d+ first visit$/.test(t)), "each service price should show its first-visit price, got " + JSON.stringify(firsts));
   });
 
-  test("plans are one strip", async ({ browser, url }) => {
+  // v9: the plans are a short list beside the extras, each one a way into booking with that plan chosen.
+  test("plans: each one opens booking with it chosen, one marked Recommended", async ({ browser, url }) => {
     const p = await newPage(browser, { width: 1440, height: 900 });
     await p.goto(url + "/");
-    assert(await p.locator("#plans .plan-strip").count() === 1, "expected one plan strip");
-    const strip = await p.$eval("#plans .plan-strip", (e) => { const s = getComputedStyle(e); return { radius: s.borderTopLeftRadius, border: s.borderTopWidth }; });
-    assert(strip.radius === "14px" && strip.border === "1px", "the strip should be one bordered 14px box, got " + JSON.stringify(strip));
-    const cells = await p.$$eval("#plans .plan-strip > .plan", (ps) => ps.map((e) => { const s = getComputedStyle(e); return { radius: s.borderTopLeftRadius, border: s.borderTopWidth, top: Math.round(e.getBoundingClientRect().top) }; }));
-    assert(cells.length === 4, "expected four plans, found " + cells.length);
-    assert(cells.every((c) => c.radius === "0px" && c.border === "0px"), "plan cells shouldn't be cards of their own, got " + JSON.stringify(cells[0]));
-    assert(new Set(cells.map((c) => c.top)).size === 1, "the four plans should sit in one row on desktop");
-    const flags = await p.$$eval("#plans .plan-flag", (fs) => fs.map((f) => f.textContent.trim()));
-    // "Recommended", not "Most popular": a popularity claim needs booking data behind it.
-    assert(flags.length === 1 && flags[0] === "Recommended", "one plan should be flagged Recommended, got " + JSON.stringify(flags));
+    const plans = Object.keys(C.frequencies).filter((k) => C.frequencies[k].discount);
+    const rows = await p.$$eval("#plans li[data-plan]", (ls) => ls.map((l) => { const a = l.querySelector("a"); return [l.getAttribute("data-plan"), a && a.textContent.trim(), a && a.getAttribute("href"), (l.querySelector("b") || {}).textContent, (l.querySelector(".plan-flag") || {}).textContent]; }));
+    assert(rows.length === plans.length, "one row per plan with a discount: " + JSON.stringify(rows));
+    for (const [k, text, href, off, flag] of rows) {
+      const f = C.frequencies[k];
+      assert(text === "Choose " + f.label.toLowerCase() && href.endsWith("book/?s=regular&f=" + k), `${k}: ${text} -> ${href}`);
+      assert(off === f.discount + "% off", `${k}: says ${off}`);
+      assert(!!flag === !!f.recommended && (!flag || flag === "Recommended"), `${k}: flag ${flag}`);
+    }
   });
 
-  // v8: booking, Mann, the standard and the guarantee are one section, so the reassurance is said once.
-  test("how it works is one section: the steps, who's coming, the standard and the guarantee", async ({ browser, url }) => {
+  // v9: How to book is the three steps, then Mann and the booking terms a client asks about. The rest of the old page is gone.
+  test("how to book: the steps, who's coming and the booking terms; nothing else from the long page", async ({ browser, url }) => {
     for (const width of [1440, 390]) {
       const p = await newPage(browser, { width, height: 900 });
       await p.goto(url + "/");
       const r = await p.evaluate(() => {
         const how = document.querySelector("#how");
         return { steps: how.querySelectorAll("ol.steps-3 > li").length, photo: !!how.querySelector(".how-meet img"), meet: (how.querySelector(".how-meet h3") || {}).textContent,
-          rituals: how.querySelectorAll(".how-standard .ritual > li").length, navyImg: how.querySelectorAll(".how-standard img, .how-standard .standard-guarantee").length,
-          title: (how.querySelector("#guarantee-title") || {}).textContent, line: (how.querySelector(".how-guarantee p:not(.guarantee-title)") || {}).textContent,
-          old: document.querySelectorAll("#founder, section.standard, #guides").length };
+          terms: [...how.querySelectorAll(".terms > li h3")].map((h) => h.textContent.trim()), reclean: [...how.querySelectorAll(".terms > li p")].map((x) => x.textContent).find((t) => /re-clean/.test(t)) || "",
+          old: [...document.querySelectorAll("#founder, section.standard, #guides, #rooms, #hosts, .trust-strip, .page-scene, .final-cta, .area-cards, [data-hood-finder]")].map((e) => e.id || e.className) };
       });
-      assert(r.steps === 3 && r.photo && r.meet === "I clean every home myself." && r.rituals === 5, `${width}px: ${JSON.stringify(r)}`);
-      assert(r.navyImg === 0, `${width}px: the navy panel holds the five steps only, no photo or card`);
-      assert(r.title.startsWith("Not quite right?") && /^Report anything missed within 24 hours of your clean/.test(r.line), `${width}px: the guarantee: ${JSON.stringify(r)}`);
-      assert(r.old === 0, `${width}px: the old founder, standard and guides sections should be gone`);
-      const g = await p.$eval(".how-guarantee", (e) => { const s = getComputedStyle(e); return { bg: s.backgroundColor, shadow: s.boxShadow }; });
-      assert(g.bg === "rgba(0, 0, 0, 0)" && g.shadow === "none", `${width}px: the guarantee isn't a card: ${JSON.stringify(g)}`);
+      assert(r.steps === 3 && r.photo && r.meet === "I clean every home myself.", `${width}px: ${JSON.stringify(r)}`);
+      assert(JSON.stringify(r.terms) === JSON.stringify(["Pay after the clean", "Free changes", "Not quite right? Free re-clean", "Supplies included"]), `${width}px: terms ${JSON.stringify(r.terms)}`);
+      assert(/^Report anything missed within 24 hours of your clean/.test(r.reclean), `${width}px: the guarantee: ${r.reclean}`);
+      assert(!r.old.length, `${width}px: these belong to the old long page: ${r.old.join(", ")}`);
       await p.context().close();
     }
+  });
+
+  test("contact: every way to reach us, the areas, the postal check and help with a booking", async ({ browser, url }) => {
+    const p = await newPage(browser, { width: 1440, height: 900 });
+    await p.goto(url + "/");
+    const r = await p.evaluate(() => {
+      const c = document.querySelector("#contact");
+      return { mail: [...c.querySelectorAll('a[href^="mailto:"]')].map((a) => a.getAttribute("href")), text: c.textContent.replace(/\s+/g, " "),
+        areas: [...c.querySelectorAll("#areas a")].map((a) => a.getAttribute("href")), pc: !!c.querySelector("#pc-home"), help: !!c.querySelector('a[href$="help/"]'),
+        book: [...c.querySelectorAll("a.btn-primary")].map((a) => a.getAttribute("href")) };
+    });
+    assert(r.mail.some((h) => h === "mailto:" + C.business.email), "the email address is a link: " + r.mail);
+    assert(r.text.includes(C.business.hours) && r.text.includes(C.business.replyPromise), "hours and reply time are stated");
+    for (const a of C.areas) assert(r.areas.some((h) => h.endsWith("areas/" + a.slug + "/")), "links to " + a.name + ": " + r.areas);
+    assert(r.pc && r.help && r.book.length === 1 && r.book[0].endsWith("book/"), JSON.stringify(r));
+    const nav = await p.$$eval(".nav-desktop a", (as) => as.map((a) => [a.textContent.trim(), a.getAttribute("href")]));
+    assert(nav.some(([t, h]) => t === "Contact" && h.endsWith("#contact")) && nav.some(([t, h]) => t === "How to book" && h.endsWith("#how")), "the nav names Contact and How to book: " + JSON.stringify(nav));
   });
 
   test("steps are a row, not cards", async ({ browser, url }) => {

@@ -118,7 +118,7 @@ export default async function () {
   test("the home page, nav and booking point hosts the right way", async ({ browser, url }) => {
     const p = await newPage(browser, { width: 1440, height: 900 });
     await p.goto(url + "/");
-    for (const sel of [".hero-chip", "#services .svc-paths a >> nth=0", "#hosts .host-cta .btn-primary", ".nav-desktop a:has-text('Airbnb hosts')"]) {
+    for (const sel of ["#services .pf-quote a >> nth=0", ".nav-desktop a:has-text('Airbnb hosts')"]) {
       const href = await p.getAttribute(sel, "href");
       assert(href && href.includes(H.slug), `${sel} should link to the host page, got ${href}`);
     }

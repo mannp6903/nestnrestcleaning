@@ -8,23 +8,28 @@ import { loadScript } from "./gas-fakes.mjs";
 const PAGES = [...fs.readFileSync(path.join(ROOT, "sitemap.xml"), "utf8").matchAll(/<loc>[^<]*?nestnrestcleaning\.com([^<]*)<\/loc>/g)].map((m) => m[1] || "/");
 
 export default async function () {
-  test("desktop hero: headline, landmark art, main button and price box all on the first screen", async ({ browser, url }) => {
-    for (const [width, height] of [[1440, 900], [1280, 800]]) {
+  // v9: one composition: the slogan, the main button, the price box and the start of the night panorama on the first screen,
+  // the price box standing on the art and the words kept clear of it.
+  test("desktop hero: headline, main button, price box and landmark art all on the first screen", async ({ browser, url }) => {
+    for (const [width, height] of [[1440, 900], [1280, 800], [1024, 768]]) {
       const p = await newPage(browser, { width, height });
       await p.goto(url + "/");
       const b = await p.evaluate(() => {
         const r = (s) => { const e = document.querySelector(s).getBoundingClientRect(); return { top: Math.round(e.top), bottom: Math.round(e.bottom) }; };
-        return { h1: r(".hero-home h1"), art: r(".hero-scene svg"), cta: r(".hero-cta .btn-primary"), go: r(".hero-home [data-p-go]"), box: r(".hero-home .pricer") };
+        return { h1: r(".hero-home h1"), art: r(".hero-scene svg.lm-wide"), cta: r(".hero-cta .btn-primary"), go: r(".hero-home [data-p-go]"), box: r(".hero-home .pricer"), owner: r(".hero-home .hero-owner") };
       });
-      for (const k of ["h1", "art", "cta", "go"]) assert(b[k].top >= 0 && b[k].bottom <= height, `${width}x${height}: ${k} should be on the first screen: ${JSON.stringify(b)}`);
-      // One composition: the art's foot sits level with the price box's (within 80px), not a screen below it.
-      assert(Math.abs(b.art.bottom - b.box.bottom) <= 80, `${width}x${height}: the art and the price box should end together: ${JSON.stringify(b)}`);
+      for (const k of ["h1", "cta", "go"]) assert(b[k].top >= 0 && b[k].bottom <= height, `${width}x${height}: ${k} should be on the first screen: ${JSON.stringify(b)}`);
+      // A 768px-tall screen fits the words, the button and the price box; the art may start just below.
+      if (height >= 800) assert(b.art.top < height, `${width}x${height}: the art should start on the first screen: ${JSON.stringify(b)}`);
+      assert(b.box.bottom > b.art.top && b.box.bottom < b.art.bottom, `${width}x${height}: the price box should stand on the art: ${JSON.stringify(b)}`);
+      assert(b.owner.bottom <= b.art.top + 8, `${width}x${height}: the words should stay clear of the art: ${JSON.stringify(b)}`);
       await p.context().close();
     }
   });
 
-  test("the home page stays short: no more than 10 desktop screens, 16.5 phone screens", async ({ browser, url }) => {
-    for (const [width, height, max, mobile] of [[1440, 900, 10, false], [390, 844, 16.5, true]]) {
+  // v9 halved the page: it was 9.8 desktop and 16 phone screens.
+  test("the home page stays short: no more than 6 desktop screens, 10 phone screens", async ({ browser, url }) => {
+    for (const [width, height, max, mobile] of [[1440, 900, 6, false], [390, 844, 10, true]]) {
       const p = await newPage(browser, { width, height, isMobile: mobile });
       await p.goto(url + "/");
       const screens = (await p.evaluate(() => document.documentElement.scrollHeight)) / height;
@@ -93,7 +98,6 @@ export default async function () {
     await p.goto(url + "/");
     await p.fill("#pc-home", "M1B 2K3"); await p.press("#pc-home", "Enter");
     assert((await p.textContent("#pc-home ~ [data-pc-result] a.btn, [data-pc-form] [data-pc-result] a.btn")).trim() === "Request a clean", "in-area postal check says Request a clean");
-    assert((await p.textContent("#rooms .section-head .muted")).trim() === "Choose a service and room to see what we clean.", "room explorer introduction");
     const bad = [];
     for (const pg of PAGES) {
       await p.goto(url + pg);

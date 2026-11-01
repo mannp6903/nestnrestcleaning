@@ -56,7 +56,7 @@ window.NR_CONFIG = {
   },
 
   /* Trust badges. Switch one to true only once it's actually true for your business.
-     The insurance badge isn't here: its spot is commented out in the trust strip (trustStrip() in tools/build.mjs)
+     The insurance badge isn't here: its spot is commented out in the home hero's promises (heroFacts() in tools/build.mjs)
      until the policy starts in November 2026. */
   badges: {
     ecoProducts: false,
@@ -472,8 +472,8 @@ window.NR_CONFIG = {
     { q: "How long does a residence walkthrough take?", a: "Usually 20 to 30 minutes. We walk each room with you, note surfaces and priorities, and send a written care plan and quote afterwards.", on: ["residence"] },
     { q: "Can you clean outside business hours?", a: "Tell us what suits your business in the quote form. We'll confirm the times we can offer in your quote.", on: ["office"] },
     { q: "Do I need a contract?", a: "No contract is needed to start. Most offices begin with a single visit, then choose a schedule.", on: ["office"] },
-    { q: "Which areas do you serve?", a: "Scarborough and North York. Enter your postal code on the site to check. If you're just outside these areas, get in touch and we'll tell you honestly whether we can help.", on: ["home", "area", "residence", "office", "realtors", "airbnb"] },
-    { q: "How do I get in touch?", a: "Email nestnrestcleaning@gmail.com, or send your details through the booking form. Mann replies within 2 hours during business hours (every day, 9am to 11pm).", on: ["home", "area"] },
+    { q: "Which areas do you serve?", a: "Scarborough and North York. Enter your postal code on the site to check. If you're just outside these areas, get in touch and we'll tell you honestly whether we can help.", on: ["area", "residence", "office", "realtors", "airbnb"] },
+    { q: "How do I get in touch?", a: "Email nestnrestcleaning@gmail.com, or send your details through the booking form. Mann replies within 2 hours during business hours (every day, 9am to 11pm).", on: ["area"] },
     { q: "Do gift cards expire?", a: "No. Nest & Rest gift cards never expire, and they can be used toward any service. Any balance left after a clean stays on the card.", on: ["gift"] },
     { q: "How do I pay for a gift card?", a: "Send the form and we'll text you to confirm the details and send an Interac e-Transfer request. Your gift card is emailed as soon as it's paid.", on: ["gift"] },
     { q: "How does the person I'm gifting book?", a: "They book online like anyone else and mention the code on their gift card. We take the gift value off their price after the clean.", on: ["gift"] },

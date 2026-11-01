@@ -93,17 +93,20 @@ export default async function () {
     assert(JSON.stringify(await shown()) === '["prices-move"]' && await p.isVisible(".price-tabs"), "computers see one table, with the tabs: " + await shown());
   });
 
-  test("navy panels line up with the page", async ({ browser, url }) => {
+  test("navy panels and the home's sections line up with the page", async ({ browser, url }) => {
     const p = await newPage(browser, { width: 1440, height: 900 });
     await p.goto(url + "/");
     const x = await p.evaluate(() => {
       const b = (s) => document.querySelector(s).getBoundingClientRect();
-      return { ctaText: Math.round(b(".final-cta h2").left), page: Math.round(b("#services h2").left), pageRight: Math.round(b("#services .section-head").right),
-        std: [Math.round(b(".how-standard").left), Math.round(b(".how-standard").right)] };
+      return { hero: Math.round(b(".hero-home h1").left), page: Math.round(b("#services h2").left), pageRight: Math.round(b("#services .section-head").right),
+        contact: Math.round(b("#contact h2").left), card: Math.round(b(".contact-card").right), box: Math.round(b(".hero-home .pricer").right) };
     });
-    assert(x.ctaText === x.page, "text inside the closing panel should line up with the page's: " + JSON.stringify(x));
-    // v8: the standard is a panel in the page's own column, inside the text edges.
-    assert(x.std[0] >= x.page && x.std[1] <= x.pageRight + 1, "the standard panel should sit inside the page's text column: " + JSON.stringify(x));
+    // v9: the hero's words, every section and Contact share the page's text edges.
+    assert(x.hero === x.page && x.contact === x.page, "the home's headings should share one left edge: " + JSON.stringify(x));
+    assert(Math.abs(x.card - x.pageRight) <= 1 && Math.abs(x.box - x.pageRight) <= 1, "the price box and the contact card end at the page's right edge: " + JSON.stringify(x));
+    await p.goto(url + "/pricing/");
+    const y = await p.evaluate(() => ({ cta: Math.round(document.querySelector(".final-cta h2").getBoundingClientRect().left), page: Math.round(document.querySelector("main h2").getBoundingClientRect().left) }));
+    assert(y.cta === y.page, "text inside the closing panel should line up with the page's: " + JSON.stringify(y));
   });
 
   test("headline full stops sit close, and the words don't change", async ({ browser, url }) => {

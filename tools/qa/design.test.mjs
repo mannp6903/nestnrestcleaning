@@ -1,5 +1,7 @@
 // The redesign's rules (docs/superpowers/specs/2026-10-28-modern-redesign-design.md): type, surfaces, components, hero.
-import { test, assert, newPage, contrast, contrastProblems } from "./lib.mjs";
+import { test, assert, newPage, contrast, contrastProblems, loadConfig } from "./lib.mjs";
+
+const C = loadConfig();
 
 const JAKARTA = /^"?Plus Jakarta Sans"?/;
 const px = (v) => Math.round(parseFloat(v));
@@ -43,7 +45,8 @@ export default async function () {
       if (weight) assert(s.weight === String(weight), `${path} ${selector} weight should be ${weight}, got ${s.weight}`);
     };
     // v4 (docs/superpowers/specs/2026-10-29-website-redesign-v4-design.md): calmer 700 headings on a smaller scale.
-    await check(1440, "/", ".hero-title .display", 68, 700);
+    // v9: the home slogan is larger, on its navy hero (84px on a computer); everything else keeps the v4 scale.
+    await check(1440, "/", ".hero-title .display", 84, 700);
     await check(1440, "/pricing/", "h1", 56, 700);
     await check(1440, "/", "#services h2", 40, 700);
     await check(390, "/", ".hero-title .display", 44);
@@ -75,14 +78,16 @@ export default async function () {
     const small = await box("#services .btn-sm");
     assert(Math.abs(small.h - 44) <= 1 && small.radius >= 22, "small button should be a 44px pill, got " + JSON.stringify(small));
     assert((await box(".hero-home .pricer")).radius === 14, "the price box should have a 14px radius");
-    for (const sel of [".how-standard", ".final-cta .final-inner"]) {
-      const b = await box(sel);
-      assert(b.radius === 20, `${sel} should be a 20px panel, got ${b.radius}`);
-      assert(b.w < 1440, `${sel} should sit inside the page width, got ${b.w}px wide`);
-    }
+    const contact = await box(".contact-card");
+    assert(contact.radius === 20 && contact.shadow === "none" && contact.w < 1440, "the contact card should be a flat 20px panel inside the page, got " + JSON.stringify(contact));
     assert((await box(".hero-home .pricer select")).radius === 12, "fields should have a 12px radius");
-    // v6: the home hero's postal check is one pill, field and button together.
-    assert((await box(".hero-home .pc-row")).radius >= 26, "the hero postal check should be a pill");
+    // v6, v9: the postal check is one pill, field and button together (in Contact now).
+    assert((await box(".contact .pc-row")).radius >= 26, "the postal check should be a pill");
+    const home = await box(".svc-card-home");
+    assert(home.radius === 14 && home.shadow === "none", "home service cards should be flat with a 14px radius, got " + JSON.stringify(home));
+    await p.goto(url + "/pricing/");
+    const panel = await box(".final-cta .final-inner");
+    assert(panel.radius === 20 && panel.w < 1440, "the closing navy panel should be a 20px panel inside the page, got " + JSON.stringify(panel));
     await p.goto(url + "/services/deep-cleaning/");
     const card = await box(".svc-card");
     assert(card.radius === 14 && card.shadow === "none", "service cards should be flat with a 14px radius, got " + JSON.stringify(card));
@@ -179,9 +184,9 @@ export default async function () {
 
   test("labels on navy stay readable", async ({ browser, url }) => {
     const p = await newPage(browser, { width: 1440, height: 900 });
-    await p.goto(url + "/");
     const bad = [];
-    for (const scope of [".standard .label", ".footer-cols .label"]) {
+    for (const [path, scope] of [["/vision/", ".standard .label"], ["/", ".footer-cols .label"]]) {
+      await p.goto(url + path);
       const items = await contrastProblems(p, scope.split(" ")[0]);
       for (const t of items.filter((x) => x.tag.startsWith("p.label"))) {
         const r = contrast(t.fg, t.bg);
@@ -212,8 +217,8 @@ export default async function () {
     const p = await newPage(browser, { width: 1440, height: 900 });
     await p.goto(url + "/");
     const lede = (await p.textContent(".hero-home .lede")).trim();
-    // v6: Mann introduces himself in the first person.
-    assert(lede === "Hi, I'm Mann. I clean every home myself, so your weekends are for living, not scrubbing. You pay only after the clean.", "hero subheading is: " + lede);
+    // v6: Mann introduces himself in the first person. v9: with the starting price; paying after the clean is in the promises under it.
+    assert(lede === "Hi, I'm Mann. I clean every home myself, so your weekends are for living, not scrubbing. Prices from $" + C.services.regular.base + ".", "hero subheading is: " + lede);
     const links = await p.$$eval(".hero-cta a", (as) => as.map((a) => [a.textContent.trim(), a.getAttribute("href")]));
     assert(links.some(([t, h]) => t.startsWith("Request a clean") && h.endsWith("book/")), "hero needs Request a clean -> book/: " + JSON.stringify(links));
     assert(links.some(([t, h]) => t.startsWith("How it works") && h.endsWith("#how")), "hero needs How it works -> #how: " + JSON.stringify(links));
@@ -226,12 +231,14 @@ export default async function () {
     assert(b && b.y < 844, "the price box should start on the first phone screen, starts at " + (b && b.y));
   });
 
-  test("trust strip", async ({ browser, url }) => {
+  // v9: the promises sit in the hero, under its buttons, instead of a strip of their own.
+  test("hero promises", async ({ browser, url }) => {
     const p = await newPage(browser, { width: 1440, height: 900 });
     await p.goto(url + "/");
-    assert(await p.locator(".trust-strip li").count() === 4, "the trust strip should hold the four promises");
-    assert(await p.evaluate(() => document.querySelector(".hero-home").nextElementSibling.classList.contains("trust-strip")), "the trust strip should come straight after the hero");
-    assert(await p.locator("[data-assure]").count() === 1, "the [data-assure] hook should appear exactly once");
+    const items = await p.$$eval(".hero-home .hero-facts li", (ls) => ls.map((l) => l.textContent.trim()));
+    assert(items.length === 3 && items[0] === "No deposit. Pay after your clean" && items.some((t) => /^Free re-clean if reported within \d+ hours$/.test(t)), "the hero should hold the three promises: " + JSON.stringify(items));
+    assert(await p.locator("[data-assure]").count() === 1 && await p.locator(".hero-home [data-assure]").count() === 1, "the [data-assure] hook should appear exactly once, in the hero");
+    assert(await p.locator(".trust-strip").count() === 0, "no separate trust strip");
   });
 
   test("section heads are left-aligned", async ({ browser, url }) => {
@@ -254,12 +261,16 @@ export default async function () {
 
   test("heroes are plain", async ({ browser, url }) => {
     const p = await newPage(browser, { width: 1440, height: 900 });
-    for (const path of ["/", "/pricing/", "/services/deep-cleaning/", "/areas/north-york/willowdale/", "/help/"]) {
+    for (const path of ["/pricing/", "/services/deep-cleaning/", "/areas/north-york/willowdale/", "/help/"]) {
       await p.goto(url + path);
       const r = await p.$eval(".hero", (e) => ({ bg: getComputedStyle(e).backgroundImage, h1: getComputedStyle(e.querySelector("h1")).fontFamily }));
       assert(r.bg === "none", `${path} hero should have a plain background, got ${r.bg.slice(0, 40)}`);
       assert(JAKARTA.test(r.h1), `${path} h1 should use Plus Jakarta Sans, got ${r.h1}`);
     }
+    // v9: the one exception is the home hero, the site's front door: navy night over the landmark art.
+    await p.goto(url + "/");
+    const home = await p.$eval(".hero-home", (e) => ({ color: getComputedStyle(e).backgroundColor, h1: getComputedStyle(e.querySelector("h1")).fontFamily, art: !!e.querySelector(".hero-scene svg") }));
+    assert(home.color === "rgb(10, 45, 92)" && home.art && JAKARTA.test(home.h1), "the home hero is navy with its art: " + JSON.stringify(home));
   });
 
   test("FAQ is one list with dividers", async ({ browser, url }) => {
