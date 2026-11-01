@@ -221,9 +221,9 @@ function header(L, opts = {}) {
     <nav class="nav-desktop" aria-label="Main">
       ${navLink(L("#services"), "Services", ["service", "quote"].includes(opts.current))}
       ${navLink(L("pricing/"), "Pricing", opts.current === "pricing", true)}
-      ${navLink(L("#areas"), "Areas", opts.current === "area")}
+      ${navLink(L("#how"), "How to book", false)}
       ${navLink(L("services/" + C.quoteServices.airbnb.slug + "/"), "Airbnb hosts", opts.current === "host", true)}
-      ${navLink(L("help/"), "Help", opts.current === "help", true)}
+      ${navLink(L("#contact"), "Contact", ["area", "help"].includes(opts.current))}
     </nav>
     <div class="header-actions">
       ${PHONE ? `<a class="header-phone" data-tel href="tel:${B.phone}">${ic("i-phone")}<span class="sr-only">Call <span data-phone-text>${esc(B.phoneDisplay)}</span></span></a>` : ""}
@@ -245,8 +245,8 @@ function header(L, opts = {}) {
     <ul class="menu-list menu-list-sm">
       <li><a href="${L("pricing/")}">Pricing</a></li>
       <li><a href="${L("#how")}">How booking works</a></li>
-      <li><a href="${L("#areas")}">Areas we serve</a></li>
       <li><a href="${L("#faq")}">Questions</a></li>
+      <li><a href="${L("#contact")}">Contact &amp; areas we serve</a></li>
       <li><a href="${L("help/")}">Help &amp; your booking</a></li>
     </ul>
     <p class="label">About us</p>
@@ -507,20 +507,17 @@ function stepper(id, label, value, attr) {
     </div>`;
 }
 
-// The four promises, in a strip under the home hero. js/site.js adds any switched-on badges to [data-assure].
-function trustStrip() {
+// The promises, as a short list in the home hero. js/site.js adds any switched-on badges to [data-assure].
+function heroFacts() {
   const items = [
-    ["i-shield", `Free re-clean if reported within ${RECLEAN_H} hours`],
     ["i-card", "No deposit. Pay after your clean"],
-    ["i-clock", "Open 7 days, 9am to 11pm"],
-    ["i-pin", "Scarborough & North York"]
+    ["i-clock", `Open ${C.openDays.length === 7 ? "daily" : "most days"}, ${clock(C.opens)} to ${clock(C.closes)}`],
+    ["i-shield", `Free re-clean if reported within ${RECLEAN_H} hours`]
   ];
   // The insurance badge waits here until the policy starts (November 2026). To switch it on, move the <li> out of the
-  // comment, write its wording from the policy itself, and check the trust strip still lays out (tablet test).
+  // comment, write its wording from the policy itself, and check the hero still lays out (tablet test).
   const insuranceSpot = `<!-- Insurance badge, from November 2026: <li>${ic("i-shield")}<span>[BADGE TEXT FROM YOUR POLICY]</span></li> -->`;
-  return `<section class="trust-strip" aria-label="Our promises">
-  <div class="wrap"><ul class="trust" data-assure>${items.map(([i, t]) => `<li>${ic(i)}<span>${esc(t)}</span></li>`).join("")}${insuranceSpot}</ul></div>
-</section>`;
+  return `<ul class="hero-facts" aria-label="Our promises" data-assure>${items.map(([i, t]) => `<li>${ic(i)}<span>${esc(t)}</span></li>`).join("")}${insuranceSpot}</ul>`;
 }
 
 function founderPhoto(L, cls = "") {
@@ -770,31 +767,45 @@ function serviceCards(L, list, cls = "") {
 // assets/photos/empty-home-* exists, and Deep Cleaning a close-up result once assets/photos/deep-detail-* exists
 // (docs/design-notes.md, "Images"). Until then they keep the illustrations they have.
 const HOME_PHOTOS = { regular: "living-room", deep: hasPhoto("deep-detail") ? "deep-detail" : "kitchen", move: hasPhoto("empty-home") ? "empty-home" : "entryway", detail: "bathroom" };
+// v9 home: the four bookable services as compact cards (who it's for, the price, two next steps), then everything else
+// a client needs to price a clean in one row: plans, extras and the services priced by quote.
 function homeServices(L) {
   const first = founding && founding.active && spotsLeft > 0 ? (b) => money(afterDiscount(b, founding.percent)) : null;
-  return `<ul class="svc-feature">
-      ${Object.keys(HOME_PHOTOS).map((k) => { const s = C.services[k]; return `<li class="svc-feature-card">
-        ${photo(L, HOME_PHOTOS[k], { sizes: "(min-width: 64em) 300px, (min-width: 37.5em) 45vw, (min-width: 20em) 88px, 92vw" })}
-        <div class="svc-feature-body">
-          <h3>${esc(s.name)}</h3>
-          <p class="svc-best">Best for: ${esc(s.idealFor[0])}</p>
-          <p class="svc-price">From <b data-from="${k}">${money(s.base)}</b>${first ? ` <span class="svc-first">${first(s.base)} first visit</span>` : ""}</p>
-          <div class="svc-feature-actions">
-            <a class="btn btn-primary btn-sm" href="${L("book/")}?s=${k}" data-track="book_click">${ACT.short}</a>
-            <a class="text-link" href="${L("services/" + s.slug + "/#included")}">What's included</a>
-          </div>
+  const plans = Object.keys(C.frequencies).filter((k) => C.frequencies[k].discount);
+  const offered = C.addons.filter((a) => svcKeys.some((k) => addonStatus(k, a.id) === "extra"));
+  const extras = offered.slice(0, 4), more = offered.length - extras.length;
+  return `<ul class="svc-cards">
+      ${Object.keys(HOME_PHOTOS).map((k) => { const s = C.services[k]; return `<li class="svc-card-home">
+        <span class="svc-ico">${ic(SVC_ICON[k] || "i-sparkle")}</span>
+        <h3>${esc(s.name)}</h3>
+        <p class="svc-best">Best for: ${esc(s.idealFor[0])}</p>
+        <p class="svc-price">From <b data-from="${k}">${money(s.base)}</b>${first ? ` <span class="svc-first">${first(s.base)} first visit</span>` : ""}</p>
+        <div class="svc-card-actions">
+          <a class="btn btn-primary btn-sm" href="${L("book/")}?s=${k}" data-track="book_click">${ACT.short}</a>
+          <a class="text-link" href="${L("services/" + s.slug + "/#included")}">What's included</a>
         </div>
       </li>`; }).join("")}
     </ul>
-    ${homePlans(L)}
-    <div class="svc-paths">
-      <p>Not a regular home?</p>
-      <ul>
-        <li><a href="${L("services/" + C.quoteServices.airbnb.slug + "/")}"><strong>Airbnb turnovers</strong> <span class="chip-new">New</span>${ic("i-arrow")}<span>Same-day resets between guests</span></a></li>
-        <li><a href="${L("services/" + C.quoteServices.residence.slug + "/")}"><strong>${esc(C.quoteServices.residence.name)}</strong>${ic("i-arrow")}<span>Larger homes and fine finishes</span></a></li>
-        <li><a href="${L("services/" + C.quoteServices.office.slug + "/")}"><strong>${esc(C.quoteServices.office.name)}</strong>${ic("i-arrow")}<span>Offices, clinics and studios</span></a></li>
-        <li><a href="${L("realtors/")}"><strong>For realtors</strong>${ic("i-arrow")}<span>Listings and rentals</span></a></li>
-      </ul>
+    <div class="price-facts">
+      <div class="pf" id="plans">
+        <h3>Save with a plan</h3>
+        <ul>${plans.map((k) => { const f = C.frequencies[k]; return `<li data-plan="${k}"><a href="${L("book/")}?s=regular&amp;f=${k}" data-track="plan_click">Choose ${esc(f.label.toLowerCase())}</a>${f.recommended ? '<small class="plan-flag">Recommended</small>' : ""}<b>${f.discount}% off</b></li>`; }).join("")}</ul>
+        <p>Every visit. Pause or change with ${C.policies.cancelNoticeHours} hours' notice.</p>
+      </div>
+      <div class="pf">
+        <h3>Add extras</h3>
+        <ul>${extras.map((a) => `<li><span>${esc(a.name)}</span><b>+${money(a.price)}</b></li>`).join("")}</ul>
+        <p>Choose them when you book.${more ? ` <a href="${L("pricing/#extras")}">${more} more extras</a>.` : ""}</p>
+      </div>
+      <div class="pf pf-quote">
+        <h3>Priced by quote</h3>
+        <ul>
+          <li><a href="${L(HOST_PATH)}">Airbnb turnovers <span class="chip-new">New</span></a></li>
+          <li><a href="${L("services/" + C.quoteServices.residence.slug + "/")}">${esc(C.quoteServices.residence.name)}</a><small>Larger homes</small></li>
+          <li><a href="${L("services/" + C.quoteServices.office.slug + "/")}">${esc(C.quoteServices.office.name)}</a><small>Offices &amp; clinics</small></li>
+          <li><a href="${L("realtors/")}">For realtors</a><small>Listings &amp; rentals</small></li>
+        </ul>
+      </div>
     </div>`;
 }
 
@@ -858,15 +869,6 @@ function changeForm(L) {
       </div>`;
 }
 
-// Home: the newest guides as a short list beside the questions, not a section of their own.
-function guideLinks(L) {
-  return `<div class="faq-guides">
-        <p class="label">Guides</p>
-        <ul class="guide-links">${guides.slice(0, 3).map((g) => `<li><a href="${L("guides/" + g.slug + "/")}"><small>${esc(g.kicker)} · ${g.minutes} min read</small><span>${esc(g.h1)}</span></a></li>`).join("")}</ul>
-        <a class="text-link" href="${L("guides/")}">All guides ${ic("i-arrow")}</a>
-      </div>`;
-}
-
 /* ---------- home ---------- */
 const urls = [];
 const homeFaq = faqBlock("home", "Questions, answered.");
@@ -892,26 +894,10 @@ function plansGrid(L) {
     </div>`;
 }
 
-// Home: the plans sit under the service cards (how often comes after which clean), not in a section of their own.
-function homePlans(L) {
-  return `<div class="home-plans" id="plans">
-      <div class="home-plans-head">
-        <p class="label">Regular care</p>
-        <h3>Set it once. Stay ahead.</h3>
-        <p class="muted">Recurring visits cost less and keep your home consistently right. Pause or change anytime with ${C.policies.cancelNoticeHours} hours' notice.</p>
-      </div>
-      ${plansGrid(L)}
-      <p class="fine">Choosing a plan opens the booking form with it selected. Your own home's price is worked out there.</p>
-    </div>`;
-}
-
-/* v7 home: local, visual and quick to act on. Original landmark artwork (tools/landmarks.mjs) gives the page its place;
-   the room explorer and the services explain the clean; nothing unconfirmed is ever shown. Details still to decide live in
-   the owner's private handover list, not on the site. */
 const DAYS_TEXT = C.openDays.length === 7 ? "7 days a week" : "most days";
 
 // Photos of Mann at work. Drop name-600/928 .jpg and .webp into assets/photos (like the room photos) and the build uses
-// them in the founder section; until a photo exists, its slot isn't shown at all.
+// them on the vision page, under Mann's note; until a photo exists, its slot isn't shown at all.
 const MANN_SHOTS = [
   { name: "mann-at-door", caption: "At your door, in house shoes", alt: `${B.ownerFirstName} at a client's door with his kit, changing into house shoes` },
   { name: "mann-kit", caption: "Separate cloths for kitchen and bath", alt: `${B.ownerFirstName}'s kit laid out: colour-coded cloths, caddy and vacuum` },
@@ -927,7 +913,7 @@ function mannAtWork(L) {
       </figure></li>`).join("")}</ul>`;
 }
 
-/* Airbnb turnovers: the home page's host section and the host page share these, and both read js/config.js
+/* Airbnb turnovers: the host page reads these from js/config.js
    (quoteServices.airbnb). Prices, the package and the first-turnover offer appear only once they're filled in there;
    until then turnovers are quoted through the host form. */
 const HOST = C.quoteServices.airbnb;
@@ -957,101 +943,57 @@ function hostOffers({ perTurnover = true } = {}) {
   return cards.length ? `<ul class="host-offers${cards.length === 2 ? " host-offers-2" : ""}">${cards.join("")}</ul>` : "";
 }
 
-function hostsSection(L) {
-  return `<section class="section hosts" id="hosts">
-  <div class="wrap">
-    <div class="section-head">
-      <p class="label">For Airbnb and short-term rental hosts</p>
-      <h2>Guests out at 11. Ready for 4.</h2>
-      <p class="muted">A same-day turnover, start to finish. The times are an example: I plan around your listing's checkout and check-in, ${DAYS_TEXT}, until ${clock(C.closes)}.</p>
-    </div>
-    ${turnoverTimeline()}
-    ${hostOffers()}
-    <div class="host-cta">
-      <a class="btn btn-primary" href="${L(HOST_PATH)}#host-form" data-track="host_click">${HOST_PRICED ? "Tell me about your listing" : "Get a turnover quote"} ${ic("i-arrow")}</a>
-      <a class="text-link" href="${L(HOST_PATH)}">How turnovers work ${ic("i-arrow")}</a>
-      ${HOST_PRICED ? "" : `<p class="cta-note">Turnovers are quoted per unit, so the price fits your listing. I reply ${esc(HOST.replyPromise)}.</p>`}
-    </div>
-  </div>
-</section>`;
+/* v9 home: short. A strong hero (the price box beside it, the landmark art at night along its foot), then only what a
+   client needs to book: services and prices, how booking works, questions, and how to reach us. Everything else (the
+   room-by-room checklist, the Airbnb turnover, every neighbourhood, the guides) has its own page, linked from here. */
+
+// The five things that happen at every visit: public promises, on the vision page (#standard).
+const STANDARD = [
+  ["Introduced by name", "You'll know who's coming before I arrive."],
+  ["Street shoes off, house shoes on", "Your floors only ever meet clean soles."],
+  ["Your priorities first", "A quick word on what matters most today."],
+  ["Separate cloths for kitchen and bath", "What cleans a bathroom never touches your kitchen."],
+  ["A final check before I leave", "Every room checked against the checklist."]
+];
+
+// Booking terms a client asks about before they book. Each one must stay true to the Service Policies.
+function bookingTerms(L) {
+  const items = [
+    ["i-card", "Pay after the clean", "Interac e-Transfer, card or cash. No deposit, nothing to pay to book."],
+    ["i-cal", "Free changes", `Change or cancel up to ${C.policies.cancelNoticeHours} hours before, at no charge.`],
+    ["i-shield", "Not quite right? Free re-clean", GUARANTEE_LINE],
+    ["i-sparkle", "Supplies included", "I bring everything. Fragrance-free or your own products on request."]
+  ];
+  return `<ul class="terms">${items.map(([i, t, d]) => `<li><span class="terms-ico">${ic(i)}</span><div><h3>${esc(t)}</h3><p>${esc(d)}</p></div></li>`).join("")}</ul>`;
 }
 
-/* Room by room: the same checklist and extras the service pages, pricing and booking use (checklist and addons in
-   js/config.js), so the three can never disagree. Without JavaScript every room shows the regular clean, one after another;
-   js/site.js turns the rooms into tabs and the clean choice into a switch. */
-const EXPLORE = ["regular", "deep", "move"];
-const ROOM_PHOTO = { Kitchen: "kitchen", Bathrooms: "bathroom", "Bedrooms & living": "bedroom", "Whole home": "entryway" };
-const roomId = (room) => "room-" + room.toLowerCase().replace(/[^a-z]+/g, "-").replace(/-$/, "");
-function roomList(k, r) {
-  const s = C.services[k], col = s.checklistColumn;
-  const by = (v) => r.tasks.filter((t) => (t[col] || "") === v);
-  const yes = by("yes"), add = roomExtras(k, r), none = by("");
-  return `<div class="ex-list" data-ex-for="${k}"${k === EXPLORE[0] ? "" : " hidden"}>
-          <p class="ex-count"><b>${yes.length}</b> included in ${esc(s.name)}</p>
-          <ul class="ex-yes">${yes.map((t) => `<li>${ic("i-check")}<span>${esc(t[0])}</span></li>`).join("")}</ul>
-          ${add.length ? `<p class="incl-sub">Add as an extra</p><ul class="ex-add">${add.map(([name, p]) => `<li>${ic("i-plus")}<span>${esc(name)}</span>${p != null ? `<b>+${money(p)}</b>` : ""}</li>`).join("")}</ul>` : ""}
-          ${none.length ? `<p class="incl-sub">Not part of this clean</p><ul class="ex-none">${none.map((t) => `<li>${ic("i-minus")}<span>${esc(t[0])}</span></li>`).join("")}</ul>` : ""}
-        </div>`;
-}
-function roomExplorer(L) {
-  return `<section class="section section-tint explorer" id="rooms" aria-labelledby="rooms-title">
-  <div class="wrap">
-    <div class="section-head">
-      <p class="label">Room by room</p>
-      <h2 id="rooms-title">See exactly what's included.</h2>
-      <p class="muted">Choose a service and room to see what we clean.</p>
-    </div>
-    <fieldset class="ex-svc" data-ex-svc>
-      <legend class="sr-only">Show what's included in</legend>
-      <div class="ex-svc-opts">${EXPLORE.map((k, i) => `<label><input type="radio" name="ex-svc" value="${k}"${i ? "" : " checked"}><span>${esc(C.services[k].menuName)}</span></label>`).join("")}</div>
-    </fieldset>
-    <div class="ex-rooms" data-explorer>
-      ${C.checklist.map((r) => `<div class="ex-room" id="${roomId(r.room)}" data-tab-label="${esc(r.room)}">
-        ${photo(L, ROOM_PHOTO[r.room] || "living-room", { sizes: "(min-width: 60em) 420px, 92vw", cls: "ex-photo" })}
-        <div class="ex-body">
-          <h3 class="ex-room-name">${esc(r.room)}</h3>
-          ${EXPLORE.map((k) => roomList(k, r)).join("")}
-        </div>
-      </div>`).join("")}
-    </div>
-    <div class="ex-foot">
-      <a class="btn btn-primary" href="${L("book/")}?s=${EXPLORE[0]}" data-ex-book data-track="book_click">${ACT.book}</a>
-      <a class="text-link" href="${L("pricing/#compare")}">Compare every task side by side ${ic("i-arrow")}</a>
-    </div>
-    <p class="fine">Room photos are illustrations, not photos of client homes.</p>
-  </div>
-</section>`;
-}
-
-/* Local discovery: the two districts with their landmark art, every neighbourhood in a list that filters as you type,
-   and the postal-code check (the 41 postal areas in serviceArea) for anything not listed. */
-function areasSection(L) {
-  const fsas = (a) => (C.serviceArea.districts.find((d) => d.name === a.name) || { prefixes: [] }).prefixes.length;
-  return `<section class="section areas" id="areas" aria-labelledby="areas-title">
-  <div class="wrap">
-    <div class="section-head">
-      <p class="label">Service area</p>
-      <h2 id="areas-title">Scarborough and North York.</h2>
-      <p class="muted">Two districts, so I can be on time, every time. Your exact address is confirmed when ${esc(B.ownerFirstName)} replies.</p>
-    </div>
-    <div class="areas-grid">
-    <ul class="area-cards">
-      ${C.areas.map((a) => `<li><a class="area-card" href="${L("areas/" + a.slug + "/")}">
-        <span class="area-art">${districtScene(a.slug, { decorative: true })}</span>
-        <span class="area-text"><strong>${esc(a.name)}</strong><small>${a.neighbourhoods.length} neighbourhoods · ${fsas(a)} postal areas</small></span>${ic("i-arrow")}
-      </a></li>`).join("")}
-    </ul>
-    <div class="hood-finder" data-hood-finder>
-      <div class="hood-search" data-hood-search hidden>
-        <label for="hood-q">Find your neighbourhood</label>
-        <input id="hood-q" type="search" autocomplete="off" spellcheck="false" placeholder="e.g. Agincourt or Willowdale" data-hood-q>
-        <p class="hood-count" data-hood-count aria-live="polite"></p>
+// Contact: every way to reach us, the service area with the postal check, and the way in for an existing booking.
+function contactSection(L) {
+  const row = (icon, dt, dd) => `<div><dt>${ic(icon)}<span>${dt}</span></dt><dd>${dd}</dd></div>`;
+  return `<section class="section contact" id="contact" aria-labelledby="contact-title">
+  <div class="wrap contact-grid">
+    <div class="contact-copy">
+      <p class="label">Contact</p>
+      <h2 id="contact-title">Ready when you are.</h2>
+      <p class="lede">Request a clean in about two minutes, or ask ${esc(B.ownerFirstName)} anything first. ${esc(B.ownerFirstName)} replies <span data-reply>${esc(B.replyPromise)}</span>.</p>
+      <div class="cta-row">
+        <a class="btn btn-primary" href="${L("book/")}" data-track="book_click">${ACT.book} ${ic("i-arrow")}</a>
+        ${B.whatsapp ? `<a class="btn btn-wa" data-wa href="${esc(waLink(WA_HELLO))}" target="_blank" rel="noopener" data-track="whatsapp_click">${ic("i-wa")} WhatsApp</a>` : ""}
+        ${PHONE ? `<a class="text-link" data-tel href="tel:${B.phone}" data-track="call_click">Call <span class="nowrap" data-phone-text>${esc(B.phoneDisplay)}</span> ${ic("i-arrow")}</a>`
+          : `<a class="text-link" data-mailto href="mailto:${B.email}" data-track="email_click">Email ${esc(B.ownerFirstName)} ${ic("i-arrow")}</a>`}
       </div>
-      <div class="hood-groups">
-        ${C.areas.map((a) => `<div class="hood-group" data-hood-group><h3>${esc(a.name)}</h3>${hoodChips(L, a)}</div>`).join("")}
-      </div>
-      <p class="hood-empty" data-hood-empty hidden>Not listed? Your street may still be in my area. <a href="#pc-home">Check your postal code</a>.</p>
+      <p class="contact-help">Already booked? <a href="${L("help/")}">Change or cancel your booking</a></p>
     </div>
+    <div class="contact-card">
+      <dl class="contact-list">
+        ${row("i-mail", "Email", `<a data-mailto href="mailto:${B.email}" data-email-text data-track="email_click">${esc(B.email)}</a>`)}
+        ${PHONE ? row("i-phone", "Call or text", `<a data-tel href="tel:${B.phone}" data-phone-text>${esc(B.phoneDisplay)}</a>`) : ""}
+        ${B.whatsapp ? row("i-wa", "WhatsApp", `<a data-wa href="${esc(waLink(WA_HELLO))}" target="_blank" rel="noopener">Message ${esc(B.ownerFirstName)}</a>`) : ""}
+        ${row("i-clock", "Hours", `<span data-hours>${esc(B.hours)}</span>`)}
+        <div id="areas">${`<dt>${ic("i-pin")}<span>Areas</span></dt><dd>${C.areas.map((a) => `<a href="${L("areas/" + a.slug + "/")}">${esc(a.name)}</a>`).join(" and ")}, Toronto</dd>`}</div>
+        ${ADDR ? row("i-home", "Mailing address", esc(ADDR)) : ""}
+      </dl>
+      ${postalForm("pc-home", "Do I come to you? Check your postal code")}
     </div>
   </div>
 </section>`;
@@ -1066,54 +1008,40 @@ urls.push(page({
 <section class="hero hero-home">
   <div class="wrap hero-grid">
     <div class="hero-copy">
-      <a class="hero-chip" href="${L(HOST_PATH)}"><span class="chip-new">New</span><span>Airbnb turnovers, ${C.openDays.length === 7 ? "daily" : "most days"} until ${clock(C.closes)}</span>${ic("i-arrow")}</a>
       <h1 class="hero-title"><span class="hero-what">House cleaning in ${esc(B.areaLabel)}</span> <span class="display">We clean.<br> <span class="accent">You rest.</span></span></h1>
-      <p class="lede">Hi, I'm ${esc(B.ownerFirstName)}. I clean every home myself, so your weekends are for living, not scrubbing. You pay only after the clean.</p>
-      <figure class="hero-scene">${heroNarrow()}<figcaption><span>North York Centre</span><span>Scarborough Bluffs</span></figcaption></figure>
-      ${postalForm("pc-home", "Do I come to you? Check your postal code")}
+      <p class="lede">Hi, I'm ${esc(B.ownerFirstName)}. I clean every home myself, so your weekends are for living, not scrubbing. Prices from <b data-from="regular">${money(C.services.regular.base)}</b>.</p>
       <div class="hero-cta">
         <a class="btn btn-primary" href="${L("book/")}" data-track="book_click">${ACT.book} ${ic("i-arrow")}</a>
         <a class="text-link" href="${L("#how")}">How it works ${ic("i-arrow")}</a>
-        ${B.whatsapp ? `<a class="btn btn-wa" data-wa href="${esc(waLink(WA_HELLO))}" target="_blank" rel="noopener" data-track="whatsapp_click">${ic("i-wa")} WhatsApp</a>` : ""}
-        <p class="cta-note">${CAL ? "About two minutes. You pick a confirmed time on the calendar." : `About two minutes. ${esc(B.ownerFirstName)} confirms your day and time.`}</p>
       </div>
+      ${heroFacts()}
+      <p class="hero-owner">
+        <span class="hero-avatar"><picture><source type="image/webp" srcset="${L("assets/founder-mann-patel-avatar.webp")}"><img src="${L("assets/founder-mann-patel-avatar.jpg")}" alt="" width="76" height="76" decoding="async"></picture></span>
+        <span><strong>Every clean is done by ${esc(B.owner)}, the owner.</strong> The person at your door runs the business.</span>
+      </p>
     </div>
     <div class="hero-visual">
       <div class="hero-pricer">${pricer(L)}</div>
     </div>
-    <p class="hero-owner">
-      <span class="hero-avatar"><picture><source type="image/webp" srcset="${L("assets/founder-mann-patel-avatar.webp")}"><img src="${L("assets/founder-mann-patel-avatar.jpg")}" alt="" width="76" height="76" decoding="async"></picture></span>
-      <span><strong>Every clean is done by ${esc(B.owner)}, the owner.</strong> The person at your door runs the business.</span>
-    </p>
   </div>
+  <figure class="hero-scene">${heroNarrow()}${heroWide()}<figcaption><span>North York Centre</span><span>Scarborough Bluffs</span></figcaption></figure>
 </section>
-${trustStrip()}
 
-${gift && gift.active ? `<section class="gift-band" data-gift-banner data-months="${gift.bannerMonths.join(",")}" hidden>
-  <div class="wrap gift-band-inner">
-    <span class="gift-ico">${ic("i-gift")}</span>
-    <p><strong>${esc(gift.headline)}</strong> ${esc(gift.text)}</p>
-    <a class="btn btn-light btn-sm" href="${L("gift/")}" data-track="gift_click">Gift a clean</a>
-  </div>
-</section>` : ""}
-
-<section class="section" id="services">
+<section class="section" id="services" aria-labelledby="services-title">
   <div class="wrap">
     <div class="section-head section-head-row">
-      <div><p class="label">Services</p><h2>Choose the care your home needs.</h2></div>
+      <div><p class="label">Services &amp; prices</p><h2 id="services-title">Choose the care your home needs.</h2></div>
       <a class="text-link" href="${L("pricing/")}">See every price ${ic("i-arrow")}</a>
     </div>
     ${homeServices(L)}
   </div>
 </section>
 
-${roomExplorer(L)}
-
-<section class="section how" id="how" aria-labelledby="how-title">
+<section class="section section-tint how" id="how" aria-labelledby="how-title">
   <div class="wrap">
     <div class="section-head section-head-row">
-      <div><p class="label">How it works</p><h2 id="how-title">${CAL ? "Booked in two minutes. Confirmed instantly." : `Request in two minutes. ${esc(B.ownerFirstName)} confirms.`}</h2></div>
-      <a class="text-link" href="${L("help/")}">What happens after you request ${ic("i-arrow")}</a>
+      <div><p class="label">How to book</p><h2 id="how-title">${CAL ? "Booked in two minutes. Confirmed instantly." : `Request in two minutes. ${esc(B.ownerFirstName)} confirms.`}</h2></div>
+      <a class="text-link" href="${L("policies/")}">Read the service policies ${ic("i-arrow")}</a>
     </div>
     <ol class="steps-3">
       <li><h3>See your price</h3><p>From your home's size and the extras you choose. No contact details and no estimate visit needed.</p></li>
@@ -1123,45 +1051,21 @@ ${roomExplorer(L)}
         : `<li><h3>Request your day</h3><p>Pick a preferred day and arrival window, or tell us you're flexible. Requests from <strong data-next-open>tomorrow</strong>, any day of the week.</p></li>
       <li><h3>${esc(B.ownerFirstName)} confirms</h3><p>${esc(B.ownerFirstName)} replies <span data-reply>${esc(B.replyPromise)}</span> to agree your time and final price. Your time is held once it's confirmed. You pay after the clean.</p></li>`}
     </ol>
-    <div class="how-trust">
-      <div class="how-left">
-        <figure class="how-meet" aria-labelledby="meet-title">
-          ${founderPhoto(L, "how-photo")}
-          <figcaption class="how-meet-body">
-            <p class="label">Meet your cleaner</p>
-            <h3 id="meet-title">I clean every home myself.</h3>
-            <blockquote><p>“I started Nest &amp; Rest to give families their time back and a fresh, healthy home, with the best care and value in every visit.”</p></blockquote>
-            <p class="how-name"><strong data-owner>${esc(B.owner)}</strong><span>Founder &amp; Owner</span></p>
-            <a class="text-link" href="${L("vision/")}">Read ${esc(B.ownerFirstName)}'s vision ${ic("i-arrow")}</a>
-          </figcaption>
-        </figure>
-        <div class="how-guarantee" id="guarantee">
-          <span class="how-guarantee-ico">${ic("i-shield")}</span>
-          <div>
-            <p class="guarantee-title" id="guarantee-title">Not quite right? I come back and fix it, free.</p>
-            <p>${GUARANTEE_LINE}</p>
-            <a class="text-link" href="${L("policies/#guarantee")}">Read the service policies ${ic("i-arrow")}</a>
-          </div>
-        </div>
-      </div>
-      <div class="standard how-standard" id="standard">
-        <p class="label">The Nest &amp; Rest standard</p>
-        <h3 class="how-standard-title">Five things happen at every visit.</h3>
-        <ol class="ritual">
-          <li><h4>Introduced by name</h4><p>You'll know who's coming before I arrive.</p></li>
-          <li><h4>Street shoes off, house shoes on</h4><p>Your floors only ever meet clean soles.</p></li>
-          <li><h4>Your priorities first</h4><p>A quick word on what matters most today.</p></li>
-          <li><h4>Separate cloths for kitchen and bath</h4><p>What cleans a bathroom never touches your kitchen.</p></li>
-          <li><h4>A final check before I leave</h4><p>Every room checked against the checklist.</p></li>
-        </ol>
-      </div>
+    <div class="how-row">
+      <figure class="how-meet" aria-labelledby="meet-title">
+        ${founderPhoto(L, "how-photo")}
+        <figcaption class="how-meet-body">
+          <h3 id="meet-title">I clean every home myself.</h3>
+          <blockquote><p>“I started Nest &amp; Rest to give families their time back and a fresh, healthy home, with the best care and value in every visit.”</p></blockquote>
+          <p class="how-name"><strong data-owner>${esc(B.owner)}</strong><span>Founder &amp; Owner</span></p>
+          <a class="text-link" href="${L("vision/")}">Read ${esc(B.ownerFirstName)}'s vision ${ic("i-arrow")}</a>
+        </figcaption>
+      </figure>
+      ${bookingTerms(L)}
     </div>
-    ${mannAtWork(L)}
-    <div class="center-cta"><a class="btn btn-primary" href="${L("book/")}" data-track="book_click">${ACT.book}</a></div>
+    <div class="center-cta"><a class="btn btn-primary" href="${L("book/")}" data-track="book_click">${ACT.book} ${ic("i-arrow")}</a></div>
   </div>
 </section>
-
-${hostsSection(L)}
 
 ${jobsSection(jobs.slice(0, 3), "Recent cleans.", "")}
 <section class="section reviews" id="reviews" data-reviews hidden>
@@ -1171,11 +1075,17 @@ ${jobsSection(jobs.slice(0, 3), "Recent cleans.", "")}
   </div>
 </section>
 
-${areasSection(L)}
+${homeFaq.html}
 
-${faqBlock("home", "Questions, answered.", "", guideLinks(L)).html}
-<figure class="page-scene">${heroWide()}<figcaption><span>North York Centre</span><span>Scarborough Bluffs</span></figcaption></figure>
-${finalCta(L)}
+${gift && gift.active ? `<section class="gift-band" data-gift-banner data-months="${gift.bannerMonths.join(",")}" hidden>
+  <div class="wrap gift-band-inner">
+    <span class="gift-ico">${ic("i-gift")}</span>
+    <p><strong>${esc(gift.headline)}</strong> ${esc(gift.text)}</p>
+    <a class="btn btn-light btn-sm" href="${L("gift/")}" data-track="gift_click">Gift a clean</a>
+  </div>
+</section>` : ""}
+
+${contactSection(L)}
 `
 }));
 
@@ -1920,7 +1830,7 @@ for (const a of C.areas) {
       <p class="label">The standard</p>
       <h2>The same careful visit, in every home.</h2>
       <p class="muted">Introduced by name, house shoes on at the door, and the same room-by-room checklist every time.</p>
-      <a class="text-link" href="${L("#standard")}">See our standard ${ic("i-arrow")}</a>
+      <a class="text-link" href="${L("vision/#standard")}">See our standard ${ic("i-arrow")}</a>
       <ul class="area-list">
         ${C.areas.filter((o) => o.slug !== a.slug).map((o) => `<li><a href="${L("areas/" + o.slug + "/")}"><span>Also in ${esc(o.name)}</span><small>${o.neighbourhoods.length} neighbourhoods</small>${ic("i-arrow")}</a></li>`).join("")}
       </ul>
@@ -2265,6 +2175,7 @@ ${finalCta(L)}`
       <p class="letter-sign"><strong data-owner>${esc(B.owner)}</strong><span>Founder &amp; Owner</span></p>
     </div>
   </div>
+  ${mannAtWork(L) ? `<div class="wrap">${mannAtWork(L)}</div>` : ""}
 </section>
 
 <section class="section" id="beliefs">
@@ -2273,7 +2184,15 @@ ${finalCta(L)}`
     <ol class="steps-3 beliefs">
       ${V.beliefs.map((b) => `<li><h3>${esc(b.title)}</h3><p>${esc(b.text)}</p></li>`).join("\n      ")}
     </ol>
-    <div class="center-cta"><a class="text-link" href="${L("#standard")}">See the five steps of every visit ${ic("i-arrow")}</a></div>
+  </div>
+</section>
+
+<section class="section section-tint" id="standard">
+  <div class="wrap">
+    <div class="section-head"><p class="label">The Nest &amp; Rest standard</p><h2>Five things happen at every visit.</h2></div>
+    <ol class="steps-3 steps-5">
+      ${STANDARD.map(([t, d]) => `<li><h3>${esc(t)}</h3><p>${esc(d)}</p></li>`).join("\n      ")}
+    </ol>
   </div>
 </section>
 

@@ -18,7 +18,8 @@ export default async function () {
   test("each plan can be chosen, and booking opens with it selected", async ({ browser, url }) => {
     for (const width of [390, 1440]) {
       const p = await newPage(browser, { width, height: 900 });
-      for (const path of ["/", "/pricing/"]) {
+      // v9: the home lists the plans in a few lines (tools/qa/home.test.mjs); the pricing page keeps the full strip.
+      for (const path of ["/pricing/"]) {
         await p.goto(url + path);
         const links = await p.$$eval("[data-plans] .plan", (ps) => ps.map((pl) => { const a = pl.querySelector("a.plan-go"); return [pl.getAttribute("data-plan"), a && a.textContent.trim(), a && a.getAttribute("href")]; }));
         assert(links.length === PLANS.length, `${path}@${width}: one Choose button per plan: ${JSON.stringify(links)}`);
@@ -33,7 +34,7 @@ export default async function () {
     }
     const p = await newPage(browser, { width: 390, height: 844 });
     await p.goto(url + "/");
-    await p.click('.plan[data-plan="biweekly"] .plan-go');
+    await p.click('#plans [data-plan="biweekly"] a');
     await p.waitForSelector("#booking-form");
     assert(await p.isVisible("[data-plan-note]") && /Every 2 weeks/.test(await p.textContent("[data-plan-note]")), "the plan note says which plan was chosen");
     await p.fill("#f-postal", "M2N 5W9");
@@ -56,6 +57,7 @@ export default async function () {
     assert(await line() === "Deep Cleaning · 2-bedroom, 1-bathroom house", "after changes: " + await line());
     await p.selectOption("[data-p-service]", "detail");
     assert(await line() === "Kitchen & Bath Detailing · kitchen and 1 bathroom, house", "detailing: " + await line());
+    await p.goto(url + "/pricing/");
     const plansFor = (await p.textContent(".plan-for")).replace(/\s+/g, " ").trim();
     assert(plansFor === "Prices shown for: Regular Cleaning · 2-bedroom, 1-bathroom condo", "plans: " + plansFor);
   });
@@ -218,11 +220,11 @@ export default async function () {
         if (!got.length) bad.push(`${path}@${width} ${sel}: not found`);
         got.filter((f) => f < lo - 0.1 || f > hi + 0.1).forEach((f) => bad.push(`${path}@${width} ${sel}: ${f}px`));
       };
-      await check("/", ".svc-feature-card h3", 20, 22);
+      await check("/", ".svc-card-home h3", 20, 22);
       await check("/services/regular-home-cleaning/", ".svc-card h3", 20, 22);
       await check("/services/regular-home-cleaning/", ".incl-room h3", 20, 22);
       await check("/pricing/", ".price-card.is-active h3", 20, 22);
-      await check("/", ".plan-price span", 14, 16);
+      await check("/pricing/", ".plan-price span", 14, 16);
       await check("/", ".pricer-meta", 14, 16);
       await check("/pricing/", ".extras-list small", 14, 16);
       await check("/book/", ".extra-limit", 14, 16);
@@ -297,7 +299,7 @@ export default async function () {
       assert(!/most popular/i.test(await p.textContent("main")), `${path} still claims "most popular"`);
     }
     await p.goto(url + "/");
-    const flag = await p.$$eval(".plan-flag", (fs) => fs.map((f) => [f.textContent.trim(), f.closest(".plan").getAttribute("data-plan")]));
+    const flag = await p.$$eval(".plan-flag", (fs) => fs.map((f) => [f.textContent.trim(), f.closest("[data-plan]").getAttribute("data-plan")]));
     const rec = Object.keys(C.frequencies).filter((k) => C.frequencies[k].recommended);
     assert(JSON.stringify(flag) === JSON.stringify(rec.map((k) => ["Recommended", k])), "flag: " + JSON.stringify(flag));
   });

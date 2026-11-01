@@ -4,22 +4,25 @@ import { test, assert, newPage } from "./lib.mjs";
 const perRow = (p, sel) => p.$$eval(sel, (els) => { const tops = els.map((e) => Math.round(e.getBoundingClientRect().top)); return tops.filter((t) => t === tops[0]).length; });
 
 export default async function () {
-  test("trust promises sit two by two on tablets, four across on computers", async ({ browser, url }) => {
-    for (const [width, want] of [[700, 2], [1440, 4]]) {
+  test("hero promises stack on tablets and sit side by side on computers", async ({ browser, url }) => {
+    for (const [width, want] of [[700, 1], [1440, 2]]) {
       const p = await newPage(browser, { width, height: 900 });
       await p.goto(url + "/");
-      const n = await perRow(p, ".trust li");
+      const n = await perRow(p, ".hero-facts li");
       assert(n === want, `${width}px: expected ${want} promises per row, got ${n}`);
       await p.context().close();
     }
   });
 
-  test("the standard panel ends on its last step, not on a stray rule", async ({ browser, url }) => {
-    for (const width of [390, 700, 1440]) {
+  // v9: the five steps of every visit live on the vision page, five across on computers, one under another on phones.
+  test("the standard's five steps fit every width", async ({ browser, url }) => {
+    for (const [width, want] of [[390, 1], [1440, 5]]) {
       const p = await newPage(browser, { width, height: 900 });
-      await p.goto(url + "/");
-      const b = await p.$eval(".how-standard .ritual li:last-child", (e) => getComputedStyle(e).borderBottomWidth);
-      assert(b === "0px", `${width}px: the last standard step shouldn't have a bottom rule, got ${b}`);
+      await p.goto(url + "/vision/");
+      assert(await p.locator("#standard .steps-5 > li").count() === 5, "five steps");
+      const n = await perRow(p, "#standard .steps-5 > li");
+      assert(n === want, `${width}px: expected ${want} step(s) per row, got ${n}`);
+      assert(await p.evaluate(() => document.documentElement.scrollWidth - innerWidth) <= 0, `${width}px: the page scrolls sideways`);
       await p.context().close();
     }
   });

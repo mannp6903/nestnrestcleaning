@@ -1,5 +1,6 @@
-// v7 (local, visual, quick to act on): the landmark artwork, the room explorer, the neighbourhood finder, no unconfirmed
-// content on any page, and the home price box and booking agreeing with the pricing rules in js/config.js.
+// v7 (local, visual, quick to act on): the landmark artwork, no unconfirmed content on any page, and the home price box and
+// booking agreeing with the pricing rules in js/config.js. (v9 took the room explorer and the neighbourhood finder off the
+// shorter home page: what each clean includes is on the service and pricing pages, and every neighbourhood on its district page.)
 import fs from "node:fs";
 import path from "node:path";
 import { test, assert, newPage, loadConfig, ROOT } from "./lib.mjs";
@@ -31,12 +32,11 @@ export default async function () {
     for (const width of [390, 1440]) {
       const p = await newPage(browser, { width, height: 900 });
       await p.goto(url + "/");
-      const hero = await p.$eval(".hero-scene svg", (s) => ({ role: s.getAttribute("role"), label: s.getAttribute("aria-label") || "", vb: s.getAttribute("viewBox"), shown: !!s.getClientRects().length }));
-      assert(hero.shown && hero.role === "img" && /Scarborough Bluffs/.test(hero.label) && /Mel Lastman Square/.test(hero.label), `${width}px hero art: ${JSON.stringify(hero)}`);
-      const cards = await p.$$eval(".area-card .area-art svg", (ss) => ss.map((s) => s.getAttribute("aria-hidden")));
-      assert(cards.length === 2 && cards.every((v) => v === "true"), "district card art is decorative inside its link");
-      const wide = await p.$$eval(".page-scene svg", (ss) => ss.map((s) => !!s.getClientRects().length));
-      assert(wide.length === 1 && wide[0] === (width >= 960), `${width}px: the wide panorama shows on computers only`);
+      const shown = await p.$$eval(".hero-scene svg", (ss) => ss.filter((s) => s.getClientRects().length).map((s) => ({ role: s.getAttribute("role"), label: s.getAttribute("aria-label") || "", vb: s.getAttribute("viewBox") })));
+      assert(shown.length === 1, `${width}px: one arrangement of the art shows at a time, got ${shown.length}`);
+      const hero = shown[0];
+      assert(hero.role === "img" && /Scarborough Bluffs/.test(hero.label) && /Mel Lastman Square/.test(hero.label), `${width}px hero art: ${JSON.stringify(hero)}`);
+      assert(hero.vb === (width >= 960 ? "0 0 1440 240" : "0 0 480 150"), `${width}px: the wide panorama on computers, the phone arrangement on phones, got ${hero.vb}`);
       await p.context().close();
     }
     const p = await newPage(browser, { width: 1440, height: 900 });
@@ -44,54 +44,6 @@ export default async function () {
       await p.goto(url + "/areas/" + a.slug + "/");
       assert(await p.locator(".area-hero-art svg[role=img]").isVisible(), a.name + " page should show its landmark art");
     }
-  });
-
-  test("room explorer: rooms are tabs, the clean switch shows that clean's list, booking follows", async ({ browser, url }) => {
-    const p = await newPage(browser, { width: 1280, height: 900 });
-    await p.goto(url + "/");
-    const tabs = p.locator("#rooms [role=tab]");
-    assert(await tabs.count() === C.checklist.length, "one tab per room in the checklist");
-    await tabs.first().focus();
-    await p.keyboard.press("ArrowRight");
-    const sel = await p.$$eval("#rooms [role=tab]", (ts) => ts.map((t) => t.getAttribute("aria-selected")));
-    assert(sel[1] === "true" && sel.filter((v) => v === "true").length === 1, "ArrowRight selects the next room: " + sel);
-    assert(await p.locator(".ex-room.is-active").count() === 1 && await p.isVisible("#" + (await tabs.nth(1).getAttribute("aria-controls"))), "only the chosen room shows");
-    await p.click('[data-ex-svc] label:has(input[value="deep"])');
-    const room = C.checklist[1], col = C.services.deep.checklistColumn;
-    const want = room.tasks.filter((t) => t[col] === "yes").length;
-    const shown = await p.$eval(`#${await tabs.nth(1).getAttribute("aria-controls")} [data-ex-for="deep"] .ex-count b`, (b) => +b.textContent);
-    assert(shown === want, `deep clean in ${room.room}: ${shown} shown, ${want} in js/config.js`);
-    assert(/[?&]s=deep\b/.test(await p.getAttribute("[data-ex-book]", "href")), "the booking button follows the chosen clean");
-    await p.context().close();
-    // Without JavaScript: every room, the regular clean's list, no tabs.
-    const ctx = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 390, height: 844 } });
-    const q = await ctx.newPage();
-    await q.goto(url + "/");
-    assert(await q.locator("#rooms [role=tab]").count() === 0, "no tabs without JavaScript");
-    const visible = await q.$$eval(".ex-room", (rs) => rs.filter((r) => r.getClientRects().length).length);
-    assert(visible === C.checklist.length && await q.isVisible('.ex-room [data-ex-for="regular"]'), "every room's regular list shows without JavaScript");
-    await ctx.close();
-  });
-
-  test("neighbourhood finder filters as you type and points to the postal check when nothing matches", async ({ browser, url }) => {
-    const p = await newPage(browser, { width: 390, height: 844, isMobile: true });
-    await p.goto(url + "/");
-    const all = C.areas.reduce((n, a) => n + a.neighbourhoods.length, 0);
-    assert(await p.$$eval("[data-hood-finder] .hood-list li", (ls) => ls.length) === all, "every neighbourhood is listed");
-    await p.fill("#hood-q", "lamoreaux");
-    const shown = await p.$$eval("[data-hood-finder] .hood-list li", (ls) => ls.filter((l) => !l.hidden).map((l) => l.textContent.trim()));
-    assert(shown.length === 1 && shown[0] === "L'Amoreaux", "lamoreaux should find L'Amoreaux, got " + shown);
-    assert(/1 neighbourhood matches/.test(await p.textContent("[data-hood-count]")), "the match count is announced");
-    await p.fill("#hood-q", "Mississauga");
-    assert(await p.isVisible("[data-hood-empty]") && await p.getAttribute("[data-hood-empty] a", "href") === "#pc-home", "no match: point to the postal check");
-    await p.fill("#hood-q", "");
-    assert(await p.$$eval("[data-hood-finder] .hood-list li", (ls) => ls.filter((l) => !l.hidden).length) === all, "clearing shows them all again");
-    await p.context().close();
-    const ctx = await browser.newContext({ javaScriptEnabled: false });
-    const q = await ctx.newPage();
-    await q.goto(url + "/");
-    assert(!(await q.isVisible("[data-hood-search]")), "the search box stays hidden without JavaScript, and the full list shows");
-    await ctx.close();
   });
 
   test("regression: the home price box and booking agree with the pricing rules", async ({ browser, url }) => {
