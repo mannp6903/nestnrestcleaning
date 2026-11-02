@@ -1,5 +1,7 @@
 // The helpful articles at /guides/<slug>/. Prices come from js/config.js, so they stay current after a rebuild.
 // Each article: slug, title (for Google), h1, description, kicker, minutes (reading time), photo, body(L) as HTML.
+// published: the day it first went live (YYYY-MM-DD). modified: the day its text, or a price it quotes, last changed;
+// leave it out until then. Search engines read both, so set modified whenever you change an article.
 export default function guides({ C, B, esc, money, price, listJoin, afterDiscount, ic }) {
   const R = C.services.regular, D = C.services.deep, M = C.services.move;
   const fr = C.frequencies;
@@ -13,6 +15,8 @@ export default function guides({ C, B, esc, money, price, listJoin, afterDiscoun
   return [
     {
       slug: "house-cleaning-cost-toronto",
+      published: "2026-10-24",
+      modified: "2026-10-31",
       title: "How Much Does House Cleaning Cost in Toronto? (2026)",
       h1: "How much does house cleaning cost in Toronto?",
       kicker: "Pricing guide",
@@ -55,6 +59,7 @@ ${cta(L)}`
     },
     {
       slug: "move-out-cleaning-checklist",
+      published: "2026-10-24",
       title: "Move-Out Cleaning Checklist for Toronto Renters",
       h1: "Move-out cleaning checklist for Toronto renters",
       kicker: "Checklist",
@@ -88,6 +93,7 @@ ${cta(L, "Book a move-out clean")}`
     },
     {
       slug: "deep-cleaning-vs-regular-cleaning",
+      published: "2026-10-24",
       title: "Deep Cleaning vs Regular Cleaning: What's the Difference?",
       h1: "Deep cleaning vs regular cleaning: what's the difference?",
       kicker: "Explainer",
@@ -116,6 +122,7 @@ ${cta(L)}`
     },
     {
       slug: "how-to-prepare-for-a-house-cleaner",
+      published: "2026-10-24",
       title: "How to Prepare for a House Cleaner (and What to Skip)",
       h1: "How to get your home ready for a cleaner",
       kicker: "Tips",
@@ -148,6 +155,8 @@ ${cta(L)}`
     },
     {
       slug: "how-often-should-you-clean-your-home",
+      published: "2026-10-24",
+      modified: "2026-10-30",
       title: "How Often Should You Have Your Home Cleaned?",
       h1: "How often should you have your home cleaned?",
       kicker: "Guide",

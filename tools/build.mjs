@@ -876,6 +876,8 @@ function changeForm(L) {
 
 /* ---------- home ---------- */
 const urls = [];
+// Pages with a known last-change date (the guides) give it to the sitemap; every other page says today.
+const lastmod = {};
 const homeFaq = faqBlock("home", "Questions, answered.");
 const example = { beds: 2, baths: 1 };
 const examplePrice = price("regular", example.beds, example.baths);
@@ -2107,7 +2109,9 @@ ${finalCta(L)}`
 }
 
 for (const g of guides) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(g.published || "")) throw new Error(`Guide "${g.slug}" needs published: "YYYY-MM-DD" in tools/guides.mjs (the day it first went live).`);
   const trail = [["Home", ""], ["Guides", "guides/"], [g.h1, "guides/" + g.slug + "/"]];
+  lastmod[SITE + "/guides/" + g.slug + "/"] = g.modified || g.published;
   const others = guides.filter((o) => o.slug !== g.slug).slice(0, 3);
   urls.push(page({
     depth: 2, pathOut: `guides/${g.slug}/index.html`, pageType: "article",
@@ -2115,7 +2119,7 @@ for (const g of guides) {
     description: g.description,
     schemas: [crumbSchema(trail), {
       "@context": "https://schema.org", "@type": "Article", headline: g.h1, description: g.description,
-      image: `${SITE}/assets/photos/${g.photo}-928.jpg`, datePublished: g.published || TODAY, dateModified: TODAY,
+      image: `${SITE}/assets/photos/${g.photo}-928.jpg`, datePublished: g.published, dateModified: g.modified || g.published,
       author: { "@type": "Person", name: B.owner, jobTitle: "Founder & Owner" }, publisher: { "@id": SITE + "/#business" },
       mainEntityOfPage: SITE + "/guides/" + g.slug + "/", inLanguage: "en-CA"
     }],
@@ -2544,7 +2548,7 @@ ${THEME_BOOT}
 if (!PREVIEW_DIR) {
   fs.writeFileSync(path.join(OUT, "sitemap.xml"), `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${urls.map((u) => `  <url><loc>${u}</loc><lastmod>${TODAY}</lastmod></url>`).join("\n")}
+${urls.map((u) => `  <url><loc>${u}</loc><lastmod>${lastmod[u] || TODAY}</lastmod></url>`).join("\n")}
 </urlset>
 `);
   fs.writeFileSync(path.join(OUT, "robots.txt"), `User-agent: *\nAllow: /\nSitemap: ${SITE}/sitemap.xml\n`);
