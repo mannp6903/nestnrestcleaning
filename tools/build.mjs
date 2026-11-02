@@ -25,8 +25,15 @@ const C = sandbox.window.NR_CONFIG;
 const B = C.business;
 const SITE = C.siteUrl.replace(/\/$/, "");
 const BRAND_SHORT = "Nest & Rest";
-// Where form requests go: "formsubmit" (email) or "sheet" (Mann's Google Sheet). NR_PROVIDER overrides it for tests.
-const SHEET = (process.env.NR_PROVIDER || (C.delivery || {}).provider) === "sheet";
+// Where form requests go: "formsubmit" (email), "sheet" (Mann's Google Sheet) or "webhook" (Mann's own n8n). NR_PROVIDER overrides it for tests.
+const PROVIDER = process.env.NR_PROVIDER || (C.delivery || {}).provider || "";
+const SHEET = PROVIDER === "sheet";
+const WEBHOOK = PROVIDER === "webhook";
+// The self-hosted tools, each off until its settings are filled in. SELF is true when any of them is on: the privacy policy then says where the server runs.
+const EA_ON = !!((C.booking || {}).easyAppointments || {}).url;
+const CHAT = !!(C.chat && C.chat.baseUrl && C.chat.websiteToken);
+const NEWS = !!(C.newsletter && C.newsletter.optIn);
+const SELF = WEBHOOK || EA_ON || CHAT || NEWS;
 const SENT_VIA = SHEET
   ? "Your request is saved to our Google Sheet and emailed to our Gmail inbox (both Google), which may store data outside Canada."
   : "Your request is sent through FormSubmit to our Google email inbox, which may store data outside Canada.";
@@ -40,6 +47,9 @@ const ASSET_V = { css: ver("css/site.css"), config: ver("js/config.js"), site: v
 
 /* ---------- helpers ---------- */
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+// Where the server for the self-hosted tools runs (server in js/config.js), ready for page text.
+const SRV = esc((C.server || {}).name);
+const LOC = esc((C.server || {}).location);
 const money = (n) => "$" + Math.round(n).toLocaleString("en-CA");
 // Joins sentences for a meta description, dropping trailing ones that would push it past what Google shows.
 const metaDesc = (...parts) => parts.reduce((acc, p) => (acc ? acc + " " + p : p).length <= 160 ? (acc ? acc + " " + p : p) : acc, "");
@@ -94,6 +104,29 @@ const taskRow = (task) => C.checklist.flatMap((r) => r.tasks).find((t) => t[0] =
 for (const a of C.addons) {
   if (a.task && !taskRow(a.task)) throw new Error(`Extra "${a.id}" points at checklist task "${a.task}", which isn't in the checklist in js/config.js.`);
 }
+// Stops the build on a setting for the self-hosted tools that would put something unsafe or unfinished on the live site.
+function checkStack() {
+  const ea = (C.booking || {}).easyAppointments || {};
+  if ((C.booking || {}).calLink && EA_ON) throw new Error("Fill in only one booking calendar in js/config.js: booking.calLink (Cal.com) or booking.easyAppointments.url (Easy!Appointments), not both.");
+  if (EA_ON) {
+    if (!/^https:\/\//.test(ea.url)) throw new Error("booking.easyAppointments.url in js/config.js must start with https://.");
+    let last = 0;
+    const lengths = Array.isArray(ea.services) ? ea.services : [];
+    const ok = lengths.length > 0 && lengths.every((sv) => {
+      const good = !!sv && Number.isFinite(sv.upToHours) && sv.upToHours > last && Number.isInteger(sv.id);
+      if (good) last = sv.upToHours;
+      return good;
+    });
+    if (!ok) throw new Error("booking.easyAppointments.services in js/config.js needs one entry per clean length, shortest first, each with a whole-number id, e.g. [{ upToHours: 3, id: 1 }, { upToHours: 5, id: 2 }].");
+  }
+  if (WEBHOOK && !/^https:\/\//.test((C.delivery || {}).endpoint || "")) throw new Error(`delivery.endpoint in js/config.js must start with https:// when delivery.provider is "webhook".`);
+  const chat = C.chat || {};
+  if ((chat.baseUrl || chat.websiteToken) && !(chat.websiteToken && /^https:\/\//.test(chat.baseUrl || ""))) throw new Error("Fill in both chat.baseUrl and chat.websiteToken in js/config.js (baseUrl starting with https://), or leave both empty.");
+  if (NEWS && !ADDR) throw new Error("newsletter.optIn needs business.mailingAddress in js/config.js: Canada's anti-spam law (CASL) needs it in every offers email.");
+  const server = C.server || {};
+  if (SELF && !(String(server.name || "").trim() && String(server.location || "").trim())) throw new Error("Fill in server.name and server.location in js/config.js: the privacy policy says where your own server runs.");
+}
+checkStack();
 function addonStatus(key, id) {
   const a = C.addons.find((x) => x.id === id), s = C.services[key];
   if (!a || !s || !a.task || !s.checklistColumn) return "extra";

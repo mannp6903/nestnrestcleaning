@@ -43,7 +43,10 @@ window.NR_CONFIG = {
   /* Where the website's forms go. "formsubmit" emails each request to the inbox below.
      To save every request to your Google Sheet instead (docs/google-sheet-setup.md), use:
        delivery: { provider: "sheet", endpoint: "https://script.google.com/macros/s/…/exec" },
-     then run `node tools/build.mjs` so the privacy notes name the sheet. */
+     then run `node tools/build.mjs` so the privacy notes name the sheet.
+     To send every request to your own n8n form flow instead, use:
+       delivery: { provider: "webhook", endpoint: "https://n8n.your-domain.example/webhook/forms" },
+     The endpoint must start with https://. It also needs the server block below filled in. Run `node tools/build.mjs` after changing it. */
   delivery: {
     provider: "formsubmit",
     endpoint: "https://formsubmit.co/ajax/nestnrestcleaning@gmail.com"
@@ -107,11 +110,42 @@ window.NR_CONFIG = {
      blockedDates: days you can't take new bookings, as "YYYY-MM-DD". "Next opening" on the site skips them.
      calLink: your Cal.com booking link, the part after cal.com/ (e.g. "nestandrest/home-clean"). When set, customers
      pick a confirmed time on your calendar as the last step of booking. Leave "" to keep booking requests.
-     After changing calLink, run `node tools/build.mjs`. Setup steps are in README.md. */
+     After changing calLink, run `node tools/build.mjs`. Setup steps are in README.md.
+     easyAppointments: your own Easy!Appointments booking calendar, as an alternative to Cal.com. Fill in only one of the two.
+       url: the address of your calendar, starting with https://. Leave "" to keep it off.
+       provider: your provider ID in Easy!Appointments, so every booking goes to you. Optional: leave "" to let the calendar choose.
+       services: one entry per clean length, shortest first. upToHours is the longest clean that entry covers, in hours,
+         and id is that service's number in Easy!Appointments, e.g. [{ upToHours: 3, id: 1 }, { upToHours: 5, id: 2 }].
+     After changing easyAppointments, run `node tools/build.mjs`. */
   booking: {
     leadDays: 1,
     blockedDates: [],
-    calLink: ""
+    calLink: "",
+    easyAppointments: { url: "", provider: "", services: [] }
+  },
+
+  /* The server that runs your own tools (booking calendar, form delivery, chat, offers emails).
+     The privacy policy says where it is, so fill both in before you switch any of those tools on.
+     name: who runs it (e.g. "Hetzner"). location: where it is (e.g. "Toronto, Canada").
+     Leave both "" while every tool is off. After changing it, run `node tools/build.mjs`. */
+  server: {
+    name: "",
+    location: ""
+  },
+
+  /* Live chat on your own Chatwoot. Fill in both to switch it on; leave both "" to keep it off.
+     baseUrl: the address of your Chatwoot, starting with https://. websiteToken: the token Chatwoot gives for your website.
+     After changing it, run `node tools/build.mjs`. */
+  chat: {
+    baseUrl: "",
+    websiteToken: ""
+  },
+
+  /* Offers emails through your own listmonk. optIn: true adds an unticked "send me offers" box to the forms.
+     false keeps it off. Canada's anti-spam law (CASL) needs business.mailingAddress in every offers email, so fill that in first.
+     After changing it, run `node tools/build.mjs`. */
+  newsletter: {
+    optIn: false
   },
 
   /* Confirmation emails sent to the customer by FormSubmit when they give an email address.
