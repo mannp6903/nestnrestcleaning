@@ -1093,6 +1093,7 @@
     var last = null;
     form.addEventListener("submit", function (e) {
       e.preventDefault();
+      if ($("[data-submit]").disabled) return;
       if (!validate(LAST)) return;
       if (!ref) ref = newRef("NR");
       if (!attempt) attempt = newAttempt();
@@ -1399,7 +1400,7 @@
   // form: booking | quote | gift | review | pricetext | change. ids: { ref, attempt }, kept by the form until a success.
   function send(data, form, ids) {
     if (PREVIEW || !C.delivery || C.delivery.provider === "none") return Promise.resolve({ skipped: true });
-    if (C.delivery.provider === "sheet") return sendSheet(data, form, ids || newIds("NR"));
+    if (C.delivery.provider === "sheet" || C.delivery.provider === "webhook") return sendRecord(data, form, ids || newIds("NR"), C.delivery.provider);
     return fetch(C.delivery.endpoint, {
       method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify(data)
     }).then(function (r) {
@@ -1411,15 +1412,19 @@
       });
     });
   }
-  // The Google Sheet script (tools/sheet/Code.gs). A plain-text body keeps this a "simple" request, so the browser
-  // sends it without the preflight Google's script can't answer. Saved only when the script answers ok with a reference.
-  function sendSheet(data, form, ids) {
-    var fields = {};
+  // One request, as a record, to the Google Sheet script (tools/sheet/Code.gs) or to the n8n webhook. Both answer { ok: true, reference }.
+  // The sheet gets a plain-text body, which keeps this a "simple" request: the browser sends it without the preflight Google's script can't answer.
+  // n8n answers the preflight, so it gets JSON headers, plus the receipt email for the customer when there is one.
+  // Saved only when the reply says ok and gives a reference.
+  function sendRecord(data, form, ids, kind) {
+    var fields = {}, hook = kind === "webhook";
     Object.keys(data).forEach(function (k) {
       if (k[0] !== "_" && k !== "email" && k !== "Reference" && k !== "Status" && data[k] !== undefined) fields[k] = data[k];
     });
     var payload = { form: form, reference: ids.ref, attempt: ids.attempt, honey: data._honey || "", email: data._replyto || "", fields: fields };
-    return fetch(C.delivery.endpoint, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(payload) }).then(function (r) {
+    if (hook && data._autoresponse) payload.receipt = data._autoresponse;
+    var headers = hook ? { "Content-Type": "application/json", Accept: "application/json" } : { "Content-Type": "text/plain;charset=utf-8" };
+    return fetch(C.delivery.endpoint, { method: "POST", headers: headers, body: JSON.stringify(payload) }).then(function (r) {
       return r.text().then(function (t) {
         var j = null;
         try { j = JSON.parse(t); } catch (e) { /* not JSON: handled below */ }

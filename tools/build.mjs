@@ -34,9 +34,6 @@ const EA_ON = !!((C.booking || {}).easyAppointments || {}).url;
 const CHAT = !!(C.chat && C.chat.baseUrl && C.chat.websiteToken);
 const NEWS = !!(C.newsletter && C.newsletter.optIn);
 const SELF = WEBHOOK || EA_ON || CHAT || NEWS;
-const SENT_VIA = SHEET
-  ? "Your request is saved to our Google Sheet and emailed to our Gmail inbox (both Google), which may store data outside Canada."
-  : "Your request is sent through FormSubmit to our Google email inbox, which may store data outside Canada.";
 // Scripts are deferred on the live site so they never block the first paint. The preview inlines a flag between them, so it loads them in order instead.
 const DEFER = PREVIEW_DIR ? "" : " defer";
 const YEAR = new Date().getFullYear();
@@ -50,6 +47,16 @@ const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "
 // Where the server for the self-hosted tools runs (server in js/config.js), ready for page text.
 const SRV = esc((C.server || {}).name);
 const LOC = esc((C.server || {}).location);
+// Where a form request goes, in words: the start of the sentence under each form (the privacy policy repeats it in full).
+const SENT_TO = WEBHOOK ? `Your request goes to our own server (${SRV}, ${LOC}), where our automation tool n8n saves it and forwards it to our Gmail inbox (Google)`
+  : SHEET ? "Your request is saved to our Google Sheet and emailed to our Gmail inbox (both Google)"
+  : "Your request is sent through FormSubmit to our Google email inbox";
+const SENT_VIA = `${SENT_TO}, which may store data outside Canada.`;
+// The same sentence on the booking page, which also names the Cal.com booking calendar when there is one.
+const bookingSentNote = () => `${SENT_TO}${CAL ? ", and the time you pick is booked on Cal.com, our booking calendar. " + (SHEET ? "All" : "Both") : ", which"} may store data outside Canada.`;
+// The privacy policy's line about our own server, once any self-hosted tool is on.
+const SERVER_LI = SELF ? `<li><strong>${SRV}</strong> hosts our own server in ${LOC}, which runs the tools named below.</li>
+        ` : "";
 const money = (n) => "$" + Math.round(n).toLocaleString("en-CA");
 // Joins sentences for a meta description, dropping trailing ones that would push it past what Google shows.
 const metaDesc = (...parts) => parts.reduce((acc, p) => (acc ? acc + " " + p : p).length <= 160 ? (acc ? acc + " " + p : p) : acc, "");
@@ -1302,7 +1309,7 @@ urls.push(page({
                 ? `Next, you pick a time on ${esc(B.ownerFirstName)}'s calendar and it's confirmed straight away. Nothing to pay until it's done. Free to change up to ${C.policies.cancelNoticeHours} hours before. ${LATE_FEE_LINE}`
                 : `This is a booking request. Your time is held only after ${esc(B.ownerFirstName)} confirms it with you, along with the final price. Nothing to pay until it's done. Free to change up to ${C.policies.cancelNoticeHours} hours before. ${LATE_FEE_LINE}`}</span></p>
               <p class="privacy-note span-2">Your booking is with ${esc(B.name)}, owned and operated by ${esc(B.owner)}, ${ADDR ? esc(ADDR) : `${esc(B.base)}, Ontario`}. ${PHONE ? `<a data-tel href="tel:${B.phone}">${esc(B.phoneDisplay)}</a> · ` : ""}<a data-mailto href="mailto:${B.email}">${esc(B.email)}</a></p>
-              <p class="privacy-note span-2">By sending, you agree to our <a href="${L("policies/")}">Service Policies</a>. We use your details only to arrange your clean. ${SHEET ? "Your request is saved to our Google Sheet and emailed to our Gmail inbox (both Google)" : "Your request is sent through FormSubmit to our Google email inbox"}${CAL ? ", and the time you pick is booked on Cal.com, our booking calendar. " + (SHEET ? "All" : "Both") : ", which"} may store data outside Canada. Your details stay in this browser tab only until you send. See our <a href="${L("privacy/")}">Privacy Policy</a>. <button type="button" class="link-btn link-btn-sm" data-clear-details>Clear my details from this device</button></p>
+              <p class="privacy-note span-2">By sending, you agree to our <a href="${L("policies/")}">Service Policies</a>. We use your details only to arrange your clean. ${bookingSentNote()} Your details stay in this browser tab only until you send. See our <a href="${L("privacy/")}">Privacy Policy</a>. <button type="button" class="link-btn link-btn-sm" data-clear-details>Clear my details from this device</button></p>
               <input type="text" name="_honey" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
             </div>
             <p class="form-error" data-form-error role="alert" hidden></p>
@@ -2492,9 +2499,9 @@ legalPage({
       <ul>
         <li><strong>GitHub</strong> (GitHub, Inc.) hosts this website and keeps standard server logs, including IP addresses, for security.</li>
         <li><strong>Google</strong> provides our email service, where booking, quote, gift card and review messages are stored.</li>
-        ${CAL ? `<li><strong>Cal.com</strong> (cal.com) runs our booking calendar. When you pick a time, it receives your name, email, phone number and booking details, and emails your confirmation. It may store data outside Canada.</li>
+        ${SERVER_LI}${CAL ? `<li><strong>Cal.com</strong> (cal.com) runs our booking calendar. When you pick a time, it receives your name, email, phone number and booking details, and emails your confirmation. It may store data outside Canada.</li>
         ` : ""}${GA ? `<li><strong>Google Analytics</strong> (Google LLC) measures how visitors use this website: the pages viewed, how they arrived (for example from our flyer or business card), the type of device and an approximate location. It doesn't receive anything you type into our forms, and it stores data in the United States.</li>
-        ` : ""}${SHEET ? `<li><strong>Google Sheets and Gmail</strong> (Google) store and deliver the website's forms: each request is saved to our Google Sheet and emailed to our Gmail inbox. If you give your email address, you get an automatic receipt that only confirms your request arrived. ${esc(B.ownerFirstName)}'s own reply is what confirms a booking.</li>` : `<li><strong>FormSubmit</strong> (formsubmit.co) delivers the website's forms to our email inbox. If you give your email address, it may also send you an automatic acknowledgement. ${esc(B.ownerFirstName)}'s own reply is what confirms a booking.</li>`}
+        ` : ""}${WEBHOOK ? `<li><strong>n8n</strong>, our automation tool, on our own server, receives the website's forms, saves each request and forwards it to our Gmail inbox. If you give your email address, it sends you a receipt that only confirms your request arrived. ${esc(B.ownerFirstName)}'s own reply is what confirms a booking.</li>` : SHEET ? `<li><strong>Google Sheets and Gmail</strong> (Google) store and deliver the website's forms: each request is saved to our Google Sheet and emailed to our Gmail inbox. If you give your email address, you get an automatic receipt that only confirms your request arrived. ${esc(B.ownerFirstName)}'s own reply is what confirms a booking.</li>` : `<li><strong>FormSubmit</strong> (formsubmit.co) delivers the website's forms to our email inbox. If you give your email address, it may also send you an automatic acknowledgement. ${esc(B.ownerFirstName)}'s own reply is what confirms a booking.</li>`}
         ${B.whatsapp ? `<li><strong>WhatsApp</strong> (WhatsApp LLC, part of Meta Platforms) delivers and stores messages if you choose to contact us on WhatsApp.</li>
         ` : ""}<li><strong>Your bank or card payment provider</strong> processes payments you make by Interac e-Transfer or card.</li>
       </ul>

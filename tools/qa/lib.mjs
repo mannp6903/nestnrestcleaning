@@ -51,6 +51,9 @@ export async function newPage(browser, { width = 1280, height = 900, theme = "li
   page.sheetMode = "ok";
   page.sheetPosts = [];
   page.sheetRequests = [];
+  page.hookMode = "ok";
+  page.hookPosts = [];
+  page.hookRequests = [];
   page.errors = [];
   page.on("pageerror", (e) => page.errors.push(e.message));
   await page.route(/googletagmanager|google-analytics|cal\.com/, (r) => r.abort());
@@ -64,6 +67,7 @@ export async function newPage(browser, { width = 1280, height = 900, theme = "li
     return r.fulfill({ status: 200, contentType: "application/json", body: '{"success":"true","message":"The form was submitted successfully."}' });
   });
   await routeSheet(page);
+  await routeWebhook(page);
   return page;
 }
 export function mockDelivery(page, mode) { page.deliveryMode = mode; }
@@ -93,6 +97,28 @@ async function routeSheet(page) {
     if (mode === "notok") return r.fulfill({ status: 200, headers: cors, contentType: "application/json", body: '{"ok":false,"error":"Missing: Phone"}' });
     const reference = mode === "clash" ? "NR-ZZ99" : body && body.reference;
     return r.fulfill({ status: 200, headers: cors, contentType: "application/json", body: JSON.stringify({ ok: true, reference, duplicate: mode === "dup" }) });
+  });
+}
+// The n8n webhook (n8n.example.test), answered locally. page.hookRequests collects every request's method and headers,
+// page.hookPosts only the POST bodies. A CORS preflight is answered with 204 and the headers a browser needs.
+// Modes: ok, clash (a different reference), noref, notok, badjson, http500, neterr.
+async function routeWebhook(page) {
+  await page.route(/n8n\.example\.test/, async (r) => {
+    const req = r.request();
+    page.hookRequests.push({ method: req.method(), headers: req.headers() });
+    const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "POST, OPTIONS", "Access-Control-Allow-Headers": "content-type" };
+    if (req.method() === "OPTIONS") return r.fulfill({ status: 204, headers: cors, body: "" });
+    let body = null;
+    try { body = JSON.parse(req.postData() || "null"); } catch (e) { /* recorded as null */ }
+    page.hookPosts.push(body);
+    const mode = page.hookMode;
+    if (mode === "neterr") return r.abort();
+    if (mode === "http500") return r.fulfill({ status: 500, headers: cors, body: "Server error" });
+    if (mode === "badjson") return r.fulfill({ status: 200, headers: cors, body: "<html>ok</html>" });
+    if (mode === "notok") return r.fulfill({ status: 200, headers: cors, contentType: "application/json", body: '{"ok":false,"error":"Missing: Phone"}' });
+    if (mode === "noref") return r.fulfill({ status: 200, headers: cors, contentType: "application/json", body: '{"ok":true}' });
+    const reference = mode === "clash" ? "NR-ZZ99" : body && body.reference;
+    return r.fulfill({ status: 200, headers: cors, contentType: "application/json", body: JSON.stringify({ ok: true, reference }) });
   });
 }
 // Serves js/config.js with extra lines appended, e.g. to switch the provider or the founding offer for one test.
