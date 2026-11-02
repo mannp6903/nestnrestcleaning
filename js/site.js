@@ -1077,8 +1077,13 @@
       if (q.review) parts.push(B.ownerFirstName + " confirms the final price for: " + q.reasons.join(", "));
       return parts.join("; ");
     }
-    function whenText() {
-      if (CAL) return "Picking a time on the calendar";
+    // Whether this booking goes to the live calendar: an Easy!Appointments clean longer than every band has no service to pick, so it is a request.
+    function calendarFor(q) { return CAL && !(EA && eaService(q.hours) === null); }
+    // What the customer is told when the page has a calendar but this booking has no day to show.
+    function arrangedLine() { return B.ownerFirstName + " arranges a time with you"; }
+    function whenText(calOn) {
+      if (calOn) return "Picking a time on the calendar";
+      if (CAL) return arrangedLine();
       return state.flex ? "Flexible: earliest suitable day" : longDate(state.date);
     }
     // A booked calendar time, shown in Toronto time whatever the visitor's device says.
@@ -1086,11 +1091,11 @@
       return new Intl.DateTimeFormat("en-CA", { weekday: "long", month: "long", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/Toronto" }).format(d);
     }
     function text(r, when) {
-      var q = quote();
-      return [(CAL ? "Booking " : "Booking request ") + r, q.s.name + ", " + homeLine(q),
+      var q = quote(), calOn = calendarFor(q);
+      return [(calOn ? "Booking " : "Booking request ") + r, q.s.name + ", " + homeLine(q),
         q.checks.length ? "Home: " + q.checks.map(function (c) { return c.label; }).join(", ") : "",
         q.addons.length ? "Extras: " + q.addons.map(function (a) { return a.name; }).join(", ") : "",
-        "When: " + (when || whenLine()),
+        "When: " + (when || (CAL && !calOn ? arrangedLine() : whenLine())),
         q.repeat ? "Plan: " + q.freq.label : "",
         "Estimate: " + moneyC(q.first) + (q.repeat ? ", then " + moneyC(q.repeat) + "/visit" : ""),
         "Name: " + val("f-name"), "Phone: " + val("f-phone"),
@@ -1109,28 +1114,29 @@
       if (!attempt) attempt = newAttempt();
       save();
       var r = ref, q = quote(), slot = slotById(state.slot), z = q.zone;
-      var when = whenText();
+      var calOn = calendarFor(q);
+      var when = whenText(calOn);
       var btn = $("[data-submit]"), btnLabel = btn.innerHTML;
       btn.disabled = true; btn.textContent = "Sending…";
       var email = val("f-email"), firstName = val("f-name").split(/\s+/)[0];
       var plain = q.s.name + ", " + homeLine(q) + "; " + (CAL ? when : whenLine()) + "; estimate " + moneyC(q.first) + (q.repeat ? ", then " + moneyC(q.repeat) + " " + q.freq.label.toLowerCase() : "");
       send({
-        _subject: (CAL ? "New booking " : "New booking request ") + r + ": " + q.s.name + ", " + when,
+        _subject: (calOn ? "New booking " : "New booking request ") + r + ": " + q.s.name + ", " + when,
         _template: "table", _captcha: "false", _replyto: email || undefined,
         // Best effort only: FormSubmit documents its auto-reply as unsupported for forms sent like this one,
         // so the site never promises it. Mann's own reply is the customer's confirmation and written copy.
-        _autoresponse: email ? autoReply(CAL ? (C.emails || {}).bookingCal : (C.emails || {}).booking, { name: firstName, ref: r, summary: plain, items: itemsText(q), reply: B.replyPromise, phone: B.phoneDisplay,
+        _autoresponse: email ? autoReply(calOn ? (C.emails || {}).bookingCal : (C.emails || {}).booking, { name: firstName, ref: r, summary: plain, items: itemsText(q), reply: B.replyPromise, phone: B.phoneDisplay,
           notice: C.policies.cancelNoticeHours, lateFee: C.policies.lateCancelFee, terms: C.siteUrl + "/policies/", calendar: calHome(), calendarNote: calNote() }) : undefined,
         _honey: $('[name="_honey"]', form).value,
         "Reference": r,
-        "Status": CAL ? "Details sent; the customer picks a time on the calendar next" : "Request: not confirmed until Mann agrees the day, window and price",
+        "Status": calOn ? "Details sent; the customer picks a time on the calendar next" : "Request: not confirmed until Mann agrees the day, window and price",
         "Service": q.s.name, "Home": homeLine(q),
         "Home notes": q.checks.map(function (c) { return c.label; }).join(", ") || "None",
         "Extras": q.addons.map(function (a) { return a.name + " +" + money(a.price); }).join(", ") || "None",
         "Included in this service": q.included.map(function (a) { return a.name; }).join(", ") || "None",
         "Plan": q.freq ? q.freq.label : "One time",
         "Preferred day": when,
-        "Preferred arrival window": CAL ? "" : slot ? (slot.any ? "Any time" : slot.label + " (" + slot.time + ")") : "",
+        "Preferred arrival window": calOn ? "" : slot ? (slot.any ? "Any time" : slot.label + " (" + slot.time + ")") : "",
         "Estimate, first visit": moneyC(q.first) + (q.firstDisc > 0 ? " (" + q.firstLabel + " " + q.firstPct + "% off −" + money(q.firstDisc) + ")" : ""),
         "Estimate, repeat visits": q.repeat ? moneyC(q.repeat) : "n/a",
         "HST": q.tax ? moneyC(q.firstTax) + " on the first visit" : "Not charged",
@@ -1146,11 +1152,11 @@
         // The sheet may have issued a different reference (if this one was taken): show the one it saved.
         if (res && res.reference) r = res.reference;
         track("generate_lead", { form: "booking", service: state.service, value: Math.round(q.first), currency: C.currency }, true);
-        last = { ref: r, date: state.flex || CAL ? null : state.date, slot: slot, hours: q.hours, service: q.s.name, address: val("f-address") };
-        var info = { r: r, q: q, slot: slot, email: email, firstName: firstName, skipped: !!(res && res.skipped),
+        last = { ref: r, date: state.flex || calOn ? null : state.date, slot: slot, hours: q.hours, service: q.s.name, address: val("f-address") };
+        var info = { r: r, q: q, slot: slot, email: email, firstName: firstName, skipped: !!(res && res.skipped), arranged: CAL && !calOn,
           how: { Text: "text", WhatsApp: "message", Call: "call", Email: "email" }[radioVal("contactPref")] || "text" };
         form.hidden = true;
-        if (CAL && !info.skipped) (EA ? showEaCalendar : showCalendar)(info);
+        if (calOn && !info.skipped) (EA ? showEaCalendar : showCalendar)(info);
         else showDone(info, false, null);
         // The request is in: personal details leave this device. The home choices stay, for booking again.
         ref = null; attempt = null;
@@ -1166,7 +1172,7 @@
 
     function showDone(info, booked, start) {
       var q = info.q, slot = info.slot;
-      var when = booked ? (start ? fmtStart(start) : "The time you picked (see your Cal.com email)") : whenLine();
+      var when = booked ? (start ? fmtStart(start) : "The time you picked (see your Cal.com email)") : info.arranged ? arrangedLine() : whenLine();
       $("[data-progress]").hidden = true;
       $("[data-summary]").hidden = true;
       $(".book-head h1").textContent = booked ? "You're booked" : "Request received";

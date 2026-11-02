@@ -141,6 +141,7 @@ export default async function () {
       await q.fill("#f-postal", "M2N 5W9"); await q.click("[data-next]"); await fillDetails(q); await q.fill("#f-email", "p@example.com");
       await q.click("[data-submit]"); await q.waitForSelector("[data-cal-step]:not([hidden])");
       assert(q.posts.at(-1)._autoresponse.includes("pick it on our calendar, and Cal.com emails that confirmation separately, with links to reschedule or cancel. Haven't picked"), "Cal email text");
+      assert(q.posts.at(-1)._subject.startsWith("New booking NR-") && q.posts.at(-1)["Preferred day"] === "Picking a time on the calendar" && q.posts.at(-1).Status.startsWith("Details sent;"), "Cal.com is still sent as a booking");
     } finally { await b.close(); }
   });
 
@@ -158,6 +159,9 @@ export default async function () {
       await p.waitForTimeout(300);
       assert(p.eaUrls.length === 1 && p.eaUrls[0] === src.href && await p.isHidden("[data-cal-fail]"), "the frame loaded the calendar address and no fallback shows");
       assert((await p.textContent(".book-head h1")).trim() === "Almost booked", "heading");
+      const post = p.posts.at(-1);
+      assert(post._subject.startsWith("New booking ") && !post._subject.startsWith("New booking request ") && post["Preferred day"] === "Picking a time on the calendar", "calendar subject and day: " + post._subject);
+      assert(post.Status === "Details sent; the customer picks a time on the calendar next" && post._autoresponse.includes("pick it on our calendar"), "calendar status and email");
     } finally { await b.close(); }
   });
 
@@ -172,10 +176,28 @@ export default async function () {
     } finally { await b.close(); }
   });
 
-  test("an estimate longer than every band gets the request screen", async ({ browser }) => {
+  test("an estimate longer than every band gets the request screen, and is sent as a request", async ({ browser }) => {
     const b = await buildWith(EA_CFG([{ upToHours: 1, id: 31 }]));
-    try { const p = await eaBooking(browser, b); await p.waitForSelector("[data-done]:not([hidden])"); assert(!(await p.$("[data-cal-embed] iframe")), "no frame"); }
-    finally { await b.close(); }
+    try {
+      const p = await eaBooking(browser, b); await p.waitForSelector("[data-done]:not([hidden])"); assert(!(await p.$("[data-cal-embed] iframe")), "no frame");
+      const rows = await p.$$eval("[data-done-list] > div", (ds) => ds.map((d) => [d.querySelector("dt").textContent.trim(), d.querySelector("dd").textContent.trim()]));
+      assert(rows.find((r) => r[0] === "You asked for")?.[1] === "Mann arranges a time with you", "You asked for: " + JSON.stringify(rows));
+      assert(rows.every((r) => r[1]), "an empty row: " + JSON.stringify(rows));
+      const post = p.posts.at(-1);
+      assert(post._subject.startsWith("New booking request "), "subject: " + post._subject);
+      assert(post.Status === "Request: not confirmed until Mann agrees the day, window and price" && post["Preferred day"] === "Mann arranges a time with you" && post["Preferred arrival window"] === "", "fields: " + post.Status + " | " + post["Preferred day"]);
+      assert(post._autoresponse.includes("will confirm your day and arrival window") && !post._autoresponse.includes("pick it on our calendar"), "email: " + post._autoresponse);
+      assert(post._autoresponse.includes("Mann arranges a time with you; estimate"), "email summary: " + post._autoresponse);
+    } finally { await b.close(); }
+  });
+
+  test("an estimate longer than every band: the text-us message is a request too", async ({ browser }) => {
+    const b = await buildWith(EA_CFG([{ upToHours: 1, id: 31 }]) + 'window.NR_CONFIG.business.phone = "+14165550100"; window.NR_CONFIG.business.phoneDisplay = "416 555 0100";');
+    try {
+      const p = await eaBooking(browser, b); await p.waitForSelector("[data-done]:not([hidden])");
+      const body = decodeURIComponent((await p.getAttribute("[data-sms-booking]", "href")).split("body=")[1]);
+      assert(body.startsWith("Booking request NR-") && body.includes("\nWhen: Mann arranges a time with you\n"), "text: " + body);
+    } finally { await b.close(); }
   });
 
   test("a calendar that doesn't load offers the new tab after 10 seconds", async ({ browser }) => {
