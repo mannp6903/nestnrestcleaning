@@ -118,6 +118,20 @@ export default async function () {
     } finally { await b.close(); }
   });
 
+  test("Cal.com wording is unchanged, email included", async ({ browser }) => {
+    const txt = loadConfig().emails.bookingCal;
+    assert(txt.includes("{calendarNote}") && !txt.includes("Cal.com"), "config uses the slot");
+    const b = await buildWith('window.NR_CONFIG.booking.calLink = "nestandrest/home-clean";');
+    try {
+      const book = fs.readFileSync(path.join(b.dir, "book/index.html"), "utf8");
+      assert(book.includes("Your request is sent through FormSubmit to our Google email inbox, and the time you pick is booked on Cal.com, our booking calendar. Both may store data outside Canada."), "Cal.com booking note");
+      const q = await newPage(browser); await q.goto(b.url + "/book/?s=regular&h=condo&bd=2&ba=1");
+      await q.fill("#f-postal", "M2N 5W9"); await q.click("[data-next]"); await fillDetails(q); await q.fill("#f-email", "p@example.com");
+      await q.click("[data-submit]"); await q.waitForSelector("[data-cal-step]:not([hidden])");
+      assert(q.posts.at(-1)._autoresponse.includes("pick it on our calendar, and Cal.com emails that confirmation separately, with links to reschedule or cancel. Haven't picked"), "Cal email text");
+    } finally { await b.close(); }
+  });
+
   test("today's settings switch nothing on", async ({ browser, url }) => {
     const C = loadConfig();
     assert(!C.booking.easyAppointments.url && !C.chat.baseUrl && !C.newsletter.optIn && C.delivery.provider !== "webhook", "all off");

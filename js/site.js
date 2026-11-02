@@ -488,7 +488,16 @@
     var datesBox = $("[data-dates]");
     var calStep = $("[data-cal-step]");
     var calPath = String((C.booking || {}).calLink || "").trim().replace(/^https?:\/\/(app\.)?cal\.com\//, "").replace(/^\/+|\/+$/g, "");
-    var CAL = !!(calStep && calPath);
+    // The page says which calendar it was built for; Easy!Appointments also needs its address in the settings.
+    var EA = !!(calStep && calStep.getAttribute("data-cal-provider") === "easyappointments" && ((C.booking || {}).easyAppointments || {}).url);
+    var CAL = !!(calStep && (EA || calPath));
+    // The sentence in the booking email about the calendar's own confirmation (the {calendarNote} in config.emails.bookingCal).
+    function calNote() {
+      return EA ? "our booking calendar emails that confirmation separately, with a link to reschedule or cancel."
+        : "Cal.com emails that confirmation separately, with links to reschedule or cancel.";
+    }
+    // Where a customer can pick a time (the {calendar} in config.emails.bookingCal).
+    function calHome() { return EA ? C.booking.easyAppointments.url : "https://cal.com/" + calPath; }
     var CLOSES = parseInt(C.closes, 10) || 23;
     var CLEANERS = (C.booking || {}).cleaners || 1;
     // Step errors sit beside the choice they're about (built in tools/build.mjs as [data-step-error]),
@@ -1110,7 +1119,7 @@
         // Best effort only: FormSubmit documents its auto-reply as unsupported for forms sent like this one,
         // so the site never promises it. Mann's own reply is the customer's confirmation and written copy.
         _autoresponse: email ? autoReply(CAL ? (C.emails || {}).bookingCal : (C.emails || {}).booking, { name: firstName, ref: r, summary: plain, items: itemsText(q), reply: B.replyPromise, phone: B.phoneDisplay,
-          notice: C.policies.cancelNoticeHours, lateFee: C.policies.lateCancelFee, terms: C.siteUrl + "/policies/", calendar: "https://cal.com/" + calPath }) : undefined,
+          notice: C.policies.cancelNoticeHours, lateFee: C.policies.lateCancelFee, terms: C.siteUrl + "/policies/", calendar: calHome(), calendarNote: calNote() }) : undefined,
         _honey: $('[name="_honey"]', form).value,
         "Reference": r,
         "Status": CAL ? "Details sent; the customer picks a time on the calendar next" : "Request: not confirmed until Mann agrees the day, window and price",
@@ -1140,7 +1149,7 @@
         var info = { r: r, q: q, slot: slot, email: email, firstName: firstName, skipped: !!(res && res.skipped),
           how: { Text: "text", WhatsApp: "message", Call: "call", Email: "email" }[radioVal("contactPref")] || "text" };
         form.hidden = true;
-        if (CAL && !info.skipped) showCalendar(info);
+        if (CAL && !info.skipped && !EA) showCalendar(info);
         else showDone(info, false, null);
         // The request is in: personal details leave this device. The home choices stay, for booking again.
         ref = null; attempt = null;

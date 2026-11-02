@@ -52,8 +52,36 @@ const SENT_TO = WEBHOOK ? `Your request goes to our own server (${SRV}, ${LOC}),
   : SHEET ? "Your request is saved to our Google Sheet and emailed to our Gmail inbox (both Google)"
   : "Your request is sent through FormSubmit to our Google email inbox";
 const SENT_VIA = `${SENT_TO}, which may store data outside Canada.`;
-// The same sentence on the booking page, which also names the Cal.com booking calendar when there is one.
-const bookingSentNote = () => `${SENT_TO}${CAL ? ", and the time you pick is booked on Cal.com, our booking calendar. " + (SHEET ? "All" : "Both") : ", which"} may store data outside Canada.`;
+// Every word that names the booking calendar, one entry per calendar, so no page says "Cal.com" or "Easy!Appointments" anywhere else.
+// bookNote finishes the booking page's sentence, and abroad says whether the calendar's provider may store data outside Canada.
+// step is the line above the calendar, after the line under "After you send a request" on the help page, and policy the clause in the Service Policies.
+// privacy is the bullet in the privacy policy, and cookies that policy's paragraph about the calendar's cookies ("" when there are none).
+const CALENDARS = {
+  cal: {
+    bookNote: "the time you pick is booked on Cal.com, our booking calendar",
+    abroad: true,
+    step: "Your details are in. Choose a time that suits you and it's confirmed straight away. Cal.com emails you the confirmation.",
+    after: "The time you pick on the calendar is confirmed straight away, and Cal.com emails you the confirmation with links to reschedule or cancel.",
+    policy: "our calendar provider, Cal.com, emails you a confirmation with links to reschedule or cancel",
+    privacy: "<li><strong>Cal.com</strong> (cal.com) runs our booking calendar. When you pick a time, it receives your name, email, phone number and booking details, and emails your confirmation. It may store data outside Canada.</li>",
+    cookies: "<p>When you pick a time, our booking calendar from Cal.com loads on the page and may use its own cookies to run the calendar. See Cal.com's privacy policy for details.</p>"
+  },
+  easyappointments: {
+    bookNote: `the time you pick is booked on our own booking calendar (Easy!Appointments, on our server in ${LOC})`,
+    abroad: false,
+    step: "Your details are in (reference <strong data-cal-ref></strong>). Pick a time below and it's confirmed straight away. The calendar shows your confirmation and emails it to you, with a link to reschedule or cancel.",
+    after: "The time you pick on the calendar is confirmed straight away, and the calendar emails you the confirmation with a link to reschedule or cancel.",
+    policy: "our booking calendar emails you a confirmation with a link to reschedule or cancel",
+    privacy: "<li><strong>Easy!Appointments</strong>, our booking calendar, runs on our own server. When you pick a time, it receives your name, email, phone number, address and the service, and emails your confirmation.</li>",
+    cookies: ""
+  }
+};
+// The calendar that is switched on, or null: a Cal.com link or an Easy!Appointments address in js/config.js (checkStack stops a build with both).
+const CALENDAR = (C.booking || {}).calLink ? CALENDARS.cal : EA_ON ? CALENDARS.easyappointments : null;
+// The same sentence on the booking page, which also names the booking calendar when there is one.
+const bookingSentNote = () => !CALENDAR ? `${SENT_TO}, which may store data outside Canada.`
+  : CALENDAR.abroad ? `${SENT_TO}, and ${CALENDAR.bookNote}. ${SHEET ? "All" : "Both"} may store data outside Canada.`
+  : `${SENT_TO}, which may store data outside Canada, and ${CALENDAR.bookNote}.`;
 // The privacy policy's line about our own server, once any self-hosted tool is on.
 const SERVER_LI = SELF ? `<li><strong>${SRV}</strong> hosts our own server in ${LOC}, which runs the tools named below.</li>
         ` : "";
@@ -76,8 +104,8 @@ const WA_HELLO = `Hi ${B.ownerFirstName}, I'd like to ask about a clean.`;
 const PHONE = !!B.phone;
 const founding = C.offers.founding;
 const spotsLeft = founding ? Math.max(0, founding.spots - (founding.claimed || 0)) : 0;
-// Live calendar: with a Cal.com link in booking.calLink, booking ends with picking a confirmed time.
-const CAL = !!(C.booking && C.booking.calLink);
+// Live calendar: with a calendar switched on (a Cal.com link in booking.calLink, or the Easy!Appointments address), booking ends with picking a confirmed time.
+const CAL = !!CALENDAR;
 // Action words, one per stage: every way into the booking form, the price box (a price is calculated, so the day comes next),
 // and the final send. Without the calendar a booking is a request Mann confirms, so the words say request.
 const ACT = CAL
@@ -1322,10 +1350,10 @@ urls.push(page({
           </div>
         </form>
 
-        ${CAL ? `<div class="cal-step" data-cal-step hidden tabindex="-1">
+        ${CAL ? `<div class="cal-step" data-cal-step data-cal-provider="${CALENDAR === CALENDARS.cal ? "cal" : "easyappointments"}" hidden tabindex="-1">
           <p class="label">Last step</p>
           <h2>Pick your time</h2>
-          <p>Your details are in. Choose a time that suits you and it's confirmed straight away. Cal.com emails you the confirmation.</p>
+          <p>${CALENDAR.step}</p>
           <div class="cal-embed" data-cal-embed></div>
           <p class="form-error" data-cal-fail role="alert" hidden>The calendar didn't load here. Open it in a new tab below, or ${esc(B.ownerFirstName)} will text you ${esc(B.replyPromise)} to arrange a time.</p>
           <p class="cal-alt"><a class="text-link" data-cal-link href="#" target="_blank" rel="noopener">Open the calendar in a new tab ${ic("i-arrow")}</a></p>
@@ -2358,7 +2386,7 @@ ${founding && founding.active
     <ol class="steps-3">
       ${CAL
         ? `<li><h3>Details sent</h3><p>Your details reach ${esc(B.ownerFirstName)} first, with a reference (NR-…), so nothing is lost if the calendar doesn't load.</p></li>
-      <li><h3>You pick a time</h3><p>The time you pick on the calendar is confirmed straight away, and Cal.com emails you the confirmation with links to reschedule or cancel.</p></li>
+      <li><h3>You pick a time</h3><p>${CALENDAR.after}</p></li>
       <li><h3>${esc(B.ownerFirstName)} checks in</h3><p>${esc(B.ownerFirstName)} contacts you ${esc(B.replyPromise)} to go over the details. You pay after the clean.</p></li>`
         : `<li><h3>Request received</h3><p>You get a reference (NR-…). Nothing is booked yet, and nothing is charged.</p></li>
       <li><h3>${esc(B.ownerFirstName)} reviews it</h3><p>${esc(B.ownerFirstName)} checks your home, the time it needs and the day you asked for, then replies ${esc(B.replyPromise)}, by text, call or email as you chose.</p></li>
@@ -2499,7 +2527,7 @@ legalPage({
       <ul>
         <li><strong>GitHub</strong> (GitHub, Inc.) hosts this website and keeps standard server logs, including IP addresses, for security.</li>
         <li><strong>Google</strong> provides our email service, where booking, quote, gift card and review messages are stored.</li>
-        ${SERVER_LI}${CAL ? `<li><strong>Cal.com</strong> (cal.com) runs our booking calendar. When you pick a time, it receives your name, email, phone number and booking details, and emails your confirmation. It may store data outside Canada.</li>
+        ${SERVER_LI}${CAL ? CALENDAR.privacy + `
         ` : ""}${GA ? `<li><strong>Google Analytics</strong> (Google LLC) measures how visitors use this website: the pages viewed, how they arrived (for example from our flyer or business card), the type of device and an approximate location. It doesn't receive anything you type into our forms, and it stores data in the United States.</li>
         ` : ""}${WEBHOOK ? `<li><strong>n8n</strong>, our automation tool, on our own server, receives the website's forms, saves each request and forwards it to our Gmail inbox. If you give your email address, it sends you a receipt that only confirms your request arrived. ${esc(B.ownerFirstName)}'s own reply is what confirms a booking.</li>` : SHEET ? `<li><strong>Google Sheets and Gmail</strong> (Google) store and deliver the website's forms: each request is saved to our Google Sheet and emailed to our Gmail inbox. If you give your email address, you get an automatic receipt that only confirms your request arrived. ${esc(B.ownerFirstName)}'s own reply is what confirms a booking.</li>` : `<li><strong>FormSubmit</strong> (formsubmit.co) delivers the website's forms to our email inbox. If you give your email address, it may also send you an automatic acknowledgement. ${esc(B.ownerFirstName)}'s own reply is what confirms a booking.</li>`}
         ${B.whatsapp ? `<li><strong>WhatsApp</strong> (WhatsApp LLC, part of Meta Platforms) delivers and stores messages if you choose to contact us on WhatsApp.</li>
@@ -2518,8 +2546,8 @@ legalPage({
     { id: "safeguards", h: "How we protect it", html: () => `<p>Only the people who need your information to serve you can see it. We protect our email and business accounts with strong passwords and two-step verification, keep access codes separate from other records, and delete information we no longer need. No method of transmission or storage is completely secure, but we work to protect your information.</p>
       <p>If a breach of our safeguards creates a real risk of significant harm to you, we will notify you and the Office of the Privacy Commissioner of Canada as the law requires.</p>` },
     { id: "access", h: "Door and lockbox codes", html: () => `<p>Codes and keys give access to your home, so we treat them with extra care. We don't ask for them on the website. We ask by text or phone only after your booking is confirmed, keep them separate from your name and address, never write them on keys, and delete them within ${P.accessCodeDeleteDays} days of your last scheduled visit. We recommend changing your code from time to time, and after you stop using our service.</p>` },
-    { id: "cookies", h: "Cookies and your browser", html: () => `<p>We don't use advertising cookies or tracking pixels.${GA ? ` We use Google Analytics to understand how visitors use the site, and it sets its own cookies in your browser (their names start with "_ga"). We've turned off Google's advertising features for this site. To opt out, block cookies in your browser settings or install Google's opt-out add-on at <a href="https://tools.google.com/dlpage/gaoptout" rel="noopener" target="_blank">tools.google.com/dlpage/gaoptout</a>.` : ""} When you start a booking, your home choices (service, size, extras and plan) are saved in your browser for ${DRAFT_DAYS} days, so you can pick up where you left off or book again. Your personal details (name, contact details, address and notes) are kept only in the open browser tab, and are deleted from it once your request is sent. Nothing is sent to us until you submit the request. You can clear everything at any time with "Clear my details from this device" on the booking form or our <a href="${linker(1)("help/")}">help page</a>.</p>${CAL ? `
-      <p>When you pick a time, our booking calendar from Cal.com loads on the page and may use its own cookies to run the calendar. See Cal.com's privacy policy for details.</p>` : ""}
+    { id: "cookies", h: "Cookies and your browser", html: () => `<p>We don't use advertising cookies or tracking pixels.${GA ? ` We use Google Analytics to understand how visitors use the site, and it sets its own cookies in your browser (their names start with "_ga"). We've turned off Google's advertising features for this site. To opt out, block cookies in your browser settings or install Google's opt-out add-on at <a href="https://tools.google.com/dlpage/gaoptout" rel="noopener" target="_blank">tools.google.com/dlpage/gaoptout</a>.` : ""} When you start a booking, your home choices (service, size, extras and plan) are saved in your browser for ${DRAFT_DAYS} days, so you can pick up where you left off or book again. Your personal details (name, contact details, address and notes) are kept only in the open browser tab, and are deleted from it once your request is sent. Nothing is sent to us until you submit the request. You can clear everything at any time with "Clear my details from this device" on the booking form or our <a href="${linker(1)("help/")}">help page</a>.</p>${CAL && CALENDAR.cookies ? `
+      ${CALENDAR.cookies}` : ""}
       <p>If we add ${GA ? "advertising tools" : "website analytics or advertising tools"} in future, we will update this policy first and explain how to opt out.</p>` },
     { id: "rights", h: "Your rights", html: () => `<p>You can ask to see the personal information we hold about you, ask how it has been used or shared, and ask us to correct it if it's wrong. Contact us at ${contactLine}. We'll respond within 30 days, and there's no charge.</p>` },
     { id: "children", h: "Children", html: () => `<p>Our services and website are for adults. We don't knowingly collect personal information from children.</p>` },
@@ -2536,7 +2564,7 @@ legalPage({
   sections: [
     { id: "area", h: "Where we clean", html: () => `<p>We clean homes and small offices in Scarborough and North York, Toronto. We confirm your postal code before every booking.</p>` },
     { id: "booking", h: "Booking and confirmation", html: () => CAL
-      ? `<p>When you book on the website, you send your details first, then pick a time on our online calendar. The time you pick is confirmed straight away, and our calendar provider, Cal.com, emails you a confirmation with links to reschedule or cancel. We also contact you by text, WhatsApp, call or email, as you prefer, ${esc(B.replyPromise)}. If you don't pick a time, your details reach us as a request and we'll contact you to arrange one.</p>`
+      ? `<p>When you book on the website, you send your details first, then pick a time on our online calendar. The time you pick is confirmed straight away, and ${CALENDAR.policy}. We also contact you by text, WhatsApp, call or email, as you prefer, ${esc(B.replyPromise)}. If you don't pick a time, your details reach us as a request and we'll contact you to arrange one.</p>`
       : `<p>A booking made on the website is a request. The day and arrival window you choose are your preference, not a reserved time. Your booking is confirmed once we've contacted you by text, WhatsApp, call or email and agreed the day, arrival window and final price, and your time is held from then. We usually reply ${esc(B.replyPromise)}. Our confirmation message is your written copy of what we agreed.</p>` },
     { id: "pricing", h: "Prices and estimates", html: () => `<p>The price shown on the website is an estimate based on what you tell us: the service, home type, bedrooms, bathrooms and extras. If your home needs much more or less time than expected, we'll tell you and agree the price with you before we start, never after. Prices are in Canadian dollars. ${C.taxRate ? `Prices are before ${Math.round(C.taxRate * 100)}% HST, which is shown as its own line.` : "We don't charge HST."} Discounted prices are rounded to the nearest dollar.</p>
       <p>What's included in each service is listed room by room on its service page. Each extra covers what's written with it on our <a href="${linker(1)("pricing/#extras")}">pricing page</a>, and anything more is agreed with you first. An extra that a service already includes is never charged again.</p>
