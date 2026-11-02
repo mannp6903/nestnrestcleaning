@@ -1,6 +1,8 @@
 // Generates every page of the site from js/config.js, tools/guides.mjs and the templates below.
 // Usage: node tools/build.mjs            -> writes the site into the repo root
 //        node tools/build.mjs --preview DIR -> writes a preview copy (artifact-friendly links)
+//        node tools/build.mjs --out DIR     -> writes a normal build into DIR, with css, js, assets and the manifest beside it (for checks)
+// NR_CONFIG_PATCH="window.NR_CONFIG.x = 1;" runs that JavaScript right after js/config.js, here and in DIR/js/config.js (tests use it).
 import fs from "node:fs";
 import path from "node:path";
 import vm from "node:vm";
@@ -12,10 +14,13 @@ import { heroWide, heroNarrow, districtScene } from "./landmarks.mjs";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const args = process.argv.slice(2);
 const PREVIEW_DIR = args[0] === "--preview" ? path.resolve(args[1]) : null;
-const OUT = PREVIEW_DIR || ROOT;
+const OUT_DIR = args[0] === "--out" ? path.resolve(args[1]) : null;
+const OUT = PREVIEW_DIR || OUT_DIR || ROOT;
 
-const sandbox = { window: {} };
-vm.runInNewContext(fs.readFileSync(path.join(ROOT, "js/config.js"), "utf8"), sandbox);
+const sandbox = vm.createContext({ window: {} });
+const PATCH = process.env.NR_CONFIG_PATCH || "";
+vm.runInContext(fs.readFileSync(path.join(ROOT, "js/config.js"), "utf8"), sandbox, { filename: "js/config.js" });
+if (PATCH) vm.runInContext(PATCH, sandbox, { filename: "NR_CONFIG_PATCH" });
 const C = sandbox.window.NR_CONFIG;
 const B = C.business;
 const SITE = C.siteUrl.replace(/\/$/, "");
@@ -2545,10 +2550,12 @@ ${urls.map((u) => `  <url><loc>${u}</loc><lastmod>${TODAY}</lastmod></url>`).joi
   fs.writeFileSync(path.join(OUT, "robots.txt"), `User-agent: *\nAllow: /\nSitemap: ${SITE}/sitemap.xml\n`);
 }
 
-/* ---------- preview: the stylesheet, scripts and images go with the pages ---------- */
-if (PREVIEW_DIR) {
+/* ---------- preview and --out copies: the stylesheet, scripts and images go with the pages ---------- */
+if (PREVIEW_DIR || OUT_DIR) {
   for (const d of ["css", "js", "assets"]) fs.cpSync(path.join(ROOT, d), path.join(OUT, d), { recursive: true });
   fs.copyFileSync(path.join(ROOT, "site.webmanifest"), path.join(OUT, "site.webmanifest"));
+  // The browser reads the same settings the pages were built from.
+  if (PATCH) fs.appendFileSync(path.join(OUT, "js/config.js"), "\n" + PATCH + "\n");
 }
 
 /* ---------- compact copies: the pages load these, written from the files you edit ---------- */
