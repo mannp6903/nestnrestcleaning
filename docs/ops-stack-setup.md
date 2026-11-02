@@ -13,7 +13,19 @@ This guide takes you from an empty server to six working tools that sit behind n
 
 Apart from SMS Gateway, which runs on your phone, they all run on one small server you rent. The `server` setting tells the privacy policy where that server is.
 
-Nothing on the live website changes until section 8. Every setting for these tools is blank in `js/config.js` today, and the site builds exactly as it does now until you fill one in. Do the sections in order, one at a time.
+Nothing on the live website changes until section 8. Today the new settings (`server`, `booking.easyAppointments`, `chat` and `newsletter`) are blank or off in `js/config.js`, and `delivery` still sends forms to FormSubmit. The site builds exactly as it does now until you change one of them. The sections are in the order you would normally do them, but see "What depends on what" first.
+
+## What depends on what
+
+- **The server comes first (section 1).** Every tool except SMS Gateway, which runs on your phone, installs on it.
+- **n8n's "Website forms" recipe (section 5, Recipe 1) is the heart of it.** On its own it gives you a saved record of every request that doesn't depend on email. It needs only the server, n8n and your Gmail login. You can switch it on (section 8, `server` then `delivery`) before anything else is set up.
+- **Easy!Appointments (2), chat (6) and offers emails (7) can follow in any order,** each with its own switch-on step in section 8.
+- **Where one part needs another:**
+  - Recipe 1's Invoice Ninja step (step 8) needs section 3's API token. Skip it for now and come back to it after section 3.
+  - Recipe 1's listmonk step (step 9) needs section 7's list ID and API user. Skip it for now and come back to it after section 7.
+  - Section 2's webhook step (step 10) needs the address from section 5, Recipe 2. Leave it until you reach that recipe.
+  - Recipes 2, 3 and 4 send texts, so do section 4 (SMS Gateway) before them.
+- **A suggested starting point:** section 1, then install n8n and build Recipe 1 without its Invoice Ninja and listmonk steps, then switch on `server` and `delivery` in section 8. After that, take the other tools one at a time, finishing each tool's section and its switch-on step before you start the next.
 
 ## Before you start
 
@@ -74,14 +86,15 @@ Easy!Appointments is the self-hosted alternative to Cal.com. Cal.com's own code 
    - **Legal Contents:** leave Data Retention Days at 0 (no automatic deletion) unless you've decided otherwise. The privacy policy says booking records are kept while someone is a client, then for as long as tax law requires.
 4. **Make one service for each clean length.** Open **Services** and add services such as "Home clean, up to 3 hours", "up to 5 hours" and "up to 8 hours".
    - Set each one's **Duration (Minutes)** to match its length, and don't enter a price that could differ from your website's estimate.
-   - The website picks the first service whose `upToHours` is at least the estimate's hours. Your **last** service must cover the longest clean the booking form can estimate. To find it, open the booking page, choose the biggest home, the longest service and every extra, and read the time on site in "Check your clean".
-   - If an estimate is longer than every service, the calendar isn't shown. The details go to you as a request and the customer sees "Request received", even though the booking page told them they would pick a time. Leave no gap.
-   - Test each service in step 6. A very long clean may not fit inside your working hours. If one shows no free times, tell Claude before you switch the calendar on.
+   - The website picks the first service whose `upToHours` is at least the estimate's hours.
+   - Set the **last** service's length to the longest clean that fits your working day (9am to 11pm is 14 hours, so no more than that). Any estimate longer than that is automatically sent to you as a request, with no calendar. The customer sees "Request received" and you arrange the time yourself.
+   - The lengths 3, 5 and 8 hours are examples only. Use the lengths you want.
+   - Test each service in step 6. If one shows no free times, make that service shorter.
 5. **Add yourself as the provider.** Open **Providers**, add yourself, attach every service and check your working hours. Set your time zone to Toronto.
-6. **Write down the numbers.** The website needs each service's number (its ID) for `services`, and your provider's number for `provider`.
+6. **Write down the numbers.** The website needs each service's number (its ID) for `services`, and your provider ID for `provider`.
    - To check a service, open `https://book.nestnrestcleaning.com/?service=1` in a browser. The page should open with that service chosen and show free times. Try 2, 3 and so on, and match them to your services.
    - Check your provider the same way with `?provider=1`.
-   - If the page doesn't preselect them, send Claude the addresses and ask it to read the numbers from Easy!Appointments' REST API, which lists services and providers. The API is described in its [REST API page](https://github.com/alextselegidis/easyappointments/blob/main/docs/rest-api.md).
+   - If the page doesn't preselect them, you can read the numbers yourself once n8n is running (section 5). Make a one-box workflow with an **HTTP Request** box that does a GET to `https://book.nestnrestcleaning.com/index.php/api/v1/services` (and `/providers`) using the Easy!Appointments credential (the API token from step 11), then click **Execute step**. Easy!Appointments' [REST API page](https://github.com/alextselegidis/easyappointments/blob/main/docs/rest-api.md) lists both. Or ask Claude how to do it, without sharing your API token with it.
 7. **Connect Google Calendar.** Follow the [Google Calendar page](https://github.com/alextselegidis/easyappointments/blob/main/docs/google-calendar-sync.md). In short: create a Google Cloud project and an OAuth client, type its details under **Settings, Integrations, Google Calendar**, then open **Calendar**, choose yourself and click **Enable Sync**. Each provider can link one Google calendar.
 8. **Set up outgoing email**, so customers get their confirmation with the link to reschedule or cancel.
    - Easy!Appointments sends email using the file `application/config/email.php` on the server. By default it uses the server's own mail. The file has commented-out lines for an SMTP login (host, user, password, security and port) and for the From name and address. Fill them in using the details your email provider gives you for sending mail.
@@ -90,11 +103,7 @@ Easy!Appointments is the self-hosted alternative to Cal.com. Cal.com's own code 
 9. **Test it.** Book a time yourself on `https://book.nestnrestcleaning.com`, using your own email.
    - Check the booking appears in your Google Calendar and the confirmation email arrives.
    - Open the link in that email to cancel the test booking.
-10. **Webhook to n8n.** Do this after you've built the "New booking" workflow in section 5, because it needs that workflow's address.
-    - Open **Settings, Integrations, Webhooks** and click **Add**.
-    - Give it a name, such as "n8n new bookings". Paste n8n's Production URL for that workflow into the URL box.
-    - Leave the Secret Header as `X-EA-Token` and type a long random Secret Token. Use the same two values in n8n's Webhook node under Header Auth.
-    - Turn on the **Appointment Save** and **Appointment Delete** switches, leave **Verify SSL** on, and save.
+10. **Webhook to n8n.** Leave this step until section 5, Recipe 2. It needs the address and secret token that recipe sets up, and the recipe tells you what to type here.
 11. **Create an API token for n8n.** Open **Settings, Integrations, API** and set an API Token. n8n uses it as a bearer token to read appointments and customers. Keep it in n8n's Credentials only.
 
 Before you switch the calendar on in section 8, read the Google Analytics note there.
@@ -164,24 +173,27 @@ What arrives in the Webhook box (in the box's data, as `body`):
 
 When the offers box is on, `fields` also has `Offers emails`. Its value is `Yes (ticked: "...")` or `No`.
 
-Build it in this order:
+Build it in this order. The first box is called **Webhook**, which is n8n's own name for it. If you rename it, use the new name wherever `Webhook` appears in an expression below.
+
+**One rule for every box after the Webhook box.** From step 3 on, the data passing along the workflow is a saved row or the result of the box before it, not the request. So every box from step 3 on takes its values (`reference`, `attempt`, `email`, `fields`, `receipt` and `Offers emails`) from the Webhook box. Drag each value in from the Webhook box's output and n8n writes the expression for you, which looks like `{{ $('Webhook').item.json.body.reference }}`. Don't type `{{ $json.body.reference }}` into a box that comes after the save step: it would read the wrong data.
 
 1. **Webhook.** Set HTTP Method to POST and Path to `forms`. Under Respond, choose "Using 'Respond to Webhook' Node". The Production URL ends in `/webhook/forms`, and it is the value for `delivery.endpoint`. n8n's webhooks answer the browser's preflight check themselves, so you add nothing for it.
-2. **If `honey` is not empty,** it's a bot. Reply as in step 5 so the bot sees "success", then stop. Save and send nothing.
-3. **Data table, Row, Get** (a data table is n8n's built-in saved table). Make a table named `requests` with columns `attempt`, `reference`, `form`, `email`, `details` and `received`, then look for a row whose `attempt` is this one. In the box's Settings, switch on "Always Output Data", so the workflow carries on when no row is found. Follow it with an **If** box.
-   - If a row came back, this is a repeat. The same request arrives more than once when a customer retries. Reply with the reference saved on that row, `{ "ok": true, "reference": "<the saved reference>" }`, and stop.
+2. **If `honey` is not empty,** it's a bot. Reply with the same body as in step 5 so the bot sees "success", then stop. Save and send nothing.
+3. **Data table, Row, Get** (a data table is n8n's built-in saved table). Make a table named `requests` with columns `attempt`, `reference`, `form`, `email`, `details` and `received`, then look for a row whose `attempt` is this request's `attempt` (from the Webhook box). In the box's Settings, switch on "Always Output Data", so the workflow carries on when no row is found. Follow it with an **If** box that checks whether a row came back.
+   - If a row came back, this is a repeat. The same request arrives more than once when a customer retries. Add a **Respond to Webhook** box on this branch with the body `{ "ok": true, "reference": "{{ $json.reference }}" }`, where `reference` is the saved row's reference, and stop. A repeat gets the reference saved for that attempt.
    - If no row came back, carry on.
-4. **Data table, Row, Insert.** Save `attempt`, `reference`, `form`, `email`, the whole `fields` as text, and the date. This is the saved record, and from here on the request is safe.
+4. **Data table, Row, Insert.** Save `attempt`, `reference`, `form`, `email`, the whole `fields` as text, and the date, all taken from the Webhook box. This is the saved record, and from here on the request is safe.
 5. **Respond to Webhook.** Respond With JSON, and the body:
-   `{ "ok": true, "reference": "{{ $json.body.reference }}" }`
+   `{ "ok": true, "reference": "{{ $('Webhook').item.json.body.reference }}" }`
+   - Match `Webhook` to your first box's actual name.
    - The site counts a form as sent only when it gets a success reply (HTTP 2xx) with `ok` true and a reference. Anything else (an empty reply, text that isn't JSON, `ok` not true, an error) makes the site show "we couldn't confirm", and the customer can try again.
-   - If the box before it has changed the data, drag the `reference` field in from the Webhook box in the left-hand panel so n8n writes the right expression.
-6. **Gmail, Send a message** to nestnrestcleaning@gmail.com. Make the subject say the form and reference (for example "New booking NR-XXXX"), and list each label and answer from `fields` on its own line, so it reads like the old emails.
-7. **If `receipt` is not empty and `email` is a real address,** use **Gmail, Send a message** to that address. Subject: "We got your request (reference NR-XXXX)". The message is the `receipt` text, unchanged and as plain text. It already carries the CASL footer.
+6. **Gmail, Send a message** to nestnrestcleaning@gmail.com. Take the form and reference from the Webhook box. Make the subject say the form and reference (for example "New booking NR-XXXX"), and list each label and answer from the Webhook box's `fields` on its own line, so it reads like the old emails.
+7. **If `receipt` is not empty and `email` is a real address,** use **Gmail, Send a message** to that address. Take `email` and `receipt` from the Webhook box. Subject: "We got your request (reference NR-XXXX)". The message is the `receipt` text, unchanged and as plain text. It already carries the CASL footer.
    - Limit receipts the way the Google Sheet script does: at most one an hour to an address and 50 a day, using a second data table. This stops anyone using your server to flood an inbox.
-8. **Invoice Ninja, Client, Create** for bookings. First use **Get Many** to look for the same email, and create the client only if there's none. Fill in the name, email, phone and address from `fields`.
-9. **If `Offers emails` starts with `Yes`,** add them to listmonk with an **HTTP Request** box: POST to `https://mail.nestnrestcleaning.com/api/subscribers`, Basic auth with the listmonk credential, and this body:
-   `{ "email": "<email>", "name": "<name>", "status": "enabled", "lists": [LIST-ID], "preconfirm_subscriptions": false }`
+8. **Invoice Ninja, Client, Create** for bookings. Skip this step until you've done section 3, then come back to it. First use **Get Many** to look for the same email, and create the client only if there's none. The customer's email is the Webhook box's top-level `email`, not something inside `fields`. Take the name, phone and address from the Webhook box's `fields`.
+9. **If `Offers emails` starts with `Yes`,** add them to listmonk. Skip this step until you've done section 7, then come back to it. Use an **HTTP Request** box: POST to `https://mail.nestnrestcleaning.com/api/subscribers`, Basic auth with the listmonk credential, and this body:
+   `{ "email": "<the email>", "name": "<the name>", "status": "enabled", "lists": [LIST-ID], "preconfirm_subscriptions": false }`
+   - Take the email from the Webhook box's top-level `email`, and the name from its `fields`. `Offers emails` is also in `fields`.
    - `lists` is the number of your double opt-in list (section 7).
    - Keep `preconfirm_subscriptions` as `false`. If it's `true`, listmonk skips the confirmation email, and under CASL you may email only people who ticked the box and confirmed.
 
@@ -189,11 +201,17 @@ Build it in this order:
 
 This sends the confirmation text.
 
-1. **Webhook.** POST, Path `booking-new`, Respond "Immediately". Under Authentication choose Header Auth, with the name `X-EA-Token` and the secret token you typed in Easy!Appointments (section 2, step 10). Easy!Appointments sends a POST with a JSON body holding `action` and `payload`.
-2. **Send one test booking** and look at the run in n8n's Executions list. That shows you the fields the webhook really sends. Use the appointment's id to ask Easy!Appointments for the full record (next step), rather than relying on what the webhook includes.
-3. **HTTP Request** GET `https://book.nestnrestcleaning.com/index.php/api/v1/appointments/<id>` with the Bearer token. Each appointment has `start`, `end`, `serviceId`, `customerId` and more. Then GET `/customers/<customerId>` for the name and phone.
-4. **Send the text.** Make it from the README's "Confirming a booking" template (with its CASL wording), then POST it to SMS Gateway as in section 4. To turn "647 555 0123" into "+16475550123", use an expression like `{{ '+1' + $json.phone.replace(/\D/g, '').slice(-10) }}`, with the name of the phone field n8n shows for the customer.
-5. **Handle repeats.** The webhook fires on every save, including changes. If you only want a text for new bookings, keep a data table of appointment ids already texted and skip those.
+1. **Webhook.** POST, Path `booking-new`, Respond "Immediately". Under Authentication choose Header Auth and create a credential with the name `X-EA-Token` and, as its value, a long random secret that you make up now. Keep that secret in your password manager. Copy this box's Production URL.
+2. **Add the webhook in Easy!Appointments.** This is the step section 2 asked you to leave until now.
+   - Open **Settings, Integrations, Webhooks** and click **Add**.
+   - Give it a name, such as "n8n new bookings". Paste the Production URL into the URL box.
+   - Leave the Secret Header as `X-EA-Token` and type your secret into Secret Token.
+   - Turn on the **Appointment Save** and **Appointment Delete** switches, leave **Verify SSL** on, and save.
+   - Easy!Appointments then sends a POST with a JSON body holding `action` and `payload`, with your secret in that header.
+3. **Send one test booking** and look at the run in n8n's Executions list. That shows you the fields the webhook really sends. Use the appointment's id to ask Easy!Appointments for the full record (next step), rather than relying on what the webhook includes.
+4. **HTTP Request** GET `https://book.nestnrestcleaning.com/index.php/api/v1/appointments/<id>` with the Bearer token. Each appointment has `start`, `end`, `serviceId`, `customerId` and more. Then GET `/customers/<customerId>` for the name and phone.
+5. **Send the text.** Make it from the README's "Confirming a booking" template (with its CASL wording), then POST it to SMS Gateway as in section 4. To turn "647 555 0123" into "+16475550123", use an expression like `{{ '+1' + $json.phone.replace(/\D/g, '').slice(-10) }}`, with the name of the phone field n8n shows for the customer.
+6. **Handle repeats.** The webhook fires on every save, including changes. If you only want a text for new bookings, keep a data table of appointment ids already texted and skip those.
 
 ### Recipe 3: Daily reminders for tomorrow's cleans
 
@@ -235,16 +253,19 @@ listmonk sends seasonal offers, only to people who ticked an unticked box on the
    - Add a list named "Seasonal offers". For **Opt-in**, choose **Double opt-in**. listmonk then emails each new subscriber to confirm, and sends campaigns on a double opt-in list only to confirmed subscribers.
    - Make its type **Private**, so it doesn't appear on public sign-up pages.
    - Write down the list's ID. n8n uses it in `lists`.
-4. **Add your details to every email.** Edit listmonk's confirmation email (a system email) and your campaign template so each email names Nest & Rest Cleaning and Mann Patel, shows your mailing address (the same one as `business.mailingAddress`), and includes the unsubscribe link. In listmonk's [templating page](https://github.com/knadh/listmonk/blob/master/docs/docs/content/templating.md) the unsubscribe link is `{{ UnsubscribeURL }}`.
-5. **Create an API user for n8n.** Open **Admin, Users** and add an API user, with a role (**Admin, User roles**) that lets it add subscribers. Copy the token into n8n's listmonk credential. n8n logs in with Basic auth as `api_user:token`. The API is described on listmonk's [subscribers page](https://github.com/knadh/listmonk/blob/master/docs/docs/content/apis/subscribers.md).
-6. **Keep to CASL.**
+4. **Add your details to every offers email (the campaign template).** In listmonk, open **Campaigns, Templates** and edit your campaign template so its footer names Nest & Rest Cleaning and Mann Patel, shows your mailing address (the same one as `business.mailingAddress`), and includes the unsubscribe link. On listmonk's [templating page](https://github.com/knadh/listmonk/blob/master/docs/docs/content/templating.md) the unsubscribe link is `{{ UnsubscribeURL }}`.
+5. **The confirmation email is a system template: ask Claude for help with this step.**
+   - The email people get after ticking the box, asking them to confirm, is one of listmonk's "system templates". It is not edited in listmonk's admin screens. Its [System templates](https://github.com/knadh/listmonk/blob/master/docs/docs/content/templating.md#system-templates) section says you change it by copying listmonk's `static` folder and starting listmonk with the `--static-dir` flag. The email's file is `subscriber-optin.html`.
+   - Until you do, listmonk uses its built-in wording. Don't switch the offers box on (section 8) until you've seen that email and it names Nest & Rest Cleaning and shows your mailing address, because every email must say who you are. Ask Claude to walk you through it, as the steps depend on how you installed listmonk.
+6. **Create an API user for n8n.** Open **Admin, Users** and add an API user, with a role (**Admin, User roles**) that lets it add subscribers. Copy the token into n8n's listmonk credential. n8n logs in with Basic auth as `api_user:token`. The API is described on listmonk's [subscribers page](https://github.com/knadh/listmonk/blob/master/docs/docs/content/apis/subscribers.md).
+7. **Keep to CASL.**
    - Send offers only to people who ticked the box and confirmed. Never import old customers.
    - Every offers email must say who you are, show your mailing address and have an unsubscribe link.
    - Stop emailing anyone who asks, within 10 business days, even if they ask by reply instead of the link.
 
 ## 8. Switching the website on
 
-Everything above can be done without touching the website. Now you fill in the settings, one piece at a time, in this order: `server`, then `delivery`, then `booking.easyAppointments`, then `chat`, then `newsletter`.
+Each piece can be switched on as soon as its own section is done. You don't have to finish them all first. Fill in the settings one piece at a time, in this order: `server`, then `delivery`, then `booking.easyAppointments`, then `chat`, then `newsletter`.
 
 After each piece:
 
@@ -275,8 +296,8 @@ booking: {
   calLink: "",
   easyAppointments: {
     url: "https://book.nestnrestcleaning.com",
-    provider: "1",
-    services: [{ upToHours: 3, id: 1 }, { upToHours: 5, id: 2 }, { upToHours: 8, id: 3 }]
+    provider: "1",                // example only: your own provider ID
+    services: [{ upToHours: 3, id: 1 }, { upToHours: 5, id: 2 }, { upToHours: 8, id: 3 }]   // example only: your own lengths and service numbers
   }
 },
 
@@ -292,9 +313,9 @@ newsletter: {
 
 - **`server`:** who runs the server and where, from section 1. The privacy policy says it. Fill both before you switch on any of the other four pieces.
 - **`delivery`:** before you change it, copy the lines you have now (`provider: "formsubmit"` and its `endpoint`) somewhere, so you can go back. The endpoint is the Production URL from Recipe 1, and the "Website forms" workflow must be switched on first.
-- **`booking.easyAppointments`:** `calLink` must be `""`. `provider` is optional: leave it `""` and the calendar chooses. `services` has one entry per clean length, shortest first, and the last `upToHours` must cover the longest clean the form can estimate (section 2, step 4).
-- **`chat`:** both values or neither.
-- **`newsletter`:** also fill in `business.mailingAddress`, a PO box or mailbox service is fine.
+- **`booking.easyAppointments`:** `calLink` must be `""`. `provider` is your provider ID in Easy!Appointments (see its [REST API page](https://github.com/alextselegidis/easyappointments/blob/main/docs/rest-api.md) and section 2, step 6). It is optional: leave it `""` and the calendar chooses. `services` has one entry per clean length, shortest first, each with that service's number. The last `upToHours` is the longest clean that fits your working day. A longer estimate is sent to you as a request, with no calendar, and you arrange the time yourself (section 2, step 4). The values in the example above, including the lengths 3, 5 and 8, are examples only.
+- **`chat`:** both values or neither. Decide how long chat conversations are kept first (section 6, step 6).
+- **`newsletter`:** also fill in `business.mailingAddress`, a PO box or mailbox service is fine. Check listmonk's confirmation email first (section 7, step 5).
 
 ### Before the calendar: Google Analytics and the new-tab link
 
