@@ -248,7 +248,7 @@ export default async function () {
     const b = await buildWith(NEWS_CFG);
     try {
       const p = await newPage(browser); await newsDetails(p, b);
-      assert(!(await p.isChecked("#f-offers")), "unticked by default");
+      assert(!(await p.isChecked("#f-offers")) && await p.getAttribute("#f-offers", "autocomplete") === "off", "unticked by default, and a browser can't restore a tick");
       assert((await p.textContent('label.check:has(#f-offers) span')).trim() === OFFERS_LABEL, "label wording");
       assert(await reviewRow(p, "Offers emails") === "No", "review says No: " + await reviewRow(p, "Offers emails"));
       await p.check("#f-offers"); assert(await reviewRow(p, "Offers emails") === "Yes, by email", "review says Yes: " + await reviewRow(p, "Offers emails"));
@@ -271,6 +271,9 @@ export default async function () {
       assert(p.posts.at(-1)["Offers emails"] === "No" && p.posts.length === 2, "No when unticked");
       const priv = fs.readFileSync(path.join(b.dir, "privacy/index.html"), "utf8");
       assert(priv.includes("<strong>listmonk</strong>: if you tick the offers box, your name and email go to listmonk, our mailing list, on our own server. We send offers only after you confirm by email, and every email has an unsubscribe link.") && priv.includes("whether you'd like offers emails, and how you'd like us to confirm"), "privacy");
+      assert(priv.includes("<li>To email you seasonal offers, only if you ticked the offers box when you booked and then confirmed by email. Every offers email has an unsubscribe link.</li>\n    </ul><p>We do not sell or rent"), "privacy: how we use it");
+      assert(priv.includes("<li><strong>Offers mailing list:</strong> kept until you unsubscribe or ask us to remove you.</li>\n    </ul>"), "privacy: how long we keep it");
+      assert(priv.includes("every message we send will tell you how to opt out. If you tick the offers box when you book, we email you a link to confirm, and send offers only once you've confirmed. If you ask us to stop,"), "privacy: your consent");
     } finally { await b.close(); }
   });
 
@@ -290,6 +293,8 @@ export default async function () {
     assert(!(await p.$("#f-offers")) && await reviewRow(p, "Offers emails") === null, "no box, no review row");
     await p.click("[data-submit]"); await p.waitForSelector("[data-done]:not([hidden])");
     assert(!("Offers emails" in p.posts.at(-1)), "no Offers emails key: " + Object.keys(p.posts.at(-1)).join(", "));
+    const priv = fs.readFileSync(path.join(ROOT, "privacy/index.html"), "utf8");
+    assert(!/Offers mailing list|seasonal offers|offers emails|listmonk/i.test(priv), "the privacy policy mentions offers emails with the box off");
   });
 
   test("today's settings switch nothing on", async ({ browser, url }) => {

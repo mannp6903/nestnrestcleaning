@@ -1292,7 +1292,7 @@ urls.push(page({
               <div class="field"><label for="f-name">Full name</label><input id="f-name" name="name" autocomplete="name" required></div>
               <div class="field"><label for="f-phone">Mobile</label><input id="f-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="e.g. 647 555 0123" required></div>
               <div class="field span-2"><label for="f-email">Email <span class="opt">optional, if you'd like replies by email</span></label><input id="f-email" name="email" type="email" inputmode="email" autocomplete="email"></div>${NEWS ? `
-              <div class="field span-2"><label class="check"><input type="checkbox" id="f-offers" name="offers"> <span>Email me seasonal offers from Nest &amp; Rest. Unsubscribe any time.</span></label></div>` : ""}
+              <div class="field span-2"><label class="check"><input type="checkbox" id="f-offers" name="offers" autocomplete="off"> <span>Email me seasonal offers from Nest &amp; Rest. Unsubscribe any time.</span></label></div>` : ""}
               <div class="field span-2"><label for="f-address">Street address and unit</label><input id="f-address" name="address" autocomplete="street-address" required></div>
               <div class="field span-2"><span class="field-label" id="pref-label">Confirm by</span>
                 <div class="seg${B.whatsapp ? " seg-4" : ""}" role="radiogroup" aria-labelledby="pref-label">
@@ -2520,10 +2520,11 @@ legalPage({
       <li>To prepare quotes, keep payment and tax records, and meet our legal obligations.</li>
       <li>To publish your review on our website, using only your first name, last initial, neighbourhood and review, if you've sent us one.</li>
       <li>To improve our service, for example by learning which services clients book.</li>
-      <li>To consider you for work, if you've asked about working with us.</li>
+      <li>To consider you for work, if you've asked about working with us.</li>${NEWS ? `
+      <li>To email you seasonal offers, only if you ticked the offers box when you booked and then confirmed by email. Every offers email has an unsubscribe link.</li>` : ""}
     </ul><p>We do not sell or rent your personal information, and we don't use it for any purpose not listed here without asking you first.</p>` },
     { id: "consent", h: "Your consent", html: () => `<p>When you send us a booking request, price request, quote request, gift card request or review, you agree to us using your information for the purposes above. You can withdraw your consent at any time by contacting us, subject to legal or contractual limits. If you do, we may not be able to provide some services.</p>
-      <p>We send you messages about your booking, quote or gift card, and occasionally ask for a review after a clean. When you ask us to text you a price, we text it once. We won't send you promotional emails or texts without your consent, and every message we send will tell you how to opt out. If you ask us to stop, we'll stop within 10 business days, as Canada's Anti-Spam Legislation (CASL) requires.</p>` },
+      <p>We send you messages about your booking, quote or gift card, and occasionally ask for a review after a clean. When you ask us to text you a price, we text it once. We won't send you promotional emails or texts without your consent, and every message we send will tell you how to opt out.${NEWS ? " If you tick the offers box when you book, we email you a link to confirm, and send offers only once you've confirmed." : ""} If you ask us to stop, we'll stop within 10 business days, as Canada's Anti-Spam Legislation (CASL) requires.</p>` },
     { id: "sharing", h: "Who we share it with", html: () => `<p>We share personal information only with service providers who help us run the business, and only what they need:</p>
       <ul>
         <li><strong>GitHub</strong> (GitHub, Inc.) hosts this website and keeps standard server logs, including IP addresses, for security.</li>
@@ -2543,7 +2544,8 @@ legalPage({
       <li><strong>Price and quote requests that don't become bookings:</strong> deleted within 12 months.</li>
       <li><strong>Job enquiries:</strong> deleted within 12 months if we don't hire you, or sooner if you ask.</li>
       <li><strong>Gift card records:</strong> kept until the gift card is used up, then for as long as tax law requires.</li>
-      <li><strong>Reviews:</strong> kept while published. Ask us and we'll remove yours.</li>
+      <li><strong>Reviews:</strong> kept while published. Ask us and we'll remove yours.</li>${NEWS ? `
+      <li><strong>Offers mailing list:</strong> kept until you unsubscribe or ask us to remove you.</li>` : ""}
     </ul>` },
     { id: "safeguards", h: "How we protect it", html: () => `<p>Only the people who need your information to serve you can see it. We protect our email and business accounts with strong passwords and two-step verification, keep access codes separate from other records, and delete information we no longer need. No method of transmission or storage is completely secure, but we work to protect your information.</p>
       <p>If a breach of our safeguards creates a real risk of significant harm to you, we will notify you and the Office of the Privacy Commissioner of Canada as the law requires.</p>` },
