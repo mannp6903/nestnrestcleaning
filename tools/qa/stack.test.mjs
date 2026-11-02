@@ -54,6 +54,18 @@ const STOPS = [
   ['window.NR_CONFIG.delivery = { provider: "webhook", endpoint: "https://n8n.example.test/webhook/forms" };', "Fill in server.name and server.location"]
 ];
 
+// Easy!Appointments as the live calendar (book.example.test is answered locally by lib.mjs).
+const EA_CFG = (services) => SERVER + `window.NR_CONFIG.booking.easyAppointments = { url: "https://book.example.test/index.php?lang=en", provider: "2", services: ${JSON.stringify(services)} };`;
+// The hours the booking form estimates for a condo with these bedrooms and bathrooms and no extras (the build's formula; a condo's factor is 1).
+const hoursFor = (C, key, bd, ba) => { const s = C.services[key]; return Math.max(1.5, Math.round((s.hours + (bd - 1) * 0.5 + (ba - 1) * 0.5) / 0.5) * 0.5); };
+// A booking sent from the details step. mode is how the calendar server answers, set before the send: "ok" or "hang".
+async function eaBooking(browser, b, name = "José María O'Neil", mode = "ok") {
+  const p = await newPage(browser); p.eaMode = mode;
+  await p.goto(b.url + "/book/?s=regular&h=condo&bd=2&ba=1");
+  await p.fill("#f-postal", "M2N 5W9"); await p.click("[data-next]"); await fillDetails(p, name); await p.fill("#f-email", "p@example.com");
+  await p.click("[data-submit]"); return p;
+}
+
 export default async function () {
   test("a patched build carries the patch into its pages and its config", async () => {
     const b = await buildWith('window.NR_CONFIG.business.hours = "Every day, 8am to 8pm";');
@@ -129,6 +141,70 @@ export default async function () {
       await q.fill("#f-postal", "M2N 5W9"); await q.click("[data-next]"); await fillDetails(q); await q.fill("#f-email", "p@example.com");
       await q.click("[data-submit]"); await q.waitForSelector("[data-cal-step]:not([hidden])");
       assert(q.posts.at(-1)._autoresponse.includes("pick it on our calendar, and Cal.com emails that confirmation separately, with links to reschedule or cancel. Haven't picked"), "Cal email text");
+    } finally { await b.close(); }
+  });
+
+  test("Easy!Appointments opens on the right band, filled in", async ({ browser }) => {
+    const H = hoursFor(loadConfig(), "regular", 2, 1);
+    const b = await buildWith(EA_CFG([{ upToHours: H - 1, id: 10 }, { upToHours: H, id: 11 }, { upToHours: H + 3, id: 12 }]));
+    try {
+      const p = await eaBooking(browser, b); await p.waitForSelector("[data-cal-step]:not([hidden]) iframe");
+      const src = new URL(await p.getAttribute("[data-cal-embed] iframe", "src")), q = src.searchParams;
+      assert(src.search.startsWith("?lang=en&") && q.get("service") === "11" && q.get("provider") === "2", "joined with &, boundary band");
+      assert(q.get("first_name") === "José" && q.get("last_name") === "María O'Neil" && q.get("email") === "p@example.com", "names");
+      assert(q.get("address") === "1 Example St, Unit 1" && q.get("zip") === "M2N 5W9" && q.get("phone") === "647 555 0123", "prefill");
+      assert(await p.getAttribute("[data-cal-link]", "href") === src.href && (await p.textContent("[data-cal-ref]")).trim() === p.posts.at(-1).Reference, "link and reference");
+      assert(await p.isHidden("[data-done]") && (await p.getAttribute("[data-cal-embed] iframe", "title")) === "Booking calendar", "no done screen, titled frame");
+      await p.waitForTimeout(300);
+      assert(p.eaUrls.length === 1 && p.eaUrls[0] === src.href && await p.isHidden("[data-cal-fail]"), "the frame loaded the calendar address and no fallback shows");
+      assert((await p.textContent(".book-head h1")).trim() === "Almost booked", "heading");
+    } finally { await b.close(); }
+  });
+
+  test("an address with a trailing slash and a stray space gets one ?, and a clean link in the email", async ({ browser }) => {
+    const b = await buildWith(SERVER + 'window.NR_CONFIG.booking.easyAppointments = { url: "https://book.example.test/ ", services: [{ upToHours: 12, id: 41 }] };');
+    try {
+      const p = await eaBooking(browser, b, "Cher"); await p.waitForSelector("[data-cal-step]:not([hidden]) iframe");
+      const href = await p.getAttribute("[data-cal-embed] iframe", "src"), q = new URL(href).searchParams;
+      assert(href.startsWith("https://book.example.test/?service=41&first_name=Cher&") && href.split("?").length === 2, "one ?, no space: " + href);
+      assert(!q.has("provider") && !q.has("last_name"), "no empty provider or last name");
+      assert(p.posts.at(-1)._autoresponse.includes("Pick one here: https://book.example.test/ There's nothing"), "email link");
+    } finally { await b.close(); }
+  });
+
+  test("an estimate longer than every band gets the request screen", async ({ browser }) => {
+    const b = await buildWith(EA_CFG([{ upToHours: 1, id: 31 }]));
+    try { const p = await eaBooking(browser, b); await p.waitForSelector("[data-done]:not([hidden])"); assert(!(await p.$("[data-cal-embed] iframe")), "no frame"); }
+    finally { await b.close(); }
+  });
+
+  test("a calendar that doesn't load offers the new tab after 10 seconds", async ({ browser }) => {
+    const b = await buildWith(EA_CFG([{ upToHours: 12, id: 41 }]));
+    try {
+      const p = await eaBooking(browser, b, undefined, "hang");
+      await p.waitForSelector("[data-cal-fail]:not([hidden])", { timeout: 15000 });
+      assert(/book\.example\.test/.test(await p.getAttribute("[data-cal-link]", "href")), "new-tab link");
+    } finally { await b.close(); }
+  });
+
+  test("Easy!Appointments wording everywhere, and no Cal.com", async () => {
+    const b = await buildWith(EA_CFG([{ upToHours: 12, id: 41 }]));
+    try {
+      const read = (f) => fs.readFileSync(path.join(b.dir, f), "utf8");
+      assert(read("book/index.html").includes("which may store data outside Canada, and the time you pick is booked on our own booking calendar (Easy!Appointments, on our server in Toronto, Canada)."), "booking note");
+      assert(read("privacy/index.html").includes("<strong>Easy!Appointments</strong>, our booking calendar") && read("policies/index.html").includes("our booking calendar emails you a confirmation with a link to reschedule or cancel"), "privacy and policies");
+      for (const f of ["book/index.html", "privacy/index.html", "policies/index.html", "help/index.html", "index.html"]) assert(!read(f).includes("Cal.com"), f + " names Cal.com");
+    } finally { await b.close(); }
+  });
+
+  test("analytics never sees the calendar address or what was typed", async ({ browser }) => {
+    const b = await buildWith(EA_CFG([{ upToHours: 12, id: 41 }]));
+    try {
+      const p = await eaBooking(browser, b); await p.waitForSelector("[data-cal-step]:not([hidden]) iframe");
+      const blob = await p.evaluate(() => JSON.stringify((window.dataLayer || []).map((a) => Array.from(a))));
+      assert(blob.includes('"calendar_shown"'), "calendar_shown is sent");
+      const leaks = ["book.example.test", "first_name", "José", "O'Neil"].filter((x) => blob.includes(x));
+      assert(!leaks.length, "reached analytics: " + leaks.join(", "));
     } finally { await b.close(); }
   });
 

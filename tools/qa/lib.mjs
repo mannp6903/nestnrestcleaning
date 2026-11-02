@@ -33,7 +33,8 @@ export function startServer(root = ROOT) {
   });
   return new Promise((resolve) => server.listen(0, "127.0.0.1", () => resolve({
     url: `http://127.0.0.1:${server.address().port}`,
-    close: () => new Promise((r) => server.close(r))
+    // A browser can keep a connection open after its test ends, and close() alone then waits for it for ever.
+    close: () => new Promise((r) => { server.close(r); if (server.closeAllConnections) server.closeAllConnections(); })
   })));
 }
 
@@ -54,6 +55,8 @@ export async function newPage(browser, { width = 1280, height = 900, theme = "li
   page.hookMode = "ok";
   page.hookPosts = [];
   page.hookRequests = [];
+  page.eaMode = "ok";
+  page.eaUrls = [];
   page.errors = [];
   page.on("pageerror", (e) => page.errors.push(e.message));
   await page.route(/googletagmanager|google-analytics|cal\.com/, (r) => r.abort());
@@ -68,6 +71,7 @@ export async function newPage(browser, { width = 1280, height = 900, theme = "li
   });
   await routeSheet(page);
   await routeWebhook(page);
+  await routeEasyAppointments(page);
   return page;
 }
 export function mockDelivery(page, mode) { page.deliveryMode = mode; }
@@ -119,6 +123,15 @@ async function routeWebhook(page) {
     if (mode === "noref") return r.fulfill({ status: 200, headers: cors, contentType: "application/json", body: '{"ok":true}' });
     const reference = mode === "clash" ? "NR-ZZ99" : body && body.reference;
     return r.fulfill({ status: 200, headers: cors, contentType: "application/json", body: JSON.stringify({ ok: true, reference }) });
+  });
+}
+// The Easy!Appointments booking page (book.example.test), answered locally. page.eaUrls collects every address asked for.
+// Modes: ok (a small page, so the frame fires load) and hang (never answers, like a server that is down).
+async function routeEasyAppointments(page) {
+  await page.route(/book\.example\.test/, async (r) => {
+    page.eaUrls.push(r.request().url());
+    if (page.eaMode === "hang") return;
+    return r.fulfill({ status: 200, contentType: "text/html; charset=utf-8", body: "<!doctype html><title>Booking calendar</title><p>Pick a time.</p>" });
   });
 }
 // Serves js/config.js with extra lines appended, e.g. to switch the provider or the founding offer for one test.

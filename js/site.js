@@ -489,7 +489,8 @@
     var calStep = $("[data-cal-step]");
     var calPath = String((C.booking || {}).calLink || "").trim().replace(/^https?:\/\/(app\.)?cal\.com\//, "").replace(/^\/+|\/+$/g, "");
     // The page says which calendar it was built for; Easy!Appointments also needs its address in the settings.
-    var EA = !!(calStep && calStep.getAttribute("data-cal-provider") === "easyappointments" && ((C.booking || {}).easyAppointments || {}).url);
+    var eaUrl = String(((C.booking || {}).easyAppointments || {}).url || "").trim();
+    var EA = !!(calStep && calStep.getAttribute("data-cal-provider") === "easyappointments" && eaUrl);
     var CAL = !!(calStep && (EA || calPath));
     // The sentence in the booking email about the calendar's own confirmation (the {calendarNote} in config.emails.bookingCal).
     function calNote() {
@@ -497,7 +498,7 @@
         : "Cal.com emails that confirmation separately, with links to reschedule or cancel.";
     }
     // Where a customer can pick a time (the {calendar} in config.emails.bookingCal).
-    function calHome() { return EA ? C.booking.easyAppointments.url : "https://cal.com/" + calPath; }
+    function calHome() { return EA ? eaUrl : "https://cal.com/" + calPath; }
     var CLOSES = parseInt(C.closes, 10) || 23;
     var CLEANERS = (C.booking || {}).cleaners || 1;
     // Step errors sit beside the choice they're about (built in tools/build.mjs as [data-step-error]),
@@ -1149,7 +1150,7 @@
         var info = { r: r, q: q, slot: slot, email: email, firstName: firstName, skipped: !!(res && res.skipped),
           how: { Text: "text", WhatsApp: "message", Call: "call", Email: "email" }[radioVal("contactPref")] || "text" };
         form.hidden = true;
-        if (CAL && !info.skipped && !EA) showCalendar(info);
+        if (CAL && !info.skipped) (EA ? showEaCalendar : showCalendar)(info);
         else showDone(info, false, null);
         // The request is in: personal details leave this device. The home choices stay, for booking again.
         ref = null; attempt = null;
@@ -1270,6 +1271,43 @@
       window.Cal("on", { action: "bookingSuccessfulV2", callback: onBooked });
       window.Cal("on", { action: "bookingSuccessful", callback: onBooked });
       setTimeout(function () { if (!booked && !$("[data-cal-embed] iframe")) $("[data-cal-fail]").hidden = false; }, 10000);
+    }
+    // The Easy!Appointments service for a clean this long: the first band that is long enough, or null when none is.
+    function eaService(hours) {
+      var list = C.booking.easyAppointments.services || [];
+      for (var i = 0; i < list.length; i++) if (list[i].upToHours >= hours) return list[i].id;
+      return null;
+    }
+    // The calendar's own booking page with the service chosen and the customer's details filled in.
+    function eaLink(info, id) {
+      var ea = C.booking.easyAppointments, words = val("f-name").split(/\s+/), provider = String(ea.provider == null ? "" : ea.provider).trim();
+      var pairs = [["service", id]];
+      if (provider) pairs.push(["provider", provider]);
+      pairs.push(["first_name", words[0]]);
+      if (words.length > 1) pairs.push(["last_name", words.slice(1).join(" ")]);
+      if (info.email) pairs.push(["email", info.email]);
+      pairs.push(["phone", val("f-phone")], ["address", val("f-address")], ["zip", formatPostal(val("f-postal"))]);
+      // An apostrophe is written %27 too, the way a browser writes the address, so the frame and the new-tab link read the same everywhere.
+      return eaUrl + (eaUrl.indexOf("?") > -1 ? "&" : "?") + pairs.map(function (kv) { return kv[0] + "=" + encodeURIComponent(kv[1]).replace(/'/g, "%27"); }).join("&");
+    }
+    function showEaCalendar(info) {
+      var id = eaService(info.q.hours);
+      if (id === null) { showDone(info, false, null); return; }
+      var href = eaLink(info, id), frame = document.createElement("iframe"), loaded = false, ref = $("[data-cal-ref]");
+      $(".book-head h1").textContent = "Almost booked";
+      $(".book-sub").hidden = true;
+      markDots(3);
+      if (ref) ref.textContent = info.r;
+      $("[data-cal-link]").href = href;
+      frame.title = "Booking calendar";
+      frame.addEventListener("load", function () { loaded = true; });
+      frame.src = href;
+      $("[data-cal-embed]").appendChild(frame);
+      calStep.hidden = false;
+      calStep.focus();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      track("calendar_shown", { service: state.service, value: Math.round(info.q.first), currency: C.currency });
+      setTimeout(function () { if (!loaded) $("[data-cal-fail]").hidden = false; }, 10000);
     }
 
     $("[data-ics]").addEventListener("click", function () {

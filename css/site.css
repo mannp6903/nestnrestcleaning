@@ -977,13 +977,16 @@ a.svc-card:hover .svc-arrow { transform: translateX(4px); }
 .done-list dd { margin: 0; font-weight: 500; overflow-wrap: anywhere; }
 .done-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; }
 
-/* Booking calendar (Cal.com), the last step when booking.calLink is set */
+/* Booking calendar (Cal.com or Easy!Appointments), the last step when a calendar is set in js/config.js */
 .cal-step { display: grid; gap: 12px; padding: 8px 0; }
 .cal-step:focus { outline: none; }
 .cal-step h2 { font-size: clamp(1.8rem, 5.4vw, 2.4rem); }
 /* The calendar runs edge to edge inside the booking card so it has room on phones. */
 .cal-embed { min-height: 560px; margin-inline: calc(-1 * clamp(20px, 4vw, 38px)); background: var(--paper); overflow: hidden; }
 .cal-embed iframe { width: 100% !important; }
+/* Easy!Appointments' own booking page, in a frame this tall so the whole month and the time list show. */
+.cal-step[data-cal-provider="easyappointments"] .cal-embed iframe { width: 100%; height: 1000px; border: 0; }
+@media (max-width: 37.4375em) { .cal-step[data-cal-provider="easyappointments"] .cal-embed iframe { height: 85vh; } }
 .cal-alt { font-size: 0.95rem; }
 
 .done-refer { margin-top: 16px; padding-top: 20px; border-top: 1px solid var(--line); display: grid; gap: 12px; justify-items: start; }
