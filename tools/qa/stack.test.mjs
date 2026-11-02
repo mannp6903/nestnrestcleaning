@@ -66,6 +66,20 @@ async function eaBooking(browser, b, name = "José María O'Neil", mode = "ok") 
   await p.click("[data-submit]"); return p;
 }
 
+// The offers checkbox is built only with newsletter.optIn, and the build needs a mailing address for it (CASL).
+const NEWS_CFG = SERVER + 'window.NR_CONFIG.business.mailingAddress = "PO Box 1, Toronto, ON M1B 0A1"; window.NR_CONFIG.newsletter = { optIn: true };';
+const OFFERS_LABEL = "Email me seasonal offers from Nest & Rest. Unsubscribe any time.";
+// From the price-box link to the details step, with the name, mobile and address filled in, on a page that may already have sent a booking.
+async function newsDetails(p, b) {
+  await p.goto(b.url + "/book/?s=regular&h=condo&bd=2&ba=1"); await p.fill("#f-postal", "M2N 5W9"); await p.click("[data-next]");
+  await p.click("label.date-chip >> nth=1"); await p.click('label.slot[data-slot="evening"]'); await p.click("[data-next]"); await fillDetails(p);
+}
+// The value shown for one row of Check your clean, or null when there is no such row.
+const reviewRow = (p, label) => p.$$eval("[data-review] dl > div", (ds, label) => {
+  const d = ds.find((x) => x.querySelector("dt").textContent.trim() === label);
+  return d ? d.querySelector("dd").textContent : null;
+}, label);
+
 export default async function () {
   test("a patched build carries the patch into its pages and its config", async () => {
     const b = await buildWith('window.NR_CONFIG.business.hours = "Every day, 8am to 8pm";');
@@ -228,6 +242,54 @@ export default async function () {
       const leaks = ["book.example.test", "first_name", "José", "O'Neil"].filter((x) => blob.includes(x));
       assert(!leaks.length, "reached analytics: " + leaks.join(", "));
     } finally { await b.close(); }
+  });
+
+  test("offers box: unticked, needs an email, and travels with the request", async ({ browser }) => {
+    const b = await buildWith(NEWS_CFG);
+    try {
+      const p = await newPage(browser); await newsDetails(p, b);
+      assert(!(await p.isChecked("#f-offers")), "unticked by default");
+      assert((await p.textContent('label.check:has(#f-offers) span')).trim() === OFFERS_LABEL, "label wording");
+      assert(await reviewRow(p, "Offers emails") === "No", "review says No: " + await reviewRow(p, "Offers emails"));
+      await p.check("#f-offers"); assert(await reviewRow(p, "Offers emails") === "Yes, by email", "review says Yes: " + await reviewRow(p, "Offers emails"));
+      await p.click("[data-submit]");
+      assert((await p.textContent("#err-f-offers")).trim() === "Add your email to get offers, or untick the box." && p.posts.length === 0, "needs email");
+      assert(await p.getAttribute("#f-offers", "aria-invalid") === "true" && await p.getAttribute("#f-offers", "aria-describedby") === "err-f-offers", "error is announced");
+      assert(await p.$eval("label.check:has(#f-offers)", (l) => l.nextElementSibling && l.nextElementSibling.id) === "err-f-offers", "error sits after the label");
+      assert(await p.evaluate(() => document.activeElement.id) === "f-offers", "focus goes to the box");
+      await p.uncheck("#f-offers");
+      assert(await p.isHidden("#err-f-offers") && await p.getAttribute("#f-offers", "aria-invalid") === null, "unticking clears the error");
+      await p.check("#f-offers"); await p.click("[data-submit]"); assert(await p.isVisible("#err-f-offers"), "error again");
+      await p.fill("#f-email", "p@example.com"); assert(await p.isHidden("#err-f-offers"), "adding the email clears the error");
+      await p.fill("#f-email", ""); await p.click("[data-submit]"); assert(await p.isVisible("#err-f-offers") && p.posts.length === 0, "still needs the email");
+      await p.reload(); await p.click("[data-next]"); await p.click("[data-next]");
+      assert(await p.isVisible("#f-offers") && await p.isChecked("#f-offers"), "kept in this tab");
+      await p.fill("#f-email", "p@example.com"); await p.click("[data-submit]"); await p.waitForSelector("[data-done]:not([hidden])");
+      assert(p.posts.at(-1)["Offers emails"] === 'Yes (ticked: "' + OFFERS_LABEL + '")', "consent record: " + p.posts.at(-1)["Offers emails"]);
+      await newsDetails(p, b); assert(!(await p.isChecked("#f-offers")), "cleared after sending, in the same page");
+      await p.click("[data-submit]"); await p.waitForSelector("[data-done]:not([hidden])");
+      assert(p.posts.at(-1)["Offers emails"] === "No" && p.posts.length === 2, "No when unticked");
+      const priv = fs.readFileSync(path.join(b.dir, "privacy/index.html"), "utf8");
+      assert(priv.includes("<strong>listmonk</strong>: if you tick the offers box, your name and email go to listmonk, our mailing list, on our own server. We send offers only after you confirm by email, and every email has an unsubscribe link.") && priv.includes("whether you'd like offers emails, and how you'd like us to confirm"), "privacy");
+    } finally { await b.close(); }
+  });
+
+  test("clearing the saved details unticks the offers box and its error", async ({ browser }) => {
+    const b = await buildWith(NEWS_CFG);
+    try {
+      const p = await newPage(browser); await newsDetails(p, b);
+      await p.check("#f-offers"); await p.click("[data-submit]"); assert(await p.isVisible("#err-f-offers"), "error shown");
+      await p.click("[data-clear-details]");
+      assert(!(await p.isChecked("#f-offers")) && await p.isHidden("#err-f-offers"), "box and error cleared");
+    } finally { await b.close(); }
+  });
+
+  test("no offers field without the box", async ({ browser, url }) => {
+    const p = await newPage(browser);
+    await toDetails(p, url); await fillDetails(p); await p.fill("#f-email", "p@example.com");
+    assert(!(await p.$("#f-offers")) && await reviewRow(p, "Offers emails") === null, "no box, no review row");
+    await p.click("[data-submit]"); await p.waitForSelector("[data-done]:not([hidden])");
+    assert(!("Offers emails" in p.posts.at(-1)), "no Offers emails key: " + Object.keys(p.posts.at(-1)).join(", "));
   });
 
   test("today's settings switch nothing on", async ({ browser, url }) => {

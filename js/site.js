@@ -482,7 +482,7 @@
     var state = { step: 1, service: "regular", homeType: "condo", beds: 1, baths: 1, addons: [], checks: [], freq: "once", date: null, flex: false, slot: null };
     var fieldIds = ["f-name", "f-phone", "f-email", "f-address", "f-postal", "f-access", "f-parking", "f-referrer", "f-notes"];
     var radioNames = ["pets", "contactPref", "products"];
-    var boxIds = ["f-elevator", "f-register"];
+    var boxIds = ["f-elevator", "f-register", "f-offers"];
     // The page decides the flow: built with a Cal.com link, it has no day-and-window step and ends on the calendar.
     var LAST = $$(".step", form).length;
     var datesBox = $("[data-dates]");
@@ -692,6 +692,7 @@
       ];
       var minor = [
         ["Contact", (who || "Not added yet") + " · confirm by " + radioVal("contactPref").toLowerCase(), LAST, "#f-name"],
+        $("#f-offers") ? ["Offers emails", $("#f-offers").checked ? "Yes, by email" : "No", LAST, "#f-offers"] : null,
         ["Address", where || "Not added yet", LAST, "#f-address"],
         ["Visit", [acc + buildingText() + (acc === "Lockbox or key code" ? " (" + B.ownerFirstName + " asks for the code by text once your clean is confirmed)" : ""),
           radioVal("pets"), radioVal("products")].join(" · "), LAST, "#f-access"],
@@ -870,6 +871,16 @@
       fieldError(el, msg);
       return ok;
     }
+    // The offers box (built only with newsletter.optIn) needs an email address to send the offers to.
+    function offersCheck() {
+      var box = $("#f-offers");
+      if (!box) return true;
+      var bad = box.checked && !val("f-email");
+      fieldError(box, bad ? "Add your email to get offers, or untick the box." : "");
+      return !bad;
+    }
+    // The words beside the box as the customer saw them: sent with the request as the record of what was ticked.
+    function offersWording() { return $("#f-offers").closest("label").querySelector("span").textContent.replace(/\s+/g, " ").trim(); }
     // validation_failed carries the step, the field and a fixed code: never what was typed.
     function failed(step, field, code) { track("validation_failed", { step: step, field: field, code: code }); }
     function validate(n) {
@@ -898,9 +909,10 @@
       }
       if (n === LAST) {
         var first = null;
-        ["f-name", "f-phone", "f-email", "f-address", "f-referrer"].forEach(function (id) {
+        ["f-name", "f-phone", "f-email", "f-offers", "f-address", "f-referrer"].forEach(function (id) {
           var el = $("#" + id);
-          if (!checkField(el)) { failed(n, id.slice(2), "invalid"); if (!first) first = el; }
+          if (!el) return;
+          if (!(id === "f-offers" ? offersCheck() : checkField(el))) { failed(n, id.slice(2), "invalid"); if (!first) first = el; }
         });
         if (first) { msg = "Please fix the highlighted fields."; reveal(first); first.focus(); }
       }
@@ -995,6 +1007,7 @@
     form.addEventListener("input", function (e) {
       start();
       if (e.target.classList.contains("invalid")) checkField(e.target);
+      if ((e.target.id === "f-offers" || e.target.id === "f-email") && $("#f-offers") && $("#f-offers").classList.contains("invalid")) offersCheck();
       if (e.target.id === "f-postal") onPostal();
       else { renderReview(); renderSections(); }
       clearTimeout(form.t);
@@ -1147,7 +1160,8 @@
         "Address": val("f-address"), "Postal code": formatPostal(val("f-postal")) + (z && z.area ? " (" + z.area + ")" : ""),
         "Getting in": val("f-access") + buildingText(), "Pets": radioVal("pets"), "Products": radioVal("products"),
         "Referred by": val("f-referrer") || "None",
-        "Notes": val("f-notes") || "None", "Confirm by": radioVal("contactPref")
+        "Notes": val("f-notes") || "None", "Confirm by": radioVal("contactPref"),
+        "Offers emails": $("#f-offers") ? ($("#f-offers").checked ? 'Yes (ticked: "' + offersWording() + '")' : "No") : undefined
       }, "booking", { ref: r, attempt: attempt }).then(function (res) {
         // The sheet may have issued a different reference (if this one was taken): show the one it saved.
         if (res && res.reference) r = res.reference;
@@ -1418,7 +1432,7 @@
       box.className = "field-error";
       box.id = id;
       box.setAttribute("aria-live", "polite");
-      var anchor = el.closest(".select-wrap, .pc-row") || el;
+      var anchor = el.closest(".select-wrap, .pc-row, .check") || el;
       anchor.insertAdjacentElement("afterend", box);
     }
     box.textContent = msg || "";

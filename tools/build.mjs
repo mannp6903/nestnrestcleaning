@@ -1291,7 +1291,8 @@ urls.push(page({
             <div class="form-grid">
               <div class="field"><label for="f-name">Full name</label><input id="f-name" name="name" autocomplete="name" required></div>
               <div class="field"><label for="f-phone">Mobile</label><input id="f-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="e.g. 647 555 0123" required></div>
-              <div class="field span-2"><label for="f-email">Email <span class="opt">optional, if you'd like replies by email</span></label><input id="f-email" name="email" type="email" inputmode="email" autocomplete="email"></div>
+              <div class="field span-2"><label for="f-email">Email <span class="opt">optional, if you'd like replies by email</span></label><input id="f-email" name="email" type="email" inputmode="email" autocomplete="email"></div>${NEWS ? `
+              <div class="field span-2"><label class="check"><input type="checkbox" id="f-offers" name="offers"> <span>Email me seasonal offers from Nest &amp; Rest. Unsubscribe any time.</span></label></div>` : ""}
               <div class="field span-2"><label for="f-address">Street address and unit</label><input id="f-address" name="address" autocomplete="street-address" required></div>
               <div class="field span-2"><span class="field-label" id="pref-label">Confirm by</span>
                 <div class="seg${B.whatsapp ? " seg-4" : ""}" role="radiogroup" aria-labelledby="pref-label">
@@ -2500,7 +2501,7 @@ legalPage({
       <div class="table-scroll"><table>
         <thead><tr><th scope="col">When</th><th scope="col">What we collect</th></tr></thead>
         <tbody>
-          <tr><td>You request a booking</td><td>Name, mobile number, email (optional), street address and postal code, home type and size, anything unusual about the home you tell us (such as a basement), extras, ${CAL ? "the time you pick on our calendar" : "preferred day and arrival window"}, how we get in (for example a lockbox or concierge) and building details you add (parking, service elevator, visitor registration), pets, product preference, notes, and how you'd like us to confirm.</td></tr>
+          <tr><td>You request a booking</td><td>Name, mobile number, email (optional), street address and postal code, home type and size, anything unusual about the home you tell us (such as a basement), extras, ${CAL ? "the time you pick on our calendar" : "preferred day and arrival window"}, how we get in (for example a lockbox or concierge) and building details you add (parking, service elevator, visitor registration), pets, product preference, notes, ${NEWS ? "whether you'd like offers emails, " : ""}and how you'd like us to confirm.</td></tr>
           <tr><td>You ask us to text you a price</td><td>Your mobile number and the price details you chose.</td></tr>
           <tr><td>You request a quote</td><td>Name, phone, email (optional), postal code, details about the space or property, and any notes you add.</td></tr>
           <tr><td>You request a gift card</td><td>Your name, phone and email, the gift amount, the recipient's name, and optionally their email, postal code and your message.</td></tr>
@@ -2530,7 +2531,8 @@ legalPage({
         ${SERVER_LI}${CAL ? CALENDAR.privacy + `
         ` : ""}${GA ? `<li><strong>Google Analytics</strong> (Google LLC) measures how visitors use this website: the pages viewed, how they arrived (for example from our flyer or business card), the type of device and an approximate location. It doesn't receive anything you type into our forms, and it stores data in the United States.</li>
         ` : ""}${WEBHOOK ? `<li><strong>n8n</strong>, our automation tool, on our own server, receives the website's forms, saves each request and forwards it to our Gmail inbox. If you give your email address, it sends you a receipt that only confirms your request arrived. ${esc(B.ownerFirstName)}'s own reply is what confirms a booking.</li>` : SHEET ? `<li><strong>Google Sheets and Gmail</strong> (Google) store and deliver the website's forms: each request is saved to our Google Sheet and emailed to our Gmail inbox. If you give your email address, you get an automatic receipt that only confirms your request arrived. ${esc(B.ownerFirstName)}'s own reply is what confirms a booking.</li>` : `<li><strong>FormSubmit</strong> (formsubmit.co) delivers the website's forms to our email inbox. If you give your email address, it may also send you an automatic acknowledgement. ${esc(B.ownerFirstName)}'s own reply is what confirms a booking.</li>`}
-        ${B.whatsapp ? `<li><strong>WhatsApp</strong> (WhatsApp LLC, part of Meta Platforms) delivers and stores messages if you choose to contact us on WhatsApp.</li>
+        ${NEWS ? `<li><strong>listmonk</strong>: if you tick the offers box, your name and email go to listmonk, our mailing list, on our own server. We send offers only after you confirm by email, and every email has an unsubscribe link.</li>
+        ` : ""}${B.whatsapp ? `<li><strong>WhatsApp</strong> (WhatsApp LLC, part of Meta Platforms) delivers and stores messages if you choose to contact us on WhatsApp.</li>
         ` : ""}<li><strong>Your bank or card payment provider</strong> processes payments you make by Interac e-Transfer or card.</li>
       </ul>
       <p>We may also disclose information if the law requires it, for example in response to a valid court order.</p>` },
