@@ -262,7 +262,8 @@ const ICONS = `
 <symbol id="i-play" viewBox="0 0 24 24"><path d="M8.5 5.8v12.4a.8.8 0 0 0 1.2.7l9.6-6.2a.8.8 0 0 0 0-1.4L9.7 5.1a.8.8 0 0 0-1.2.7Z" fill="currentColor"/></symbol>
 <symbol id="i-camera" viewBox="0 0 24 24"><path d="M4 8h3.5l1.8-2.5h5.4L16.5 8H20v11H4Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><circle cx="12" cy="13.2" r="3.4" fill="none" stroke="currentColor" stroke-width="1.7"/></symbol>
 <symbol id="i-chev" viewBox="0 0 24 24"><path d="m7 9.5 5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
-</defs></svg>`;
+${CHAT ? `<symbol id="i-chat" viewBox="0 0 24 24"><path d="M6 4.5h12a2.5 2.5 0 0 1 2.5 2.5v7.5a2.5 2.5 0 0 1-2.5 2.5h-6.5l-4.5 3.5V17H6a2.5 2.5 0 0 1-2.5-2.5V7A2.5 2.5 0 0 1 6 4.5Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M8.5 10.75h.01M12 10.75h.01M15.5 10.75h.01" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+` : ""}</defs></svg>`;
 const ic = (id, cls = "ic") => `<svg class="${cls}" aria-hidden="true"><use href="#${id}"/></svg>`;
 const SVC_ICON = { regular: "i-sparkle", deep: "i-layers", move: "i-box", detail: "i-drop", residence: "i-gem", office: "i-building", airbnb: "i-key" };
 
@@ -432,13 +433,15 @@ function footer(L) {
 
 // Phones get Call and Text; large screens, where sms: links do nothing, get Email instead. WhatsApp works on both.
 // While the phone number is private, everyone gets Email.
+// With chat on, a Chat button joins them: js/site.js shows it on phones once the chat has loaded (Chatwoot's own bubble is hidden there).
 function actionBar(L) {
   return `<nav class="action-bar" aria-label="Quick contact" data-action-bar>
   ${PHONE ? `<a class="ab-link ab-phone" data-tel href="tel:${B.phone}" data-track="call_click">${ic("i-phone")}<span>Call</span></a>
   <a class="ab-link ab-phone" data-sms href="sms:${B.phone}" data-track="text_click">${ic("i-sms")}<span>Text</span></a>` : ""}
   ${B.whatsapp ? `<a class="ab-link ab-wa" data-wa href="${esc(waLink(WA_HELLO))}" target="_blank" rel="noopener" data-track="whatsapp_click">${ic("i-wa")}<span>WhatsApp</span></a>` : ""}
   <a class="ab-link${PHONE ? " ab-desk" : ""}" data-mailto href="mailto:${B.email}" data-track="email_click">${ic("i-mail")}<span>Email</span></a>
-  <a class="btn btn-primary ab-book" href="${L("book/")}" data-track="book_click"><span class="ab-long">${ACT.book}</span><span class="ab-short">${ACT.short}</span></a>
+  ${CHAT ? `<button type="button" class="ab-link ab-chat" data-chat-open hidden>${ic("i-chat")}<span>Chat</span></button>
+  ` : ""}<a class="btn btn-primary ab-book" href="${L("book/")}" data-track="book_click"><span class="ab-long">${ACT.book}</span><span class="ab-short">${ACT.short}</span></a>
 </nav>`;
 }
 
@@ -763,7 +766,7 @@ ${PREVIEW_DIR ? "<script>window.NR_CONFIG.preview = true;</script>" : ""}
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 ${headInner}
 </head>
-<body data-page="${pageType}" data-root="${depth ? "../".repeat(depth) : "./"}">
+<body data-page="${pageType}" data-root="${depth ? "../".repeat(depth) : "./"}"${CHAT && pageType !== "book" && !PREVIEW_DIR ? " data-chat" : ""}>
 ${bodyInner}
 </body>
 </html>
@@ -2506,7 +2509,8 @@ legalPage({
           <tr><td>You request a quote</td><td>Name, phone, email (optional), postal code, details about the space or property, and any notes you add.</td></tr>
           <tr><td>You request a gift card</td><td>Your name, phone and email, the gift amount, the recipient's name, and optionally their email, postal code and your message.</td></tr>
           <tr><td>You leave a review</td><td>Rating, first name and last initial, neighbourhood (optional), the service, your review, and the phone or email you booked with so we can match it to your visit.</td></tr>
-          <tr><td>You call, text, WhatsApp or email us</td><td>Your number or address and what you tell us.</td></tr>
+          <tr><td>You call, text, WhatsApp or email us</td><td>Your number or address and what you tell us.</td></tr>${CHAT ? `
+          <tr><td>You chat with us</td><td>Your messages, and your name or email if you give them.</td></tr>` : ""}
           <tr><td>You ask about working with us</td><td>Your name, contact details and what you tell us about your experience.</td></tr>
           <tr><td>You pay</td><td>Payment records such as the amount, date and method. We do not store full card numbers.</td></tr>
           <tr><td>You visit the website</td><td>Technical information your browser sends, such as your IP address and browser type, which our website host receives to deliver the site.</td></tr>
@@ -2533,6 +2537,7 @@ legalPage({
         ` : ""}${GA ? `<li><strong>Google Analytics</strong> (Google LLC) measures how visitors use this website: the pages viewed, how they arrived (for example from our flyer or business card), the type of device and an approximate location. It doesn't receive anything you type into our forms, and it stores data in the United States.</li>
         ` : ""}${WEBHOOK ? `<li><strong>n8n</strong>, our automation tool, on our own server, receives the website's forms, saves each request and forwards it to our Gmail inbox. If you give your email address, it sends you a receipt that only confirms your request arrived. ${esc(B.ownerFirstName)}'s own reply is what confirms a booking.</li>` : SHEET ? `<li><strong>Google Sheets and Gmail</strong> (Google) store and deliver the website's forms: each request is saved to our Google Sheet and emailed to our Gmail inbox. If you give your email address, you get an automatic receipt that only confirms your request arrived. ${esc(B.ownerFirstName)}'s own reply is what confirms a booking.</li>` : `<li><strong>FormSubmit</strong> (formsubmit.co) delivers the website's forms to our email inbox. If you give your email address, it may also send you an automatic acknowledgement. ${esc(B.ownerFirstName)}'s own reply is what confirms a booking.</li>`}
         ${NEWS ? `<li><strong>listmonk</strong>: if you tick the offers box, your name and email go to listmonk, our mailing list, on our own server. We send offers only after you confirm by email, and every email has an unsubscribe link.</li>
+        ` : ""}${CHAT ? `<li><strong>Chatwoot</strong>: if you use the chat, your messages and anything you type in it go to Chatwoot, our chat tool, on our own server.</li>
         ` : ""}${B.whatsapp ? `<li><strong>WhatsApp</strong> (WhatsApp LLC, part of Meta Platforms) delivers and stores messages if you choose to contact us on WhatsApp.</li>
         ` : ""}<li><strong>Your bank or card payment provider</strong> processes payments you make by Interac e-Transfer or card.</li>
       </ul>
@@ -2551,7 +2556,8 @@ legalPage({
       <p>If a breach of our safeguards creates a real risk of significant harm to you, we will notify you and the Office of the Privacy Commissioner of Canada as the law requires.</p>` },
     { id: "access", h: "Door and lockbox codes", html: () => `<p>Codes and keys give access to your home, so we treat them with extra care. We don't ask for them on the website. We ask by text or phone only after your booking is confirmed, keep them separate from your name and address, never write them on keys, and delete them within ${P.accessCodeDeleteDays} days of your last scheduled visit. We recommend changing your code from time to time, and after you stop using our service.</p>` },
     { id: "cookies", h: "Cookies and your browser", html: () => `<p>We don't use advertising cookies or tracking pixels.${GA ? ` We use Google Analytics to understand how visitors use the site, and it sets its own cookies in your browser (their names start with "_ga"). We've turned off Google's advertising features for this site. To opt out, block cookies in your browser settings or install Google's opt-out add-on at <a href="https://tools.google.com/dlpage/gaoptout" rel="noopener" target="_blank">tools.google.com/dlpage/gaoptout</a>.` : ""} When you start a booking, your home choices (service, size, extras and plan) are saved in your browser for ${DRAFT_DAYS} days, so you can pick up where you left off or book again. Your personal details (name, contact details, address and notes) are kept only in the open browser tab, and are deleted from it once your request is sent. Nothing is sent to us until you submit the request. You can clear everything at any time with "Clear my details from this device" on the booking form or our <a href="${linker(1)("help/")}">help page</a>.</p>${CAL && CALENDAR.cookies ? `
-      ${CALENDAR.cookies}` : ""}
+      ${CALENDAR.cookies}` : ""}${CHAT ? `
+      <p>The chat sets cookies whose names start with "cw_" so your conversation carries across pages, kept for up to a year.</p>` : ""}
       <p>If we add ${GA ? "advertising tools" : "website analytics or advertising tools"} in future, we will update this policy first and explain how to opt out.</p>` },
     { id: "rights", h: "Your rights", html: () => `<p>You can ask to see the personal information we hold about you, ask how it has been used or shared, and ask us to correct it if it's wrong. Contact us at ${contactLine}. We'll respond within 30 days, and there's no charge.</p>` },
     { id: "children", h: "Children", html: () => `<p>Our services and website are for adults. We don't knowingly collect personal information from children.</p>` },

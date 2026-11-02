@@ -57,6 +57,8 @@ export async function newPage(browser, { width = 1280, height = 900, theme = "li
   page.hookRequests = [];
   page.eaMode = "ok";
   page.eaUrls = [];
+  page.chatMode = "ok";
+  page.chatRequests = [];
   page.errors = [];
   page.on("pageerror", (e) => page.errors.push(e.message));
   await page.route(/googletagmanager|google-analytics|cal\.com/, (r) => r.abort());
@@ -72,6 +74,7 @@ export async function newPage(browser, { width = 1280, height = 900, theme = "li
   await routeSheet(page);
   await routeWebhook(page);
   await routeEasyAppointments(page);
+  await routeChatwoot(page);
   return page;
 }
 export function mockDelivery(page, mode) { page.deliveryMode = mode; }
@@ -132,6 +135,15 @@ async function routeEasyAppointments(page) {
     page.eaUrls.push(r.request().url());
     if (page.eaMode === "hang") return;
     return r.fulfill({ status: 200, contentType: "text/html; charset=utf-8", body: "<!doctype html><title>Booking calendar</title><p>Pick a time.</p>" });
+  });
+}
+// The Chatwoot chat script (chat.example.test/packs/js/sdk.js), answered locally. page.chatRequests collects every address asked for.
+// Modes: ok (a stand-in SDK that records the page's readyState when it ran, the options run() got and every toggle() call) and fail (the request is dropped).
+async function routeChatwoot(page) {
+  await page.route(/chat\.example\.test\/packs\/js\/sdk\.js/, async (r) => {
+    page.chatRequests.push(r.request().url());
+    if (page.chatMode === "fail") return r.abort();
+    return r.fulfill({ status: 200, contentType: "text/javascript", body: 'window.__cwReady = document.readyState; window.chatwootSDK = { run: function (o) { window.__cwRun = o; window.$chatwoot = { toggle: function (s) { window.__cwToggle = s; } }; } };' });
   });
 }
 // Serves js/config.js with extra lines appended, e.g. to switch the provider or the founding offer for one test.

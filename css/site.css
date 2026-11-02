@@ -629,6 +629,9 @@ a.svc-card:hover .svc-arrow { transform: translateX(4px); }
 .ab-link { display: grid; justify-items: center; gap: 2px; min-width: 52px; padding: 4px 2px; text-decoration: none; font-size: var(--fs-tag); font-weight: 700; letter-spacing: 0.02em; }
 .ab-link .ic { width: 22px; height: 22px; }
 .ab-wa .ic { color: var(--wa); }
+.ab-chat { border: 0; background: none; cursor: pointer; }
+/* Call, Text, WhatsApp and Chat together leave Book no room for its long label on a phone, so it says the short one. */
+@media (max-width: 26.1875em) { .action-bar:has(.ab-phone):has(.ab-wa):has(.ab-chat:not([hidden])) .ab-long { display: none; } .action-bar:has(.ab-phone):has(.ab-wa):has(.ab-chat:not([hidden])) .ab-short { display: inline; } }
 .ab-desk { display: none; }
 .ab-book { flex: 1; min-height: 52px; padding-inline: 12px; margin-left: 6px; white-space: nowrap; }
 .ab-short { display: none; }

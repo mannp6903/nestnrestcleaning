@@ -80,6 +80,9 @@ const reviewRow = (p, label) => p.$$eval("[data-review] dl > div", (ds, label) =
   return d ? d.querySelector("dd").textContent : null;
 }, label);
 
+// Chatwoot chat on chat.example.test (its script is answered locally by lib.mjs).
+const CHAT_CFG = SERVER + 'window.NR_CONFIG.chat = { baseUrl: "https://chat.example.test", websiteToken: "tok123" };';
+
 export default async function () {
   test("a patched build carries the patch into its pages and its config", async () => {
     const b = await buildWith('window.NR_CONFIG.business.hours = "Every day, 8am to 8pm";');
@@ -295,6 +298,57 @@ export default async function () {
     assert(!("Offers emails" in p.posts.at(-1)), "no Offers emails key: " + Object.keys(p.posts.at(-1)).join(", "));
     const priv = fs.readFileSync(path.join(ROOT, "privacy/index.html"), "utf8");
     assert(!/Offers mailing list|seasonal offers|offers emails|listmonk/i.test(priv), "the privacy policy mentions offers emails with the box off");
+  });
+
+  test("chat loads after the page, never on booking; phones get the bar button", async ({ browser }) => {
+    const b = await buildWith(CHAT_CFG);
+    try {
+      const ph = await newPage(browser, { width: 390, height: 844, isMobile: true }); await ph.goto(b.url + "/");
+      await ph.waitForSelector("[data-chat-open]:not([hidden])", { timeout: 8000 });
+      const st = await ph.evaluate(() => ({ ready: window.__cwReady, hide: window.chatwootSettings.hideMessageBubble, run: window.__cwRun }));
+      assert(st.ready === "complete" && st.hide === true && st.run.websiteToken === "tok123" && st.run.baseUrl === "https://chat.example.test", JSON.stringify(st));
+      await ph.click("[data-chat-open]"); assert(await ph.evaluate(() => window.__cwToggle) === "open", "opens");
+      const pc = await newPage(browser); await pc.goto(b.url + "/"); await pc.waitForFunction(() => window.__cwRun, null, { timeout: 8000 });
+      assert(await pc.evaluate(() => window.chatwootSettings.hideMessageBubble) === false, "computers keep the bubble");
+      const bk = await newPage(browser); await bk.goto(b.url + "/book/"); await bk.waitForTimeout(4500);
+      assert(bk.chatRequests.length === 0, "nothing on /book/");
+    } finally { await b.close(); }
+  });
+
+  test("no chat button when the widget fails", async ({ browser }) => {
+    const b = await buildWith(CHAT_CFG);
+    try {
+      const p = await newPage(browser, { width: 390, height: 844, isMobile: true }); p.chatMode = "fail"; await p.goto(b.url + "/"); await p.waitForTimeout(4500);
+      assert(p.chatRequests.length === 1 && await p.isHidden("[data-chat-open]"), "stays hidden");
+    } finally { await b.close(); }
+  });
+
+  test("the Chat button leaves room for Call, Text and WhatsApp on a phone", async ({ browser }) => {
+    const b = await buildWith(CHAT_CFG + 'window.NR_CONFIG.business.phone = "+14165550100"; window.NR_CONFIG.business.phoneDisplay = "416 555 0100"; window.NR_CONFIG.business.whatsapp = "14165550100";');
+    try {
+      for (const w of [390, 360]) {
+        const p = await newPage(browser, { width: w, height: 800, isMobile: true }); await p.goto(b.url + "/"); await p.waitForSelector("[data-chat-open]:not([hidden])", { timeout: 8000 });
+        const r = await p.$$eval("[data-action-bar] > *", (els) => els.filter((e) => getComputedStyle(e).display !== "none").map((e) => { const s = e.classList.contains("ab-book") ? e : e.querySelector("span"), q = s.getBoundingClientRect(); return [q.left, q.right]; }));
+        assert(r.length === 5 && r.every((x, i) => i === 0 || x[0] >= r[i - 1][1]), w + "px: the bar's labels run into each other " + JSON.stringify(r));
+        assert(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth), w + "px: the page scrolls sideways");
+      }
+    } finally { await b.close(); }
+  });
+
+  test("chat in the privacy policy", async () => {
+    const b = await buildWith(CHAT_CFG);
+    try {
+      const read = (f) => fs.readFileSync(path.join(b.dir, f), "utf8");
+      const priv = read("privacy/index.html");
+      assert(priv.includes("<tr><td>You chat with us</td><td>Your messages, and your name or email if you give them.</td></tr>"), "collect row");
+      assert(priv.includes("<li><strong>Chatwoot</strong>: if you use the chat, your messages and anything you type in it go to Chatwoot, our chat tool, on our own server.</li>"), "sharing bullet");
+      assert(priv.includes('<p>The chat sets cookies whose names start with "cw_" so your conversation carries across pages, kept for up to a year.</p>'), "cookie sentence");
+      assert(priv.includes("<strong>TestHost</strong> hosts our own server in Toronto, Canada"), "server line");
+      assert(priv.indexOf("You chat with us") > priv.indexOf("You call, text, WhatsApp or email us") && priv.indexOf("You chat with us") < priv.indexOf("You ask about working with us"), "row sits after the call row");
+      assert(/<body data-page="home"[^>]* data-chat>/.test(read("index.html")) && /<body data-page="legal"[^>]* data-chat>/.test(priv), "pages carry the marker");
+      assert(!read("book/index.html").includes("data-chat"), "booking page has no marker and no Chat button");
+      assert(read("index.html").includes('<button type="button" class="ab-link ab-chat" data-chat-open hidden>') && read("index.html").includes('id="i-chat"'), "bar button and icon");
+    } finally { await b.close(); }
   });
 
   test("today's settings switch nothing on", async ({ browser, url }) => {

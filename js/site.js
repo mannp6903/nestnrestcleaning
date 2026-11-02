@@ -2040,6 +2040,37 @@
     });
   }
 
+  /* ---------- Chat: Chatwoot, loaded once the page has loaded and is idle ---------- */
+  // Off in the preview and on the booking page (the build puts data-chat on every other page only when chat.baseUrl and chat.websiteToken are set).
+  // Computers keep Chatwoot's own bubble. Where the bottom bar shows (phones) the bubble is hidden and the bar's Chat button opens the chat instead.
+  function initChat() {
+    var cfg = C.chat || {};
+    var base = String(cfg.baseUrl || "").trim().replace(/\/+$/, ""), token = String(cfg.websiteToken || "").trim();
+    if (PREVIEW || !document.body.hasAttribute("data-chat") || !base || !token) return;
+    var btn = $("[data-chat-open]");
+    if (btn) btn.addEventListener("click", function () { if (window.$chatwoot) window.$chatwoot.toggle("open"); });
+    function start() {
+      var bar = $("[data-action-bar]");
+      var barShown = !!bar && getComputedStyle(bar).display !== "none";
+      window.chatwootSettings = { hideMessageBubble: barShown, position: "right", locale: "en" };
+      var s = document.createElement("script");
+      s.async = true;
+      s.src = base + "/packs/js/sdk.js";
+      s.onload = function () {
+        if (!window.chatwootSDK) return;
+        window.chatwootSDK.run({ websiteToken: token, baseUrl: base });
+        if (barShown && btn) btn.hidden = false;
+      };
+      document.head.appendChild(s);
+    }
+    function whenIdle() {
+      if (window.requestIdleCallback) window.requestIdleCallback(start, { timeout: 3000 });
+      else setTimeout(start, 3000);
+    }
+    if (document.readyState === "complete") whenIdle();
+    else window.addEventListener("load", whenIdle);
+  }
+
   initAnalytics();
   fillCommon();
   renderReviews();
@@ -2047,6 +2078,7 @@
   bindPricer();
   bindPriceTabs();
   bindBooking();
+  initChat();
   bindQuote();
   bindChange();
   bindReview();
