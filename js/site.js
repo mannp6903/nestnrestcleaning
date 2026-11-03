@@ -1481,7 +1481,7 @@
   }
   // One request, as a record, to the Google Sheet script (tools/sheet/Code.gs) or to the n8n webhook. Both answer { ok: true, reference }.
   // The sheet gets a plain-text body, which keeps this a "simple" request: the browser sends it without the preflight Google's script can't answer.
-  // n8n answers the preflight, so it gets JSON headers, plus the receipt email for the customer when there is one.
+  // n8n answers the preflight, so it gets JSON headers. No receipt text goes with it: the workflow writes its own fixed wording, so the website's forms can't be used to send someone's own words from Mann's Gmail.
   // Saved only when the reply says ok and gives a reference.
   function sendRecord(data, form, ids, kind) {
     var fields = {}, hook = kind === "webhook";
@@ -1489,7 +1489,6 @@
       if (k[0] !== "_" && k !== "email" && k !== "Reference" && k !== "Status" && data[k] !== undefined) fields[k] = data[k];
     });
     var payload = { form: form, reference: ids.ref, attempt: ids.attempt, honey: data._honey || "", email: data._replyto || "", fields: fields };
-    if (hook && data._autoresponse) payload.receipt = data._autoresponse;
     var headers = hook ? { "Content-Type": "application/json", Accept: "application/json" } : { "Content-Type": "text/plain;charset=utf-8" };
     return fetch(C.delivery.endpoint, { method: "POST", headers: headers, body: JSON.stringify(payload) }).then(function (r) {
       return r.text().then(function (t) {

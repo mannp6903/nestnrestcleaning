@@ -51,7 +51,8 @@ const STOPS = [
   [SERVER + 'window.NR_CONFIG.delivery = { provider: "webhook", endpoint: "http://n8n.example.test/webhook/forms" };', "delivery.endpoint in js/config.js must start with https://"],
   [SERVER + 'window.NR_CONFIG.chat = { baseUrl: "https://chat.example.test", websiteToken: "" };', "Fill in both chat.baseUrl and chat.websiteToken"],
   [SERVER + 'window.NR_CONFIG.newsletter = { optIn: true };', "newsletter.optIn needs business.mailingAddress"],
-  ['window.NR_CONFIG.delivery = { provider: "webhook", endpoint: "https://n8n.example.test/webhook/forms" };', "Fill in server.name and server.location"]
+  ['window.NR_CONFIG.delivery = { provider: "webhook", endpoint: "https://n8n.example.test/webhook/forms" };', "Fill in server.name and server.location"],
+  ['window.NR_CONFIG.delivery = { provider: "n8n", endpoint: "https://n8n.example.test/webhook/forms" };', 'delivery.provider in js/config.js must be "formsubmit", "sheet", "webhook" or "none".']
 ];
 
 // Easy!Appointments as the live calendar (book.example.test is answered locally by lib.mjs).
@@ -104,14 +105,14 @@ export default async function () {
     assert(buildError(SERVER) === "", "a server alone builds");
   });
 
-  test("n8n gets JSON with the receipt and its reference is shown", async ({ browser, url }) => {
+  test("n8n gets JSON and its reference is shown", async ({ browser, url }) => {
     const p = await newPage(browser); await withConfig(p, HOOK); p.hookMode = "clash";
     await toDetails(p, url); await fillDetails(p); await p.fill("#f-email", "p@example.com");
     await p.click("[data-submit]"); await p.waitForSelector("[data-done]:not([hidden])");
     const req = p.hookRequests.find((r) => r.method === "POST"), body = p.hookPosts.at(-1);
     assert(req.headers["content-type"] === "application/json", "json");
     assert(body.form === "booking" && /^NR-[A-Z0-9]{4}$/.test(body.reference) && body.email === "p@example.com", "payload");
-    assert(/Nest & Rest Cleaning/.test(body.receipt) && !Object.keys(body.fields).some((k) => k[0] === "_"), "receipt, no _ fields");
+    assert(!("receipt" in body) && !Object.keys(body.fields).some((k) => k[0] === "_"), "no receipt text, no _ fields");
     assert((await p.textContent("[data-ref]")).trim() === "NR-ZZ99", "returned reference shown");
   });
 
@@ -232,6 +233,7 @@ export default async function () {
       const read = (f) => fs.readFileSync(path.join(b.dir, f), "utf8");
       assert(read("book/index.html").includes("which may store data outside Canada, and the time you pick is booked on our own booking calendar (Easy!Appointments, on our server in Toronto, Canada)."), "booking note");
       assert(read("privacy/index.html").includes("<strong>Easy!Appointments</strong>, our booking calendar") && read("policies/index.html").includes("our booking calendar emails you a confirmation with a link to reschedule or cancel"), "privacy and policies");
+      assert(read("privacy/index.html").includes("sets two cookies of its own (ea_session, kept for up to a week, and csrf_cookie)"), "calendar cookies");
       for (const f of ["book/index.html", "privacy/index.html", "policies/index.html", "help/index.html", "index.html"]) assert(!read(f).includes("Cal.com"), f + " names Cal.com");
     } finally { await b.close(); }
   });
@@ -341,7 +343,7 @@ export default async function () {
       const read = (f) => fs.readFileSync(path.join(b.dir, f), "utf8");
       const priv = read("privacy/index.html");
       assert(priv.includes("<tr><td>You chat with us</td><td>Your messages, and your name or email if you give them.</td></tr>"), "collect row");
-      assert(priv.includes("<li><strong>Chatwoot</strong>: if you use the chat, your messages and anything you type in it go to Chatwoot, our chat tool, on our own server.</li>"), "sharing bullet");
+      assert(priv.includes("<li><strong>Chatwoot</strong>: if you use the chat, your messages and anything you type in it go to Chatwoot, our chat tool, on our own server. When a page with the chat opens, Chatwoot also receives the technical details your browser sends, such as your IP address, and keeps an anonymous visitor record.</li>"), "sharing bullet");
       assert(priv.includes('<p>The chat sets cookies whose names start with "cw_" so your conversation carries across pages, kept for up to a year.</p>'), "cookie sentence");
       assert(priv.includes("<strong>TestHost</strong> hosts our own server in Toronto, Canada"), "server line");
       assert(priv.indexOf("You chat with us") > priv.indexOf("You call, text, WhatsApp or email us") && priv.indexOf("You chat with us") < priv.indexOf("You ask about working with us"), "row sits after the call row");

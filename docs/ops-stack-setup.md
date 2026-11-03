@@ -21,8 +21,9 @@ Nothing on the live website changes until section 8. Today the new settings (`se
 - **n8n's "Website forms" recipe (section 5, Recipe 1) is the heart of it.** On its own it gives you a saved record of every request that doesn't depend on email. It needs only the server, n8n and your Gmail login. You can switch it on (section 8, `server` then `delivery`) before anything else is set up.
 - **Easy!Appointments (2), chat (6) and offers emails (7) can follow in any order,** each with its own switch-on step in section 8.
 - **Where one part needs another:**
-  - Recipe 1's Invoice Ninja step (step 8) needs section 3's API token. Skip it for now and come back to it after section 3.
-  - Recipe 1's listmonk step (step 9) needs section 7's list ID and API user. Skip it for now and come back to it after section 7.
+  - Recipe 1's Invoice Ninja step (step 9) needs section 3's API token. Skip it for now and come back to it after section 3.
+  - Recipe 1's listmonk step (step 10) needs section 7's list ID and API user. Skip it for now and come back to it after section 7.
+  - **The offers box on the booking form reaches listmonk only through that listmonk step.** It works only when `delivery` is `"webhook"` (n8n) and Recipe 1's listmonk step is built. With any other delivery, the box would collect a tick that goes nowhere. The manual alternative is in section 7, step 8.
   - Section 2's webhook step (step 10) needs the address from section 5, Recipe 2. Leave it until you reach that recipe.
   - Recipes 2, 3 and 4 send texts, so do section 4 (SMS Gateway) before them.
 - **A suggested starting point:** section 1, then install n8n and build Recipe 1 without its Invoice Ninja and listmonk steps, then switch on `server` and `delivery` in section 8. After that, take the other tools one at a time, finishing each tool's section and its switch-on step before you start the next.
@@ -78,6 +79,7 @@ Easy!Appointments is the self-hosted alternative to Cal.com. Cal.com's own code 
 2. **Let it show inside your website.** The web server in front of Easy!Appointments must not send an `X-Frame-Options: DENY` or `X-Frame-Options: SAMEORIGIN` header, and must not send a `Content-Security-Policy` with a `frame-ancestors` that leaves out `https://nestnrestcleaning.com`. If the calendar doesn't appear inside the booking page later, check this first. A refused frame can still count as loaded, so the site's 10-second "open it in a new tab" message may not appear.
 3. **Set up your business.** Sign in as the admin and open **Settings**.
    - **General Settings:** fill in Company Name, Company Email and Company Link (`https://nestnrestcleaning.com`). Set Default Timezone to Toronto.
+     - Leave the **Google Analytics Code** and **Matomo Analytics URL** boxes empty. If either is filled in, the calendar's web address, which carries the customer's name, email, phone and address while it is pre-filled, would be sent to that analytics service.
    - **Business Logic:**
      - The working plan is the default for every provider. Set every day, 9am to 11pm, to match `opens`, `closes` and `openDays` in `js/config.js`.
      - Under "Allow Rescheduling/Cancellation Before", set Timeout (Minutes) to 1440, which is 24 hours. Easy!Appointments describes it as the time before which customers can book or re-arrange appointments. It matches your 24 hours' notice for free changes and is close to `booking.leadDays` (1 day). If you change `leadDays`, change this to match.
@@ -85,7 +87,7 @@ Easy!Appointments is the self-hosted alternative to Cal.com. Cal.com's own code 
    - **Booking Settings:** show the first name, last name, email, phone number, address and zip code fields, because the website fills these in. Turn on Customer Notifications. Easy!Appointments describes it as emailing the customer when their appointment's schedule changes.
    - **Legal Contents:** leave Data Retention Days at 0 (no automatic deletion) unless you've decided otherwise. The privacy policy says booking records are kept while someone is a client, then for as long as tax law requires.
 4. **Make one service for each clean length.** Open **Services** and add services such as "Home clean, up to 3 hours", "up to 5 hours" and "up to 8 hours".
-   - Set each one's **Duration (Minutes)** to match its length, and don't enter a price that could differ from your website's estimate.
+   - Set each one's **Duration (Minutes)** to the length of the clean plus 30 to 60 minutes for getting to the next home. Easy!Appointments books back to back otherwise, and you would have no time to travel. For example, a 3 hour clean becomes 210 minutes (3 hours 30 minutes). Don't enter a price that could differ from your website's estimate.
    - The website picks the first service whose `upToHours` is at least the estimate's hours.
    - Set the **last** service's length to the longest clean that fits your working day (9am to 11pm is 14 hours, so no more than that). Any estimate longer than that is automatically sent to you as a request, with no calendar. The customer sees "Request received" and you arrange the time yourself.
    - The lengths 3, 5 and 8 hours are examples only. Use the lengths you want.
@@ -99,6 +101,7 @@ Easy!Appointments is the self-hosted alternative to Cal.com. Cal.com's own code 
 8. **Set up outgoing email**, so customers get their confirmation with the link to reschedule or cancel.
    - Easy!Appointments sends email using the file `application/config/email.php` on the server. By default it uses the server's own mail. The file has commented-out lines for an SMTP login (host, user, password, security and port) and for the From name and address. Fill them in using the details your email provider gives you for sending mail.
    - Set the From name to Nest & Rest Cleaning.
+   - **Put your business details in the calendar's emails: ask Claude for help with this.** The confirmation and reminder emails are template files on the server, not screens in Easy!Appointments' admin. Ask Claude to add to each one your business name, Mann Patel, your mailing address (the same one as `business.mailingAddress`), your contact details, a line saying how to stop getting emails from you, and a link to your terms (`https://nestnrestcleaning.com/policies/`). The steps depend on how you installed Easy!Appointments. Do this before you switch the calendar on.
    - Step 9 tests it. Check your spam folder too.
 9. **Test it.** Book a time yourself on `https://book.nestnrestcleaning.com`, using your own email.
    - Check the booking appears in your Google Calendar and the confirmation email arrives.
@@ -164,34 +167,53 @@ What arrives in the Webhook box (in the box's data, as `body`):
 | Field | What it is |
 |---|---|
 | `form` | `booking`, `quote`, `gift`, `review`, `pricetext` or `change` |
-| `reference` | The request's reference, such as NR-XXXX |
+| `reference` | The reference the website suggests, such as NR-XXXX or GIFT-XXXX |
 | `attempt` | An id for this submission. A retry reuses it and `reference` |
 | `honey` | A hidden spam trap. Real people leave it empty |
 | `email` | The customer's email, or empty |
 | `fields` | The labelled answers (`Name`, `Phone`, `Address`, `Postal code`, `Service` and so on) |
-| `receipt` | The customer's receipt email text, only when they gave an email |
 
 When the offers box is on, `fields` also has `Offers emails`. Its value is `Yes (ticked: "...")` or `No`.
 
+**Why the first box after the Webhook is a strict check.** The Production URL is public, so anyone on the internet can send anything to it, not only your website. The recipe therefore treats everything in the request as untrusted, and the email to the customer never uses any of its text. This matches what the Google Sheet script (`tools/sheet/Code.gs`) does.
+
 Build it in this order. The first box is called **Webhook**, which is n8n's own name for it. If you rename it, use the new name wherever `Webhook` appears in an expression below.
 
-**One rule for every box after the Webhook box.** From step 3 on, the data passing along the workflow is a saved row or the result of the box before it, not the request. So every box from step 3 on takes its values (`reference`, `attempt`, `email`, `fields`, `receipt` and `Offers emails`) from the Webhook box. Drag each value in from the Webhook box's output and n8n writes the expression for you, which looks like `{{ $('Webhook').item.json.body.reference }}`. Don't type `{{ $json.body.reference }}` into a box that comes after the save step: it would read the wrong data.
+**One rule for every box after the Webhook box.** From step 3 on, the data passing along the workflow is a saved row or the result of the box before it, not the request. So every box from step 3 on takes its values (`form`, `attempt`, `email`, `fields` and `Offers emails`) from the Webhook box. Drag each value in from the Webhook box's output and n8n writes the expression for you, which looks like `{{ $('Webhook').item.json.body.form }}`. Don't type `{{ $json.body.form }}` into a box that comes after the save step: it would read the wrong data. There are two exceptions. The reply to a repeat (step 3) uses the saved row's reference. And from step 4 on, the `reference` comes from the **Reference** box (written `{{ $('Reference').item.json.reference }}`), never straight from the Webhook box, because step 4 may change it.
 
 1. **Webhook.** Set HTTP Method to POST and Path to `forms`. Under Respond, choose "Using 'Respond to Webhook' Node". The Production URL ends in `/webhook/forms`, and it is the value for `delivery.endpoint`. n8n's webhooks answer the browser's preflight check themselves, so you add nothing for it.
-2. **If `honey` is not empty,** it's a bot. Reply with the same body as in step 5 so the bot sees "success", then stop. Save and send nothing.
-3. **Data table, Row, Get** (a data table is n8n's built-in saved table). Make a table named `requests` with columns `attempt`, `reference`, `form`, `email`, `details` and `received`, then look for a row whose `attempt` is this request's `attempt` (from the Webhook box). In the box's Settings, switch on "Always Output Data", so the workflow carries on when no row is found. Follow it with an **If** box that checks whether a row came back.
-   - If a row came back, this is a repeat. The same request arrives more than once when a customer retries. Add a **Respond to Webhook** box on this branch with the body `{ "ok": true, "reference": "{{ $json.reference }}" }`, where `reference` is the saved row's reference, and stop. A repeat gets the reference saved for that attempt.
+2. **Check the request, before anything else.** Add **If** boxes (or one **If** box with every condition joined by AND) that must all pass. Take the values from the Webhook box:
+   - `form` is exactly one of `booking`, `quote`, `gift`, `review`, `pricetext` or `change`.
+   - `reference` matches the pattern `^(NR|GIFT)-[A-Z0-9]{4}$` (use the "matches regex" test).
+   - `attempt` matches `^[A-Za-z0-9]{16,40}$`.
+   - `honey` is empty. A filled-in `honey` is a bot.
+   - The request is a sensible size: the expression `{{ JSON.stringify($('Webhook').item.json.body).length }}` is less than 20000.
+
+   If any of them fails, add a **Respond to Webhook** box on the "false" branch with the body `{ "ok": false }`, and stop. Save and send nothing. This is the same check the Google Sheet script makes.
+3. **Is this a repeat?** Use **Data table, Row, Get** (a data table is n8n's built-in saved table). Make a table named `requests` with columns `attempt`, `reference`, `form`, `email`, `details` and `received`, then look for a row whose `attempt` is this request's `attempt`. In the box's Settings, switch on "Always Output Data", so the workflow carries on when no row is found. Follow it with an **If** box that checks whether a row came back.
+   - If a row came back, this is a repeat. The same request arrives more than once when a customer retries. Add a **Respond to Webhook** box on this branch with the body `{ "ok": true, "reference": "{{ $json.reference }}" }`, where `reference` is the saved row's reference, and stop. A repeat gets the reference saved for that attempt. Send no emails for a repeat.
    - If no row came back, carry on.
-4. **Data table, Row, Insert.** Save `attempt`, `reference`, `form`, `email`, the whole `fields` as text, and the date, all taken from the Webhook box. This is the saved record, and from here on the request is safe.
-5. **Respond to Webhook.** Respond With JSON, and the body:
-   `{ "ok": true, "reference": "{{ $('Webhook').item.json.body.reference }}" }`
-   - Match `Webhook` to your first box's actual name.
+4. **Is the reference already taken?** Two different customers can get the same suggested reference. Add **Data table, Row, Get** on `requests`, looking for a row whose `reference` is the Webhook box's `reference`, again with "Always Output Data" on. Follow it with an **Edit Fields (Set)** box named **Reference** that sets one field, `reference`, to this expression:
+
+   `{{ $json.reference ? $('Webhook').item.json.body.reference.split('-')[0] + '-' + Array.from({ length: 4 }, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random() * 32)]).join('') : $('Webhook').item.json.body.reference }}`
+
+   In words: if a row came back (the reference belongs to another request), make a new reference with the same start (`NR` or `GIFT`) and four fresh characters. Otherwise keep the reference the website sent. The site shows whatever reference n8n sends back. From here on, use the **Reference** box's `reference`.
+5. **Data table, Row, Insert.** Save `attempt`, `reference` (from the Reference box), `form`, `email`, the whole `fields` as text, and the date, all taken from the Webhook box except the reference. This is the saved record, and from here on the request is safe.
+6. **Respond to Webhook.** Respond With JSON, and the body:
+   `{ "ok": true, "reference": "{{ $('Reference').item.json.reference }}" }`
+   - Match `Reference` to your box's actual name.
    - The site counts a form as sent only when it gets a success reply (HTTP 2xx) with `ok` true and a reference. Anything else (an empty reply, text that isn't JSON, `ok` not true, an error) makes the site show "we couldn't confirm", and the customer can try again.
-6. **Gmail, Send a message** to nestnrestcleaning@gmail.com. Take the form and reference from the Webhook box. Make the subject say the form and reference (for example "New booking NR-XXXX"), and list each label and answer from the Webhook box's `fields` on its own line, so it reads like the old emails.
-7. **If `receipt` is not empty and `email` is a real address,** use **Gmail, Send a message** to that address. Take `email` and `receipt` from the Webhook box. Subject: "We got your request (reference NR-XXXX)". The message is the `receipt` text, unchanged and as plain text. It already carries the CASL footer.
-   - Limit receipts the way the Google Sheet script does: at most one an hour to an address and 50 a day, using a second data table. This stops anyone using your server to flood an inbox.
-8. **Invoice Ninja, Client, Create** for bookings. Skip this step until you've done section 3, then come back to it. First use **Get Many** to look for the same email, and create the client only if there's none. The customer's email is the Webhook box's top-level `email`, not something inside `fields`. Take the name, phone and address from the Webhook box's `fields`.
-9. **If `Offers emails` starts with `Yes`,** add them to listmonk. Skip this step until you've done section 7, then come back to it. Use an **HTTP Request** box: POST to `https://mail.nestnrestcleaning.com/api/subscribers`, Basic auth with the listmonk credential, and this body:
+7. **Gmail, Send a message** to nestnrestcleaning@gmail.com. Take the form from the Webhook box and the reference from the Reference box. Make the subject say the form and reference (for example "New booking NR-XXXX"), and list each label and answer from the Webhook box's `fields` on its own line, so it reads like the old emails. This email goes only to you, so the customer's words are fine here.
+8. **The customer's receipt, in fixed wording.** Only `booking`, `quote` and `gift` get a receipt. This step must never put any text from the request into the customer's email, apart from the reference you just checked or made. Otherwise anyone could use your Gmail to send their own words to anyone.
+   1. **If** `form` is `booking`, `quote` or `gift`, and `email` looks like a real address: it matches `^[^\s@]{1,64}@[^\s@]{1,190}\.[^\s@]{2,}$`. Otherwise stop.
+   2. **Limit how many go out.** Make a second data table named `receipts` with columns `email` and `sent`.
+      - Add a **Data table, Row, Get** box named **Receipts to this address**: rows whose `email` equals the Webhook box's `email` in lower case (`{{ $('Webhook').item.json.body.email.toLowerCase() }}`), returning all matches, with "Always Output Data" on.
+      - Add another **Data table, Row, Get** box named **Receipts today**: rows whose `sent` is after `{{ $now.startOf('day').toISO() }}`, returning all matches, with "Always Output Data" on.
+      - Add an **If** box with two conditions, both true to carry on. The first is `{{ $('Receipts to this address').all().filter(i => i.json.sent && new Date(i.json.sent).getTime() > Date.now() - 3600000).length }}` is equal to 0 (no receipt to this address in the last hour). The second is `{{ $('Receipts today').all().filter(i => i.json.sent).length }}` is less than 50 (fewer than 50 receipts in total today). If either fails, stop. This is the same limit as the Google Sheet script (one an hour to an address, 50 a day), and it stops anyone using your server to flood an inbox.
+   3. **Gmail, Send a message** to the Webhook box's `email`, as plain text. The subject and the message are fixed, with only the reference filled in (from the Reference box). Copy the wording for each form from the `RECEIPTS` block in `tools/sheet/Code.gs`: one subject and one line for `booking`, `quote` and `gift`, each with `{ref}` where the reference goes. Use a separate **If** or **Switch** box on `form` to pick the right wording. After the line, add a footer that follows Canada's anti-spam law: Nest & Rest Cleaning, Mann Patel, your mailing address (the same one as `business.mailingAddress`) and how to reach you.
+   4. **Data table, Row, Insert** into `receipts`: `email` in lower case and `sent` as `{{ $now.toISO() }}`, so the next request sees it.
+9. **Invoice Ninja, Client, Create** for bookings. Skip this step until you've done section 3, then come back to it. First use **Get Many** to look for the same email, and create the client only if there's none. The customer's email is the Webhook box's top-level `email`, not something inside `fields`. Take the name, phone and address from the Webhook box's `fields`.
+10. **If `Offers emails` starts with `Yes`,** add them to listmonk. This is the only way the offers box on the website reaches listmonk. Skip this step until you've done section 7, then come back to it. Use an **HTTP Request** box: POST to `https://mail.nestnrestcleaning.com/api/subscribers`, Basic auth with the listmonk credential, and this body:
    `{ "email": "<the email>", "name": "<the name>", "status": "enabled", "lists": [LIST-ID], "preconfirm_subscriptions": false }`
    - Take the email from the Webhook box's top-level `email`, and the name from its `fields`. `Offers emails` is also in `fields`.
    - `lists` is the number of your double opt-in list (section 7).
@@ -208,10 +230,11 @@ This sends the confirmation text.
    - Leave the Secret Header as `X-EA-Token` and type your secret into Secret Token.
    - Turn on the **Appointment Save** and **Appointment Delete** switches, leave **Verify SSL** on, and save.
    - Easy!Appointments then sends a POST with a JSON body holding `action` and `payload`, with your secret in that header.
-3. **Send one test booking** and look at the run in n8n's Executions list. That shows you the fields the webhook really sends. Use the appointment's id to ask Easy!Appointments for the full record (next step), rather than relying on what the webhook includes.
-4. **HTTP Request** GET `https://book.nestnrestcleaning.com/index.php/api/v1/appointments/<id>` with the Bearer token. Each appointment has `start`, `end`, `serviceId`, `customerId` and more. Then GET `/customers/<customerId>` for the name and phone.
-5. **Send the text.** Make it from the README's "Confirming a booking" template (with its CASL wording), then POST it to SMS Gateway as in section 4. To turn "647 555 0123" into "+16475550123", use an expression like `{{ '+1' + $json.phone.replace(/\D/g, '').slice(-10) }}`, with the name of the phone field n8n shows for the customer.
-6. **Handle repeats.** The webhook fires on every save, including changes. If you only want a text for new bookings, keep a data table of appointment ids already texted and skip those.
+3. **Only act on new bookings.** The same webhook also fires when an appointment is deleted. Add an **If** box on the request's `action` (in the body, next to `payload`) that carries on only when the action is the save one. Look at the exact word in the test run in step 4 and compare with it. On the other branch, do nothing, or send yourself a note, so a cancellation never runs the "booked" text.
+4. **Send one test booking** and look at the run in n8n's Executions list. That shows you the fields the webhook really sends. Use the appointment's id to ask Easy!Appointments for the full record (next step), rather than relying on what the webhook includes.
+5. **HTTP Request** GET `https://book.nestnrestcleaning.com/index.php/api/v1/appointments/<id>` with the Bearer token. Each appointment has `start`, `end`, `serviceId`, `customerId` and more. Then GET `/customers/<customerId>` for the name and phone.
+6. **Send the text.** Make it from the README's "Confirming a booking" template (with its CASL wording), then POST it to SMS Gateway as in section 4. To turn "647 555 0123" into "+16475550123", use an expression like `{{ '+1' + $json.phone.replace(/\D/g, '').slice(-10) }}`, with the name of the phone field n8n shows for the customer.
+7. **Handle repeats.** The webhook fires on every save, including changes. If you only want a text for new bookings, keep a data table of appointment ids already texted and skip those.
 
 ### Recipe 3: Daily reminders for tomorrow's cleans
 
@@ -238,12 +261,17 @@ Chatwoot gives you website chat in one inbox, with a phone app. On the website, 
    - To check the address, open `https://chat.nestnrestcleaning.com/packs/js/sdk.js` in a browser. The website loads Chatwoot's chat script from there, so you should see script text, not an error.
 4. **Install the Chatwoot phone app** so you hear about new messages. Follow Chatwoot's help pages, linked from its README, for using the app with your own server.
 5. **WhatsApp is optional.** Chatwoot can also bring WhatsApp into the same inbox. The website doesn't need it. Follow Chatwoot's own WhatsApp instructions if you want it, and tell Claude, so the privacy policy can be checked.
-6. **Decide how long to keep chat conversations before you switch chat on.** The privacy policy has no line saying how long they are kept. Choose a period yourself, and ask Claude to add it to the policy. No period is chosen for you.
-7. **What the privacy policy will say about chat:** that messages go to Chatwoot on your own server, and that the chat sets cookies whose names start with `cw_`, kept for up to a year.
+6. **Keep Chatwoot's IP lookup off, and clear out old visitors.**
+   - Chatwoot has a feature called `ip_lookup` (listed in [config/features.yml](https://github.com/chatwoot/chatwoot/blob/develop/config/features.yml), off by default) that guesses a visitor's place from their IP address. Leave it off. The privacy policy doesn't say visitors' places are looked up.
+   - Chatwoot keeps an anonymous contact for every visitor who opens a page with the chat, even if they never type. Every month or so, open **Contacts** and delete old contacts that have no conversation and no name or email.
+7. **Decide how long to keep chat conversations before you switch chat on.** The privacy policy has no line saying how long they are kept. Choose a period yourself, and ask Claude to add it to the policy. No period is chosen for you.
+8. **What the privacy policy will say about chat:** that messages go to Chatwoot on your own server, that when a page with the chat opens Chatwoot also receives the technical details the browser sends (such as the IP address) and keeps an anonymous visitor record, and that the chat sets cookies whose names start with `cw_`, kept for up to a year.
 
 ## 7. listmonk
 
 listmonk sends seasonal offers, only to people who ticked an unticked box on the booking form and then confirmed by email.
+
+**How the box reaches listmonk.** The website never talks to listmonk. The tick travels with the booking request to n8n, and Recipe 1's listmonk step (step 10) adds the person to your list. So the offers box works only when `delivery` is `"webhook"` and that step is built. If you don't use the n8n webhook, leave the box off (`newsletter.optIn: false`), or see step 8 below for adding people yourself.
 
 1. **Install it** at `mail.nestnrestcleaning.com`. Follow its [install page](https://github.com/knadh/listmonk/blob/master/docs/docs/content/installation.md) and the project at [github.com/knadh/listmonk](https://github.com/knadh/listmonk). The Docker option uses the image `listmonk/listmonk:latest`, which listens on port 9000. On first visit, create the Super Admin user.
 2. **Fill in Settings.**
@@ -258,7 +286,9 @@ listmonk sends seasonal offers, only to people who ticked an unticked box on the
    - The email people get after ticking the box, asking them to confirm, is one of listmonk's "system templates". It is not edited in listmonk's admin screens. Its [System templates](https://github.com/knadh/listmonk/blob/master/docs/docs/content/templating.md#system-templates) section says you change it by copying listmonk's `static` folder and starting listmonk with the `--static-dir` flag. The email's file is `subscriber-optin.html`.
    - Until you do, listmonk uses its built-in wording. Don't switch the offers box on (section 8) until you've seen that email and it names Nest & Rest Cleaning and shows your mailing address, because every email must say who you are. Ask Claude to walk you through it, as the steps depend on how you installed listmonk.
 6. **Create an API user for n8n.** Open **Admin, Users** and add an API user, with a role (**Admin, User roles**) that lets it add subscribers. Copy the token into n8n's listmonk credential. n8n logs in with Basic auth as `api_user:token`. The API is described on listmonk's [subscribers page](https://github.com/knadh/listmonk/blob/master/docs/docs/content/apis/subscribers.md).
-7. **Keep to CASL.**
+7. **Preview the confirmation email.** Before you switch the offers box on, subscribe yourself: in listmonk open **Subscribers, New**, enter an email address you own, choose the "Seasonal offers" list and leave "Preconfirm subscriptions" unticked. listmonk then emails you the opt-in message, so you can read what customers will see (listmonk's [subscribers API page](https://github.com/knadh/listmonk/blob/master/docs/docs/content/apis/subscribers.md) says preconfirming skips the opt-in email). Check it names Nest & Rest Cleaning and shows your mailing address (step 5).
+8. **If you don't use the n8n webhook, add people yourself.** When someone ticks the offers box, the request still reaches you (by email or in your sheet) with `Offers emails: Yes`. Add each of them in listmonk by hand (**Subscribers, New**, the "Seasonal offers" list, "Preconfirm subscriptions" left unticked), and listmonk sends them the opt-in email. In listmonk's code, an opt-in email is sent whenever you don't preconfirm. If the screens differ on your version, ask Claude.
+9. **Keep to CASL.**
    - Send offers only to people who ticked the box and confirmed. Never import old customers.
    - Every offers email must say who you are, show your mailing address and have an unsubscribe link.
    - Stop emailing anyone who asks, within 10 business days, even if they ask by reply instead of the link.
@@ -315,16 +345,16 @@ newsletter: {
 - **`delivery`:** before you change it, copy the lines you have now (`provider: "formsubmit"` and its `endpoint`) somewhere, so you can go back. The endpoint is the Production URL from Recipe 1, and the "Website forms" workflow must be switched on first.
 - **`booking.easyAppointments`:** `calLink` must be `""`. `provider` is your provider ID in Easy!Appointments (see its [REST API page](https://github.com/alextselegidis/easyappointments/blob/main/docs/rest-api.md) and section 2, step 6). It is optional: leave it `""` and the calendar chooses. `services` has one entry per clean length, shortest first, each with that service's number. The last `upToHours` is the longest clean that fits your working day. A longer estimate is sent to you as a request, with no calendar, and you arrange the time yourself (section 2, step 4). The values in the example above, including the lengths 3, 5 and 8, are examples only.
 - **`chat`:** both values or neither. Decide how long chat conversations are kept first (section 6, step 6).
-- **`newsletter`:** also fill in `business.mailingAddress`, a PO box or mailbox service is fine. Check listmonk's confirmation email first (section 7, step 5).
+- **`newsletter`:** also fill in `business.mailingAddress`, a PO box or mailbox service is fine. Check listmonk's confirmation email first (section 7, steps 5 and 7). The box reaches listmonk only when `delivery` is `"webhook"` and Recipe 1's listmonk step (step 10) is built. Switch on `delivery` first. With any other delivery, leave `newsletter` off, or add people yourself (section 7, step 8).
 
-### Before the calendar: Google Analytics and the new-tab link
+### Before the calendar: analytics and the new-tab link
 
-Do this **before** you switch the calendar on. The calendar's "Open the calendar in a new tab" link carries the customer's name, email, phone and address, so the calendar can be pre-filled. If Google Analytics 4's Enhanced measurement has **Outbound clicks** switched on, a click on that link would send those details to Google. Open the Enhanced measurement settings of your web data stream in Google Analytics, and turn Outbound clicks off.
+Do this **before** you switch the calendar on. First, in Easy!Appointments leave **Google Analytics Code** and **Matomo Analytics URL** empty (section 2, step 3), so the calendar's own address, with the customer's details in it, never reaches an analytics service. The calendar's "Open the calendar in a new tab" link carries the customer's name, email, phone and address, so the calendar can be pre-filled. If Google Analytics 4's Enhanced measurement has **Outbound clicks** switched on, a click on that link would send those details to Google. Open the Enhanced measurement settings of your web data stream in Google Analytics, and turn Outbound clicks off.
 
 ### What to check after each piece
 
 - **After `delivery`:** the customer sees "Request received" with the same reference. A row appears in your `requests` data table. The request arrives in Gmail, and a receipt arrives at your own email.
-- **After the calendar:** the calendar appears inside the last step of booking, with your details filled in. Pick a time, check the confirmation email and your Google Calendar, check the text arrives, then cancel from the email. If no calendar appears, check section 2, step 2 first.
+- **After the calendar:** the calendar appears inside the last step of booking, with your details filled in. Pick a time, check the confirmation email and your Google Calendar, then cancel from the email. The confirmation text arrives only once Recipe 2 and section 4 (SMS Gateway) are set up, so check the text after those are done. If no calendar appears, check section 2, step 2 first.
 - **After `chat`:** on a computer, the bubble appears a moment after the page loads, and a message arrives in Chatwoot. On a phone, a "Chat" button appears in the bottom bar. There's no chat on `/book/`.
 - **After `newsletter`:** the booking form has an unticked "Email me seasonal offers" box. Tick it with your own email, and a confirmation email arrives from listmonk. Until you click it, you're unconfirmed. Leave it unticked and nothing is added. Ticking it without an email asks you to add one.
 
@@ -345,7 +375,7 @@ A typo can stop the build with one of these messages. Nothing is published until
 ### Switching a piece off
 
 - **Forms:** set `delivery` back to `{ provider: "formsubmit", endpoint: "<the address you saved>" }`.
-- **Calendar:** set `booking.easyAppointments.url` to `""`. The site goes back to booking requests, or to Cal.com if `calLink` is set.
+- **Calendar:** set `booking.easyAppointments.url` to `""`. The site goes back to booking requests.
 - **Chat:** set `chat.baseUrl` and `chat.websiteToken` to `""`.
 - **Offers box:** set `newsletter.optIn` to `false`.
 
@@ -356,6 +386,7 @@ Then run `node tools/build.mjs`, commit and push. The privacy wording follows ea
 - **Updates.**
   - Update one tool at a time, and send a test booking afterwards. Watch each project's releases page for security fixes.
   - Easy!Appointments' [update guide](https://github.com/alextselegidis/easyappointments/blob/main/docs/update-guide.md) says to back up the database and files first and keep your `config.php`. Do the same for every tool.
+- **Old requests.** The privacy policy says quote and price-text requests that don't become bookings are deleted within 12 months. Once a month, open n8n's `requests` data table and delete the rows with `form` set to `quote` or `pricetext` that are more than 12 months old (by the `received` date), unless you've turned them into bookings. Also delete rows from the `receipts` table (Recipe 1, step 8) that are more than a day old, since only the last hour and the day matter.
 - **Backups.** Check now and then that the nightly backups are still running, and that you've kept a copy off the server.
 - **Read the privacy policy again after each change.**
   - Open `/privacy/` and `/policies/` on the live site. They name the server, n8n, Easy!Appointments, Chatwoot and listmonk, each only while it's on.

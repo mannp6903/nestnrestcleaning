@@ -141,8 +141,10 @@ window.NR_CONFIG = {
     websiteToken: ""
   },
 
-  /* Offers emails through your own listmonk. optIn: true adds an unticked "send me offers" box to the forms.
+  /* Offers emails through your own listmonk. optIn: true adds an unticked "send me offers" box to the booking form.
      false keeps it off. Canada's anti-spam law (CASL) needs business.mailingAddress in every offers email, so fill that in first.
+     The box reaches listmonk only through your n8n webhook: delivery.provider must be "webhook" and the workflow's listmonk step built,
+     and server (above) must be filled in. With any other delivery, leave this off or add people in listmonk yourself.
      After changing it, run `node tools/build.mjs`. */
   newsletter: {
     optIn: false

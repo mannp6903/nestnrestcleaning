@@ -52,7 +52,8 @@ const SENT_TO = WEBHOOK ? `Your request goes to our own server (${SRV}, ${LOC}),
   : SHEET ? "Your request is saved to our Google Sheet and emailed to our Gmail inbox (both Google)"
   : "Your request is sent through FormSubmit to our Google email inbox";
 const SENT_VIA = `${SENT_TO}, which may store data outside Canada.`;
-// Every word that names the booking calendar, one entry per calendar, so no page says "Cal.com" or "Easy!Appointments" anywhere else.
+// Every word that names the booking calendar in the pages this file builds, one entry per calendar (js/site.js still has some Cal.com wording
+// of its own, in the branch that runs only when Cal.com is the calendar).
 // bookNote finishes the booking page's sentence, and abroad says whether the calendar's provider may store data outside Canada.
 // step is the line above the calendar, after the line under "After you send a request" on the help page, and policy the clause in the Service Policies.
 // privacy is the bullet in the privacy policy, and cookies that policy's paragraph about the calendar's cookies ("" when there are none).
@@ -73,7 +74,7 @@ const CALENDARS = {
     after: "The time you pick on the calendar is confirmed straight away, and the calendar emails you the confirmation with a link to reschedule or cancel.",
     policy: "our booking calendar emails you a confirmation with a link to reschedule or cancel",
     privacy: "<li><strong>Easy!Appointments</strong>, our booking calendar, runs on our own server. When you pick a time, it receives your name, email, phone number, address and the service, and emails your confirmation.</li>",
-    cookies: ""
+    cookies: "<p>When you pick a time, our booking calendar on our own server sets two cookies of its own (ea_session, kept for up to a week, and csrf_cookie) so the booking works.</p>"
   }
 };
 // The calendar that is switched on, or null: a Cal.com link or an Easy!Appointments address in js/config.js (checkStack stops a build with both).
@@ -158,6 +159,7 @@ function checkStack() {
   const chat = C.chat || {};
   if ((chat.baseUrl || chat.websiteToken) && !(chat.websiteToken && /^https:\/\//.test(chat.baseUrl || ""))) throw new Error("Fill in both chat.baseUrl and chat.websiteToken in js/config.js (baseUrl starting with https://), or leave both empty.");
   if (NEWS && !ADDR) throw new Error("newsletter.optIn needs business.mailingAddress in js/config.js: Canada's anti-spam law (CASL) needs it in every offers email.");
+  if (!["", "formsubmit", "sheet", "webhook", "none"].includes(PROVIDER)) throw new Error(`delivery.provider in js/config.js must be "formsubmit", "sheet", "webhook" or "none".`);
   const server = C.server || {};
   if (SELF && !(String(server.name || "").trim() && String(server.location || "").trim())) throw new Error("Fill in server.name and server.location in js/config.js: the privacy policy says where your own server runs.");
 }
@@ -2537,7 +2539,7 @@ legalPage({
         ` : ""}${GA ? `<li><strong>Google Analytics</strong> (Google LLC) measures how visitors use this website: the pages viewed, how they arrived (for example from our flyer or business card), the type of device and an approximate location. It doesn't receive anything you type into our forms, and it stores data in the United States.</li>
         ` : ""}${WEBHOOK ? `<li><strong>n8n</strong>, our automation tool, on our own server, receives the website's forms, saves each request and forwards it to our Gmail inbox. If you give your email address, it sends you a receipt that only confirms your request arrived. ${esc(B.ownerFirstName)}'s own reply is what confirms a booking.</li>` : SHEET ? `<li><strong>Google Sheets and Gmail</strong> (Google) store and deliver the website's forms: each request is saved to our Google Sheet and emailed to our Gmail inbox. If you give your email address, you get an automatic receipt that only confirms your request arrived. ${esc(B.ownerFirstName)}'s own reply is what confirms a booking.</li>` : `<li><strong>FormSubmit</strong> (formsubmit.co) delivers the website's forms to our email inbox. If you give your email address, it may also send you an automatic acknowledgement. ${esc(B.ownerFirstName)}'s own reply is what confirms a booking.</li>`}
         ${NEWS ? `<li><strong>listmonk</strong>: if you tick the offers box, your name and email go to listmonk, our mailing list, on our own server. We send offers only after you confirm by email, and every email has an unsubscribe link.</li>
-        ` : ""}${CHAT ? `<li><strong>Chatwoot</strong>: if you use the chat, your messages and anything you type in it go to Chatwoot, our chat tool, on our own server.</li>
+        ` : ""}${CHAT ? `<li><strong>Chatwoot</strong>: if you use the chat, your messages and anything you type in it go to Chatwoot, our chat tool, on our own server. When a page with the chat opens, Chatwoot also receives the technical details your browser sends, such as your IP address, and keeps an anonymous visitor record.</li>
         ` : ""}${B.whatsapp ? `<li><strong>WhatsApp</strong> (WhatsApp LLC, part of Meta Platforms) delivers and stores messages if you choose to contact us on WhatsApp.</li>
         ` : ""}<li><strong>Your bank or card payment provider</strong> processes payments you make by Interac e-Transfer or card.</li>
       </ul>
