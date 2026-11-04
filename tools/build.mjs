@@ -531,6 +531,9 @@ function priceExplainer() {
 }
 
 // owner: true adds Mann's line under the button. The home page already has it in the hero, so it leaves it out.
+// Charges that depend on the home, not on a choice (heavy pet hair): the price box asks about them, so its price is the one
+// that household pays. Each is still an extra in the booking form, where it arrives already ticked.
+const PRICE_BOX_ADDONS = C.addons.filter((a) => a.priceBox && svcKeys.every((k) => addonStatus(k, a.id) === "extra"));
 function pricer(L, defaultKey = "regular", heading = "Your price, in seconds", { owner = false } = {}) {
   const p = price(defaultKey, 1, 1);
   // While the founding offer runs, the first-visit price is the big number and the regular price sits under it.
@@ -562,6 +565,7 @@ function pricer(L, defaultKey = "regular", heading = "Your price, in seconds", {
     ${stepper("p-beds", "Bedrooms", 1, "data-p-beds")}
     ${stepper("p-baths", "Bathrooms", 1, "data-p-baths")}
   </div>
+  ${PRICE_BOX_ADDONS.map((a) => `<label class="check pricer-check"><input type="checkbox" data-p-addon="${a.id}"><span>${esc(a.priceBox)}</span><b>+${money(a.price)}</b></label>`).join("")}
   <a class="btn btn-primary btn-block" href="${L("book/")}" data-p-go data-track="pricer_continue">${ACT.go} ${ic("i-arrow")}</a>
   <p class="pricer-next">${ic("i-cal")}<span>${CAL ? "Bookings from" : "Earliest day to request:"} <strong data-next-open>tomorrow</strong></span></p>
   ${owner ? `<p class="pricer-owner"><picture><source type="image/webp" srcset="${L("assets/founder-mann-patel-avatar.webp")}"><img src="${L("assets/founder-mann-patel-avatar.jpg")}" alt="" width="40" height="40" loading="lazy" decoding="async"></picture><span><strong>${esc(B.owner)}, owner,</strong> ${CAL ? "checks in after you pick a time." : "confirms your day, time and final price."}</span></p>` : ""}

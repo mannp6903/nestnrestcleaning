@@ -379,13 +379,19 @@
   function bindPricer() {
     var form = $("[data-pricer]");
     if (!form) return;
-    var st = { service: form.getAttribute("data-default-service") || "regular", home: "condo", beds: 1, baths: 1 };
+    var st = { service: form.getAttribute("data-default-service") || "regular", home: "condo", beds: 1, baths: 1, addons: [] };
+    // Questions about the home that change the price (heavy pet hair): config.addons with "priceBox".
+    var boxChecks = $$("[data-p-addon]", form), boxIds = boxChecks.map(function (el) { return el.getAttribute("data-p-addon"); });
     var d = PAGE === "home" ? quoteDraft() : null;
     if (d) {
       if (C.services[d.service]) st.service = d.service;
       if (C.homeTypes[d.homeType]) st.home = d.homeType;
       ["beds", "baths"].forEach(function (k) { var n = parseInt(d[k], 10); if (n >= 1) st[k] = Math.min(k === "beds" ? 8 : 6, n); });
+      if (Array.isArray(d.addons)) st.addons = boxIds.filter(function (id) { return d.addons.indexOf(id) > -1; });
     }
+    // The price-box extras that apply, and the price with them: what the booking form charges for the same home.
+    function boxAddons() { return C.addons.filter(function (a) { return st.addons.indexOf(a.id) > -1 && addonStatus(st.service, a.id) === "extra"; }); }
+    function boxPrice() { return price(st.service, st.beds, st.baths, st.home) + boxAddons().reduce(function (t, a) { return t + a.price; }, 0); }
     var sel = $("[data-p-service]", form), homeSel = $("[data-p-home]", form), touched = false;
     sel.value = st.service; homeSel.value = st.home;
     var bedsBox = $("[data-p-beds]", form), bathsBox = $("[data-p-baths]", form);
@@ -398,11 +404,12 @@
       $("[data-dec]", bathsBox).disabled = st.baths <= 1;
       $("[data-inc]", bathsBox).disabled = st.baths >= 6;
       bedsBox.hidden = st.service === "detail";
-      var p = price(st.service, st.beds, st.baths, st.home);
+      boxChecks.forEach(function (el) { el.checked = st.addons.indexOf(el.getAttribute("data-p-addon")) > -1; });
+      var extras = boxAddons(), p = boxPrice();
       // While the founding offer runs, the first-visit price leads and the regular price sits under it (the booking total's rule).
-      var f = C.offers.founding, on = !!(f && f.active), h = hoursFor(st.service, st.beds, st.baths, st.home);
+      var f = C.offers.founding, on = !!(f && f.active), h = hoursFor(st.service, st.beds, st.baths, st.home, extras);
       var pf = $("[data-p-for]", form);
-      if (pf) pf.textContent = priceFor(st.service, st.beds, st.baths, st.home);
+      if (pf) pf.textContent = priceFor(st.service, st.beds, st.baths, st.home) + extras.map(function (a) { return " + " + a.name.toLowerCase(); }).join("");
       var amt = $("[data-p-amount]", form), shown = money(on ? afterDiscount(p, f.percent) : p);
       if (touched && amt.textContent !== shown) pulse($(".pricer-result", form));
       amt.textContent = shown;
@@ -410,17 +417,19 @@
       if (unit) unit.hidden = !on;
       $("[data-p-meta]", form).textContent = on ? "Regular price " + money(p) + " · estimate, about " + h + " hours on site" : "Estimate · about " + h + " hours on site";
       var go = $("[data-p-go]", form);
-      go.href = link("book/") + "?s=" + st.service + "&h=" + st.home + "&bd=" + st.beds + "&ba=" + st.baths;
+      // x: the price-box extras, always sent (empty when none), so the booking form charges what this box showed.
+      go.href = link("book/") + "?s=" + st.service + "&h=" + st.home + "&bd=" + st.beds + "&ba=" + st.baths + "&x=" + extras.map(function (a) { return a.id; }).join(",");
       var incl = $("[data-p-incl]", form);
       if (incl) incl.href = link("services/" + C.services[st.service].slug + "/") + "#included";
       // Counted once the visitor has changed something: the default price on page load isn't their quote yet.
-      if (touched) quoteViewed(["pricer", st.service, st.home, st.beds, st.baths].join("|"), { form: "pricer", service: st.service, home_type: st.home, value: p, currency: C.currency });
+      if (touched) quoteViewed(["pricer", st.service, st.home, st.beds, st.baths, st.addons.join("+")].join("|"), { form: "pricer", service: st.service, home_type: st.home, value: p, currency: C.currency });
       var wa = $("[data-p-wa]", form);
       if (wa) wa.href = waHref("Hi " + B.ownerFirstName + ", I'd like " + summary() + " (" + money(p) + "). When's your next opening?");
     }
     function summary() {
       var s = C.services[st.service], h = C.homeTypes[st.home];
-      return s.name + " for a " + (st.service === "detail" ? h.short.toLowerCase() + " with " + st.baths + " bath" + (st.baths > 1 ? "s" : "") : st.beds + "-bed, " + st.baths + "-bath " + h.short.toLowerCase());
+      return s.name + " for a " + (st.service === "detail" ? h.short.toLowerCase() + " with " + st.baths + " bath" + (st.baths > 1 ? "s" : "") : st.beds + "-bed, " + st.baths + "-bath " + h.short.toLowerCase()) +
+        boxAddons().map(function (a) { return ", with " + a.name.toLowerCase(); }).join("");
     }
     var tmBox = $("[data-textme]", form), tmOpen = $("[data-textme-open]", form);
     if (tmBox && tmOpen) {
@@ -434,11 +443,11 @@
       var sendTm = function () {
         if (!phoneOk(tmPhone.value)) { fieldError(tmPhone, "Enter a 10-digit mobile number, like 647 555 0123."); tmPhone.focus(); tmBox.scrollIntoView({ block: "center" }); return; }
         fieldError(tmPhone, "");
-        var p = price(st.service, st.beds, st.baths, st.home);
+        var p = boxPrice();
         tmSend.disabled = true; tmSend.textContent = "Sending…";
         tmIds = tmIds || newIds("NR");
         send({ _subject: "Text this price: " + money(p) + " to " + tmPhone.value.trim(), _template: "table", _captcha: "false", _honey: ($("[data-textme-honey]", tmBox) || {}).value || "",
-          "Text this price to": tmPhone.value.trim(), "Quote": summary() + ", " + money(p), "Estimated time": "about " + hoursFor(st.service, st.beds, st.baths, st.home) + " hours", "Page": location.pathname
+          "Text this price to": tmPhone.value.trim(), "Quote": summary() + ", " + money(p), "Estimated time": "about " + hoursFor(st.service, st.beds, st.baths, st.home, boxAddons()) + " hours", "Page": location.pathname
         }, "pricetext", tmIds).then(function (res) {
           tmIds = null;
           tmBox.classList.add("is-sent");
@@ -469,9 +478,19 @@
         render();
       });
     });
+    boxChecks.forEach(function (el) {
+      el.addEventListener("change", function () {
+        var id = el.getAttribute("data-p-addon");
+        st.addons = st.addons.filter(function (x) { return x !== id; }).concat(el.checked ? [id] : []);
+        touched = true;
+        render();
+      });
+    });
     $("[data-p-go]", form).addEventListener("click", function () {
-      saveQuoteDraft({ service: st.service, homeType: st.home, beds: st.beds, baths: st.baths });
-      track("pricer_continue", { service: st.service, value: price(st.service, st.beds, st.baths, st.home), currency: C.currency });
+      // Other extras saved from an earlier booking stay; the price-box ones follow the box.
+      var kept = (((quoteDraft() || {}).addons) || []).filter(function (id) { return boxIds.indexOf(id) === -1; });
+      saveQuoteDraft({ service: st.service, homeType: st.home, beds: st.beds, baths: st.baths, addons: kept.concat(st.addons) });
+      track("pricer_continue", { service: st.service, value: boxPrice(), currency: C.currency });
     });
     form.addEventListener("submit", function (e) { e.preventDefault(); });
     render();
@@ -960,6 +979,15 @@
       if (ba >= 1) state.baths = ba;
       // A plan chosen on the plans strip (?f=biweekly) arrives selected.
       if (q.get("f") && C.frequencies[q.get("f")]) state.freq = q.get("f");
+      // Extras in the link (?x=pets,oven): a price box always sends x, so the price-box extras (heavy pet hair) follow it
+      // exactly and the form charges what the box showed. Other extras in a link are added to any saved ones.
+      if (q.has("x")) {
+        var xs = (q.get("x") || "").split(",").filter(function (id) { return !!addonById(id); });
+        var boxed = C.addons.filter(function (a) { return a.priceBox; }).map(function (a) { return a.id; });
+        state.addons = (Array.isArray(state.addons) ? state.addons : []).filter(function (id) { return boxed.indexOf(id) === -1 && xs.indexOf(id) === -1; }).concat(xs);
+      }
+      // A postal code in the link (?pc=M2N5W9), already taken out of the address bar (LINK_POSTAL), fills the postal field.
+      if (LINK_POSTAL) $("#f-postal").value = formatPostal(LINK_POSTAL);
       // Anything saved on the device or typed into the address bar is checked again before it's used.
       if (!C.services[state.service]) state.service = "regular";
       if (!C.homeTypes[state.homeType]) state.homeType = "condo";
@@ -2075,6 +2103,18 @@
     else window.addEventListener("load", whenIdle);
   }
 
+  // A postal code in a booking link (/book/?pc=M2N5W9: a link Mann sends, or one an assistant builds) fills the booking form.
+  // It's taken out of the address bar before analytics starts, so it never reaches Google Analytics or the browser history.
+  var LINK_POSTAL = (function () {
+    try {
+      var u = new URL(location.href), v = u.searchParams.get("pc");
+      if (v == null) return "";
+      u.searchParams.delete("pc");
+      history.replaceState(history.state, "", u.pathname + u.search + u.hash);
+      v = normPostal(v);
+      return /^[ABCEGHJ-NPRSTVXY]\d[A-Z](\d[A-Z]\d)?$/.test(v) ? v : "";
+    } catch (e) { return ""; }
+  })();
   initAnalytics();
   fillCommon();
   renderReviews();
