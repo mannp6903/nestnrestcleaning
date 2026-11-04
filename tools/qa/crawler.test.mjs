@@ -98,6 +98,28 @@ export default async function () {
     assert(words(guide).includes("House cleaning prices in Scarborough & North York (2026)") && guide.includes(`Prices reviewed <time datetime="${reviewed}">`), "the price guide is dated and names the districts");
   });
 
+  // Neighbourhood pages earn their place with what only that place has (Google's doorway-page policy asks for usefulness).
+  // Measured as the blueprint did: the share of five-word phrases two pages have in common. It was 0.72 for Agincourt and
+  // Malvern in October 2026, when every page repeated the same service cards and questions; those now live on the district pages.
+  test("neighbourhood pages say what's local, not the same thing twelve times", async () => {
+    const hoods = C.neighbourhoods.map((h) => [h.slug, mainWords(read(`/areas/${h.district}/${h.slug}/`)).toLowerCase().split(/[^a-z0-9$]+/).filter(Boolean)]);
+    const shingles = (w) => { const s = new Set(); for (let i = 0; i + 5 <= w.length; i++) s.add(w.slice(i, i + 5).join(" ")); return s; };
+    const sets = hoods.map(([n, w]) => [n, shingles(w)]);
+    const sims = [];
+    for (let i = 0; i < sets.length; i++) for (let j = i + 1; j < sets.length; j++) {
+      let inter = 0; for (const x of sets[i][1]) if (sets[j][1].has(x)) inter++;
+      sims.push([inter / (sets[i][1].size + sets[j][1].size - inter), sets[i][0] + "/" + sets[j][0]]);
+    }
+    sims.sort((a, b) => b[0] - a[0]);
+    const median = sims[Math.floor(sims.length / 2)][0];
+    assert(sims[0][0] <= 0.65 && median <= 0.5, `most alike: ${sims[0][1]} ${sims[0][0].toFixed(2)}, median ${median.toFixed(2)}`);
+    for (const h of C.neighbourhoods) {
+      const html = read(`/areas/${h.district}/${h.slug}/`);
+      assert(!/FAQPage/.test(html) && html.includes(`/areas/${h.district}/#faq`), `${h.slug}: questions belong to the district page, linked from here`);
+      if (h.typical) assert(html.includes(`data-default-home="${h.typical}"`) && html.includes(`A typical ${h.name} home`), `${h.slug}: the price box starts on its typical home`);
+    }
+  });
+
   test("the guarantee is one sentence, word for word, wherever it's promised in full", async () => {
     assert(/\{guarantee\}/.test(C.emails.booking) && /\{guarantee\}/.test(C.emails.bookingCal), "both booking emails carry {guarantee}");
     const full = [...services.map((k) => `/services/${C.services[k].slug}/`), `/services/${C.quoteServices.airbnb.slug}/`, "/policies/", "/help/", "/"];

@@ -122,6 +122,26 @@ From the owner: the site felt too long; clients need a strong first screen, then
 - **Removed with them:** the room tabs and neighbourhood search scripts and about 160 rules of their styles, so every page's stylesheet is lighter (lab LCP on a slow phone: home 2.10s, from 2.23s).
 - **Checks:** `tools/qa/home.test.mjs` (the hero, the cards, plans, How to book, Contact and nothing left from the long page), `tools/qa/v8.test.mjs` (the first screen at 1440 × 900, 1280 × 800 and 1024 × 768; the page within 6 desktop and 10 phone screens) and the design, tablet, v4, v5 and v7 checks updated to match.
 
+## Phase 4: local depth and booking (November 2026)
+
+From [the redesign blueprint](redesign-blueprint-2026-11.md).
+
+- **Neighbourhood pages keep only what's local.** In October 2026 the 12 pages shared about 72% of their five-word phrases
+  (Agincourt and Malvern), mostly the same service cards and eight questions. Those now live on the district pages, linked from each
+  neighbourhood ("Questions about cleaning in Scarborough"). Each neighbourhood page has its local answer in the hero, in place of a
+  generic room illustration (`answerBlock(..., { inHero: true })`); a price box that starts on the area's typical home
+  (`typical` in `js/config.js`); "What a clean costs in Malvern" with a typical home's regular, every-2-weeks, deep and move-out
+  prices; its postal codes; the condo guide where it applies; nearby areas; and its real jobs and reviews once there are some
+  (`localReviews()`, also on the district page). Similarity is now about 0.42 for most pairs; the two condo pages share the most
+  (0.62), because of the condo guide. `tools/qa/crawler.test.mjs` keeps every pair at 0.65 or less and the median at 0.5 or less.
+- **Booking:** "How did you hear about us?" (optional, after "Referred by a client?") from `booking.foundVia`, sent as "Found us
+  via" and as `found_via` on the booking's `generate_lead`; ticking "I'm flexible" also chooses "Any time" when no window is chosen,
+  so a flexible customer gets past the day and time in one tap; and the confirmation settles in with a short "fold and tuck"
+  (CSS 3D, transforms only, nothing under reduced motion). The change terms and late fee were already shown before sending, and
+  fields were already checked only after they're left, so those blueprint items needed nothing.
+- **Owner steps, not code:** calendar confirmation (`booking.calLink`, see the README), moving hosting
+  ([docs/hosting-move.md](hosting-move.md)) and measurement ([docs/measurement.md](measurement.md)).
+
 ## Phase 3: the signature moments (November 2026)
 
 From [the redesign blueprint](redesign-blueprint-2026-11.md). Each says rest, home or Toronto; none loops; none hides words; all of
@@ -144,7 +164,9 @@ checks each one.
 - **Page transitions**: `@view-transition { navigation: auto }` (only when motion is welcome), a quick crossfade, the header held
   still (`view-transition-name: site-header`), and each service card's title gliding into its service page's heading
   (`view-transition-name: svc-<service>` on both). Each name may appear once per page; the test checks it. Firefox and older browsers
-  just load the page.
+  just load the page. If a visitor navigates again while a transition is running, Chrome skips it and logs "Transition was
+  aborted because of invalid state" in the console: the page loads normally, and no script can catch the notice (tried in phase
+  4), so `tools/qa/lib.mjs` leaves that one message out of the page errors the tests check.
 - **Not yet:** the clock-aware hero (day and night by Toronto time), the route line through a floor plan, the card-to-hero image
   morph and the "fold and tuck" booking confirmation. The booking form's re-skin is phase 4.
 

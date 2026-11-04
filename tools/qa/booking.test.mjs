@@ -243,4 +243,32 @@ export default async function () {
     await p.click('[data-review] button[data-edit-focus="#f-notes"]');
     assert(await p.evaluate(() => document.activeElement.id) === "f-notes", "notes edit focus");
   });
+
+  // Phase 4: a flexible customer gets past the day and time in one tap, and "How did you hear about us?" arrives with the
+  // request (and in analytics as one of the fixed answers, never anything typed).
+  test("one tap for a flexible customer, and how they heard about us arrives with the request", async ({ browser, url }) => {
+    const C = loadConfig();
+    const p = await newPage(browser);
+    await p.goto(url + "/book/?s=regular&h=condo&bd=2&ba=1");
+    await p.fill("#f-postal", "M2N 5W9");
+    await p.click("[data-next]");
+    await p.click('label.check:has(#flex-date)');
+    assert(await p.isChecked('input[name="slot"][value="any"]'), "I'm flexible picks Any time");
+    await p.click("[data-next]");
+    assert(await p.isVisible("#f-name"), "on to your details, with no error about the day or window");
+    await fillDetails(p);
+    await p.fill("#f-email", "priya@example.com");
+    const options = await p.$$eval("#f-found option", (os) => os.map((o) => o.textContent));
+    assert(JSON.stringify(options.slice(1)) === JSON.stringify(C.booking.foundVia), "the answers come from config: " + options);
+    await p.selectOption("#f-found", "ChatGPT or another AI assistant");
+    const events = [];
+    await p.exposeFunction("__ga", (args) => events.push(args));
+    await p.evaluate(() => { const g = window.gtag; window.gtag = function () { window.__ga(JSON.parse(JSON.stringify([...arguments]))); if (g) g.apply(this, arguments); }; });
+    await p.click("[data-submit]");
+    await p.waitForSelector("[data-done]:not([hidden])");
+    const post = p.posts.at(-1);
+    assert(post["Found us via"] === "ChatGPT or another AI assistant" && post["Preferred arrival window"] === "Any time", "request: " + post["Found us via"] + " / " + post["Preferred arrival window"]);
+    const lead = events.find((e) => e[0] === "event" && e[1] === "generate_lead");
+    assert(lead && lead[2].found_via === "ChatGPT or another AI assistant", "analytics: " + JSON.stringify(lead));
+  });
 }

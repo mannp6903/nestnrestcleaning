@@ -25,7 +25,7 @@ var SYSTEM_COLUMNS = ["Attempt", "Alert email", "Receipt email"];
 var KNOWN_FIELDS = {
   booking: ["Service", "Home", "Home notes", "Extras", "Included in this service", "Plan", "Preferred day", "Preferred arrival window",
     "Estimate, first visit", "Estimate, repeat visits", "HST", "Price to confirm", "Estimated time", "Pricing version",
-    "Name", "Phone", "Email", "Address", "Postal code", "Getting in", "Pets", "Products", "Referred by", "Notes", "Confirm by"],
+    "Name", "Phone", "Email", "Address", "Postal code", "Getting in", "Pets", "Products", "Referred by", "Found us via", "Notes", "Confirm by"],
   quote: ["Service", "Name", "Phone", "Email", "Postal code", "Notes"],
   gift: ["Amount", "Send", "Your name", "Your phone", "Email", "Gift for", "Their postal code", "Their email", "Message"],
   review: ["Rating", "Name", "Neighbourhood", "Service", "Review", "Booked with"],

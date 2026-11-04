@@ -60,7 +60,10 @@ export async function newPage(browser, { width = 1280, height = 900, theme = "li
   page.chatMode = "ok";
   page.chatRequests = [];
   page.errors = [];
-  page.on("pageerror", (e) => page.errors.push(e.message));
+  // One browser notice isn't the site's error: when a visitor navigates again while a page transition is running, Chrome skips
+  // the transition and reports "Transition was aborted because of invalid state" (css/site.css, "Moving between pages"). The page
+  // loads normally and no script can catch it, so it's left out; every other page error still fails the test.
+  page.on("pageerror", (e) => { if (!/^Transition was aborted because of invalid state/.test(e.message)) page.errors.push(e.message); });
   await page.route(/googletagmanager|google-analytics|cal\.com/, (r) => r.abort());
   await page.route(/formsubmit\.co/, async (r) => {
     try { page.posts.push(JSON.parse(r.request().postData() || "null")); } catch (e) { page.posts.push(null); }
