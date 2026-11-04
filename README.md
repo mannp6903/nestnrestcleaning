@@ -150,7 +150,9 @@ How the site looks and why (tokens, components, the reference patterns behind th
 
 - **Logo:** `assets/logo.svg` (horizontal), `logo-stacked.svg`, `logo-mark.svg` and their `-white` versions for dark backgrounds. Traced from the original logo artwork; the wordmark is Barlow Condensed.
 - **Colours:** navy `#0A2D5C`, teal `#2FA4A6`, sky `#6FC3E0`, sand `#EFD9AE` on ivory `#F7F3EA`. All tokens are at the top of `css/site.css`.
-- **Fonts:** Plus Jakarta Sans (headlines, sentence case) and DM Sans (text), self-hosted in `assets/fonts` under the SIL Open Font License.
+- **Fonts:** Fraunces (headings: soft, rounded serifs, "You rest.") and Figtree (buttons, prices, labels and text: "We clean."), self-hosted in `assets/fonts` under the SIL Open Font License. How the Fraunces file was made is in `docs/design-notes.md`.
+- **Service colours:** each service has its own hue from Toronto at night: regular is lake teal, deep is dusk violet, move-in/out is dawn apricot, kitchen and bath is sky. They're tokens at the top of `css/site.css`, checked for contrast in both themes.
+- **Motion:** everything "settles": one soft easing curve and three speeds (`--ease-settle`, `--settle-quick`, `--settle`, `--settle-slow` in `css/site.css`). Nothing bounces or loops, text on the home hero is never faded in (it's the largest thing on a phone's first screen), and nothing moves for visitors who ask for reduced motion.
 - **Room photos** in `assets/photos` are AI-generated illustrations, and the footer says so. An empty-home picture for move-in and move-out is waiting in your Canva uploads: see "Wanted" in `docs/design-notes.md` for the four files to save; the build uses them as soon as they're there. Replace them with real photos from your own jobs (with the client's permission) as soon as you have them: same file names, 928 × 1152 px.
 
 ## Hosting

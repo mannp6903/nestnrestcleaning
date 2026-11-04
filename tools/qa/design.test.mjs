@@ -3,24 +3,32 @@ import { test, assert, newPage, contrast, contrastProblems, loadConfig } from ".
 
 const C = loadConfig();
 
-const JAKARTA = /^"?Plus Jakarta Sans"?/;
+// Phase 2 type: headings in the soft serif (Fraunces), the interface and text in Figtree.
+const SERIF = /^"?Fraunces"?/;
+const SANS = /^"?Figtree"?/;
 const px = (v) => Math.round(parseFloat(v));
 
 export default async function () {
-  test("fonts load from the new file", async ({ browser, url }) => {
+  test("fonts load from the new files", async ({ browser, url }) => {
     const p = await newPage(browser, { width: 1440, height: 900 });
     const requested = [];
     p.on("request", (r) => requested.push(r.url()));
     await p.goto(url + "/");
     const loaded = await p.evaluate(async () => {
       await document.fonts.ready;
-      return [...document.fonts].some((f) => f.family.replace(/"/g, "") === "Plus Jakarta Sans" && f.status === "loaded");
+      return [...document.fonts].filter((f) => f.status === "loaded").map((f) => f.family.replace(/"/g, ""));
     });
-    assert(loaded, "Plus Jakarta Sans should be loaded on the home page");
-    const fam = await p.$eval("h1", (h) => getComputedStyle(h).fontFamily);
-    assert(JAKARTA.test(fam), "h1 should use Plus Jakarta Sans, got " + fam);
-    const barlow = requested.filter((u) => /barlow/i.test(u));
-    assert(!barlow.length, "Barlow Condensed is still requested: " + barlow.join(", "));
+    assert(loaded.includes("Fraunces") && loaded.includes("Figtree"), "Fraunces and Figtree should be loaded on the home page: " + loaded);
+    const fam = (sel) => p.$eval(sel, (e) => getComputedStyle(e).fontFamily);
+    // The slogan says the idea: "We clean." in the crisp sans, "You rest." in the soft serif.
+    assert(SANS.test(await fam(".hero-home .hero-title .display")) && SERIF.test(await fam(".hero-home .accent")), "We clean. / You rest.: " + await fam(".hero-home .hero-title .display") + " / " + await fam(".hero-home .accent"));
+    assert(SERIF.test(await fam("main h2")) && SANS.test(await fam("body")) && SANS.test(await fam(".btn")), "headings serif, text and buttons sans");
+    const old = requested.filter((u) => /barlow|jakarta|dm-sans/i.test(u));
+    assert(!old.length, "an old font is still requested: " + old.join(", "));
+    // The font budget: both files together stay well under 150 KB.
+    const fs = await import("node:fs"), path = await import("node:path"), { ROOT } = await import("./lib.mjs");
+    const bytes = ["fraunces-soft.woff2", "figtree.woff2"].reduce((t, f) => t + fs.statSync(path.join(ROOT, "assets/fonts", f)).size, 0);
+    assert(bytes < 150 * 1024, "fonts are " + Math.round(bytes / 1024) + " KB");
   });
 
   test("headings, labels, buttons and links are sentence case", async ({ browser, url }) => {
@@ -44,11 +52,12 @@ export default async function () {
       assert(px(s.size) === want, `${path} ${selector} at ${width}px should be ${want}px, got ${s.size}`);
       if (weight) assert(s.weight === String(weight), `${path} ${selector} weight should be ${weight}, got ${s.weight}`);
     };
-    // v4 (docs/superpowers/specs/2026-10-29-website-redesign-v4-design.md): calmer 700 headings on a smaller scale.
+    // v4 (docs/superpowers/specs/2026-10-29-website-redesign-v4-design.md): calm headings on a smaller scale.
     // v9: the home slogan is larger, on its navy hero (84px on a computer); everything else keeps the v4 scale.
-    await check(1440, "/", ".hero-title .display", 84, 700);
-    await check(1440, "/pricing/", "h1", 56, 700);
-    await check(1440, "/", "#services h2", 40, 700);
+    // Phase 2: serif headings at 600; the slogan's "We clean." is the crisp sans at 800.
+    await check(1440, "/", ".hero-title .display", 84, 800);
+    await check(1440, "/pricing/", "h1", 56, 600);
+    await check(1440, "/", "#services h2", 40, 600);
     await check(390, "/", ".hero-title .display", 44);
     await check(390, "/pricing/", "h1", 36);
     await check(390, "/", "#services h2", 28);
@@ -145,7 +154,7 @@ export default async function () {
         const why = [];
         if (f.bg !== "rgba(0, 0, 0, 0)") why.push("background " + f.bg);
         if (f.dot !== "none") why.push("a ::before dot");
-        if (!/^"?DM Sans/.test(f.fam)) why.push("font " + f.fam);
+        if (!SANS.test(f.fam)) why.push("font " + f.fam);
         if (f.size < 13 || f.size > 14.5) why.push(f.size + "px");
         if (f.weight !== "700") why.push("weight " + f.weight);
         if (why.length) bad.push(`${path} "${f.text}": ${why.join(", ")}`);
@@ -265,12 +274,12 @@ export default async function () {
       await p.goto(url + path);
       const r = await p.$eval(".hero", (e) => ({ bg: getComputedStyle(e).backgroundImage, h1: getComputedStyle(e.querySelector("h1")).fontFamily }));
       assert(r.bg === "none", `${path} hero should have a plain background, got ${r.bg.slice(0, 40)}`);
-      assert(JAKARTA.test(r.h1), `${path} h1 should use Plus Jakarta Sans, got ${r.h1}`);
+      assert(SERIF.test(r.h1), `${path} h1 should use Fraunces, got ${r.h1}`);
     }
     // v9: the one exception is the home hero, the site's front door: navy night over the landmark art.
     await p.goto(url + "/");
     const home = await p.$eval(".hero-home", (e) => ({ color: getComputedStyle(e).backgroundColor, h1: getComputedStyle(e.querySelector("h1")).fontFamily, art: !!e.querySelector(".hero-scene svg") }));
-    assert(home.color === "rgb(10, 45, 92)" && home.art && JAKARTA.test(home.h1), "the home hero is navy with its art: " + JSON.stringify(home));
+    assert(home.color === "rgb(10, 45, 92)" && home.art && SERIF.test(home.h1), "the home hero is navy with its art: " + JSON.stringify(home));
   });
 
   test("FAQ is one list with dividers", async ({ browser, url }) => {
@@ -296,7 +305,7 @@ export default async function () {
     const p = await newPage(browser, { width: 1440, height: 900 });
     await p.goto(url + "/book/");
     const fam = (sel) => p.$eval(sel, (e) => getComputedStyle(e).fontFamily);
-    for (const [sel, want] of [[".progress li", /^"?DM Sans/], [".choice-body strong", JAKARTA], [".extra-name", /^"?DM Sans/], [".step-nav [data-next]", JAKARTA]]) {
+    for (const [sel, want] of [[".progress li", SANS], [".choice-body strong", SANS], [".extra-name", SANS], [".step-nav [data-next]", SANS]]) {
       const f = await fam(sel);
       assert(want.test(f), `${sel} font is ${f}`);
     }
@@ -311,10 +320,29 @@ export default async function () {
     assert(!missing.length, "booking hooks missing: " + missing.join(", "));
   });
 
+  // One hue per service (lake, dusk, dawn, sky): each icon is in its service's hue and readable on its tile, and a service
+  // page's eyebrow in that hue is readable on the page, in both themes.
+  test("each service has its own hue, readable in both themes", async ({ browser, url }) => {
+    const keys = Object.keys(C.services);
+    for (const theme of ["light", "dark"]) {
+      const p = await newPage(browser, { width: 1440, height: 900, theme });
+      await p.goto(url + "/");
+      const tiles = await p.$$eval(".svc-card-home .svc-ico", (es) => es.map((e) => ({ cls: e.className, fg: getComputedStyle(e).color, bg: getComputedStyle(e).backgroundColor })));
+      assert(tiles.length === 4 && new Set(tiles.map((t) => t.bg)).size === 4, `${theme}: four services, four tile colours: ${JSON.stringify(tiles)}`);
+      for (const t of tiles) assert(contrast(t.fg, t.bg) >= 4.5, `${theme} ${t.cls}: icon ${t.fg} on ${t.bg} is ${contrast(t.fg, t.bg).toFixed(2)}:1`);
+      for (const k of keys.filter((k) => C.services[k].tag)) {
+        await p.goto(url + "/services/" + C.services[k].slug + "/");
+        const r = await p.$eval(".hero-sub .kicker", (e) => ({ fg: getComputedStyle(e).color, bg: getComputedStyle(document.body).backgroundColor }));
+        assert(contrast(r.fg, r.bg) >= 4.5, `${theme} ${k}: eyebrow ${r.fg} on ${r.bg} is ${contrast(r.fg, r.bg).toFixed(2)}:1`);
+      }
+      await p.context().close();
+    }
+  });
+
   test("404 page uses the new type", async ({ browser, url }) => {
     const p = await newPage(browser, { width: 1440, height: 900 });
     await p.goto(url + "/404.html");
     const fam = await p.$eval("h1", (h) => getComputedStyle(h).fontFamily);
-    assert(JAKARTA.test(fam), "404 h1 should use Plus Jakarta Sans, got " + fam);
+    assert(SERIF.test(fam), "404 h1 should use Fraunces, got " + fam);
   });
 }

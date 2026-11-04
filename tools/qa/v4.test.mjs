@@ -4,7 +4,8 @@ import { test, assert, newPage, loadConfig } from "./lib.mjs";
 import { toDetails, fillDetails } from "./booking.test.mjs";
 
 const C = loadConfig();
-const JAKARTA = /^"?Plus Jakarta Sans"?/;
+// Money is set in Figtree, which has tabular figures.
+const MONEY = /^"?Figtree"?/;
 
 export default async function () {
   test("service pages say what's included, what's extra and what isn't", async ({ browser, url }) => {
@@ -53,7 +54,7 @@ export default async function () {
     const p = await newPage(browser, { width: 1440, height: 900 });
     const check = async (sel) => {
       const s = await p.$eval(sel, (e) => ({ ff: getComputedStyle(e).fontFamily, num: getComputedStyle(e).fontVariantNumeric }));
-      assert(JAKARTA.test(s.ff) && /tabular-nums/.test(s.num), `${sel}: ${JSON.stringify(s)}`);
+      assert(MONEY.test(s.ff) && /tabular-nums/.test(s.num), `${sel}: ${JSON.stringify(s)}`);
     };
     await p.goto(url + "/");
     await check("[data-p-amount]");
