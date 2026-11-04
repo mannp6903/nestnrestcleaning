@@ -122,6 +122,32 @@ From the owner: the site felt too long; clients need a strong first screen, then
 - **Removed with them:** the room tabs and neighbourhood search scripts and about 160 rules of their styles, so every page's stylesheet is lighter (lab LCP on a slow phone: home 2.10s, from 2.23s).
 - **Checks:** `tools/qa/home.test.mjs` (the hero, the cards, plans, How to book, Contact and nothing left from the long page), `tools/qa/v8.test.mjs` (the first screen at 1440 × 900, 1280 × 800 and 1024 × 768; the page within 6 desktop and 10 phone screens) and the design, tablet, v4, v5 and v7 checks updated to match.
 
+## Phase 3: the signature moments (November 2026)
+
+From [the redesign blueprint](redesign-blueprint-2026-11.md). Each says rest, home or Toronto; none loops; none hides words; all of
+them are CSS except the house, which `js/site.js` keeps up to date. Under reduced motion none of them moves. `tools/qa/signature.test.mjs`
+checks each one.
+
+- **"You rest." exhales** (home slogan): it arrives at Fraunces weight 780 and settles to 500 over 1.5s, once. The words are on
+  screen from the first frame.
+- **One light sweep** across the home hero's main button, once, after the slogan has settled.
+- **Night to dawn** (home hero art): a view timeline on `.hero-scene`. As the skyline crosses the screen, the lit windows go out in
+  three groups (`lm-lit-0/1/2`, assigned in `tools/landmarks.mjs`), a warm glow rises behind the skyline and the lake brightens. It's
+  tied to scrolling, so it reverses on the way back up. Browsers without scroll-driven animation, and reduced motion, keep the night.
+- **Build your clean** (`houseArt()` in `tools/build.mjs`, `renderHouse()` in `js/site.js`): a small house at the right end of every
+  price box's price row. Six bedroom slots on top, the kitchen and four bathroom slots below, filled in the service's hue as the home
+  is described ("+n" past six bedrooms or four bathrooms); bedrooms show as dashed outlines for Kitchen & Bath Detailing, which
+  doesn't clean them; a paw appears with heavy pet hair; condos get a flat roof with a rooftop unit, townhouses and houses a gable.
+  It's decorative (`aria-hidden`): the price beside it says the same thing in words. **It's absolutely positioned and must never add
+  height to the price box**: a version that made the price row about 9px taller pushed the slow phone's first paint back a frame
+  (home LCP 2.13s to 2.36s in `tools/qa/perf.mjs`), even with the house invisible.
+- **Page transitions**: `@view-transition { navigation: auto }` (only when motion is welcome), a quick crossfade, the header held
+  still (`view-transition-name: site-header`), and each service card's title gliding into its service page's heading
+  (`view-transition-name: svc-<service>` on both). Each name may appear once per page; the test checks it. Firefox and older browsers
+  just load the page.
+- **Not yet:** the clock-aware hero (day and night by Toronto time), the route line through a floor plan, the card-to-hero image
+  morph and the "fold and tuck" booking confirmation. The booking form's re-skin is phase 4.
+
 ## Reference patterns
 
 v4 rendered the reference sites remotely on 29 October 2026 (they are blocked from this build environment directly). Earlier patterns keep their original evidence labels. All are original executions; no wording, images, code or page layouts were copied.

@@ -373,6 +373,10 @@ body.menu-open { overflow: hidden; }
 .pricer-offer { justify-self: start; display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; font-size: 0.86rem; font-weight: 600; color: var(--ink); background: var(--sky-soft); border-radius: 12px; padding: 7px 12px; line-height: 1.35; }
 .spots { color: var(--teal-ink); font-weight: 700; }
 .pricer-result { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; padding: 12px 16px; border-radius: var(--field-radius); background: var(--ivory); }
+/* The house ("Build your clean") sits at the right end of the price's own row, positioned so it never adds height: a taller
+   box here pushed the phone's first paint back a frame (tools/qa/perf.mjs). */
+.pricer-amount { position: relative; flex: 1 1 auto; padding-right: 86px; }
+.pricer-amount .house { position: absolute; right: 0; bottom: -5px; width: 72px; height: auto; }
 .pricer-for { flex: 1 1 100%; font-size: var(--fs-small); font-weight: 600; line-height: 1.4; color: var(--ink); }
 .pricer-amount { font-family: var(--display); font-weight: 800; font-size: clamp(2.3rem, 9vw, 2.75rem); line-height: 1; font-variant-numeric: tabular-nums; }
 .pricer-unit { font-family: var(--body); font-size: 1rem; font-weight: 600; color: var(--muted); letter-spacing: 0; }
@@ -1335,6 +1339,67 @@ a.svc-card:hover .svc-arrow { transform: translateX(4px); }
   @keyframes nr-settle { from { transform: translateY(10px); } }
   @keyframes nr-settle-in { from { transform: translateY(10px); opacity: .4; } }
 }
+
+/* ---------- Phase 3: the signature moments. Each one says rest, home or Toronto; none loops; none hides words. ---------- */
+
+/* Build your clean (houseArt() in tools/build.mjs, renderHouse() in js/site.js): the price box's house fills with rooms
+   as the home is described, in the service's hue. A condo gets a flat roof, a townhouse or house a gable. */
+.house { display: block; overflow: visible; }
+.house .h-roof { fill: none; stroke: var(--ink); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.house[data-home="condo"] .h-gable, .house:not([data-home="condo"]) .h-flat { display: none; }
+.house .h-wall { fill: var(--paper); stroke: var(--ink); stroke-width: 2.5; }
+.house .h-room { fill: transparent; stroke: var(--field); stroke-width: 1.5; transform-box: fill-box; transform-origin: center; transform: scale(.8);
+  transition: fill var(--settle-quick) var(--ease-settle), stroke var(--settle-quick) var(--ease-settle), transform var(--settle) var(--ease-settle); }
+.house .h-room.is-on { fill: var(--hue-ink, var(--teal-ink)); stroke: var(--hue-ink, var(--teal-ink)); transform: none; }
+.house .h-room.is-out { stroke-dasharray: 2 2.5; }
+.house .h-more { font: 700 10px var(--display); fill: var(--muted); text-anchor: middle; }
+.house .h-pets { fill: var(--hue-ink, var(--teal-ink)); opacity: 0; transform-box: fill-box; transform-origin: center; transform: scale(.6);
+  transition: opacity var(--settle-quick) var(--ease-settle), transform var(--settle) var(--ease-settle); }
+.house .h-pets > circle:first-child { fill: var(--hue-soft, var(--teal-soft)); }
+.house .h-pets.is-on { opacity: 1; transform: none; }
+
+@media (prefers-reduced-motion: no-preference) {
+  /* The slogan: "You rest." arrives bold and exhales to its resting weight, once. The words are on screen from the first frame. */
+  .hero-home .accent { animation: nr-exhale 1.5s .35s var(--ease-settle) both; }
+  @keyframes nr-exhale { from { font-weight: 780; } }
+  /* One light sweep across the main button, once, after the slogan has settled. Clean, without sparkle. */
+  .hero-home .hero-cta .btn-primary { position: relative; overflow: hidden; isolation: isolate; }
+  .hero-home .hero-cta .btn-primary::after { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+    background: linear-gradient(105deg, transparent 30%, rgba(255, 255, 255, .55) 50%, transparent 70%);
+    transform: translateX(-110%); animation: nr-sweep 1.1s 1.6s var(--ease-settle) both; }
+  @keyframes nr-sweep { to { transform: translateX(110%); } }
+}
+
+/* Night to dawn: the hours given back. As the home hero's skyline crosses the screen, North York's and the street's lights
+   go out a group at a time, the sky warms behind the skyline and the lake brightens. It's tied to scrolling (a view
+   timeline), so it moves only as the visitor does, and backwards too. Under reduced motion, or in a browser without
+   scroll-driven animation, the hero simply stays at night. */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .hero-home .hero-scene { view-timeline: --dawn block; }
+    .hero-home .hero-scene::before { content: ""; position: absolute; inset: -55% 0 0; z-index: -1; pointer-events: none;
+      background: radial-gradient(ellipse 80% 70% at 62% 100%, rgba(242, 180, 138, .75), rgba(184, 170, 242, .26) 55%, transparent 78%);
+      opacity: 0; animation: nr-dawn linear both; animation-timeline: --dawn; animation-range: cover 12% cover 55%; }
+    @keyframes nr-dawn { to { opacity: 1; } }
+    .hero-home .lm .lm-lit-0, .hero-home .lm .lm-lit-1, .hero-home .lm .lm-lit-2 { animation: nr-lights-off linear both; animation-timeline: --dawn; }
+    .hero-home .lm .lm-lit-0 { animation-range: cover 12% cover 26%; }
+    .hero-home .lm .lm-lit-1 { animation-range: cover 22% cover 38%; }
+    .hero-home .lm .lm-lit-2 { animation-range: cover 34% cover 50%; }
+    @keyframes nr-lights-off { to { opacity: .1; } }
+    .hero-home .lm .lm-water { animation: nr-lake linear both; animation-timeline: --dawn; animation-range: cover 15% cover 55%; }
+    @keyframes nr-lake { to { fill: #2D6F8C; } }
+  }
+}
+
+/* Moving between pages: a calm crossfade, the header holding still, and a service card's title gliding into the service
+   page's heading (view-transition-name: svc-<service>, set by tools/build.mjs). Browsers without cross-document view
+   transitions load the page as before; under reduced motion there's no transition at all. */
+@media (prefers-reduced-motion: no-preference) {
+  @view-transition { navigation: auto; }
+}
+.site-header { view-transition-name: site-header; }
+::view-transition-group(*) { animation-duration: var(--settle); animation-timing-function: var(--ease-settle); }
+::view-transition-old(root), ::view-transition-new(root) { animation-duration: var(--settle-quick); }
 
 /* Four arrival windows: two by two on phones, a single row from 560px */
 .seg-slots { grid-auto-flow: row; grid-template-columns: repeat(2, 1fr); }

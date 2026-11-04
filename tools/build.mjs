@@ -534,6 +534,26 @@ function priceExplainer() {
 // Charges that depend on the home, not on a choice (heavy pet hair): the price box asks about them, so its price is the one
 // that household pays. Each is still an extra in the booking form, where it arrives already ticked.
 const PRICE_BOX_ADDONS = C.addons.filter((a) => a.priceBox && svcKeys.every((k) => addonStatus(k, a.id) === "extra"));
+// "Build your clean": a small house beside the price that fills with rooms as the home is described. Six bedroom slots on
+// top, the kitchen and four bathroom slots below; rooms a service doesn't clean (bedrooms, for kitchen and bath) show as
+// empty outlines, and a paw appears with heavy pet hair. In the service's hue. js/site.js (renderHouse) keeps it in step
+// with the price box; here it's drawn for the box's starting home, so it's right before any script runs. Decorative: the
+// price beside it says the same thing in words.
+const HOUSE_BEDS = 6, HOUSE_BATHS = 4;
+const servesBedrooms = (k) => !C.services[k].rooms || C.services[k].rooms.some((r) => /bed/i.test(r));
+function houseArt(k, beds = 1, baths = 1, home = "condo") {
+  const room = (cls, attr, x, y, w, h, on, out) => `<rect class="h-room ${cls}${on ? " is-on" : ""}${out ? " is-out" : ""}" ${attr} x="${x}" y="${y}" width="${w}" height="${h}" rx="2"/>`;
+  const bedsIn = servesBedrooms(k);
+  return `<svg class="house hue-${k}" viewBox="0 0 120 84" data-house data-home="${home}" aria-hidden="true" focusable="false">
+      <path class="h-roof h-gable" d="M7 35 60 7l53 28"/><path class="h-roof h-flat" d="M10 31h100M78 31v-9h16v9"/>
+      <rect class="h-wall" x="14" y="32" width="92" height="48" rx="3"/>
+      ${Array.from({ length: HOUSE_BEDS }, (_, i) => room("h-bed", `data-bed="${i + 1}"`, 20 + i * 14, 38, 11, 14, bedsIn && i < beds, !bedsIn)).join("")}
+      ${room("h-kitchen", "data-kitchen", 20, 58, 25, 16, true, false)}
+      ${Array.from({ length: HOUSE_BATHS }, (_, i) => room("h-bath", `data-bath="${i + 1}"`, 50 + i * 14, 58, 11, 16, i < baths, false)).join("")}
+      <text class="h-more" data-more-beds x="112" y="49"></text><text class="h-more" data-more-baths x="112" y="70"></text>
+      <g class="h-pets" data-house-pets><circle cx="104" cy="15" r="9"/><path d="M100.5 17.5c0-2.2 1.6-3.6 3.5-3.6s3.5 1.4 3.5 3.6c0 1.6-1.4 2.2-3.5 2.2s-3.5-.6-3.5-2.2z"/><circle cx="99.6" cy="12.6" r="1.4"/><circle cx="102.6" cy="10.6" r="1.4"/><circle cx="105.8" cy="10.6" r="1.4"/><circle cx="108.6" cy="12.6" r="1.4"/></g>
+    </svg>`;
+}
 function pricer(L, defaultKey = "regular", heading = "Your price, in seconds", { owner = false } = {}) {
   const p = price(defaultKey, 1, 1);
   // While the founding offer runs, the first-visit price is the big number and the regular price sits under it.
@@ -545,7 +565,7 @@ function pricer(L, defaultKey = "regular", heading = "Your price, in seconds", {
   </div>
   <div class="pricer-result" aria-live="polite">
     <p class="pricer-for" data-p-for>${esc(priceFor(defaultKey, 1, 1))}</p>
-    <p class="pricer-amount"><span data-p-amount>${money(on ? afterDiscount(p, founding.percent) : p)}</span> <span class="pricer-unit" data-p-unit${on ? "" : " hidden"}>first visit</span></p>
+    <p class="pricer-amount"><span data-p-amount>${money(on ? afterDiscount(p, founding.percent) : p)}</span> <span class="pricer-unit" data-p-unit${on ? "" : " hidden"}>first visit</span>${houseArt(defaultKey)}</p>
     <p class="pricer-meta" data-p-meta>${on ? `Regular price ${money(p)} · estimate, about ${h} hours on site` : `Estimate · about ${h} hours on site`}</p>
     ${offerLine()}
   </div>
@@ -922,12 +942,15 @@ function quoteForm(L, { name, title = "Request a free quote", reply, fields, but
 
 // Each instant-price service has its own hue (css/site.css, "One hue per service"); services priced by quote keep the brand teal.
 const hueClass = (k) => C.services[k] ? " hue-" + k : "";
+// Moving from a service card to its page, the card's title glides into the page's heading (a cross-document view
+// transition, css/site.css). Each name appears once per page; browsers without view transitions just load the page.
+const vtName = (k) => ` style="view-transition-name: svc-${esc(k)}"`;
 function serviceCards(L, list, cls = "") {
   return `<ul class="svc-grid${cls ? " " + cls : ""}">
       ${list.map((s) => `<li>
         <a class="svc-card" href="${L("services/" + s.slug + "/")}">
           <span class="svc-top"><span class="svc-ico${hueClass(s.key)}">${ic(SVC_ICON[s.key] || "i-sparkle")}</span>${s.tag ? `<small class="svc-tag">${esc(s.tag)}</small>` : ""}</span>
-          <h3>${esc(s.name)}</h3>
+          <h3${vtName(s.key)}>${esc(s.name)}</h3>
           <p>${esc(s.short)}</p>
           <span class="svc-foot"><span class="svc-price">${s.host && s.prices[0].price != null ? `From <b>${money(s.prices[0].price)}</b> a turnover` : s.quote ? "Free quote" : `From <b data-from="${s.key}">${money(s.base)}</b>`}</span>${ic("i-arrow", "ic svc-arrow")}</span>
         </a>
@@ -950,7 +973,7 @@ function homeServices(L) {
   return `<ul class="svc-cards">
       ${Object.keys(HOME_PHOTOS).map((k) => { const s = C.services[k]; return `<li class="svc-card-home">
         <span class="svc-ico${hueClass(k)}">${ic(SVC_ICON[k] || "i-sparkle")}</span>
-        <h3>${esc(s.name)}</h3>
+        <h3${vtName(k)}>${esc(s.name)}</h3>
         <p class="svc-best">Best for: ${esc(s.idealFor[0])}</p>
         <p class="svc-price">From <b data-from="${k}">${money(s.base)}</b>${first ? ` <span class="svc-first">${first(s.base)} first visit</span>` : ""}</p>
         <div class="svc-card-actions">
@@ -1587,7 +1610,7 @@ for (const k of svcKeys) {
   <div class="wrap hero-grid">
     <div class="hero-copy">
       ${s.tag ? `<p class="kicker">${esc(s.tag)}</p>` : ""}
-      <h1 class="display display-sub">${esc(s.name)}</h1>
+      <h1 class="display display-sub"${vtName(k)}>${esc(s.name)}</h1>
       <p class="lede">${esc(s.intro)}</p>
       <dl class="facts">
         <div><dt>From</dt><dd data-from="${k}">${money(s.base)}</dd></div>
@@ -1669,7 +1692,7 @@ for (const k of quoteKeys) {
   <div class="wrap hero-grid">
     <div class="hero-copy">
       <p class="kicker">By quote</p>
-      <h1 class="display display-sub">${esc(q.name)}</h1>
+      <h1 class="display display-sub"${vtName(k)}>${esc(q.name)}</h1>
       <p class="lede">${esc(q.intro)}</p>
       <ul class="ticks">${q.includes.map((i) => `<li>${ic("i-check")}${esc(i)}</li>`).join("")}</ul>
       ${photo(L, SVC_PHOTO[k], { sizes: "(min-width: 960px) 520px, 92vw", cls: "quote-photo" })}
