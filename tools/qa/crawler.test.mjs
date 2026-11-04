@@ -77,7 +77,7 @@ export default async function () {
     const reviewed = C.pricingVersion;
     for (const [pg, from] of pages) {
       const html = read(pg);
-      const block = (html.match(/<section class="section answer"[\s\S]*?<\/section>/) || [])[0];
+      const block = (html.match(/<section class="section answer[^"]*"[\s\S]*?<\/section>/) || [])[0];
       assert(block, `${pg}: no answer block`);
       const q = words((block.match(/<h2[^>]*>([\s\S]*?)<\/h2>/) || [])[1] || "");
       const a = words((block.match(/<p class="answer-text">([\s\S]*?)<\/p>/) || [])[1] || "");

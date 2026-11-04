@@ -18,18 +18,22 @@ All tokens sit at the top of `css/site.css`. Dark mode redefines the colour role
 | `--card-line` | navy at 8% | card borders |
 | `--field` | `#7A8899` | control borders (3:1 or better), and the card border on hover |
 | `--fs-display` / `--fs-h1` / `--fs-h2` / `--fs-h3` | 44–68 / 36–56 / 28–40 / 20–22px | the home slogan, page titles, sections, cards and steps (phone to desktop) |
-| `--fw-head` | 700 | every heading. 800 is kept for big prices only |
+| `--fw-head` | 600 | every serif heading (h1, h2). Card and step headings (h3) are Figtree 700; 800 is kept for big prices and the slogan's "We clean." |
 | `--fs-support` | 14px | supporting text people need: what an extra covers, hints, "per visit", table headings. Never smaller |
 | `--fs-badge` | 13.5px | "Recommended", service tags and the "Extra" tag in the comparison |
 | `--fs-money` | 17px | every price in a list or table (price tables, extras, service choices) |
 | `--fs-fine` / `--fs-tag` | 13px / 12px | fine print / tags. Nothing on the site is smaller than 12px |
-| `--money` | Plus Jakarta Sans | every price, with tabular, lining figures (DM Sans's file has no tabular figures) |
+| `--money` | Figtree | every price, with tabular, lining figures |
+| `--serif` / `--display` / `--body` | Fraunces / Figtree / Figtree | headings / buttons, labels, prices and card titles / text |
+| `--ease-settle` | `linear()` curve (cubic-bezier fallback) | every transition and animation: a soft landing, never a bounce |
+| `--settle-quick` / `--settle` / `--settle-slow` | 250 / 600 / 900ms | a control answering a touch / a part of the page arriving / the home hero's one entrance |
+| `--regular-*` / `--deep-*` / `--move-*` / `--detail-*` | lake teal / dusk violet / dawn apricot / sky, each `-soft` and `-ink` | one hue per service: its icon tile and, on its own page, the eyebrow and the answer rule (`.hue-<service>`) |
 
-Fonts: Plus Jakarta Sans for headings, buttons and money, DM Sans for text, both self-hosted. A heading's closing full stop is wrapped in `.stop` by the build so it doesn't drift at large sizes. Colours: navy `#0A2D5C`, teal `#2FA4A6`, sky `#6FC3E0`, sand `#EFD9AE`, ivory `#F7F3EA`. Every text colour pairing is checked by `contrast holds in both themes`.
+Fonts (phase 2, November 2026): "We clean. You rest." is the type system. **Fraunces** (the rest: soft, rounded serifs) for page and section headings, **Figtree** (the clean: crisp sans) for the interface, buttons, prices, labels and text. On the home slogan, "We clean." is Figtree 800 and "You rest." is Fraunces 500. Both are self-hosted under the SIL Open Font License, 54 KB together. `fraunces-soft.woff2` is Fraunces 5.3.0 (Fontsource, Latin) with its SOFT axis fixed at 100 (the pillowy serifs), WONK at 0 and optical size at 48 (tuned for 28 to 56px headings), keeping weight 400 to 800; fixing the axes halved the file and kept the slow-phone LCP inside its budget. To make it again: fontTools' `instancer` on `fraunces-latin-full-normal.woff2` with `{"SOFT": 100, "WONK": 0, "opsz": 48, "wght": (400, 800)}`. A heading's closing full stop is wrapped in `.stop` by the build so it doesn't drift at large sizes. Colours: navy `#0A2D5C`, teal `#2FA4A6`, sky `#6FC3E0`, sand `#EFD9AE`, ivory `#F7F3EA`. Every text colour pairing is checked by `contrast holds in both themes`.
 
 ## Components
 
-- **Eyebrow** (`.label`, `.kicker`): plain teal text in DM Sans, 0.86rem bold, above a heading. It has no pill and no dot. On navy it is light teal `#8FE0DD`.
+- **Eyebrow** (`.label`, `.kicker`): plain teal text in Figtree, 0.86rem bold, above a heading. On a service page it takes the service's hue. It has no pill and no dot. On navy it is light teal `#8FE0DD`.
 - **Section head** (`.section-head`): always left-aligned. Add `.section-head-row` to put a link on the right from 760px.
 - **Buttons:**
   - The main action is a navy pill, 52px tall (44px for `.btn-sm`).

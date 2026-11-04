@@ -786,8 +786,8 @@ function pricingAnswer() {
   return `With ${esc(B.name)}, a regular clean of a 1-bedroom, 1-bathroom condo costs ${money(R.base)}, a deep clean ${money(C.services.deep.base)} and a move-in or move-out clean ${money(C.services.move.base)}${FOUNDING_ON ? `, and our first ${founding.spots} households get ${founding.percent}% off their first visit` : ""}. Each extra bedroom adds ${money(R.perBed)} and each extra bathroom ${money(R.perBath)} to a regular clean, townhouses add ${Math.round((C.homeTypes.town.factor - 1) * 100)}% and houses ${Math.round((C.homeTypes.house.factor - 1) * 100)}%, and a regular clean booked every 2 weeks is ${C.frequencies.biweekly.discount}% less. You see your price before you book. ${ALL_IN}`;
 }
 const PRICE_ASK = "How much does house cleaning cost in Scarborough and North York?";
-function answerBlock(L, { q, a, id = "answer" }) {
-  return `<section class="section answer" id="${id}" aria-labelledby="${id}-q">
+function answerBlock(L, { q, a, id = "answer", hue = "" }) {
+  return `<section class="section answer${hueClass(hue)}" id="${id}" aria-labelledby="${id}-q">
   <div class="wrap">
     <div class="answer-inner">
       <h2 id="${id}-q">${esc(q)}</h2>
@@ -834,8 +834,8 @@ ${noindex ? '<meta name="robots" content="noindex">\n' : ""}<meta name="theme-co
 <link rel="icon" type="image/svg+xml" href="${L("assets/logo-mark.svg")}">
 <link rel="icon" type="image/png" sizes="48x48" href="${L("assets/favicon-48.png")}">
 <link rel="apple-touch-icon" href="${L("assets/apple-touch-icon.png")}">
-<link rel="preload" href="${L("assets/fonts/plus-jakarta-sans.woff2")}" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="${L("assets/fonts/dm-sans.woff2")}" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="${L("assets/fonts/fraunces-soft.woff2")}" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="${L("assets/fonts/figtree.woff2")}" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="${L("css/site.min.css")}?v=${ASSET_V.css}">
 ${ld}`;
   const bodyInner = `${ICONS}
@@ -920,11 +920,13 @@ function quoteForm(L, { name, title = "Request a free quote", reply, fields, but
       <div class="quote-done" data-quote-done hidden tabindex="-1"><p class="label">Request received</p><h2 data-qd-title>Thank you.</h2><p data-qd-text></p></div>`;
 }
 
+// Each instant-price service has its own hue (css/site.css, "One hue per service"); services priced by quote keep the brand teal.
+const hueClass = (k) => C.services[k] ? " hue-" + k : "";
 function serviceCards(L, list, cls = "") {
   return `<ul class="svc-grid${cls ? " " + cls : ""}">
       ${list.map((s) => `<li>
         <a class="svc-card" href="${L("services/" + s.slug + "/")}">
-          <span class="svc-top"><span class="svc-ico">${ic(SVC_ICON[s.key] || "i-sparkle")}</span>${s.tag ? `<small class="svc-tag">${esc(s.tag)}</small>` : ""}</span>
+          <span class="svc-top"><span class="svc-ico${hueClass(s.key)}">${ic(SVC_ICON[s.key] || "i-sparkle")}</span>${s.tag ? `<small class="svc-tag">${esc(s.tag)}</small>` : ""}</span>
           <h3>${esc(s.name)}</h3>
           <p>${esc(s.short)}</p>
           <span class="svc-foot"><span class="svc-price">${s.host && s.prices[0].price != null ? `From <b>${money(s.prices[0].price)}</b> a turnover` : s.quote ? "Free quote" : `From <b data-from="${s.key}">${money(s.base)}</b>`}</span>${ic("i-arrow", "ic svc-arrow")}</span>
@@ -947,7 +949,7 @@ function homeServices(L) {
   const extras = offered.slice(0, 4), more = offered.length - extras.length;
   return `<ul class="svc-cards">
       ${Object.keys(HOME_PHOTOS).map((k) => { const s = C.services[k]; return `<li class="svc-card-home">
-        <span class="svc-ico">${ic(SVC_ICON[k] || "i-sparkle")}</span>
+        <span class="svc-ico${hueClass(k)}">${ic(SVC_ICON[k] || "i-sparkle")}</span>
         <h3>${esc(s.name)}</h3>
         <p class="svc-best">Best for: ${esc(s.idealFor[0])}</p>
         <p class="svc-price">From <b data-from="${k}">${money(s.base)}</b>${first ? ` <span class="svc-first">${first(s.base)} first visit</span>` : ""}</p>
@@ -1580,7 +1582,7 @@ for (const k of svcKeys) {
       crumbSchema(trail), fq.schema
     ],
     body: (L) => `
-<section class="hero hero-sub">
+<section class="hero hero-sub${hueClass(k)}">
   <div class="wrap">${breadcrumbs(L, trail)}</div>
   <div class="wrap hero-grid">
     <div class="hero-copy">
@@ -1598,7 +1600,7 @@ for (const k of svcKeys) {
   </div>
 </section>
 
-${answerBlock(L, { q: `How much does ${SERVICE_ASK[k] || s.menuName.toLowerCase()} cost in Scarborough and North York?`, a: serviceAnswer(k) })}
+${answerBlock(L, { q: `How much does ${SERVICE_ASK[k] || s.menuName.toLowerCase()} cost in Scarborough and North York?`, a: serviceAnswer(k), hue: k })}
 
 <section class="section" id="included">
   <div class="wrap">
