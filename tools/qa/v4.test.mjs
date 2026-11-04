@@ -105,8 +105,10 @@ export default async function () {
     assert(x.hero === x.page && x.contact === x.page, "the home's headings should share one left edge: " + JSON.stringify(x));
     assert(Math.abs(x.card - x.pageRight) <= 1 && Math.abs(x.box - x.pageRight) <= 1, "the price box and the contact card end at the page's right edge: " + JSON.stringify(x));
     await p.goto(url + "/pricing/");
-    const y = await p.evaluate(() => ({ cta: Math.round(document.querySelector(".final-cta h2").getBoundingClientRect().left), page: Math.round(document.querySelector("main h2").getBoundingClientRect().left) }));
-    assert(y.cta === y.page, "text inside the closing panel should line up with the page's: " + JSON.stringify(y));
+    // The answer block's text sits in from its rule, and the rule is on the page's edge; every other section's heading is on the edge.
+    const y = await p.evaluate(() => ({ cta: Math.round(document.querySelector(".final-cta h2").getBoundingClientRect().left), page: Math.round(document.querySelector("main section:not(.answer) h2").getBoundingClientRect().left),
+      rule: Math.round(document.querySelector(".answer-inner").getBoundingClientRect().left) }));
+    assert(y.cta === y.page && y.rule === y.page, "text inside the closing panel, and the answer's rule, should line up with the page's: " + JSON.stringify(y));
   });
 
   test("headline full stops sit close, and the words don't change", async ({ browser, url }) => {

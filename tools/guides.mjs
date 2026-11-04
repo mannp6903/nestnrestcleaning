@@ -1,8 +1,11 @@
 // The helpful articles at /guides/<slug>/. Prices come from js/config.js, so they stay current after a rebuild.
 // Each article: slug, title (for Google), h1, description, kicker, minutes (reading time), photo, body(L) as HTML.
-// published: the day it first went live (YYYY-MM-DD). modified: the day its text, or a price it quotes, last changed;
-// leave it out until then. Search engines read both, so set modified whenever you change an article.
-export default function guides({ C, B, esc, money, price, listJoin, afterDiscount, ic }) {
+// published: the day it first went live (YYYY-MM-DD). modified: the day its text last changed; leave it out until then.
+// prices: true for an article that quotes prices. Its modified date then also moves with pricingVersion in js/config.js,
+// and it says when the prices were last reviewed. Search engines read both dates, so set modified whenever you change an article.
+// answer: the article's question and a short answer that makes sense on its own. It opens the article, before anything else,
+// because that's the passage search snippets and AI assistants quote.
+export default function guides({ C, B, esc, money, price, hours, listJoin, afterDiscount, guarantee, priceAnswer, ic }) {
   const R = C.services.regular, D = C.services.deep, M = C.services.move;
   const fr = C.frequencies;
   const planPrice = (k) => money(afterDiscount(price("regular", 2, 1), fr[k].discount));
@@ -11,20 +14,24 @@ export default function guides({ C, B, esc, money, price, listJoin, afterDiscoun
   const deepOnly = C.checklist.flatMap((r) => r.tasks.filter((t) => t[2] === "yes" && t[1] !== "yes").map((t) => t[0]));
   const cta = (L, text = "See your price") => `<p class="article-cta"><a class="btn btn-primary" href="${L("book/")}" data-track="book_click">${esc(text)}</a> <a class="text-link" href="${L("pricing/")}">All prices ${ic("i-arrow")}</a></p>`;
   const ul = (items) => `<ul class="article-list">${items.map((i) => `<li>${i}</li>`).join("")}</ul>`;
+  const founding = C.offers.founding && C.offers.founding.active ? C.offers.founding : null;
+  const homes = [["condo", "Condo"], ["town", "Townhouse"], ["house", "House"]].filter(([h]) => C.homeTypes[h]);
 
   return [
     {
       slug: "house-cleaning-cost-toronto",
       published: "2026-10-24",
-      modified: "2026-10-31",
-      title: "How Much Does House Cleaning Cost in Toronto? (2026)",
-      h1: "How much does house cleaning cost in Toronto?",
-      kicker: "Pricing guide",
+      modified: "2026-11-04",
+      prices: true,
+      title: "House Cleaning Prices in Scarborough & North York (2026)",
+      h1: "House cleaning prices in Scarborough & North York (2026)",
+      kicker: "Price guide",
       minutes: 5,
       photo: "living-room",
-      description: `What sets the price of a home clean in Toronto, real example prices for Scarborough and North York, and how to compare quotes fairly.`,
+      description: `What house cleaning costs in Scarborough and North York in 2026: regular from ${money(R.base)}, deep from ${money(D.base)}, move-out from ${money(M.base)}, and how to compare quotes.`,
+      answer: () => ({ q: "How much does house cleaning cost in Scarborough and North York?", a: priceAnswer() }),
       body: (L) => `
-<p class="article-lede">Most Toronto cleaning companies price a visit by the size of the home, the type of clean and how often you book. Here's what moves the number, with our own prices as worked examples, so you can compare any quote with confidence.</p>
+<p class="article-lede">Cleaning companies across Toronto price a visit by the size of the home, the type of clean and how often you book. Here's what moves the number, with our own Scarborough and North York prices as worked examples, so you can compare any quote with confidence.</p>
 
 <h2>The five things that set the price</h2>
 <ol class="article-steps">
@@ -36,12 +43,19 @@ export default function guides({ C, B, esc, money, price, listJoin, afterDiscoun
 </ol>
 
 <h2>Example prices in Scarborough and North York</h2>
-<p>These are our prices for a condo or apartment, products and equipment included. A first visit for a founding household is ${C.offers.founding.percent}% less.</p>
+<p>These are our prices for a condo or apartment, products and equipment included.${founding ? ` A first visit for one of our first ${founding.spots} households is ${founding.percent}% less.` : ""}</p>
 <div class="table-scroll"><table class="price-table">
   <thead><tr><th scope="col">Home</th><th scope="col">Regular</th><th scope="col">Deep</th><th scope="col">Move-out</th></tr></thead>
   <tbody>${[[1, 1], [2, 1], [2, 2], [3, 2]].map(([bd, ba]) => `<tr><th scope="row">${bd} bed, ${ba} bath</th><td data-price="regular:${bd}:${ba}:condo">${money(price("regular", bd, ba))}</td><td data-price="deep:${bd}:${ba}:condo">${money(price("deep", bd, ba))}</td><td data-price="move:${bd}:${ba}:condo">${money(price("move", bd, ba))}</td></tr>`).join("")}</tbody>
 </table></div>
 <p class="fine">Prices in ${C.currency}. Townhouses add ${pct("town")} and houses ${pct("house")}.</p>
+
+<h2>The same home, by type</h2>
+<p>A 2-bedroom, 1-bathroom home takes longer to clean as a townhouse or a house, because of the stairs and the extra floor space.</p>
+<div class="table-scroll"><table class="price-table">
+  <thead><tr><th scope="col">2 bed, 1 bath</th><th scope="col">Regular</th><th scope="col">Deep</th><th scope="col">Move-out</th></tr></thead>
+  <tbody>${homes.map(([h, label]) => `<tr><th scope="row">${label}</th>${["regular", "deep", "move"].map((k) => `<td data-price="${k}:2:1:${h}">${money(price(k, 2, 1, h))}</td>`).join("")}</tr>`).join("")}</tbody>
+</table></div>
 
 <h2>Hourly or flat price?</h2>
 <p>Some companies charge by the hour, others quote a flat price. Hourly can look cheaper until the clean runs long. A flat price, set from your home's size before you book, tells you the total up front. Ours is flat: if your home needs much more or less time than expected, we tell you and agree the price before we start, never after.</p>
@@ -54,12 +68,15 @@ ${ul([
   "<strong>Is there a deposit?</strong> And what does it cost to cancel or reschedule?",
   "<strong>What if something is missed?</strong> A free re-clean within a day or two is a good sign."
 ])}
-<p>Our answers: no HST is added today, supplies are included, every service has a <a href="${L("pricing/#compare")}">room-by-room list</a>, there's no deposit, changes are free up to ${C.policies.cancelNoticeHours} hours before, and if we miss a spot, report it within ${C.policies.recleanWindowHours} hours of your clean and we'll re-clean it free.</p>
+<p>Our answers: ${C.taxRate ? `our prices are before ${Math.round(C.taxRate * 100)}% HST, which is shown as its own line` : "no HST is added today"}, supplies are included, every service has a <a href="${L("pricing/#compare")}">room-by-room list</a>, there's no deposit, and changes are free up to ${C.policies.cancelNoticeHours} hours before. ${esc(guarantee)}</p>
 ${cta(L)}`
     },
     {
       slug: "move-out-cleaning-checklist",
       published: "2026-10-24",
+      modified: "2026-11-04",
+      prices: true,
+      answer: () => ({ q: "What should a move-out clean include?", a: `Every room of the empty home, including the inside of the fridge, oven, cabinets, drawers and closets, plus tile and grout, fixtures, baseboards, door frames, switches, sills and vents, spot-cleaned walls and every floor. With ${esc(B.name)}, a move-out clean of a 1-bedroom, 1-bathroom condo costs ${money(M.base)} with the fridge and oven included, and takes about ${hours("move", 1, 1)} hours. Book it for after the movers have left.` }),
       title: "Move-Out Cleaning Checklist for Toronto Renters",
       h1: "Move-out cleaning checklist for Toronto renters",
       kicker: "Checklist",
@@ -94,6 +111,9 @@ ${cta(L, "Book a move-out clean")}`
     {
       slug: "deep-cleaning-vs-regular-cleaning",
       published: "2026-10-24",
+      modified: "2026-11-04",
+      prices: true,
+      answer: () => ({ q: "Should I book a deep clean or a regular clean?", a: `Book a deep clean first if your home hasn't had a professional clean in the last few months, then keep it right with regular cleans. A deep clean adds ${deepOnly.length} detail tasks a regular clean leaves out, like baseboards, grout and behind movable furniture, so it takes ${D.hours >= R.hours * 1.8 && D.hours <= R.hours * 2.2 ? "about twice as long" : "longer"}: for a 1-bedroom condo, about ${D.hours} hours and ${money(D.base)}, against about ${R.hours} hours and ${money(R.base)} for a regular clean.` }),
       title: "Deep Cleaning vs Regular Cleaning: What's the Difference?",
       h1: "Deep cleaning vs regular cleaning: what's the difference?",
       kicker: "Explainer",
@@ -123,6 +143,8 @@ ${cta(L)}`
     {
       slug: "how-to-prepare-for-a-house-cleaner",
       published: "2026-10-24",
+      modified: "2026-11-04",
+      answer: () => ({ q: "Do you need to clean before the cleaner comes?", a: "No. Ten minutes is enough: pick up clutter from floors and counters, tell us how to get in, mention any pets, and put away valuables. You don't need to buy supplies, pre-clean or be home: we bring the products and equipment, and you can leave access instead." }),
       title: "How to Prepare for a House Cleaner (and What to Skip)",
       h1: "How to get your home ready for a cleaner",
       kicker: "Tips",
@@ -156,7 +178,9 @@ ${cta(L)}`
     {
       slug: "how-often-should-you-clean-your-home",
       published: "2026-10-24",
-      modified: "2026-10-30",
+      modified: "2026-11-04",
+      prices: true,
+      answer: () => ({ q: "How often should most homes be cleaned?", a: `Every 2 weeks suits most households. For a 2-bedroom, 1-bathroom condo that's ${planPrice("biweekly")} a visit with ${esc(B.name)}, ${fr.biweekly.discount}% less than a one-time clean. Choose weekly (${planPrice("weekly")}) for young children or pets that shed, and every 4 weeks (${planPrice("monthly")}) for one or two people who keep up with daily tidying.` }),
       title: "How Often Should You Have Your Home Cleaned?",
       h1: "How often should you have your home cleaned?",
       kicker: "Guide",

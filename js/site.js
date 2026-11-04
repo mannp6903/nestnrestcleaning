@@ -104,6 +104,8 @@
   // How to reach us: by phone while business.phone is set, otherwise by email (the number can be kept private).
   var REACH = B.phone ? "call or text " + B.phoneDisplay : "email " + B.email;
   function fillTpl(t, vals) { return String(t || "").replace(/\{(\w+)\}/g, function (m, k) { return vals[k] != null ? vals[k] : m; }); }
+  // The re-clean guarantee, word for word from config.policies.guarantee (the same sentence tools/build.mjs puts on every page).
+  function guaranteeText() { return fillTpl(C.policies.guarantee, { hours: C.policies.recleanWindowHours }); }
   // Every confirmation email ends with who we are and how to stop emails (CASL), from config.emails.footer.
   function autoReply(tpl, vals) {
     var E = C.emails || {};
@@ -705,7 +707,9 @@
             '" data-edit-focus="' + esc(r[3]) + '">Edit<span class="sr-only"> ' + esc(r[0].toLowerCase()) + "</span></button></dd>" : "") + "</div>";
         }).join("") + "</dl>";
       };
-      var html = list(main) + '<p class="review-sub">Your details and visit</p>' + list(minor, "review-minor");
+      // The guarantee doesn't decide the clean, so it follows both lists, in its one wording (config.policies.guarantee).
+      var html = list(main) + '<p class="review-sub">Your details and visit</p>' + list(minor, "review-minor") +
+        '<p class="fine review-guarantee" data-review-guarantee><strong>Our guarantee.</strong> ' + esc(guaranteeText()) + "</p>";
       // Only when something changed: leaving a field fires "change", and replacing the list then would swallow a click on Edit.
       if (html !== reviewHtml) { box.innerHTML = html; reviewHtml = html; }
     }
@@ -1139,7 +1143,7 @@
         // Best effort only: FormSubmit documents its auto-reply as unsupported for forms sent like this one,
         // so the site never promises it. Mann's own reply is the customer's confirmation and written copy.
         _autoresponse: email ? autoReply(calOn ? (C.emails || {}).bookingCal : (C.emails || {}).booking, { name: firstName, ref: r, summary: plain, items: itemsText(q), reply: B.replyPromise, phone: B.phoneDisplay,
-          notice: C.policies.cancelNoticeHours, lateFee: C.policies.lateCancelFee, terms: C.siteUrl + "/policies/", calendar: calHome(), calendarNote: calNote() }) : undefined,
+          notice: C.policies.cancelNoticeHours, lateFee: C.policies.lateCancelFee, terms: C.siteUrl + "/policies/", guarantee: guaranteeText(), calendar: calHome(), calendarNote: calNote() }) : undefined,
         _honey: $('[name="_honey"]', form).value,
         "Reference": r,
         "Status": calOn ? "Details sent; the customer picks a time on the calendar next" : "Request: not confirmed until Mann agrees the day, window and price",
@@ -1200,7 +1204,8 @@
         ["Service", q.s.name + " · " + homeLine(q) + (q.addons.length ? ". Extras: " + q.addons.map(function (a) { return a.name.toLowerCase(); }).join(", ") : "")],
         val("f-referrer") ? ["Referred by", val("f-referrer") + ". We'll credit them once your clean is done and paid."] : null,
         ["Estimate", priceText(q) + " Paid after the clean."],
-        ["Changes", (booked ? "Use the links in your Cal.com email. " : "") + "Free up to " + C.policies.cancelNoticeHours + " hours before your " + (booked ? "booking" : "arrival window") + ". Later changes may cost " + C.policies.lateCancelFee + "."]
+        ["Changes", (booked ? "Use the links in your Cal.com email. " : "") + "Free up to " + C.policies.cancelNoticeHours + " hours before your " + (booked ? "booking" : "arrival window") + ". Later changes may cost " + C.policies.lateCancelFee + "."],
+        ["Guarantee", guaranteeText()]
       ];
       $("[data-done-list]").innerHTML = rows.filter(Boolean).map(function (x) { return "<div><dt>" + esc(x[0]) + "</dt><dd>" + esc(x[1]) + "</dd></div>"; }).join("");
       if (info.skipped) {

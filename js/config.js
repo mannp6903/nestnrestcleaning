@@ -34,7 +34,13 @@ window.NR_CONFIG = {
     // Copy these from your Google Business Profile. A rating pill appears beside the founding offer once count is above 0.
     googleRating: { rating: 0, count: 0 },
     instagramUrl: "",
-    facebookUrl: ""
+    facebookUrl: "",
+    /* Your listings on other sites, so Google and AI assistants can tell they're all the same business.
+       Paste each public profile link once it exists (the "Share" link from Google Maps is fine), then run `node tools/build.mjs`.
+       They're added to the business data on every page. Leave "" for any you haven't set up. */
+    googleBusinessUrl: "",
+    yelpUrl: "",
+    homestarsUrl: ""
   },
 
   /* Where booking requests, quotes and reviews are delivered.
@@ -151,13 +157,14 @@ window.NR_CONFIG = {
   },
 
   /* Confirmation emails sent to the customer by FormSubmit when they give an email address.
-     {name}, {ref}, {summary}, {items}, {reply}, {contact}, {notice}, {lateFee}, {terms}, {calendar} and {calendarNote} are filled in automatically.
+     {name}, {ref}, {summary}, {items}, {reply}, {contact}, {notice}, {lateFee}, {terms}, {guarantee}, {calendar} and {calendarNote} are filled in automatically.
+     {guarantee} is policies.guarantee, word for word, so the email promises exactly what the website does.
      Booking emails are the customer's written copy of the agreement, so keep the price, the change terms and the link to the policies.
      {contact} is how to reach us: your phone number while it's set in business.phone, otherwise your email address.
      The footer is added to every email: it says who we are and how to stop emails, as CASL requires. */
   emails: {
-    booking: "Hi {name}, thank you for your booking request with Nest & Rest Cleaning (reference {ref}). Here's what you asked for: {summary}. Your estimate: {items}. Mann will confirm your day and arrival window {reply}. There's nothing to pay until after your clean (Interac e-Transfer, card or cash). Changes are free up to {notice} hours before your arrival window. Later changes, or if we can't get in at the agreed time, may cost {lateFee}. Full terms: {terms} Questions? {contact}. — Mann Patel, Nest & Rest Cleaning",
-    bookingCal: "Hi {name}, thank you for booking with Nest & Rest Cleaning (reference {ref}). Your booking: {summary}. Your estimate: {items}. Your time is confirmed when you pick it on our calendar, and {calendarNote} Haven't picked a time yet? Pick one here: {calendar} There's nothing to pay until after your clean (Interac e-Transfer, card or cash). Changes are free up to {notice} hours before your booking. Later changes, or if we can't get in at the agreed time, may cost {lateFee}. Full terms: {terms} Questions? {contact}. — Mann Patel, Nest & Rest Cleaning",
+    booking: "Hi {name}, thank you for your booking request with Nest & Rest Cleaning (reference {ref}). Here's what you asked for: {summary}. Your estimate: {items}. Mann will confirm your day and arrival window {reply}. There's nothing to pay until after your clean (Interac e-Transfer, card or cash). {guarantee} Changes are free up to {notice} hours before your arrival window. Later changes, or if we can't get in at the agreed time, may cost {lateFee}. Full terms: {terms} Questions? {contact}. — Mann Patel, Nest & Rest Cleaning",
+    bookingCal: "Hi {name}, thank you for booking with Nest & Rest Cleaning (reference {ref}). Your booking: {summary}. Your estimate: {items}. Your time is confirmed when you pick it on our calendar, and {calendarNote} Haven't picked a time yet? Pick one here: {calendar} There's nothing to pay until after your clean (Interac e-Transfer, card or cash). {guarantee} Changes are free up to {notice} hours before your booking. Later changes, or if we can't get in at the agreed time, may cost {lateFee}. Full terms: {terms} Questions? {contact}. — Mann Patel, Nest & Rest Cleaning",
     quote: "Hi {name}, thank you for your quote request with Nest & Rest Cleaning. Mann will reply {reply} with your free quote. Questions in the meantime? {contact}. — Mann Patel, Nest & Rest Cleaning",
     gift: "Hi {name}, thank you for your gift request with Nest & Rest Cleaning (reference {ref}). Mann will text you {reply} to confirm the details and send an Interac e-Transfer request. Your gift card is emailed as soon as it's paid. Questions? {contact}. — Mann Patel, Nest & Rest Cleaning",
     footer: "This email is from Nest & Rest Cleaning, owned and operated by {owner}{address}. {email} · {site}. To stop emails from us, email {email} with \"unsubscribe\" and we'll stop within 10 business days."
@@ -482,6 +489,7 @@ window.NR_CONFIG = {
   ],
 
   /* FAQs. "on" lists where each appears: home, regular, deep, move, detail, residence, office, area, pricing, help.
+     "{guarantee}" in an answer is replaced by policies.guarantee, word for word.
      requestsOnly: true hides a question once booking.calLink is set (it describes booking requests, not the live calendar). */
   faqs: [
     { q: "Who will clean my unit?", a: "Me. I'm Mann Patel, the owner, and I do every turnover myself, so your unit is cleaned the same careful way each time.", on: ["airbnb"] },
@@ -490,7 +498,7 @@ window.NR_CONFIG = {
     { q: "How does payment work for my listings?", a: "You pay after each turnover by Interac e-Transfer, credit or debit card, or cash. There's no deposit, and each property gets its own receipt.", on: ["airbnb"] },
     { q: "How is my price calculated?", a: "Your price is based on the service, the number of bedrooms and bathrooms, the type of home and any extras you add. You see it before you book. If your home needs much more or less time than expected, we tell you before we start, never after.", on: ["home", "regular", "deep", "move", "detail", "area", "pricing"] },
     { q: "Do I pay when I book?", a: "No. There's no deposit. You pay after the clean by Interac e-Transfer, credit or debit card, or cash.", on: ["home", "regular", "deep", "move", "detail", "area", "pricing"] },
-    { q: "What if something is missed?", a: "Report it within 24 hours of your clean and I'll come back and re-clean those areas, free of charge.", on: ["home", "regular", "deep", "move", "detail", "residence", "area", "help", "airbnb"] },
+    { q: "What if something is missed?", a: "{guarantee}", on: ["home", "regular", "deep", "move", "detail", "residence", "area", "help", "airbnb"] },
     { q: "Do you bring supplies and equipment?", a: "Yes. We bring cloths, mops, a vacuum and our products. If you'd like us to use your own products, or need fragrance-free, choose it under Products when you book.", on: ["home", "regular", "deep", "detail", "office"] },
     { q: "Do I need to be home?", a: "No. You can leave access with a concierge, lockbox or key code. Choose how we get in when you book and we'll confirm the details by text.", on: ["home", "regular", "deep", "area"] },
     { q: "Can I reschedule or cancel?", a: "Yes. Send a change request from the Help page, or email Mann, at least 24 hours before your arrival window and there's no charge.", on: ["home", "regular", "deep", "move", "detail", "office", "area", "help", "airbnb"] },
@@ -525,6 +533,10 @@ window.NR_CONFIG = {
     cancelNoticeHours: 24,
     lateCancelFee: "up to 50% of the estimated price",
     recleanWindowHours: 24,
+    /* The re-clean guarantee, word for word. The service pages, the home page, policies, help, the booking review, the confirmation
+       emails and the FAQ all use this one sentence, so the promise can never read differently in two places.
+       {hours} is recleanWindowHours. Keep it one sentence and keep {hours} in it: the build stops if it's missing. */
+    guarantee: "Report anything missed within {hours} hours of your clean and I'll come back and re-clean those areas, free.",
     damageReportHours: 48,
     accessCodeDeleteDays: 7
   },

@@ -122,7 +122,13 @@ const afterDiscount = (amount, pct) => Math.round(amount * (100 - pct) / 100);
 const TAX_TEXT = C.taxRate ? `Prices are before ${Math.round(C.taxRate * 100)}% HST` : "No HST charged";
 // The re-clean guarantee: the hours are a window for reporting what was missed, so every mention says so.
 const RECLEAN_H = C.policies.recleanWindowHours;
-const GUARANTEE_LINE = `Report anything missed within ${RECLEAN_H} hours of your clean and I'll come back and re-clean those areas, free.`;
+// One sentence, word for word everywhere it's promised in full (service pages, home, policies, help, the booking review,
+// the confirmation emails, the FAQ): policies.guarantee in js/config.js. js/site.js fills it in the same way (guaranteeText).
+if (!/\{hours\}/.test(C.policies.guarantee || "")) throw new Error(`policies.guarantee in js/config.js must be one sentence with {hours} in it, e.g. "Report anything missed within {hours} hours of your clean and I'll come back and re-clean those areas, free."`);
+const GUARANTEE_LINE = C.policies.guarantee.replace(/\{hours\}/g, RECLEAN_H);
+// Where there's room only for a few words (the home hero's promises, short lists), this label. It never restates the terms differently.
+const GUARANTEE_LABEL = `Free re-clean if reported within ${RECLEAN_H} hours`;
+for (const f of C.faqs) f.a = f.a.replace(/\{guarantee\}/g, GUARANTEE_LINE);
 const SHOW_SPOTS = !!(founding && founding.showSpotsLeft);
 // Opening hours for the facts row, from opens and closes: "9am–11pm". The label fits a third of a phone screen.
 const clock = (t) => { const [h, m] = t.split(":").map(Number); return (h % 12 || 12) + (m ? ":" + String(m).padStart(2, "0") : "") + (h >= 12 ? "pm" : "am"); };
@@ -172,7 +178,7 @@ function addonStatus(key, id) {
 }
 const addonsWith = (key, status) => C.addons.filter((a) => addonStatus(key, a.id) === status);
 // ic is declared further down; the wrapper only reads it when a guide page is built.
-const guides = guideList({ C, B, esc, money, price, listJoin, afterDiscount, ic: (...a) => ic(...a) });
+const guides = guideList({ C, B, esc, money, price, hours, listJoin, afterDiscount, guarantee: GUARANTEE_LINE, priceAnswer: () => pricingAnswer(), ic: (...a) => ic(...a) });
 
 function price(key, beds, baths, home = "condo") {
   const s = C.services[key];
@@ -590,7 +596,7 @@ function heroFacts() {
   const items = [
     ["i-card", "No deposit. Pay after your clean"],
     ["i-clock", `Open ${C.openDays.length === 7 ? "daily" : "most days"}, ${clock(C.opens)} to ${clock(C.closes)}`],
-    ["i-shield", `Free re-clean if reported within ${RECLEAN_H} hours`]
+    ["i-shield", GUARANTEE_LABEL]
   ];
   // The insurance badge waits here until the policy starts (November 2026). To switch it on, move the <li> out of the
   // comment, write its wording from the policy itself, and check the hero still lays out (tablet test).
@@ -686,9 +692,40 @@ function crumbSchema(trail) {
 
 const placeSchema = (a) => ({ "@type": "Place", name: a.name + ", Toronto, ON", ...(a.wiki ? { sameAs: a.wiki } : {}) });
 
-function businessSchema() {
+// The business in Google's and AI assistants' terms. One node, one @id, on every page, so every page describes the same
+// business with the same facts. Every listing in business (Google, Facebook, Instagram, Yelp, HomeStars) goes in sameAs.
+const BIZ_ID = SITE + "/#business";
+const PROFILES = ["googleBusinessUrl", "facebookUrl", "instagramUrl", "yelpUrl", "homestarsUrl"].map((k) => B[k]).filter(Boolean);
+const serviceId = (s) => SITE + "/services/" + s.slug + "/#service";
+// What a service's "from" price is for (the base in js/config.js): the smallest home, a condo.
+const fromFor = (k) => k === "detail" ? "the kitchen and one bathroom of a condo" : "a 1-bedroom, 1-bathroom condo";
+// Every service with the price a visitor sees for it: the "from" price is the 1-bedroom, 1-bathroom condo, all in
+// (products and equipment included, nothing added at checkout). Services priced by quote are listed without a price.
+function offerCatalog() {
   return {
-    "@context": "https://schema.org", "@type": "LocalBusiness", "@id": SITE + "/#business",
+    "@type": "OfferCatalog", name: `${B.name} services and prices`,
+    itemListElement: allServices.map((s) => {
+      const from = s.host ? (s.prices.find((x) => x.price != null) || {}).price : s.quote ? null : s.base;
+      return {
+        "@type": "Offer", itemOffered: { "@type": "Service", "@id": serviceId(s), name: s.name, url: SITE + "/services/" + s.slug + "/" },
+        ...(from != null ? {
+          price: from, priceCurrency: C.currency,
+          priceSpecification: { "@type": "PriceSpecification", minPrice: from, priceCurrency: C.currency, ...(C.taxRate ? { valueAddedTaxIncluded: false } : {}) },
+          description: (s.host ? "From, per turnover. " : `From, for ${fromFor(s.key)}. `) + "Products and equipment included. " + TAX_TEXT + "."
+        } : { description: "Priced by free quote." })
+      };
+    })
+  };
+}
+// Real reviews, as the home page shows them (only there: markup describes what's on the page).
+const reviewSchema = () => (C.reviews || []).map((r) => ({
+  "@type": "Review", author: { "@type": "Person", name: r.name }, reviewBody: r.text,
+  reviewRating: { "@type": "Rating", ratingValue: r.rating, bestRating: 5, worstRating: 1 }
+}));
+
+function businessSchema({ reviews = false } = {}) {
+  return {
+    "@context": "https://schema.org", "@type": "HouseCleaningService", "@id": BIZ_ID,
     name: B.name, slogan: B.tagline, description: "Home cleaning in Scarborough and North York, Toronto: regular, deep, move-in and move-out cleaning with a clear price before you book and payment after the clean.",
     url: SITE + "/", logo: SITE + "/assets/logo.png", image: [SITE + "/assets/og-image.jpg", SITE + "/assets/icon-512.png"],
     ...(PHONE ? { telephone: B.phone } : {}), email: B.email, priceRange: "$$", currenciesAccepted: C.currency, paymentAccepted: "Cash, Credit Card, Debit Card, Interac e-Transfer",
@@ -696,15 +733,65 @@ function businessSchema() {
     address: { "@type": "PostalAddress", addressLocality: "Toronto", addressRegion: B.region, addressCountry: "CA" },
     areaServed: C.areas.map(placeSchema),
     openingHoursSpecification: [{ "@type": "OpeningHoursSpecification", dayOfWeek: C.openDays.map((d) => ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][d]), opens: C.opens, closes: C.closes }],
-    ...([B.facebookUrl, B.instagramUrl].filter(Boolean).length ? { sameAs: [B.facebookUrl, B.instagramUrl].filter(Boolean) } : {}),
-    makesOffer: allServices.map((s) => ({
-      "@type": "Offer", itemOffered: { "@type": "Service", name: s.name, url: SITE + "/services/" + s.slug + "/" },
-      ...(s.quote ? {} : { priceSpecification: { "@type": "PriceSpecification", minPrice: s.base, priceCurrency: C.currency } })
-    }))
+    ...(PROFILES.length ? { sameAs: PROFILES } : {}),
+    hasOfferCatalog: offerCatalog(),
+    potentialAction: {
+      "@type": "ReserveAction", name: ACT.book,
+      target: { "@type": "EntryPoint", urlTemplate: SITE + "/book/", inLanguage: "en-CA", actionPlatform: ["https://schema.org/DesktopWebPlatform", "https://schema.org/MobileWebPlatform"] },
+      result: { "@type": "Reservation", name: CAL ? "Home cleaning booking" : "Home cleaning request" }
+    },
+    ...(reviews && (C.reviews || []).length ? { review: reviewSchema() } : {})
   };
 }
 function websiteSchema() {
-  return { "@context": "https://schema.org", "@type": "WebSite", "@id": SITE + "/#website", name: B.name, alternateName: "Nest and Rest Cleaning", url: SITE + "/", publisher: { "@id": SITE + "/#business" }, inLanguage: "en-CA" };
+  return { "@context": "https://schema.org", "@type": "WebSite", "@id": SITE + "/#website", name: B.name, alternateName: "Nest and Rest Cleaning", url: SITE + "/", publisher: { "@id": BIZ_ID }, inLanguage: "en-CA" };
+}
+
+/* ---------- answer first ---------- */
+// Near the top of every service, area and price page: the question people ask, as they ask it, answered in one paragraph that
+// makes sense on its own. Search snippets and AI assistants lift passages like this whole, and mostly from the top of a page,
+// so each answer names the place, the price, what's included and how payment works. Every number comes from js/config.js.
+const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+const longDate = (iso) => { const [y, m, d] = iso.split("-").map(Number); return `${MONTHS[m - 1]} ${d}, ${y}`; };
+if (!/^\d{4}-\d{2}-\d{2}$/.test(C.pricingVersion || "")) throw new Error(`pricingVersion in js/config.js must be a date, "YYYY-MM-DD": the pages say "Prices reviewed" with it.`);
+// "Prices reviewed": the day the prices last changed (pricingVersion), so the date only moves when the prices do.
+const pricesReviewed = () => `Prices reviewed <time datetime="${C.pricingVersion}">${longDate(C.pricingVersion)}</time>`;
+const FOUNDING_ON = !!(founding && founding.active && spotsLeft > 0);
+// "($116 on a first visit for our first 50 households)", while the founding offer is on.
+const firstVisit = (amount) => FOUNDING_ON ? ` (${money(afterDiscount(amount, founding.percent))} on a first visit for our first ${founding.spots} households)` : "";
+const TAX_CLAUSE = C.taxRate ? `prices are before ${Math.round(C.taxRate * 100)}% HST` : "no HST is charged";
+const ALL_IN = `Products and equipment are included, ${TAX_CLAUSE}, there's no deposit, and you pay after the clean.`;
+// One sentence per instant-price service: the smallest home, two bigger ones, and the time on site.
+const CLEAN_NOUN = { regular: "A regular clean", deep: "A deep clean", move: "A move-in or move-out clean" };
+function serviceAnswer(k) {
+  const s = C.services[k];
+  if (k === "detail") return `Kitchen and bathroom detailing costs ${money(price(k, 1, 1))} for the kitchen and one bathroom of a condo with ${esc(B.name)}${firstVisit(price(k, 1, 1))}, and ${money(price(k, 1, 2))} with two bathrooms. It takes about ${hours(k, 1, 1)} hours on site. ${ALL_IN}`;
+  const plan = s.recurring ? ` Booked every 2 weeks, the same clean is ${money(afterDiscount(price(k, 1, 1), C.frequencies.biweekly.discount))} a visit.` : "";
+  return `${CLEAN_NOUN[k] || esc(s.name)} of a 1-bedroom, 1-bathroom condo costs ${money(price(k, 1, 1))} with ${esc(B.name)}${firstVisit(price(k, 1, 1))}. A 2-bedroom, 2-bathroom townhouse is ${money(price(k, 2, 2, "town"))} and a 3-bedroom, 2-bathroom house is ${money(price(k, 3, 2, "house"))}. The smallest home takes about ${hours(k, 1, 1)} hours on site.${plan} ${ALL_IN}`;
+}
+const SERVICE_ASK = { regular: "regular house cleaning", deep: "a deep clean", move: "a move-in or move-out clean", detail: "kitchen and bathroom detailing" };
+// The same answer for a place: what a home there costs, by type of home, and that it's in the area.
+function placeAnswer(place, fsas) {
+  const r = (h) => money(price("regular", 1, 1, h));
+  const where = fsas ? ` Every home in ${esc(place)}'s postal codes (${esc(listJoin(fsas))}) is in our area, and we clean ${esc(B.hours.toLowerCase())}.` : ` We clean ${esc(B.hours.toLowerCase())}.`;
+  return `A regular clean of a 1-bedroom, 1-bathroom condo in ${esc(place)} costs ${r("condo")} with ${esc(B.name)}${firstVisit(price("regular", 1, 1))}. The same size of townhouse is ${r("town")} and a house ${r("house")}. A deep clean starts at ${money(C.services.deep.base)} and a move-out clean at ${money(C.services.move.base)}. ${ALL_IN}${where}`;
+}
+// The whole price list in one paragraph: the pricing page and the price guide both open with it.
+function pricingAnswer() {
+  const R = C.services.regular;
+  return `With ${esc(B.name)}, a regular clean of a 1-bedroom, 1-bathroom condo costs ${money(R.base)}, a deep clean ${money(C.services.deep.base)} and a move-in or move-out clean ${money(C.services.move.base)}${FOUNDING_ON ? `, and our first ${founding.spots} households get ${founding.percent}% off their first visit` : ""}. Each extra bedroom adds ${money(R.perBed)} and each extra bathroom ${money(R.perBath)} to a regular clean, townhouses add ${Math.round((C.homeTypes.town.factor - 1) * 100)}% and houses ${Math.round((C.homeTypes.house.factor - 1) * 100)}%, and a regular clean booked every 2 weeks is ${C.frequencies.biweekly.discount}% less. You see your price before you book. ${ALL_IN}`;
+}
+const PRICE_ASK = "How much does house cleaning cost in Scarborough and North York?";
+function answerBlock(L, { q, a, id = "answer" }) {
+  return `<section class="section answer" id="${id}" aria-labelledby="${id}-q">
+  <div class="wrap">
+    <div class="answer-inner">
+      <h2 id="${id}-q">${esc(q)}</h2>
+      <p class="answer-text">${a}</p>
+      <p class="answer-meta">${pricesReviewed()} · <a href="${L("pricing/#by-size")}">Every price by home size</a></p>
+    </div>
+  </div>
+</section>`;
 }
 
 /* ---------- page shell ---------- */
@@ -717,7 +804,9 @@ function page({ depth, pathOut, title, description, body, schemas = [], pageType
   const canonical = SITE + "/" + pathOut.replace(/index\.html$/, "");
   // Titles end in the short brand name so Google doesn't cut them off.
   const shortTitle = title.replace(" | " + B.name, " | " + BRAND_SHORT);
-  const ld = schemas.filter(Boolean).map((s) => `<script type="application/ld+json">${JSON.stringify(s)}</script>`).join("\n");
+  // Every page carries the business first, so a crawler that reads one page gets the whole business and every "@id" resolves.
+  // It's in the HTML itself: the AI crawlers don't run JavaScript.
+  const ld = [businessSchema({ reviews: pageType === "home" }), ...schemas].filter(Boolean).map((s) => `<script type="application/ld+json">${JSON.stringify(s)}</script>`).join("\n");
   const headInner = `${THEME_BOOT}
 <title>${esc(shortTitle)}</title>
 <meta name="description" content="${esc(description)}">
@@ -1036,6 +1125,20 @@ const STANDARD = [
   ["A final check before I leave", "Every room checked against the checklist."]
 ];
 
+// Reviews from config.reviews, written into the page itself so search engines and AI assistants (which don't run
+// JavaScript) read them. js/site.js renders the same markup (renderReviews), so the two never disagree.
+function reviewsSection() {
+  const list = C.reviews || [];
+  const avg = list.length ? list.reduce((t, r) => t + r.rating, 0) / list.length : 0;
+  const stars = (n) => [1, 2, 3, 4, 5].map((i) => `<svg class="ic${i > n ? " off" : ""}" aria-hidden="true"><use href="#i-star"/></svg>`).join("");
+  return `<section class="section reviews" id="reviews" data-reviews${list.length ? "" : " hidden"}>
+  <div class="wrap">
+    <div class="section-head"><p class="label">Reviews</p><h2 data-reviews-title>What clients say.</h2><p class="muted" data-reviews-sub>${list.length ? `${avg.toFixed(1)} out of 5 from ${list.length} verified review${list.length > 1 ? "s" : ""}.` : ""}</p></div>
+    <div class="review-grid" data-reviews-list>${list.map((r) => `<figure class="review-card"><div class="stars" role="img" aria-label="${r.rating} out of 5 stars">${stars(r.rating)}</div><blockquote><p>${esc(r.text)}</p></blockquote><footer><strong>${esc(r.name)}</strong>${r.area ? ", " + esc(r.area) : ""}${r.service ? " · " + esc(r.service) : ""}</footer></figure>`).join("")}</div>
+  </div>
+</section>`;
+}
+
 // Booking terms a client asks about before they book. Each one must stay true to the Service Policies.
 function bookingTerms(L) {
   const items = [
@@ -1083,7 +1186,7 @@ urls.push(page({
   depth: 0, pathOut: "index.html", pageType: "home",
   title: `Home Cleaning in Scarborough & North York | ${B.name}`,
   description: `Careful home cleaning in Scarborough and North York, Toronto, from ${money(C.services.regular.base)}. See your price in seconds, book in two minutes, pay after your clean.`,
-  schemas: [businessSchema(), websiteSchema(), homeFaq.schema],
+  schemas: [websiteSchema(), homeFaq.schema],
   body: (L) => `
 <section class="hero hero-home">
   <div class="wrap hero-grid">
@@ -1148,12 +1251,7 @@ urls.push(page({
 </section>
 
 ${jobsSection(jobs.slice(0, 3), "Recent cleans.", "")}
-<section class="section reviews" id="reviews" data-reviews hidden>
-  <div class="wrap">
-    <div class="section-head"><p class="label">Reviews</p><h2 data-reviews-title>What clients say.</h2><p class="muted" data-reviews-sub></p></div>
-    <div class="review-grid" data-reviews-list></div>
-  </div>
-</section>
+${reviewsSection()}
 
 ${homeFaq.html}
 
@@ -1447,6 +1545,8 @@ function scopeSummary(k) {
   const extras = C.checklist.filter((r) => !s.rooms || s.rooms.includes(r.room)).reduce((sum, r) => sum + roomExtras(k, r).length, 0);
   return `<ul class="scope-sum"><li class="scope-main"><b>${n("yes")}</b> tasks in every visit</li>${extras ? `<li><b>${extras}</b> optional extras</li>` : ""}${n("") ? `<li><b>${n("")}</b> not part of this clean, listed under each room</li>` : ""}</ul>`;
 }
+// The guarantee under what a clean covers, in its one wording.
+const guaranteeNote = (L) => `<ul class="ticks scope-guarantee"><li>${ic("i-shield")}<span><strong>Our guarantee.</strong> ${esc(GUARANTEE_LINE)} <a href="${L("policies/#guarantee")}">How it works</a></span></li></ul>`;
 // Points to the next fuller clean (the smallest step up that covers some of what this one leaves out), when there is one.
 function scopeMore(L, k) {
   const s = C.services[k], col = s.checklistColumn, t = scopeTasks(s);
@@ -1472,7 +1572,7 @@ for (const k of svcKeys) {
     title: `${s.name} in Scarborough & North York | ${B.name}`,
     description: metaDesc(`${s.name} in Scarborough and North York from ${money(s.base)}.`, s.short, "Price online, pay after the clean."),
     schemas: [
-      { "@context": "https://schema.org", "@type": "Service", name: s.name, serviceType: s.name, description: s.intro, provider: { "@id": SITE + "/#business" }, areaServed: C.areas.map(placeSchema), offers: { "@type": "Offer", priceCurrency: C.currency, price: s.base, description: "Starting price for a 1-bedroom, 1-bathroom home" } },
+      { "@context": "https://schema.org", "@type": "Service", "@id": serviceId(s), name: s.name, serviceType: s.name, description: s.intro, provider: { "@id": BIZ_ID }, areaServed: C.areas.map(placeSchema), offers: { "@type": "Offer", priceCurrency: C.currency, price: s.base, description: `From, for ${fromFor(k)}. Products and equipment included. ${TAX_TEXT}.` } },
       crumbSchema(trail), fq.schema
     ],
     body: (L) => `
@@ -1494,11 +1594,14 @@ for (const k of svcKeys) {
   </div>
 </section>
 
+${answerBlock(L, { q: `How much does ${SERVICE_ASK[k] || s.menuName.toLowerCase()} cost in Scarborough and North York?`, a: serviceAnswer(k) })}
+
 <section class="section" id="included">
   <div class="wrap">
     <div class="section-head"><p class="label">What's included</p><h2>What every visit covers.</h2><p class="muted">Room by room, what ${esc(s.menuName.toLowerCase())} takes care of each time. Under each room: what you can add, and what isn't part of this clean.${addonsWith(k, "none").length ? ` Not offered with this clean: ${esc(listJoin(addonsWith(k, "none").map((a) => a.name.toLowerCase())))}.` : ""}</p>${scopeSummary(k)}</div>
     <div class="incl-grid">${checklistFor(k)}</div>
     ${scopeMore(L, k)}
+    ${guaranteeNote(L)}
   </div>
 </section>
 
@@ -1551,7 +1654,7 @@ for (const k of quoteKeys) {
     title: `${q.name} in Scarborough & North York | ${B.name}`,
     description: metaDesc(`${q.name} in Scarborough and North York, Toronto.`, q.short, "Request a free quote online."),
     schemas: [
-      { "@context": "https://schema.org", "@type": "Service", name: q.name, serviceType: q.name, description: q.intro, provider: { "@id": SITE + "/#business" }, areaServed: C.areas.map(placeSchema) },
+      { "@context": "https://schema.org", "@type": "Service", "@id": serviceId(q), name: q.name, serviceType: q.name, description: q.intro, provider: { "@id": BIZ_ID }, areaServed: C.areas.map(placeSchema) },
       crumbSchema(trail), fq.schema
     ],
     body: (L) => `
@@ -1589,7 +1692,7 @@ ${PHONE ? finalCta(L, "Prefer to talk it through?", "Call, text or WhatsApp and 
     ["i-user", "The same person every time", "Every turnover is done by me, the owner. I get to know your unit, your setup and what your guests need."],
     ["i-clock", `Turnovers until ${clock(C.closes)}, ${DAYS_TEXT}`, "Late checkouts and evening check-ins can still work. Tell me your times and I'll confirm what I can fit in."],
     ["i-key", "Your codes stay private", `I never copy keys or write codes on them, and I delete codes within ${C.policies.accessCodeDeleteDays} days of your last scheduled clean.`],
-    ["i-shield", "Not right? I come back", `Report anything missed within ${RECLEAN_H} hours of the turnover and I'll come back and re-clean those areas, free.`]
+    ["i-shield", "Not right? I come back", GUARANTEE_LINE]
   ];
   const formCta = { href: "#host-form", label: HOST_PRICED ? "Tell me about your listing" : "Get a turnover quote", track: "host_click" };
   // Only what Mann has decided: each is null in js/config.js until then, and stays off the page.
@@ -1599,7 +1702,7 @@ ${PHONE ? finalCta(L, "Prefer to talk it through?", "Call, text or WhatsApp and 
     title: `Airbnb Cleaning in Scarborough & North York | ${B.name}`,
     description: metaDesc("Airbnb and short-term rental cleaning in Scarborough and North York, Toronto.", `Same-day turnovers by the owner, ${DAYS_TEXT} until ${clock(C.closes)}.`, "Pay after each clean."),
     schemas: [
-      { "@context": "https://schema.org", "@type": "Service", name: q.name, serviceType: "Short-term rental turnover cleaning", description: q.intro, provider: { "@id": SITE + "/#business" }, areaServed: C.areas.map(placeSchema),
+      { "@context": "https://schema.org", "@type": "Service", "@id": serviceId(q), name: q.name, serviceType: "Short-term rental turnover cleaning", description: q.intro, provider: { "@id": BIZ_ID }, areaServed: C.areas.map(placeSchema),
         ...(from != null ? { offers: { "@type": "Offer", priceSpecification: { "@type": "PriceSpecification", minPrice: from, priceCurrency: C.currency } } } : {}) },
       crumbSchema(trail), fq.schema
     ],
@@ -1729,6 +1832,8 @@ ${finalCta(L, "Ready for your next checkout?", `Tell me about your listing. I re
   </div>
 </section>
 
+${answerBlock(L, { q: PRICE_ASK, a: pricingAnswer() })}
+
 ${chooser(L)}
 
 ${priceExplainer()}
@@ -1779,7 +1884,7 @@ ${priceExplainer()}
       <p class="label label-sm">Included in every price</p>
       <ul class="ticks">
         <li>${ic("i-check")}Products and equipment</li>
-        <li>${ic("i-check")}A free re-clean if you report anything missed within ${RECLEAN_H} hours</li>
+        <li>${ic("i-check")}${GUARANTEE_LABEL}</li>
         <li>${ic("i-check")}No deposit, and payment after the clean</li>
       </ul>
     </div>
@@ -1864,7 +1969,7 @@ for (const a of C.areas) {
     depth: 2, pathOut: `areas/${a.slug}/index.html`, pageType: "area",
     title: `House Cleaning in ${a.name}, Toronto | ${B.name}`,
     description: metaDesc(`House cleaning in ${a.name}: ${a.neighbourhoods.slice(0, 4).join(", ")} and more.`, "See your price in seconds, book in two minutes, pay after your clean."),
-    schemas: [crumbSchema(trail), fq.schema, { "@context": "https://schema.org", "@type": "Service", name: `House cleaning in ${a.name}`, serviceType: "House cleaning", provider: { "@id": SITE + "/#business" }, areaServed: placeSchema(a) }],
+    schemas: [crumbSchema(trail), fq.schema, { "@context": "https://schema.org", "@type": "Service", name: `House cleaning in ${a.name}`, serviceType: "House cleaning", provider: { "@id": BIZ_ID }, areaServed: placeSchema(a) }],
     body: (L) => `
 <section class="hero hero-sub">
   <div class="wrap">${breadcrumbs(L, trail)}</div>
@@ -1882,6 +1987,8 @@ for (const a of C.areas) {
     <div class="hero-pricer">${pricer(L, "regular", "Your price in " + a.name, { owner: true })}</div>
   </div>
 </section>
+
+${answerBlock(L, { q: `How much does house cleaning cost in ${a.name}?`, a: placeAnswer(a.name) })}
 
 <section class="section section-tint">
   <div class="wrap split">
@@ -1933,7 +2040,7 @@ for (const h of hoodPages) {
     depth: 3, pathOut: `${hoodPath(h)}index.html`, pageType: "area",
     title: `House Cleaning in ${h.name}, ${a.name} | ${B.name}`,
     description: metaDesc(`House cleaning in ${h.name}, ${a.name} (${h.fsas.join(", ")}), from ${money(C.services.regular.base)}.`, "See your price in seconds, book in two minutes, pay after the clean."),
-    schemas: [crumbSchema(trail), fq.schema, { "@context": "https://schema.org", "@type": "Service", name: `House cleaning in ${h.name}`, serviceType: "House cleaning", provider: { "@id": SITE + "/#business" }, areaServed: { "@type": "Place", name: `${h.name}, ${a.name}, Toronto, ON`, containedInPlace: placeSchema(a) } }],
+    schemas: [crumbSchema(trail), fq.schema, { "@context": "https://schema.org", "@type": "Service", name: `House cleaning in ${h.name}`, serviceType: "House cleaning", provider: { "@id": BIZ_ID }, areaServed: { "@type": "Place", name: `${h.name}, ${a.name}, Toronto, ON`, containedInPlace: placeSchema(a) } }],
     body: (L) => `
 <section class="hero hero-sub">
   <div class="wrap">${breadcrumbs(L, trail)}</div>
@@ -1952,6 +2059,8 @@ for (const h of hoodPages) {
     <div class="hero-pricer">${pricer(L, "regular", "Your price in " + h.name, { owner: true })}</div>
   </div>
 </section>
+
+${answerBlock(L, { q: `How much does house cleaning cost in ${h.name}?`, a: placeAnswer(h.name, h.fsas) })}
 
 <section class="section section-tint">
   <div class="wrap split">
@@ -2018,7 +2127,7 @@ ${finalCta(L, `Book your ${h.name} clean.`)}`
     depth: 1, pathOut: "realtors/index.html", pageType: "realtors",
     title: `Cleaning for Realtors & Property Managers in Scarborough & North York | ${B.name}`,
     description: metaDesc("Listing-prep, move-out and between-tenant cleaning for realtors, landlords and property managers in Scarborough and North York.", "Lockbox access, 7 days a week, pay after each clean."),
-    schemas: [crumbSchema(trail), fq.schema, { "@context": "https://schema.org", "@type": "Service", name: "Cleaning for realtors and property managers", serviceType: "Move-out and listing preparation cleaning", provider: { "@id": SITE + "/#business" }, areaServed: C.areas.map(placeSchema) }],
+    schemas: [crumbSchema(trail), fq.schema, { "@context": "https://schema.org", "@type": "Service", name: "Cleaning for realtors and property managers", serviceType: "Move-out and listing preparation cleaning", provider: { "@id": BIZ_ID }, areaServed: C.areas.map(placeSchema) }],
     body: (L) => `
 <section class="hero hero-sub">
   <div class="wrap">${breadcrumbs(L, trail)}</div>
@@ -2031,7 +2140,7 @@ ${finalCta(L, `Book your ${h.name} clean.`)}`
         <li>${ic("i-check")}Cleaned the day before photos or a showing, whenever possible</li>
         <li>${ic("i-check")}No need to be there: lockbox, concierge or key pickup</li>
         <li>${ic("i-check")}Pay after each clean, with a receipt per property</li>
-        <li>${ic("i-check")}A free re-clean if you report anything missed within ${RECLEAN_H} hours</li>
+        <li>${ic("i-check")}${GUARANTEE_LABEL}</li>
       </ul>
     </div>
     <div class="hero-pricer">
@@ -2185,7 +2294,10 @@ ${finalCta(L)}`
 for (const g of guides) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(g.published || "")) throw new Error(`Guide "${g.slug}" needs published: "YYYY-MM-DD" in tools/guides.mjs (the day it first went live).`);
   const trail = [["Home", ""], ["Guides", "guides/"], [g.h1, "guides/" + g.slug + "/"]];
-  lastmod[SITE + "/guides/" + g.slug + "/"] = g.modified || g.published;
+  // An article that quotes prices changes when the prices do, so its date moves with pricingVersion too.
+  const modified = [g.modified || g.published, g.prices ? C.pricingVersion : ""].sort().pop();
+  lastmod[SITE + "/guides/" + g.slug + "/"] = modified;
+  const ans = g.answer ? g.answer() : null;
   const others = guides.filter((o) => o.slug !== g.slug).slice(0, 3);
   urls.push(page({
     depth: 2, pathOut: `guides/${g.slug}/index.html`, pageType: "article",
@@ -2193,8 +2305,8 @@ for (const g of guides) {
     description: g.description,
     schemas: [crumbSchema(trail), {
       "@context": "https://schema.org", "@type": "Article", headline: g.h1, description: g.description,
-      image: `${SITE}/assets/photos/${g.photo}-928.jpg`, datePublished: g.published, dateModified: g.modified || g.published,
-      author: { "@type": "Person", name: B.owner, jobTitle: "Founder & Owner" }, publisher: { "@id": SITE + "/#business" },
+      image: `${SITE}/assets/photos/${g.photo}-928.jpg`, datePublished: g.published, dateModified: modified,
+      author: { "@type": "Person", name: B.owner, jobTitle: "Founder & Owner" }, publisher: { "@id": BIZ_ID },
       mainEntityOfPage: SITE + "/guides/" + g.slug + "/", inLanguage: "en-CA"
     }],
     body: (L) => `
@@ -2204,10 +2316,11 @@ for (const g of guides) {
       ${breadcrumbs(L, trail)}
       <p class="kicker">${esc(g.kicker)} · ${g.minutes} min read</p>
       <h1 class="display display-sub">${esc(g.h1)}</h1>
-      <p class="byline"><picture><source type="image/webp" srcset="${L("assets/founder-mann-patel-avatar.webp")}"><img src="${L("assets/founder-mann-patel-avatar.jpg")}" alt="" width="44" height="44" decoding="async"></picture><span>By <strong>${esc(B.owner)}</strong>, founder of ${esc(B.name)}</span></p>
+      <p class="byline"><picture><source type="image/webp" srcset="${L("assets/founder-mann-patel-avatar.webp")}"><img src="${L("assets/founder-mann-patel-avatar.jpg")}" alt="" width="44" height="44" decoding="async"></picture><span>By <strong>${esc(B.owner)}</strong>, founder of ${esc(B.name)} · ${g.prices ? pricesReviewed() : `Updated <time datetime="${modified}">${longDate(modified)}</time>`}</span></p>
     </div>
   </header>
   <div class="wrap narrow">
+    ${ans ? `<section class="article-answer" aria-labelledby="answer-q"><h2 id="answer-q">${esc(ans.q)}</h2><p>${ans.a}</p></section>` : ""}
     ${photo(L, g.photo, { sizes: "(min-width: 820px) 760px, 92vw", cls: "article-photo", eager: true })}
     <div class="article-body">${g.body(L)}</div>
   </div>
@@ -2234,7 +2347,7 @@ ${finalCta(L)}`
     title: `Our Vision | ${B.name}`,
     description: `Why ${B.name} exists, what we believe, the promises we keep every visit, and where we're going. A note from founder ${B.owner}.`,
     schemas: [
-      { "@context": "https://schema.org", "@type": "AboutPage", name: `Our vision | ${B.name}`, url: SITE + "/vision/", description: V.intro, about: { "@id": SITE + "/#business" } },
+      { "@context": "https://schema.org", "@type": "AboutPage", name: `Our vision | ${B.name}`, url: SITE + "/vision/", description: V.intro, about: { "@id": BIZ_ID } },
       crumbSchema(trail)
     ],
     body: (L) => `
@@ -2410,7 +2523,7 @@ ${founding && founding.active
     <ul class="ticks help-list">
       <li>${ic("i-clock")}<span><strong>Booking requests:</strong> ${esc(B.replyPromise)} (${esc(B.hours.toLowerCase())}).</span></li>
       <li>${ic("i-clock")}<span><strong>Quotes</strong> for Residence Care, offices, realtors and property managers: within one business day.</span></li>
-      <li>${ic("i-shield")}<span><strong>Something not right after a clean?</strong> Report anything missed within ${P0.recleanWindowHours} hours of your clean for a free re-clean, and any damage within ${P0.damageReportHours} hours. <a href="${L("policies/#guarantee")}">How it works</a></span></li>
+      <li>${ic("i-shield")}<span><strong>Something not right after a clean?</strong> ${esc(GUARANTEE_LINE)} Report any damage within ${P0.damageReportHours} hours. <a href="${L("policies/#guarantee")}">How it works</a></span></li>
     </ul>
   </div>
 </section>
@@ -2585,7 +2698,7 @@ legalPage({
     { id: "payment", h: "Payment", html: () => `<p>There's no deposit to book. You pay after your clean by Interac e-Transfer, credit or debit card, or cash.</p>` },
     { id: "changes", h: "Rescheduling and cancellation", html: () => `<p>You can reschedule or cancel at no charge with at least ${P.cancelNoticeHours} hours' notice before your arrival window. With less notice, or if we can't get into your home at the agreed time, a late-cancellation fee of ${esc(P.lateCancelFee)} may apply. We'll always tell you before charging it.</p>
       <p>If we ever need to reschedule because of illness or severe weather, we'll tell you as early as possible and offer the next available time.</p>` },
-    { id: "guarantee", h: "Our re-clean guarantee", html: () => `<p>If something was missed, report it within ${P.recleanWindowHours} hours of your clean, with photos if you can. We'll come back and re-clean those areas at no charge. If a re-clean doesn't put it right, contact ${esc(B.ownerFirstName)} and we'll agree a fair solution together.</p>` },
+    { id: "guarantee", h: "Our re-clean guarantee", html: () => `<p>${esc(GUARANTEE_LINE)} Photos help, if you can send them. If a re-clean doesn't put it right, contact ${esc(B.ownerFirstName)} and we'll agree a fair solution together.</p>` },
     { id: "gift", h: "Gift cards", html: () => `<p>Gift cards are issued once paid. They never expire, can be used toward any service in our service area, and any balance left after a clean stays on the card.</p>` },
     { id: "referral", h: "Referral credit", html: () => { const r = money(C.offers.referral); return `<p>When someone you refer books their first clean with us, you each get ${r} off:</p>
       <ul>
