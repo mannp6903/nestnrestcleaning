@@ -324,7 +324,10 @@ window.NR_CONFIG = {
   /* Extras. "task" links an extra to its row in the checklist below, and that row decides, for each service,
      whether the extra is included ("yes"), a paid extra ("add") or not offered (""). The booking form, the price
      box, the service pages and the pricing page all follow it, so an included task can never be charged twice.
-     "limit" says exactly what the price covers. It's shown wherever the extra is offered: keep each one true. */
+     "limit" says exactly what the price covers. It's shown wherever the extra is offered: keep each one true.
+     "priceBox" is for a charge that depends on the home rather than a choice (heavy pet hair): the price box asks it as a
+     question with this wording, so the instant price is the price that household pays. Canada's rules on advertised
+     prices (Bill C-59) count a price that can't be paid because of a charge added later as misleading. */
   addons: [
     { id: "oven", name: "Inside oven", price: 40, hours: 0.5, task: "Inside fridge and oven", limit: "One oven, inside and racks." },
     { id: "fridge", name: "Inside fridge", price: 40, hours: 0.5, task: "Inside fridge and oven", limit: "One fridge. Please empty it before we arrive." },
@@ -333,7 +336,7 @@ window.NR_CONFIG = {
     { id: "walls", name: "Wall spot cleaning", price: 25, hours: 0.5, task: "Walls spot-cleaned", limit: "Marks and scuffs on reachable walls. Not a full wall wash." },
     { id: "laundry", name: "Laundry, wash and fold", price: 25, hours: 0.5, task: "Laundry, wash and fold", limit: "One load in your machines, washed, dried and folded during the visit." },
     { id: "balcony", name: "Balcony or patio", price: 30, hours: 0.5, task: "Balcony or patio", limit: "One balcony or patio, swept and wiped down." },
-    { id: "pets", name: "Heavy pet hair", price: 20, hours: 0.5, limit: "Extra time for heavy shedding across the home." }
+    { id: "pets", name: "Heavy pet hair", price: 20, hours: 0.5, limit: "Extra time for heavy shedding across the home.", priceBox: "Pets that shed a lot" }
   ],
 
   /* "Anything unusual about your home?" on the booking form. All optional, so a simple booking skips them.

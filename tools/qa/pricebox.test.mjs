@@ -72,4 +72,47 @@ export default async function () {
     assert(JSON.stringify(b[3]) === JSON.stringify(["First visit", "$490"]), "example B first visit: " + JSON.stringify(b[3]));
     assert(!(await p.isVisible("#how-price [data-offer-note]")), "the founding sentence should hide with the offer");
   });
+
+  // Heavy pet hair depends on the home, not on a choice, so the price box asks about it: its price is the price that household
+  // pays (Canada's rules on advertised prices), and the booking form charges exactly what the box showed.
+  test("the price box asks about heavy pet hair, and booking charges what it showed", async ({ browser, url }) => {
+    const p = await newPage(browser, { width: 1280, height: 900 });
+    await p.goto(url + "/services/deep-cleaning/");
+    assert(await txt(p, "[data-pricer] .pricer-check") === "Pets that shed a lot+$20", "the question: " + await txt(p, "[data-pricer] .pricer-check"));
+    await p.click("[data-pricer] [data-p-addon=pets]");
+    assert(await txt(p, AMT) === "$204" && (await txt(p, META)).startsWith("Regular price $255 · estimate, about 4.5 hours"), "with pets: " + await txt(p, AMT) + " / " + await txt(p, META));
+    assert((await txt(p, "[data-pricer] [data-p-for]")).endsWith("+ heavy pet hair"), "what the price is for");
+    const go = await p.getAttribute("[data-p-go]", "href");
+    assert(/[?&]x=pets$/.test(go), "the link carries it: " + go);
+    await p.click("[data-p-go]");
+    await p.waitForSelector("[data-total]");
+    assert(await txt(p, "[data-total]") === "$204", "booking total: " + await txt(p, "[data-total]"));
+    // Unticked in the box: the booking form drops it, even though this device remembers it from the last visit.
+    await p.goto(url + "/services/deep-cleaning/");
+    await p.waitForFunction(() => document.querySelector("[data-p-go]").getAttribute("href").includes("x="));
+    await p.click("[data-p-go]");
+    await p.waitForSelector("[data-total]");
+    assert(await txt(p, "[data-total]") === "$188", "booking total without pets: " + await txt(p, "[data-total]"));
+  });
+
+  // A booking link can carry the postal code (/book/?pc=…), for links Mann sends and ones an assistant builds. It fills the form,
+  // and it's out of the address bar before analytics starts, so Google Analytics never receives it.
+  test("a postal code in a booking link fills the form and leaves the address bar", async ({ browser, url }) => {
+    const p = await newPage(browser, { width: 390, height: 844 });
+    await p.addInitScript(() => {
+      // Records the address each analytics command was queued with.
+      window.__seen = [];
+      Object.defineProperty(window, "dataLayer", { configurable: true, get() { return this.__dl; }, set(v) { this.__dl = v; const push = v.push.bind(v); v.push = (...a) => { window.__seen.push(location.href); return push(...a); }; } });
+    });
+    await p.goto(url + "/book/?s=regular&h=condo&bd=2&ba=1&pc=m2n5w9");
+    assert(await p.inputValue("#f-postal") === "M2N 5W9", "postal field: " + await p.inputValue("#f-postal"));
+    assert(/North York/.test(await txt(p, "[data-pc-booking]")), "checked: " + await txt(p, "[data-pc-booking]"));
+    const where = await p.evaluate(() => ({ href: location.href, seen: window.__seen }));
+    assert(!/pc=/i.test(where.href) && /s=regular/.test(where.href), "address bar: " + where.href);
+    assert(where.seen.length > 0 && where.seen.every((h) => !/pc=|M2N/i.test(h)), "analytics should never see it: " + JSON.stringify(where.seen));
+    // Anything that isn't a postal code is ignored, and still taken out. (A fresh tab: this one keeps the postal code above.)
+    const q = await newPage(browser, { width: 390, height: 844 });
+    await q.goto(url + "/book/?pc=<b>12345</b>");
+    assert(await q.inputValue("#f-postal") === "" && !/pc=/.test(await q.evaluate(() => location.href)), "a bad value is dropped: " + await q.inputValue("#f-postal"));
+  });
 }
