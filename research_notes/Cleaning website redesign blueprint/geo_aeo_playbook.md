@@ -303,7 +303,7 @@ Rich-result realities for 2026:
 
 **LocalBusiness properties**
 - [DOC, secondary] For Google's LocalBusiness rich results, the core required properties are name and address (PostalAddress). Recommended properties include telephone, url, openingHoursSpecification, geo, image, aggregateRating and priceRange (under 100 characters). One source says address or geo is acceptable. — [Yoast](https://yoast.com/local-business-listings/); [Kortix claude-seo skill](https://kortix.com/marketplace/AgricIDaniel--claude-seo/seo-local)
-- [DOC/OPINION] Google's John Mueller has said it is fine to use valid schema.org properties not listed in Google's docs, such as areaServed, hasOfferCatalog and founder. — [SEJ](https://www.searchenginejournal.com/google-follow-our-structured-data-requirements-to-ensure-rich-result-eligibility/329679/)
+- [DOC/OPINION] Google's John Mueller reportedly said it is "perfectly fine" to use valid schema.org properties that aren't listed in Google's docs, such as areaServed, hasOfferCatalog and founder. This attribution comes from a search summary, and the exact source page is uncertain. — [SEJ](https://www.searchenginejournal.com/google-follow-our-structured-data-requirements-to-ensure-rich-result-eligibility/329679/)
 - [STUDY, unverified secondary] A claim that Product or Review schema with real data is cited more than generic Article or Organization markup could not be traced to a study. — [Dotin Academy](https://dotinacademy.com/does-schema-markup-help-ai-citations/)
 
 ### Inferences
