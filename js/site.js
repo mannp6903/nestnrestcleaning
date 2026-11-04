@@ -375,6 +375,28 @@
     });
   }
 
+  /* ---------- Build your clean: the price box's house (houseArt in tools/build.mjs) ---------- */
+  // Rooms fill as the home is described: bedrooms on top, the kitchen and bathrooms below, in the service's hue. Rooms the
+  // service doesn't clean show as outlines; past six bedrooms or four bathrooms a small "+n" counts the rest.
+  function renderHouse(svg, service, beds, baths, home, pets) {
+    if (!svg) return;
+    var s = C.services[service] || {};
+    var bedsIn = !s.rooms || s.rooms.some(function (r) { return /bed/i.test(r); });
+    svg.setAttribute("class", "house hue-" + service);
+    svg.setAttribute("data-home", home);
+    $$("[data-bed]", svg).forEach(function (r) {
+      var n = +r.getAttribute("data-bed");
+      r.classList.toggle("is-on", bedsIn && n <= beds);
+      r.classList.toggle("is-out", !bedsIn);
+    });
+    $$("[data-bath]", svg).forEach(function (r) { r.classList.toggle("is-on", +r.getAttribute("data-bath") <= baths); });
+    var more = function (sel, n, max) { var t = $(sel, svg); if (t) t.textContent = n > max ? "+" + (n - max) : ""; };
+    more("[data-more-beds]", bedsIn ? beds : 0, $$("[data-bed]", svg).length);
+    more("[data-more-baths]", baths, $$("[data-bath]", svg).length);
+    var paw = $("[data-house-pets]", svg);
+    if (paw) paw.classList.toggle("is-on", !!pets);
+  }
+
   /* ---------- Instant pricer (home, service and area pages) ---------- */
   function bindPricer() {
     var form = $("[data-pricer]");
@@ -406,6 +428,7 @@
       bedsBox.hidden = st.service === "detail";
       boxChecks.forEach(function (el) { el.checked = st.addons.indexOf(el.getAttribute("data-p-addon")) > -1; });
       var extras = boxAddons(), p = boxPrice();
+      renderHouse($("[data-house]", form), st.service, st.service === "detail" ? 1 : st.beds, st.baths, st.home, extras.some(function (a) { return a.id === "pets"; }));
       // While the founding offer runs, the first-visit price leads and the regular price sits under it (the booking total's rule).
       var f = C.offers.founding, on = !!(f && f.active), h = hoursFor(st.service, st.beds, st.baths, st.home, extras);
       var pf = $("[data-p-for]", form);

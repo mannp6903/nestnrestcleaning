@@ -5,6 +5,8 @@
 // Mel Lastman Square page (reflecting pool, fountains, amphitheatre) and Destination Toronto's Scarborough page (cliffs,
 // beach, marina) on 31 October 2026. Nothing here suggests an affiliation with those places.
 
+// Lit windows carry lm-lit-0, lm-lit-1 or lm-lit-2: on the home hero they switch off a group at a time as the visitor
+// scrolls, from night to dawn (css/site.css, "Night to dawn").
 // A small seeded random, so the drawing varies naturally but is the same on every build.
 function rng(seed) { let s = seed; return () => ((s = (s * 16807) % 2147483647) - 1) / 2147483646; }
 const r1 = (n) => Math.round(n * 10) / 10;
@@ -25,7 +27,7 @@ function northYork(x0, w, gy, seed = 7, tall = 1) {
     out += `<path class="${cls}" d="M${r1(x)} ${r1(gy)}V${r1(top + 10)}h${r1(tw * 0.18)}V${r1(top)}h${r1(tw * 0.64)}v10h${r1(tw * 0.18)}V${r1(gy)}z"/>`;
     if (i % 3 === 1) out += `<path class="lm-mast" d="M${r1(x + tw / 2)} ${r1(top)}v-12"/>`;
     const cols = Math.max(2, Math.floor((tw - 8) / 8));
-    out += `<path class="lm-win" d="${Array.from({ length: cols }, (_, c) => `M${r1(x + 6 + c * ((tw - 12) / (cols - 1)))} ${r1(top + 18)}V${r1(gy - 30)}`).join("")}"/>`;
+    out += `<path class="lm-win lm-lit-${(i * 2 + seed) % 3}" d="${Array.from({ length: cols }, (_, c) => `M${r1(x + 6 + c * ((tw - 12) / (cols - 1)))} ${r1(top + 18)}V${r1(gy - 30)}`).join("")}"/>`;
   }
   // The civic centre in front, with its glass atrium; the plaza and reflecting pool before it.
   const cx = x0 + w * 0.22, cw = w * 0.5;
@@ -45,9 +47,9 @@ function homes(x0, w, gy) {
   const house = (x, hw, h, roof = "lm-roof", wall = "lm-house") => {
     const top = gy - h;
     return `<rect class="${wall}" x="${r1(x)}" y="${r1(top)}" width="${r1(hw)}" height="${r1(h)}"/><path class="${roof}" d="M${r1(x - 5)} ${r1(top + 1)}L${r1(x + hw / 2)} ${r1(top - h * 0.5)}L${r1(x + hw + 5)} ${r1(top + 1)}Z"/>` +
-      `<rect class="lm-window" x="${r1(x + hw * 0.16)}" y="${r1(top + h * 0.28)}" width="${r1(hw * 0.24)}" height="${r1(h * 0.26)}"/><rect class="lm-door" x="${r1(x + hw * 0.6)}" y="${r1(top + h * 0.44)}" width="${r1(hw * 0.2)}" height="${r1(h * 0.56)}"/>`;
+      `<rect class="lm-window lm-lit-${Math.round(x) % 3}" x="${r1(x + hw * 0.16)}" y="${r1(top + h * 0.28)}" width="${r1(hw * 0.24)}" height="${r1(h * 0.26)}"/><rect class="lm-door" x="${r1(x + hw * 0.6)}" y="${r1(top + h * 0.44)}" width="${r1(hw * 0.2)}" height="${r1(h * 0.56)}"/>`;
   };
-  const row = (x, n, uw, h) => Array.from({ length: n }, (_, i) => `<rect class="${i % 2 ? "lm-house-2" : "lm-house"}" x="${r1(x + i * uw)}" y="${r1(gy - h)}" width="${r1(uw)}" height="${r1(h)}"/><rect class="lm-window" x="${r1(x + i * uw + uw * 0.24)}" y="${r1(gy - h + 9)}" width="${r1(uw * 0.52)}" height="${r1(h * 0.22)}"/><rect class="lm-door" x="${r1(x + i * uw + uw * 0.36)}" y="${r1(gy - h * 0.42)}" width="${r1(uw * 0.28)}" height="${r1(h * 0.42)}"/>`).join("") +
+  const row = (x, n, uw, h) => Array.from({ length: n }, (_, i) => `<rect class="${i % 2 ? "lm-house-2" : "lm-house"}" x="${r1(x + i * uw)}" y="${r1(gy - h)}" width="${r1(uw)}" height="${r1(h)}"/><rect class="lm-window lm-lit-${i % 3}" x="${r1(x + i * uw + uw * 0.24)}" y="${r1(gy - h + 9)}" width="${r1(uw * 0.52)}" height="${r1(h * 0.22)}"/><rect class="lm-door" x="${r1(x + i * uw + uw * 0.36)}" y="${r1(gy - h * 0.42)}" width="${r1(uw * 0.28)}" height="${r1(h * 0.42)}"/>`).join("") +
     `<path class="lm-roof" d="M${r1(x - 4)} ${r1(gy - h)}h${r1(n * uw + 8)}l-8 -13H${r1(x + 4)}z"/>`;
   const u = w / 460;
   return tree(x0 + 16 * u, gy - 22, 15) + house(x0 + 40 * u, 66 * u, 40) + tree(x0 + 128 * u, gy - 14, 11, 2) +
