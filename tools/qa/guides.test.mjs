@@ -1,7 +1,7 @@
 // Guide articles carry the dates set in tools/guides.mjs, never the day the site was built.
 import fs from "node:fs";
 import path from "node:path";
-import { test, assert, ROOT } from "./lib.mjs";
+import { test, assert, ROOT, loadConfig } from "./lib.mjs";
 
 // published and modified for each guide, read from the guide source.
 function guideDates() {
@@ -9,18 +9,19 @@ function guideDates() {
   return src.split(/\bslug: "/).slice(1).map((block) => {
     const head = block.slice(0, 400);
     const pick = (k) => (head.match(new RegExp("\\b" + k + ': "(\\d{4}-\\d{2}-\\d{2})"')) || [])[1];
-    return { slug: block.slice(0, block.indexOf('"')), published: pick("published"), modified: pick("modified") };
+    return { slug: block.slice(0, block.indexOf('"')), published: pick("published"), modified: pick("modified"), prices: /\bprices: true\b/.test(head) };
   });
 }
 
 export default async function () {
-  test("guide dates come from the guide, not the build day", async () => {
+  test("guide dates come from the guide (and, for prices, from pricingVersion), not the build day", async () => {
     const guides = guideDates();
     const sitemap = fs.readFileSync(path.join(ROOT, "sitemap.xml"), "utf8");
     assert(guides.length === 5, "found " + guides.length + " guides");
     for (const g of guides) {
       assert(g.published, g.slug + " has no published date in tools/guides.mjs");
-      const changed = g.modified || g.published;
+      // An article that quotes prices also changes when the prices do (pricingVersion).
+      const changed = [g.modified || g.published, g.prices ? loadConfig().pricingVersion : ""].sort().pop();
       assert(changed >= g.published, g.slug + ": modified is before published");
       const html = fs.readFileSync(path.join(ROOT, "guides", g.slug, "index.html"), "utf8");
       const article = [...html.matchAll(/<script type="application\/ld\+json">(.*?)<\/script>/g)].map((m) => JSON.parse(m[1])).find((s) => s["@type"] === "Article");
