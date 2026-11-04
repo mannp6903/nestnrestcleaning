@@ -107,6 +107,8 @@ const founding = C.offers.founding;
 const spotsLeft = founding ? Math.max(0, founding.spots - (founding.claimed || 0)) : 0;
 // Live calendar: with a calendar switched on (a Cal.com link in booking.calLink, or the Easy!Appointments address), booking ends with picking a confirmed time.
 const CAL = !!CALENDAR;
+// "How did you hear about us?" on the booking form: booking.foundVia in js/config.js. Off when the list is empty.
+const FOUND_VIA = ((C.booking || {}).foundVia || []).filter(Boolean);
 // Action words, one per stage: every way into the booking form, the price box (a price is calculated, so the day comes next),
 // and the final send. Without the calendar a booking is a request Mann confirms, so the words say request.
 const ACT = CAL
@@ -554,18 +556,20 @@ function houseArt(k, beds = 1, baths = 1, home = "condo") {
       <g class="h-pets" data-house-pets><circle cx="104" cy="15" r="9"/><path d="M100.5 17.5c0-2.2 1.6-3.6 3.5-3.6s3.5 1.4 3.5 3.6c0 1.6-1.4 2.2-3.5 2.2s-3.5-.6-3.5-2.2z"/><circle cx="99.6" cy="12.6" r="1.4"/><circle cx="102.6" cy="10.6" r="1.4"/><circle cx="105.8" cy="10.6" r="1.4"/><circle cx="108.6" cy="12.6" r="1.4"/></g>
     </svg>`;
 }
-function pricer(L, defaultKey = "regular", heading = "Your price, in seconds", { owner = false } = {}) {
-  const p = price(defaultKey, 1, 1);
+// home: the kind of home the box starts on (a neighbourhood's "typical" home); a condo unless given.
+function pricer(L, defaultKey = "regular", heading = "Your price, in seconds", { owner = false, home = "condo" } = {}) {
+  if (!C.homeTypes[home]) home = "condo";
+  const p = price(defaultKey, 1, 1, home);
   // While the founding offer runs, the first-visit price is the big number and the regular price sits under it.
-  const on = !!(founding && founding.active), h = hours(defaultKey, 1, 1);
-  return `<form class="pricer" data-pricer data-default-service="${defaultKey}" novalidate>
+  const on = !!(founding && founding.active), h = Math.max(1.5, roundTo(C.services[defaultKey].hours * C.homeTypes[home].factor, 0.5));
+  return `<form class="pricer" data-pricer data-default-service="${defaultKey}" data-default-home="${home}" novalidate>
   <div class="pricer-head">
     <p class="pricer-title">${esc(heading)}</p>
     ${ratingPill()}
   </div>
   <div class="pricer-result" aria-live="polite">
-    <p class="pricer-for" data-p-for>${esc(priceFor(defaultKey, 1, 1))}</p>
-    <p class="pricer-amount"><span data-p-amount>${money(on ? afterDiscount(p, founding.percent) : p)}</span> <span class="pricer-unit" data-p-unit${on ? "" : " hidden"}>first visit</span>${houseArt(defaultKey)}</p>
+    <p class="pricer-for" data-p-for>${esc(priceFor(defaultKey, 1, 1, home))}</p>
+    <p class="pricer-amount"><span data-p-amount>${money(on ? afterDiscount(p, founding.percent) : p)}</span> <span class="pricer-unit" data-p-unit${on ? "" : " hidden"}>first visit</span>${houseArt(defaultKey, 1, 1, home)}</p>
     <p class="pricer-meta" data-p-meta>${on ? `Regular price ${money(p)} · estimate, about ${h} hours on site` : `Estimate · about ${h} hours on site`}</p>
     ${offerLine()}
   </div>
@@ -578,7 +582,7 @@ function pricer(L, defaultKey = "regular", heading = "Your price, in seconds", {
   <div class="field">
     <label for="p-home">Type of home</label>
     <div class="select-wrap"><select id="p-home" data-p-home>
-      ${Object.keys(C.homeTypes).map((k) => `<option value="${k}">${esc(C.homeTypes[k].label)}</option>`).join("")}
+      ${Object.keys(C.homeTypes).map((k) => `<option value="${k}"${k === home ? " selected" : ""}>${esc(C.homeTypes[k].label)}</option>`).join("")}
     </select>${ic("i-chev")}</div>
   </div>
   <div class="pricer-row">
@@ -794,11 +798,15 @@ function serviceAnswer(k) {
   return `${CLEAN_NOUN[k] || esc(s.name)} of a 1-bedroom, 1-bathroom condo costs ${money(price(k, 1, 1))} with ${esc(B.name)}${firstVisit(price(k, 1, 1))}. A 2-bedroom, 2-bathroom townhouse is ${money(price(k, 2, 2, "town"))} and a 3-bedroom, 2-bathroom house is ${money(price(k, 3, 2, "house"))}. The smallest home takes about ${hours(k, 1, 1)} hours on site.${plan} ${ALL_IN}`;
 }
 const SERVICE_ASK = { regular: "regular house cleaning", deep: "a deep clean", move: "a move-in or move-out clean", detail: "kitchen and bathroom detailing" };
+// A neighbourhood's typical home (its "typical" in js/config.js): a 2-bed condo, or a 3-bed, 2-bath townhouse or house.
+const typicalHome = (typ) => { const t = C.homeTypes[typ] ? typ : "condo", [bd, ba] = t === "condo" ? [2, 1] : [3, 2]; return { t, bd, ba, label: `${bd}-bedroom, ${ba}-bathroom ${C.homeTypes[t].short.toLowerCase()}` }; };
 // The same answer for a place: what a home there costs, by type of home, and that it's in the area.
-function placeAnswer(place, fsas) {
+function placeAnswer(place, fsas, typical) {
   const r = (h) => money(price("regular", 1, 1, h));
   const where = fsas ? ` Every home in ${esc(place)}'s postal codes (${esc(listJoin(fsas))}) is in our area, and we clean ${esc(B.hours.toLowerCase())}.` : ` We clean ${esc(B.hours.toLowerCase())}.`;
-  return `A regular clean of a 1-bedroom, 1-bathroom condo in ${esc(place)} costs ${r("condo")} with ${esc(B.name)}${firstVisit(price("regular", 1, 1))}. The same size of townhouse is ${r("town")} and a house ${r("house")}. A deep clean starts at ${money(C.services.deep.base)} and a move-out clean at ${money(C.services.move.base)}. ${ALL_IN}${where}`;
+  const th = typical ? typicalHome(typical) : null;
+  const local = th ? ` For a ${th.label}, common in ${esc(place)}, a regular clean is ${money(price("regular", th.bd, th.ba, th.t))} (${money(afterDiscount(price("regular", th.bd, th.ba, th.t), C.frequencies.biweekly.discount))} a visit every 2 weeks) and a deep clean ${money(price("deep", th.bd, th.ba, th.t))}.` : "";
+  return `A regular clean of a 1-bedroom, 1-bathroom condo in ${esc(place)} costs ${r("condo")} with ${esc(B.name)}${firstVisit(price("regular", 1, 1))}. The same size of townhouse is ${r("town")} and a house ${r("house")}.${local} A deep clean starts at ${money(C.services.deep.base)} and a move-out clean at ${money(C.services.move.base)}. ${ALL_IN}${where}`;
 }
 // The whole price list in one paragraph: the pricing page and the price guide both open with it.
 function pricingAnswer() {
@@ -806,15 +814,17 @@ function pricingAnswer() {
   return `With ${esc(B.name)}, a regular clean of a 1-bedroom, 1-bathroom condo costs ${money(R.base)}, a deep clean ${money(C.services.deep.base)} and a move-in or move-out clean ${money(C.services.move.base)}${FOUNDING_ON ? `, and our first ${founding.spots} households get ${founding.percent}% off their first visit` : ""}. Each extra bedroom adds ${money(R.perBed)} and each extra bathroom ${money(R.perBath)} to a regular clean, townhouses add ${Math.round((C.homeTypes.town.factor - 1) * 100)}% and houses ${Math.round((C.homeTypes.house.factor - 1) * 100)}%, and a regular clean booked every 2 weeks is ${C.frequencies.biweekly.discount}% less. You see your price before you book. ${ALL_IN}`;
 }
 const PRICE_ASK = "How much does house cleaning cost in Scarborough and North York?";
-function answerBlock(L, { q, a, id = "answer", hue = "" }) {
-  return `<section class="section answer${hueClass(hue)}" id="${id}" aria-labelledby="${id}-q">
-  <div class="wrap">
-    <div class="answer-inner">
+// inHero: inside a page's hero column (neighbourhood pages, where it replaces a generic photo), without its own section spacing.
+function answerBlock(L, { q, a, id = "answer", hue = "", inHero = false }) {
+  const inner = `<div class="answer-inner">
       <h2 id="${id}-q">${esc(q)}</h2>
       <p class="answer-text">${a}</p>
       <p class="answer-meta">${pricesReviewed()} · <a href="${L("pricing/#by-size")}">Every price by home size</a></p>
-    </div>
-  </div>
+    </div>`;
+  return `<section class="section answer${inHero ? " answer-hero" : ""}${hueClass(hue)}" id="${id}" aria-labelledby="${id}-q">
+  ${inHero ? inner : `<div class="wrap">
+    ${inner}
+  </div>`}
 </section>`;
 }
 
@@ -1156,14 +1166,25 @@ const STANDARD = [
 
 // Reviews from config.reviews, written into the page itself so search engines and AI assistants (which don't run
 // JavaScript) read them. js/site.js renders the same markup (renderReviews), so the two never disagree.
+const reviewStars = (n) => [1, 2, 3, 4, 5].map((i) => `<svg class="ic${i > n ? " off" : ""}" aria-hidden="true"><use href="#i-star"/></svg>`).join("");
+const reviewCard = (r) => `<figure class="review-card"><div class="stars" role="img" aria-label="${r.rating} out of 5 stars">${reviewStars(r.rating)}</div><blockquote><p>${esc(r.text)}</p></blockquote><footer><strong>${esc(r.name)}</strong>${r.area ? ", " + esc(r.area) : ""}${r.service ? " · " + esc(r.service) : ""}</footer></figure>`;
+// Reviews from one neighbourhood or district, on its own page: the strongest local proof there is. Nothing until one exists.
+function localReviews(list, place) {
+  if (!list.length) return "";
+  return `<section class="section reviews" id="reviews">
+  <div class="wrap">
+    <div class="section-head"><p class="label">Reviews</p><h2>What clients in ${esc(place)} say.</h2></div>
+    <div class="review-grid">${list.map(reviewCard).join("")}</div>
+  </div>
+</section>`;
+}
 function reviewsSection() {
   const list = C.reviews || [];
   const avg = list.length ? list.reduce((t, r) => t + r.rating, 0) / list.length : 0;
-  const stars = (n) => [1, 2, 3, 4, 5].map((i) => `<svg class="ic${i > n ? " off" : ""}" aria-hidden="true"><use href="#i-star"/></svg>`).join("");
   return `<section class="section reviews" id="reviews" data-reviews${list.length ? "" : " hidden"}>
   <div class="wrap">
     <div class="section-head"><p class="label">Reviews</p><h2 data-reviews-title>What clients say.</h2><p class="muted" data-reviews-sub>${list.length ? `${avg.toFixed(1)} out of 5 from ${list.length} verified review${list.length > 1 ? "s" : ""}.` : ""}</p></div>
-    <div class="review-grid" data-reviews-list>${list.map((r) => `<figure class="review-card"><div class="stars" role="img" aria-label="${r.rating} out of 5 stars">${stars(r.rating)}</div><blockquote><p>${esc(r.text)}</p></blockquote><footer><strong>${esc(r.name)}</strong>${r.area ? ", " + esc(r.area) : ""}${r.service ? " · " + esc(r.service) : ""}</footer></figure>`).join("")}</div>
+    <div class="review-grid" data-reviews-list>${list.map(reviewCard).join("")}</div>
   </div>
 </section>`;
 }
@@ -1460,6 +1481,7 @@ urls.push(page({
                 </div>
                 <div class="field"><label for="f-notes">Notes <span class="opt">optional</span></label><textarea id="f-notes" name="notes" rows="3" placeholder="Rooms to focus on, things to leave alone"></textarea><small class="field-hint">Please don't type door or lockbox codes here. We'll ask for them by text once your booking is confirmed.</small></div>`)}
               ${section("referral", `Referred by a client? <span class="opt">optional</span>`, "No", `<div class="field"><label for="f-referrer">Their first and last name</label><input id="f-referrer" name="referrer" autocomplete="off" autocapitalize="words" placeholder="First and last name"><small class="field-hint">We'll give them $${C.offers.referral} off their next clean once yours is done and paid.</small></div>`)}
+              ${FOUND_VIA.length ? `<div class="field"><label for="f-found">How did you hear about us? <span class="opt">optional</span></label><div class="select-wrap"><select id="f-found" name="found"><option value="">Choose one</option>${FOUND_VIA.map((o) => `<option>${esc(o)}</option>`).join("")}</select>${ic("i-chev")}</div></div>` : ""}
               </div>
               <section class="review span-2" aria-labelledby="review-title">
                 <h2 class="review-title" id="review-title">Check your clean</h2>
@@ -2055,6 +2077,7 @@ ${answerBlock(L, { q: `How much does house cleaning cost in ${a.name}?`, a: plac
   </div>
 </section>
 ${jobsSection(jobs.filter((j) => j.area === a.slug), `Recent cleans in ${a.name}.`, "")}
+${localReviews((C.reviews || []).filter((r) => r.area === a.name || a.neighbourhoods.includes(r.area)), a.name)}
 ${fq.html}
 ${finalCta(L, `Book your ${a.name} clean.`)}`
   }));
@@ -2063,13 +2086,14 @@ ${finalCta(L, `Book your ${a.name} clean.`)}`
 for (const h of hoodPages) {
   const a = district(h.district);
   const trail = [["Home", ""], [a.name, "areas/" + a.slug + "/"], [h.name, hoodPath(h)]];
-  const fq = faqBlock("area", `Cleaning in ${h.name}: questions.`);
+  // The questions and the full service list live on the district page; this page keeps what only this place has.
   const near = (h.near || []).map((s) => hoodBySlug[s]).filter(Boolean);
+  const th = typicalHome(h.typical);
   urls.push(page({
     depth: 3, pathOut: `${hoodPath(h)}index.html`, pageType: "area",
     title: `House Cleaning in ${h.name}, ${a.name} | ${B.name}`,
     description: metaDesc(`House cleaning in ${h.name}, ${a.name} (${h.fsas.join(", ")}), from ${money(C.services.regular.base)}.`, "See your price in seconds, book in two minutes, pay after the clean."),
-    schemas: [crumbSchema(trail), fq.schema, { "@context": "https://schema.org", "@type": "Service", name: `House cleaning in ${h.name}`, serviceType: "House cleaning", provider: { "@id": BIZ_ID }, areaServed: { "@type": "Place", name: `${h.name}, ${a.name}, Toronto, ON`, containedInPlace: placeSchema(a) } }],
+    schemas: [crumbSchema(trail), { "@context": "https://schema.org", "@type": "Service", name: `House cleaning in ${h.name}`, serviceType: "House cleaning", provider: { "@id": BIZ_ID }, areaServed: { "@type": "Place", name: `${h.name}, ${a.name}, Toronto, ON`, containedInPlace: placeSchema(a) } }],
     body: (L) => `
 <section class="hero hero-sub">
   <div class="wrap">${breadcrumbs(L, trail)}</div>
@@ -2083,19 +2107,17 @@ for (const h of hoodPages) {
         ${OPEN_FACT}
         <div><dt>Payment</dt><dd>After the clean</dd></div>
       </dl>
-      ${photo(L, AREA_PHOTO[h.district] || "living-room", { sizes: "(min-width: 960px) 520px, 92vw", cls: "hero-photo" })}
+      ${answerBlock(L, { q: `How much does house cleaning cost in ${h.name}?`, a: placeAnswer(h.name, h.fsas, h.typical), inHero: true })}
     </div>
-    <div class="hero-pricer">${pricer(L, "regular", "Your price in " + h.name, { owner: true })}</div>
+    <div class="hero-pricer">${pricer(L, "regular", "Your price in " + h.name, { owner: true, home: th.t })}</div>
   </div>
 </section>
-
-${answerBlock(L, { q: `How much does house cleaning cost in ${h.name}?`, a: placeAnswer(h.name, h.fsas) })}
 
 <section class="section section-tint">
   <div class="wrap split">
     <div class="split-head">
       <p class="label">Homes in ${esc(h.name)}</p>
-      <h2>Condos, townhouses and houses.</h2>
+      <h2>What a clean costs in ${esc(h.name)}.</h2>
       <p class="muted">${esc(h.homes)} Your price adjusts for the type of home: townhouses add ${Math.round((C.homeTypes.town.factor - 1) * 100)}% and houses ${Math.round((C.homeTypes.house.factor - 1) * 100)}%, for the stairs and extra floor space.</p>
       ${postalForm("pc-hood")}
     </div>
@@ -2105,39 +2127,36 @@ ${answerBlock(L, { q: `How much does house cleaning cost in ${h.name}?`, a: plac
         <ul class="fsa-list">${h.fsas.map((p) => `<li>${esc(p)}</li>`).join("")}</ul>
       </div>
       <div class="fsa">
-        <p class="label">Popular here</p>
-        <ul class="ticks">
-          <li>${ic("i-check")}<a href="${L("services/regular-home-cleaning/")}">Regular cleaning</a> every 2 weeks, from ${money(afterDiscount(price("regular", 2, 1), C.frequencies.biweekly.discount))} for a 2-bedroom condo</li>
-          <li>${ic("i-check")}<a href="${L("services/deep-cleaning/")}">A deep clean</a> to start, from ${money(C.services.deep.base)}</li>
-          <li>${ic("i-check")}<a href="${L("services/move-in-move-out-cleaning/")}">Move-in and move-out cleans</a>, fridge and oven included</li>
+        <p class="label">${h.typical ? `A typical ${esc(h.name)} home` : `A ${esc(th.label)}`}</p>
+        ${h.typical ? `<p class="muted">A ${esc(th.label)}.</p>` : ""}
+        <ul class="price-list hood-prices">
+          <li><span><a href="${L("services/" + C.services.regular.slug + "/")}">Regular cleaning</a>, every 2 weeks</span><b>${money(afterDiscount(price("regular", th.bd, th.ba, th.t), C.frequencies.biweekly.discount))}</b></li>
+          <li><span>Regular cleaning, one time</span><b data-price="regular:${th.bd}:${th.ba}:${th.t}">${money(price("regular", th.bd, th.ba, th.t))}</b></li>
+          <li><span><a href="${L("services/" + C.services.deep.slug + "/")}">Deep cleaning</a></span><b data-price="deep:${th.bd}:${th.ba}:${th.t}">${money(price("deep", th.bd, th.ba, th.t))}</b></li>
+          <li><span><a href="${L("services/" + C.services.move.slug + "/")}">Move-in or move-out</a>, fridge and oven included</span><b data-price="move:${th.bd}:${th.ba}:${th.t}">${money(price("move", th.bd, th.ba, th.t))}</b></li>
         </ul>
+        <a class="text-link" href="${L("pricing/")}">Every service and price ${ic("i-arrow")}</a>
       </div>
     </div>
   </div>
 </section>
 
-<section class="section">
-  <div class="wrap">
-    <div class="section-head section-head-row"><div><p class="label">Services</p><h2>Every service, in ${esc(h.name)}.</h2></div><a class="text-link" href="${L("pricing/")}">See every price ${ic("i-arrow")}</a></div>
-    ${serviceCards(L, allServices, "svc-grid-compact")}
-  </div>
-</section>
-
 ${h.condo ? condoGuide(h.name) : ""}
 ${jobsSection(jobs.filter((j) => j.neighbourhood === h.name), `Recent cleans in ${h.name}.`, h.condo ? "section-tint" : "")}
+${localReviews((C.reviews || []).filter((r) => r.area === h.name), h.name)}
 ${near.length ? `<section class="section section-tint">
   <div class="wrap split">
     <div class="split-head">
       <p class="label">Nearby</p>
       <h2>We also clean nearby.</h2>
       <a class="text-link" href="${L("areas/" + a.slug + "/")}">All of ${esc(a.name)} ${ic("i-arrow")}</a>
+      <a class="text-link" href="${L("areas/" + a.slug + "/#faq")}">Questions about cleaning in ${esc(a.name)} ${ic("i-arrow")}</a>
     </div>
     <ul class="area-list">
       ${near.map((o) => `<li><a href="${L(hoodPath(o))}"><span>${esc(o.name)}</span><small>${esc(o.fsas.join(", "))}</small>${ic("i-arrow")}</a></li>`).join("")}
     </ul>
   </div>
 </section>` : ""}
-${fq.html}
 ${finalCta(L, `Book your ${h.name} clean.`)}`
   }));
 }

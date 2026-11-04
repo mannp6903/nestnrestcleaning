@@ -729,6 +729,9 @@ a.svc-card:hover .svc-arrow { transform: translateX(4px); }
 .answer-text { font-size: var(--fs-lede); line-height: 1.6; max-width: 68ch; }
 .answer-meta { font-size: var(--fs-support); color: var(--muted); }
 .answer-meta a { color: var(--ink); text-underline-offset: 3px; }
+/* In a neighbourhood page's hero, in place of a photo: the local answer, under the facts. */
+.answer.answer-hero { padding-block: clamp(4px, 1vw, 8px) 0; }
+.answer-hero .answer-text { font-size: var(--fs-body, 1rem); }
 .add-tag { flex: none; font-family: var(--display); font-weight: 700; font-size: var(--fs-badge); color: var(--ink); background: var(--sand-soft); border: 1px solid var(--sand); padding: 1px 6px; border-radius: 6px; position: relative; top: -1px; }
 .ticks { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 10px; }
 .ticks li { display: flex; gap: 12px; align-items: baseline; }
@@ -1025,6 +1028,11 @@ a.svc-card:hover .svc-arrow { transform: translateX(4px); }
 .sum-fine { margin-top: 14px; font-size: 0.8rem; color: var(--on-navy-2); }
 
 .done { display: grid; gap: 14px; justify-items: start; padding: 8px 0; }
+/* Fold and tuck: the confirmation settles in like a made bed's top sheet, once. Nothing under reduced motion. */
+@media (prefers-reduced-motion: no-preference) {
+  .done:not([hidden]) { transform-origin: 50% 0; animation: nr-tuck var(--settle) var(--ease-settle) both; }
+  @keyframes nr-tuck { from { transform: perspective(900px) rotateX(-10deg) translateY(14px); opacity: 0; } }
+}
 .done:focus { outline: none; }
 .done h2 { font-size: clamp(1.9rem, 6vw, 2.6rem); }
 .done > p:not(.label) { color: var(--muted); max-width: 48ch; }

@@ -127,7 +127,11 @@ window.NR_CONFIG = {
     leadDays: 1,
     blockedDates: [],
     calLink: "",
-    easyAppointments: { url: "", provider: "", services: [] }
+    easyAppointments: { url: "", provider: "", services: [] },
+    /* "How did you hear about us?" on the booking form (optional). The answer arrives with each request as "Found us via",
+       and Google Analytics counts the answers (only the answer, never who gave it). Keep "ChatGPT or another AI assistant":
+       it's how you'll see whether AI answers are sending you clients (docs/measurement.md). */
+    foundVia: ["Google search", "Google Maps", "ChatGPT or another AI assistant", "Instagram or Facebook", "A friend or neighbour", "A flyer or door hanger", "Somewhere else"]
   },
 
   /* The server that runs your own tools (booking calendar, form delivery, chat, offers emails).
@@ -393,7 +397,10 @@ window.NR_CONFIG = {
 
   /* Neighbourhood pages, one per entry, at /areas/<district>/<slug>/. Keep every fact true and local.
      fsas must be postal codes listed in serviceArea above.
-     condo: true adds a "Booking a condo clean" section (concierge, parking, service elevator) to that page. */
+     condo: true adds a "Booking a condo clean" section (concierge, parking, service elevator) to that page.
+     typical: the kind of home most common there ("condo", "town" or "house"), from what "homes" says. The page's price box
+     starts on it, and its prices for a typical home are listed. Leave it out where there's no clear answer (a condo is assumed).
+     Reviews whose "area" is the neighbourhood's name appear on its page, and on its district's page. */
   neighbourhoods: [
     { slug: "agincourt", name: "Agincourt", district: "scarborough", fsas: ["M1S", "M1T", "M1V"],
       intro: "Agincourt runs along Sheppard Avenue East around Kennedy Road, with Agincourt GO and Agincourt Mall at its heart. We clean its condos, townhouses and family homes, from newer buildings near the GO line to the bungalows on its quieter streets.",
@@ -402,47 +409,47 @@ window.NR_CONFIG = {
     { slug: "malvern", name: "Malvern", district: "scarborough", fsas: ["M1B"],
       intro: "Malvern, in Scarborough's northeast, is home to Malvern Town Centre and sits beside Rouge National Urban Park. Many of its homes are townhouses and semi-detached houses, which is exactly what our townhouse price is built for.",
       homes: "Townhouses, semis and detached family homes, plus low-rise and high-rise apartments.",
-      near: ["agincourt", "highland-creek"] },
+      near: ["agincourt", "highland-creek"], typical: "town" },
     { slug: "guildwood", name: "Guildwood", district: "scarborough", fsas: ["M1E"],
       intro: "Guildwood is a quiet, leafy corner of Scarborough by the lake, known for Guild Park and Gardens and Guildwood GO. Its larger detached homes often start with a deep clean, then settle into a regular plan.",
       homes: "Mostly detached houses on large lots, with some townhouses and apartments near Kingston Road.",
-      near: ["highland-creek", "birch-cliff"] },
+      near: ["highland-creek", "birch-cliff"], typical: "house" },
     { slug: "birch-cliff", name: "Birch Cliff", district: "scarborough", fsas: ["M1N"],
       intro: "Birch Cliff sits along Kingston Road at Scarborough's southwest edge, above the Scarborough Bluffs. From older family homes to newer townhouses near Kingston Road, we clean it the same careful way.",
       homes: "Older detached homes and bungalows, newer townhouses and low-rise condos along Kingston Road.",
-      near: ["guildwood", "wexford"] },
+      near: ["guildwood", "wexford"], typical: "house" },
     { slug: "highland-creek", name: "Highland Creek", district: "scarborough", fsas: ["M1C"],
       intro: "Highland Creek is home to the University of Toronto Scarborough and to plenty of family homes around Military Trail and Old Kingston Road. Busy households and move-outs near campus are both a big part of our work here.",
       homes: "Detached family homes, townhouses, and rentals close to campus.",
-      near: ["guildwood", "malvern"] },
+      near: ["guildwood", "malvern"], typical: "house" },
     { slug: "wexford", name: "Wexford", district: "scarborough", fsas: ["M1R", "M1P"],
       intro: "Wexford, around Lawrence Avenue East and Warden Avenue, is a neighbourhood of bungalows, semis and apartment towers. We clean its homes seven days a week, evenings included.",
       homes: "Bungalows and semis on residential streets, and apartment towers along the main roads.",
-      near: ["agincourt", "birch-cliff"] },
+      near: ["agincourt", "birch-cliff"], typical: "house" },
     { slug: "willowdale", name: "Willowdale", district: "north-york", fsas: ["M2M", "M2N", "M2R"],
       intro: "Willowdale stretches along Yonge Street north of the 401, with North York Centre and Mel Lastman Square at its core. It's one of Toronto's busiest condo areas, and condos are where our prices start.",
       homes: "High-rise condos along Yonge Street, and detached homes on the streets east and west of it.",
-      near: ["bayview-village", "bathurst-manor"], condo: true },
+      near: ["bayview-village", "bathurst-manor"], typical: "condo", condo: true },
     { slug: "don-mills", name: "Don Mills", district: "north-york", fsas: ["M3B", "M3C"],
       intro: "Don Mills, around Don Mills Road and Lawrence Avenue East, was one of Canada's first planned communities and is home to the Shops at Don Mills. We clean its mid-century homes, townhouses and condos alike.",
       homes: "Mid-century detached homes, townhouses, and condos near the Shops at Don Mills.",
-      near: ["york-mills", "bayview-village"] },
+      near: ["york-mills", "bayview-village"], typical: "house" },
     { slug: "york-mills", name: "York Mills", district: "north-york", fsas: ["M2L", "M2P"],
       intro: "York Mills, around Yonge Street and York Mills Road, includes Hogg's Hollow and some of North York's largest homes. For homes over about 3,000 square feet, our Residence Care service starts with a walkthrough and a written care plan.",
       homes: "Large detached homes, plus condos and townhouses near Yonge Street.",
-      near: ["don-mills", "bayview-village"] },
+      near: ["don-mills", "bayview-village"], typical: "house" },
     { slug: "bayview-village", name: "Bayview Village", district: "north-york", fsas: ["M2K"],
       intro: "Bayview Village, around Bayview Avenue and Sheppard Avenue East, mixes condos near Bayview Village Shopping Centre and the subway with quiet streets of detached homes.",
       homes: "Condos near Bayview and Sheppard, and detached homes on the surrounding streets.",
-      near: ["willowdale", "don-mills"], condo: true },
+      near: ["willowdale", "don-mills"], typical: "condo", condo: true },
     { slug: "bathurst-manor", name: "Bathurst Manor", district: "north-york", fsas: ["M3H"],
       intro: "Bathurst Manor, around Bathurst Street and Sheppard Avenue West, sits beside Earl Bales Park. Its family homes and apartments are a short drive from us, any day of the week.",
       homes: "Detached and semi-detached family homes, and apartment buildings along Bathurst Street.",
-      near: ["willowdale", "lawrence-manor"] },
+      near: ["willowdale", "lawrence-manor"], typical: "house" },
     { slug: "lawrence-manor", name: "Lawrence Manor", district: "north-york", fsas: ["M6A", "M5M"],
       intro: "Lawrence Manor, around Lawrence Avenue West between Bathurst Street and Allen Road, is a neighbourhood of family homes with condos along its main roads. We clean them all, evenings and weekends included.",
       homes: "Detached and semi-detached homes, with newer condos along Lawrence and Bathurst.",
-      near: ["bathurst-manor", "york-mills"] }
+      near: ["bathurst-manor", "york-mills"], typical: "house" }
   ],
 
   /* Room-by-room checklist: [task, regular, deep, move] with "yes" (included), "add" (a paid extra) or "" (not offered).

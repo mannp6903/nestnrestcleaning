@@ -401,7 +401,7 @@
   function bindPricer() {
     var form = $("[data-pricer]");
     if (!form) return;
-    var st = { service: form.getAttribute("data-default-service") || "regular", home: "condo", beds: 1, baths: 1, addons: [] };
+    var st = { service: form.getAttribute("data-default-service") || "regular", home: C.homeTypes[form.getAttribute("data-default-home")] ? form.getAttribute("data-default-home") : "condo", beds: 1, baths: 1, addons: [] };
     // Questions about the home that change the price (heavy pet hair): config.addons with "priceBox".
     var boxChecks = $$("[data-p-addon]", form), boxIds = boxChecks.map(function (el) { return el.getAttribute("data-p-addon"); });
     var d = PAGE === "home" ? quoteDraft() : null;
@@ -524,7 +524,7 @@
     var form = $("#booking-form");
     if (!form) return;
     var state = { step: 1, service: "regular", homeType: "condo", beds: 1, baths: 1, addons: [], checks: [], freq: "once", date: null, flex: false, slot: null };
-    var fieldIds = ["f-name", "f-phone", "f-email", "f-address", "f-postal", "f-access", "f-parking", "f-referrer", "f-notes"];
+    var fieldIds = ["f-name", "f-phone", "f-email", "f-address", "f-postal", "f-access", "f-parking", "f-referrer", "f-found", "f-notes"];
     var radioNames = ["pets", "contactPref", "products"];
     var boxIds = ["f-elevator", "f-register", "f-offers"];
     // The page decides the flow: built with a Cal.com link, it has no day-and-window step and ends on the calendar.
@@ -1049,7 +1049,14 @@
       if (t.name === "freq") state.freq = t.value;
       if (t.name === "slot") { state.slot = t.value; $("[data-slot-note]").textContent = ""; stepError("slot", ""); }
       if (t.name === "date") { state.date = t.value; state.flex = false; stepError("date", ""); }
-      if (t.hasAttribute("data-flex")) { state.flex = t.checked; if (state.flex) state.date = null; stepError("date", ""); }
+      if (t.hasAttribute("data-flex")) {
+        state.flex = t.checked;
+        if (state.flex) state.date = null;
+        stepError("date", "");
+        // Flexible on the day usually means flexible on the time too: "Any time" is chosen with it, unless a window already is.
+        var anyTime = C.timeSlots.filter(function (x) { return x.any; })[0];
+        if (state.flex && !state.slot && anyTime) { state.slot = anyTime.id; stepError("slot", ""); }
+      }
       if (t.name === "addon") { state.addons = $$('input[name="addon"]:checked:not(:disabled)', form).map(function (i) { return i.value; }); normalizeSlot(true); }
       if (t.name === "check") { state.checks = $$('input[name="check"]:checked', form).map(function (i) { return i.value; }); stepError("quote", ""); }
       sync();
@@ -1215,12 +1222,14 @@
         "Address": val("f-address"), "Postal code": formatPostal(val("f-postal")) + (z && z.area ? " (" + z.area + ")" : ""),
         "Getting in": val("f-access") + buildingText(), "Pets": radioVal("pets"), "Products": radioVal("products"),
         "Referred by": val("f-referrer") || "None",
+        "Found us via": $("#f-found") ? (val("f-found") || "Not said") : undefined,
         "Notes": val("f-notes") || "None", "Confirm by": radioVal("contactPref"),
         "Offers emails": $("#f-offers") ? ($("#f-offers").checked ? 'Yes (ticked: "' + offersWording() + '")' : "No") : undefined
       }, "booking", { ref: r, attempt: attempt }).then(function (res) {
         // The sheet may have issued a different reference (if this one was taken): show the one it saved.
         if (res && res.reference) r = res.reference;
-        track("generate_lead", { form: "booking", service: state.service, value: Math.round(q.first), currency: C.currency }, true);
+        // found_via is one of the fixed answers in config.booking.foundVia, never anything typed.
+        track("generate_lead", { form: "booking", service: state.service, value: Math.round(q.first), currency: C.currency, found_via: val("f-found") || "not_said" }, true);
         last = { ref: r, date: state.flex || calOn ? null : state.date, slot: slot, hours: q.hours, service: q.s.name, address: val("f-address") };
         var info = { r: r, q: q, slot: slot, email: email, firstName: firstName, skipped: !!(res && res.skipped), arranged: CAL && !calOn,
           how: { Text: "text", WhatsApp: "message", Call: "call", Email: "email" }[radioVal("contactPref")] || "text" };
