@@ -16,14 +16,21 @@ It's built to turn visitors into booked clients and to rank on Google for local 
 | `/services/airbnb-cleaning/` | Airbnb and short-term rental hosts: the same-day turnover timeline, what every turnover covers room by room, prices per turnover, the host package and first-turnover offer, why hosts book Mann, three steps to start, a postal check, host questions, and the host form in two steps (you and your listing; then turnovers a month, checkout and check-in times, linens and a listing link), with progress above and Back keeping every answer |
 | `/realtors/` | Listing-prep, move-out and between-tenant cleaning for realtors, landlords and property managers, with a quote form |
 | `/gift/` | Gift a clean: gift card request form (pay by e-Transfer, never expires) |
-| `/guides/` | Five helpful articles: Toronto cleaning prices, move-out checklist, deep vs regular, preparing for a cleaner, how often to clean |
+| `/guides/` | Five helpful articles: Scarborough & North York house cleaning prices (2026), move-out checklist, deep vs regular, preparing for a cleaner, how often to clean. Each opens with its question and a short answer |
 | `/vision/` | Our vision: Mann's note, what we believe, always/never promises, the road ahead, hours given back, work with us |
 | `/help/` | Help with a booking: a change request form (booking reference, the change, and how to reply: text, call or email), email links as another way, what happens after a request, reply times, codes and saved details |
 | `/review/` | Review form to text clients after each clean (no rewards for reviews: Google and the Competition Bureau forbid undisclosed incentives). Hidden from search engines. |
 | `/privacy/` | Privacy Policy (PIPEDA) |
 | `/policies/` | Service Policies: booking, cancellation, payment, re-clean, gift cards, damage, keys, pets, safety |
 
-Each page has its own title, description, social-share card and structured data (HouseCleaningService, WebSite, Service, FAQ, Article, breadcrumbs) and is listed in `sitemap.xml`. The review page and the 404 page are marked `noindex`.
+Each page has its own title, description, social-share card and structured data (Service, FAQ, Article, breadcrumbs) and is listed in `sitemap.xml`. The review page and the 404 page are marked `noindex`.
+
+**Written for search engines and AI assistants too.** Most AI crawlers (ChatGPT's, Claude's, Perplexity's) don't run JavaScript, so everything they need is in each page's HTML:
+
+- **The business on every page:** one `HouseCleaningService` with the same `@id`, its price list (`OfferCatalog`, the same "from" prices the pages show), opening hours, areas, a `ReserveAction` pointing at `/book/`, and `sameAs` links to every profile you've filled in (see "Your listings" below). Real reviews are added on the home page, where they're shown.
+- **Answer first:** every service page, area page, neighbourhood page and the pricing page has, right under the top section, the question people ask ("How much does a deep clean cost in Scarborough and North York?") and a one-paragraph answer with the price, the time on site and how payment works, all from `js/config.js`. Each guide opens with its question and a short answer the same way.
+- **"Prices reviewed":** the answers and the price guide show the date in `pricingVersion`, so the date only changes when the prices do.
+- `node tools/qa/run.mjs crawler` checks all of this against `js/config.js` in the HTML as built.
 
 ## Changing things
 
@@ -54,13 +61,15 @@ All settings are in `js/config.js`. Prices and contact details update on every p
 - **Neighbourhood pages:** each one is an entry in `neighbourhoods`. Keep every fact true and local. Run the build to add or change one. `condo: true` adds a "Booking a condo clean" section (concierge, parking, service elevator, codes), on Willowdale and Bayview Village today.
 - **Airbnb turnovers:** everything for hosts is in `quoteServices.airbnb` in `js/config.js`: the price per turnover for each unit size (`prices`), the monthly `package`, the `firstOffer`, and how `linens`, `restock` and the `photoReport` work. Anything still `null` stays off the site, never a guess: until prices are set, turnovers are "quoted per unit" through the host form, and linens, restocking and photo reports aren't mentioned. Fill each one in as you decide it and run the build: the host page updates. Every turnover follows the regular-clean column of the room-by-room `checklist`. Host questions are the FAQs marked `"airbnb"`.
 - **Real jobs:** add finished cleans to `jobs` (only with the client's permission, and never a street, building or unit). They appear on the matching area and neighbourhood pages and the home page. This is the strongest proof the site can show.
-- **Guides:** the articles are in `tools/guides.mjs`. Prices inside them come from `js/config.js`.
+- **Guides:** the articles are in `tools/guides.mjs`. Prices inside them come from `js/config.js`. Each has an `answer` (its question and a short answer, shown first) and, if it quotes prices, `prices: true`, which shows "Prices reviewed" and moves its date with `pricingVersion`. Set `modified` whenever you change an article's words.
 - **Adding a service or area, or changing page wording:** edit `js/config.js` or `tools/build.mjs`, then run `node tools/build.mjs` to regenerate the pages.
 - **Trust badges** (eco-friendly products, police-checked) are off. Switch each on in `badges` only once it's true and documented. The insurance badge's spot is commented out in the home hero's promises (`heroFacts()` in `tools/build.mjs`) until the policy starts in November 2026: write its wording from the policy itself.
 - **Service area:** postal-code prefixes for Scarborough and North York are in `serviceArea`. Requests from anywhere else are declined politely.
 - **Social icons:** hidden until you paste your Facebook and Instagram profile URLs into `business.facebookUrl` / `business.instagramUrl`. Run the build and the icons appear as links and are added to Google's business data.
 - **Hours and arrival windows:** open every day, 9am to 11pm. Change `business.hours`, `openDays`, `opens`/`closes` and `timeSlots` in `js/config.js`, then run the build.
 - **Policies:** cancellation notice, late fee, re-clean and damage windows are in `policies`. Have a lawyer review the Privacy Policy and Service Policies.
+- **The re-clean guarantee, word for word:** `policies.guarantee` is the one sentence used everywhere the guarantee is promised in full: service pages, the home page, policies, help, the Airbnb page, the FAQ, "Check your clean" and the done screen on the booking form, and both booking emails (`{guarantee}`). `{hours}` in it is `recleanWindowHours`. Short spots (the home hero, short lists) say "Free re-clean if reported within 24 hours". Change the sentence in config only, so it can never read two ways.
+- **Your listings (Google, Yelp, HomeStars and social):** paste each public profile link into `business.googleBusinessUrl`, `yelpUrl`, `homestarsUrl`, `facebookUrl` and `instagramUrl` as it goes live, then run the build. They tell Google and AI assistants that these listings and this website are the same business. What to set up, in order: [docs/listings-checklist.md](docs/listings-checklist.md).
 - **Reviews:** add real reviews to `reviews` in `js/config.js`; a reviews section then appears on the home page.
 - **Vision page:** all its wording is in `vision` in `js/config.js`. Every "always" and "never" is a public promise, so keep each one true.
 - **The five steps of every visit** (vision page, "The Nest & Rest standard") are `STANDARD` in `tools/build.mjs`. They are public promises too.
@@ -130,7 +139,7 @@ From the October 2026 website audit. Everything the website itself can fix is do
 1. **Confirm the defaults chosen for you** in `js/config.js`: laundry not offered with a move-out clean, the limit under each extra (especially "up to 10 windows"), half baths and basements confirmed by you rather than priced, and no HST. Change any of them there and run the build.
 2. **Test delivery once.** Send one test booking with your own email address to confirm the request arrives, and see whether FormSubmit's automatic reply arrives too.
 3. **A request record that doesn't depend on email.** Today a request exists only as an email. The audit recommends trying a booking system (for example BookingKoala's Starter plan) against the booking cases above before building anything custom, keeping this website as the front door. Until then, reply to every request within your promised time and keep your replies as the record. Another way is the self-hosted stack in [docs/ops-stack-setup.md](docs/ops-stack-setup.md): n8n saves each request in its own table before it confirms receipt, and Easy!Appointments keeps confirmed times in a calendar. It takes more setup than a hosted booking system, and you run the server yourself.
-4. **Proof:** add real jobs to `jobs` and real reviews to `reviews` as they come in, and paste your Google Business Profile review link into `business.googleReviewUrl` once it exists.
+4. **Proof:** add real jobs to `jobs` and real reviews to `reviews` as they come in, and paste your Google Business Profile review link into `business.googleReviewUrl` once it exists. AI assistants lean hardest on reviews and listings when they recommend a cleaner, so this matters more than any design work: [docs/listings-checklist.md](docs/listings-checklist.md) has the order to do it in.
 5. **Search Console:** connect it to see which pages and searches bring people, before adding more neighbourhood pages.
 
 ## Brand
