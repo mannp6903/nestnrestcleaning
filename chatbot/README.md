@@ -32,67 +32,68 @@ chats and long messages, and it only answers your website's pages (`ALLOWED_ORIG
 
 ## Set it up (about 20 minutes, once)
 
-You need a computer with [Node.js](https://nodejs.org) 22 or newer, and this repository on it.
+Nothing to install on a computer: Cloudflare builds the Worker straight from this GitHub repository. You need:
+
+- the `chatbot/` folder on the `main` branch (merge the pull request that adds it first; the chat stays off on the
+  website until step 5),
+- a Cloudflare account (the free plan is enough; the one that holds the nestnrestcleaning.com domain is fine),
+- a Claude Console account for the API (step 1).
 
 ### 1. Anthropic: an API key with a spend limit
 
-1. Sign up at the Claude Console, [platform.claude.com](https://platform.claude.com), with the business email.
-2. Under **Billing**, add a card and buy a small amount of credit (for example $10).
+A Claude Pro (or Max) plan doesn't cover this. The Claude API is a separate account with its own prepaid credits,
+billed separately from the chat plan. You can sign in with the same email.
+
+1. Sign in at the Claude Console, [platform.claude.com](https://platform.claude.com).
+2. Under **Billing**, add a card and buy a small amount of credit (for example $10; it lasts a long time at about a
+   tenth of a cent per question).
 3. Under **Limits**, set a **monthly spend limit** you're comfortable with (for example $10). If anyone ever abuses
    the chat, this is as much as it can cost you. The assistant then says it can't answer and gives your email.
 4. Under **API keys**, create a key named `nestnrest-website`. Copy it: it's shown only once. Never put it in the
-   website's files, in this repository or in an email. It goes only into Cloudflare, in step 3.
+   website's files, in this repository, in a chat or in an email. It goes only into Cloudflare, in step 3.
 
-### 2. Cloudflare: a free account
+### 2. Cloudflare: connect the repository
 
-Sign up at [dash.cloudflare.com](https://dash.cloudflare.com). The free plan is enough. Your domain doesn't need to move
-to Cloudflare: the Worker gets its own address.
+1. In the [Cloudflare dashboard](https://dash.cloudflare.com), open **Workers & Pages** and select **Create
+   application**.
+2. Choose **GitHub**, sign in to GitHub if asked, and let Cloudflare see the `nestnrestcleaning` repository.
+3. Select `mannp6903/nestnrestcleaning`.
+4. Fill in the settings:
+   - **Project name:** `nestnrest-chatbot` (it must match `name` in `wrangler.toml`)
+   - **Production branch:** `main`
+   - **Root directory:** `chatbot`
+   - **Build command:** leave empty
+   - **Deploy command:** leave `npx wrangler deploy`
+5. Select **Save and Deploy**. Cloudflare installs the packages and puts the Worker online in a minute or two. Its
+   address appears on the Worker's page, like `https://nestnrest-chatbot.YOUR-NAME.workers.dev`. Copy it.
 
-### 3. Put the Worker online
+### 3. Add the key
 
-In a terminal, from the repository folder:
-
-```bash
-cd chatbot
-```
-
-```bash
-npm install
-```
-
-```bash
-npm run check
-```
-
-`npm run check` runs the Worker with Anthropic's real SDK against a stand-in for the API. It needs no key and sends nothing.
-It should end with "All checks passed".
-
-```bash
-npx wrangler login
-```
-
-```bash
-npx wrangler deploy
-```
-
-The deploy prints the Worker's address, like `https://nestnrest-chatbot.YOUR-NAME.workers.dev`. Copy it. Then add the key:
-
-```bash
-npx wrangler secret put ANTHROPIC_API_KEY
-```
-
-Paste the key from step 1 when it asks. Cloudflare stores it encrypted, and it can't be read back, not even by you.
+On the Worker's page, open **Settings > Variables and Secrets**, select **Add**, choose the type **Secret**, name it
+`ANTHROPIC_API_KEY`, paste the key from step 1 and select **Deploy**. Cloudflare stores it encrypted, and it can't be
+read back, not even by you. Later deploys keep it.
 
 ### 4. Try it before switching it on
 
-Put your Worker's address in place of the example one:
+Send the Worker's address to Claude in your next session: it can switch the chat on and run the launch checks. Or try it
+yourself from any terminal, with your Worker's address in place of the example one:
 
 ```bash
 curl -X POST https://nestnrest-chatbot.YOUR-NAME.workers.dev -H "Origin: https://nestnrestcleaning.com" -H "Content-Type: application/json" -d '{"messages":[{"role":"user","content":"How much is a deep clean for a 2-bedroom condo?"}]}'
 ```
 
 You should get `{"reply":"..."}` with the same price the website's price box gives. If you get "can't answer right now",
-check the key (step 3) and that your Anthropic account has credit.
+check the key (step 3) and that your Claude Console account has credit.
+
+Then ask it what customers will. Each answer should match the website, and it should never confirm a day or time:
+
+- How much is a deep clean for a 2-bedroom condo? (the price box's price)
+- I have a 3-bed, 2-bath house and a dog that sheds. What would it cost every 2 weeks?
+- Do you clean in M1B? (yes, Scarborough) / Do you come to Mississauga, L5B? (not yet, with the waitlist email)
+- What's included in a move-out clean? Is the oven included?
+- Can you come this Saturday at 10am? (it can't book: it gives the booking link and says you confirm)
+- Do I pay a deposit? / What if something is missed? / Can I cancel?
+- Something off topic, like "Write me a poem about my cat" (it politely declines)
 
 ### 5. Switch it on
 
@@ -119,30 +120,54 @@ Commit and push. The button appears on the live site after GitHub Pages publishe
 
 ## Keeping it up to date
 
-The assistant knows what `js/config.js` said the last time you **built the site and deployed the Worker**. The build
-rewrites `src/knowledge.json`; the Worker gets the new facts only when you deploy it again. After you change prices,
-extras, areas, policies or the questions and answers:
-
-```bash
-node tools/build.mjs
-```
-
-```bash
-cd chatbot && npx wrangler deploy
-```
+The assistant knows what `js/config.js` said at the last build. The build rewrites `src/knowledge.json`, and every push
+to `main` makes Cloudflare deploy the Worker again with it. So after you change prices, extras, areas, policies or the
+questions and answers, build and push as usual and the assistant follows a minute or two later. Check the Worker's
+**Deployments** tab if you want to see it happen.
 
 Don't edit `src/knowledge.json` by hand: the next build replaces it.
+
+### Without GitHub (from a computer)
+
+With [Node.js](https://nodejs.org) 22 or newer and this repository on your computer, you can deploy by hand instead:
+
+```bash
+cd chatbot
+```
+
+```bash
+npm install
+```
+
+```bash
+npm run check
+```
+
+```bash
+npx wrangler login
+```
+
+```bash
+npx wrangler deploy
+```
+
+```bash
+npx wrangler secret put ANTHROPIC_API_KEY
+```
+
+`npm run check` runs the Worker with Anthropic's real SDK against a stand-in for the API. It needs no key and sends
+nothing, and should end with "All checks passed". Then deploy again by hand after each change to prices or policies.
 
 ## Watching, testing, switching off
 
 - **Cost:** the Claude Console's **Usage** page shows what the assistant has spent.
 - **Activity:** in Cloudflare, **Workers & Pages > nestnrest-chatbot > Logs** shows each request with counts only.
-- **Testing a preview site:** add its address to `ALLOWED_ORIGINS` in `wrangler.toml`, separated by a comma, deploy, and
+- **Testing a preview site:** add its address to `ALLOWED_ORIGINS` in `wrangler.toml`, separated by a comma, push, and
   take it out again afterwards.
 - **Switch it off:** set `assistant.endpoint` back to `""`, build and push. To stop it completely, also delete the
   Worker in Cloudflare and the key in the Claude Console.
-- **If the key ever leaks:** delete it in the Claude Console, create a new one and run
-  `npx wrangler secret put ANTHROPIC_API_KEY` again.
+- **If the key ever leaks:** delete it in the Claude Console, create a new one and replace `ANTHROPIC_API_KEY` in the
+  Worker's **Settings > Variables and Secrets**.
 
 ## Files
 

@@ -147,7 +147,7 @@ window.NR_CONFIG = {
      and policies, and sends them to the booking form. It runs on the Cloudflare Worker in chatbot/ (setup: chatbot/README.md).
      endpoint: the Worker's address, starting with https://. Leave "" to keep the assistant off.
      Use the assistant or Chatwoot (chat, below), not both. After changing it, run `node tools/build.mjs`.
-     After changing prices or policies, run the build and deploy the Worker again, so the assistant knows. */
+     After changing prices or policies, run the build and push: Cloudflare redeploys the Worker, so the assistant knows. */
   assistant: {
     endpoint: ""
   },

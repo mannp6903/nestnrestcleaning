@@ -2793,7 +2793,7 @@ ${THEME_BOOT}
 
 /* ---------- the chat assistant's facts ---------- */
 // chatbot/src/knowledge.json: everything the chat assistant (chatbot/, a Cloudflare Worker) knows, taken from js/config.js on
-// every build, so the assistant can't drift from the website. Deploy the Worker again after a change (chatbot/README.md).
+// every build, so the assistant can't drift from the website. Cloudflare redeploys the Worker on each push to main (chatbot/README.md).
 // Only public facts go in it: it's served with the rest of the repository.
 if (!PREVIEW_DIR && !OUT_DIR) {
   const pick = (o, keys) => Object.fromEntries(keys.filter((k) => o[k] !== undefined).map((k) => [k, o[k]]));
