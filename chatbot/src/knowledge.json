@@ -1,0 +1,732 @@
+{
+ "siteUrl": "https://nestnrestcleaning.com",
+ "pricingVersion": "2026-10-28",
+ "currency": "CAD",
+ "taxRate": 0,
+ "business": {
+  "name": "Nest & Rest Cleaning",
+  "tagline": "We clean. You rest.",
+  "owner": "Mann Patel",
+  "ownerFirstName": "Mann",
+  "email": "nestnrestcleaning@gmail.com",
+  "hours": "Every day, 9am to 11pm",
+  "replyPromise": "within 2 hours during business hours",
+  "phoneDisplay": ""
+ },
+ "services": {
+  "regular": {
+   "name": "Regular Home Cleaning",
+   "slug": "regular-home-cleaning",
+   "base": 145,
+   "perBed": 30,
+   "perBath": 25,
+   "hours": 2,
+   "recurring": true,
+   "intro": "A thorough, consistent clean of every room you live in: kitchen, bathrooms, bedrooms and living areas, done the same careful way every visit. Book every two weeks and you can stop thinking about it.",
+   "idealFor": [
+    "Busy professionals and families",
+    "Keeping a home guest-ready",
+    "Anyone who would rather spend Saturday elsewhere"
+   ]
+  },
+  "deep": {
+   "name": "Deep Cleaning",
+   "slug": "deep-cleaning",
+   "base": 235,
+   "perBed": 50,
+   "perBath": 40,
+   "hours": 4,
+   "recurring": false,
+   "intro": "Everything in a regular clean, plus the detail work that builds up over months: baseboards, door frames, grout, fixtures, vents, and behind and under what can be moved. It is the visit we recommend before starting a regular plan.",
+   "idealFor": [
+    "A first visit before regular cleaning",
+    "Spring and holiday resets",
+    "Homes that haven't had a professional clean in a while"
+   ]
+  },
+  "move": {
+   "name": "Move-In / Move-Out Cleaning",
+   "slug": "move-in-move-out-cleaning",
+   "base": 250,
+   "perBed": 50,
+   "perBath": 40,
+   "hours": 5,
+   "recurring": false,
+   "intro": "A complete clean of an empty home, inside every cabinet, drawer and closet, with the fridge and oven included. Built for landlord walk-throughs, new owners and the first night in a new place.",
+   "idealFor": [
+    "Tenants handing back keys",
+    "Buyers before move-in day",
+    "Landlords and property managers between tenants"
+   ]
+  },
+  "detail": {
+   "name": "Kitchen & Bath Detailing",
+   "slug": "kitchen-and-bath-detailing",
+   "base": 165,
+   "perBed": 0,
+   "perBath": 60,
+   "hours": 2.5,
+   "recurring": false,
+   "intro": "A focused deep clean of the kitchen and bathrooms only: degreasing, descaling, grout and fixtures. Ideal between regular cleans, or before hosting.",
+   "idealFor": [
+    "Between regular cleans",
+    "Before hosting family or guests",
+    "Kitchens and baths that need more than a wipe-down"
+   ],
+   "rooms": [
+    "Kitchen",
+    "Bathrooms"
+   ]
+  }
+ },
+ "quoteServices": {
+  "residence": {
+   "name": "Residence Care",
+   "slug": "residence-care",
+   "short": "For larger homes and fine finishes: a walkthrough, a written care plan, the same cleaner each visit."
+  },
+  "office": {
+   "name": "Small Office Cleaning",
+   "slug": "office-cleaning",
+   "short": "Offices, clinics, studios and shops, cleaned around your opening hours."
+  },
+  "airbnb": {
+   "name": "Airbnb Turnover Cleaning",
+   "slug": "airbnb-cleaning",
+   "short": "Same-day turnovers between guests, checkout to check-in, 7 days a week until 11pm."
+  }
+ },
+ "homeTypes": {
+  "condo": {
+   "label": "Condo or apartment",
+   "short": "Condo",
+   "factor": 1
+  },
+  "town": {
+   "label": "Townhouse",
+   "short": "Townhouse",
+   "factor": 1.1
+  },
+  "house": {
+   "label": "House",
+   "short": "House",
+   "factor": 1.2
+  }
+ },
+ "addons": [
+  {
+   "id": "oven",
+   "name": "Inside oven",
+   "price": 40,
+   "hours": 0.5,
+   "limit": "One oven, inside and racks.",
+   "status": {
+    "regular": "extra",
+    "deep": "extra",
+    "move": "included",
+    "detail": "extra"
+   }
+  },
+  {
+   "id": "fridge",
+   "name": "Inside fridge",
+   "price": 40,
+   "hours": 0.5,
+   "limit": "One fridge. Please empty it before we arrive.",
+   "status": {
+    "regular": "extra",
+    "deep": "extra",
+    "move": "included",
+    "detail": "extra"
+   }
+  },
+  {
+   "id": "cabinets",
+   "name": "Inside kitchen cabinets",
+   "price": 45,
+   "hours": 0.75,
+   "limit": "Kitchen cabinets and drawers. Please empty them first.",
+   "status": {
+    "regular": "extra",
+    "deep": "extra",
+    "move": "included",
+    "detail": "extra"
+   }
+  },
+  {
+   "id": "windows",
+   "name": "Interior windows",
+   "price": 50,
+   "hours": 0.75,
+   "limit": "Inside glass, frames and sills, up to 10 windows. More by quote.",
+   "status": {
+    "regular": "extra",
+    "deep": "extra",
+    "move": "extra",
+    "detail": "extra"
+   }
+  },
+  {
+   "id": "walls",
+   "name": "Wall spot cleaning",
+   "price": 25,
+   "hours": 0.5,
+   "limit": "Marks and scuffs on reachable walls. Not a full wall wash.",
+   "status": {
+    "regular": "extra",
+    "deep": "extra",
+    "move": "included",
+    "detail": "extra"
+   }
+  },
+  {
+   "id": "laundry",
+   "name": "Laundry, wash and fold",
+   "price": 25,
+   "hours": 0.5,
+   "limit": "One load in your machines, washed, dried and folded during the visit.",
+   "status": {
+    "regular": "extra",
+    "deep": "extra",
+    "move": "none",
+    "detail": "extra"
+   }
+  },
+  {
+   "id": "balcony",
+   "name": "Balcony or patio",
+   "price": 30,
+   "hours": 0.5,
+   "limit": "One balcony or patio, swept and wiped down.",
+   "status": {
+    "regular": "extra",
+    "deep": "extra",
+    "move": "extra",
+    "detail": "extra"
+   }
+  },
+  {
+   "id": "pets",
+   "name": "Heavy pet hair",
+   "price": 20,
+   "hours": 0.5,
+   "limit": "Extra time for heavy shedding across the home.",
+   "status": {
+    "regular": "extra",
+    "deep": "extra",
+    "move": "extra",
+    "detail": "extra"
+   }
+  }
+ ],
+ "frequencies": {
+  "once": {
+   "label": "One time",
+   "discount": 0
+  },
+  "biweekly": {
+   "label": "Every 2 weeks",
+   "discount": 15,
+   "recommended": true
+  },
+  "weekly": {
+   "label": "Weekly",
+   "discount": 20
+  },
+  "monthly": {
+   "label": "Every 4 weeks",
+   "discount": 10
+  }
+ },
+ "offers": {
+  "founding": {
+   "active": true,
+   "percent": 20,
+   "spots": 50,
+   "text": "Our first 50 households receive 20% off their first visit."
+  },
+  "referral": 25,
+  "gift": {
+   "amounts": [
+    100,
+    150,
+    200,
+    250
+   ]
+  }
+ },
+ "checklist": [
+  {
+   "room": "Kitchen",
+   "tasks": [
+    [
+     "Counters and backsplash wiped",
+     "yes",
+     "yes",
+     "yes"
+    ],
+    [
+     "Sink and taps cleaned and shined",
+     "yes",
+     "yes",
+     "yes"
+    ],
+    [
+     "Stovetop degreased",
+     "yes",
+     "yes",
+     "yes"
+    ],
+    [
+     "Appliance fronts and handles",
+     "yes",
+     "yes",
+     "yes"
+    ],
+    [
+     "Microwave inside and out",
+     "",
+     "yes",
+     "yes"
+    ],
+    [
+     "Cabinet fronts wiped",
+     "",
+     "yes",
+     "yes"
+    ],
+    [
+     "Inside cabinets and drawers",
+     "add",
+     "add",
+     "yes"
+    ],
+    [
+     "Inside fridge and oven",
+     "add",
+     "add",
+     "yes"
+    ],
+    [
+     "Floors vacuumed and mopped",
+     "yes",
+     "yes",
+     "yes"
+    ]
+   ]
+  },
+  {
+   "room": "Bathrooms",
+   "tasks": [
+    [
+     "Toilet cleaned inside and out",
+     "yes",
+     "yes",
+     "yes"
+    ],
+    [
+     "Tub, shower and glass",
+     "yes",
+     "yes",
+     "yes"
+    ],
+    [
+     "Sink, counter and taps",
+     "yes",
+     "yes",
+     "yes"
+    ],
+    [
+     "Mirrors polished",
+     "yes",
+     "yes",
+     "yes"
+    ],
+    [
+     "Build-up removed from tile and grout",
+     "",
+     "yes",
+     "yes"
+    ],
+    [
+     "Fixtures descaled",
+     "",
+     "yes",
+     "yes"
+    ],
+    [
+     "Inside vanity and drawers",
+     "",
+     "",
+     "yes"
+    ],
+    [
+     "Floors washed",
+     "yes",
+     "yes",
+     "yes"
+    ]
+   ]
+  },
+  {
+   "room": "Bedrooms & living",
+   "tasks": [
+    [
+     "Reachable surfaces and décor dusted",
+     "yes",
+     "yes",
+     "yes"
+    ],
+    [
+     "Beds made",
+     "yes",
+     "yes",
+     ""
+    ],
+    [
+     "Mirrors and glass",
+     "yes",
+     "yes",
+     "yes"
+    ],
+    [
+     "Floors vacuumed and mopped",
+     "yes",
+     "yes",
+     "yes"
+    ],
+    [
+     "Baseboards and door frames",
+     "",
+     "yes",
+     "yes"
+    ],
+    [
+     "Switches and door handles",
+     "",
+     "yes",
+     "yes"
+    ],
+    [
+     "Under and behind movable furniture",
+     "",
+     "yes",
+     "yes"
+    ],
+    [
+     "Window sills and vents",
+     "",
+     "yes",
+     "yes"
+    ],
+    [
+     "Inside closets",
+     "",
+     "",
+     "yes"
+    ]
+   ]
+  },
+  {
+   "room": "Whole home",
+   "tasks": [
+    [
+     "Bins emptied",
+     "yes",
+     "yes",
+     "yes"
+    ],
+    [
+     "Entryway and stairs",
+     "yes",
+     "yes",
+     "yes"
+    ],
+    [
+     "Walls spot-cleaned",
+     "add",
+     "add",
+     "yes"
+    ],
+    [
+     "Interior windows",
+     "add",
+     "add",
+     "add"
+    ],
+    [
+     "Laundry, wash and fold",
+     "add",
+     "add",
+     ""
+    ],
+    [
+     "Balcony or patio",
+     "add",
+     "add",
+     "add"
+    ]
+   ]
+  }
+ ],
+ "homeChecks": [
+  {
+   "label": "Over about 3,000 sq ft",
+   "quote": "residence"
+  },
+  {
+   "label": "Half bathrooms (powder rooms)",
+   "note": "Count full bathrooms only above. Mann confirms any change to your price for half baths before the clean."
+  },
+  {
+   "label": "A finished basement",
+   "note": "Mann confirms the time and price for a basement before the clean."
+  },
+  {
+   "label": "A second kitchen",
+   "note": "Mann confirms the time and price for a second kitchen before the clean."
+  },
+  {
+   "label": "Heavy build-up, or no professional clean in a long while",
+   "note": "A deep clean is usually the right first visit. Mann confirms the time needed before the clean."
+  }
+ ],
+ "policies": {
+  "cancelNoticeHours": 24,
+  "lateCancelFee": "up to 50% of the estimated price",
+  "recleanWindowHours": 24,
+  "damageReportHours": 48,
+  "accessCodeDeleteDays": 7,
+  "guarantee": "Report anything missed within 24 hours of your clean and I'll come back and re-clean those areas, free."
+ },
+ "serviceArea": {
+  "label": "Scarborough & North York",
+  "districts": [
+   {
+    "name": "Scarborough",
+    "prefixes": [
+     "M1B",
+     "M1C",
+     "M1E",
+     "M1G",
+     "M1H",
+     "M1J",
+     "M1K",
+     "M1L",
+     "M1M",
+     "M1N",
+     "M1P",
+     "M1R",
+     "M1S",
+     "M1T",
+     "M1V",
+     "M1W",
+     "M1X"
+    ]
+   },
+   {
+    "name": "North York",
+    "prefixes": [
+     "M2H",
+     "M2J",
+     "M2K",
+     "M2L",
+     "M2M",
+     "M2N",
+     "M2P",
+     "M2R",
+     "M3A",
+     "M3B",
+     "M3C",
+     "M3H",
+     "M3J",
+     "M3K",
+     "M3L",
+     "M3M",
+     "M3N",
+     "M4A",
+     "M5M",
+     "M6A",
+     "M6B",
+     "M6L",
+     "M9L",
+     "M9M"
+    ]
+   }
+  ]
+ },
+ "areas": [
+  {
+   "name": "Scarborough",
+   "neighbourhoods": [
+    "Agincourt",
+    "Malvern",
+    "Wexford",
+    "Highland Creek",
+    "Guildwood",
+    "Scarborough Village",
+    "Birch Cliff",
+    "Cliffside",
+    "L'Amoreaux",
+    "Morningside",
+    "Woburn",
+    "Bendale",
+    "Clairlea",
+    "Milliken",
+    "Rouge"
+   ]
+  },
+  {
+   "name": "North York",
+   "neighbourhoods": [
+    "Willowdale",
+    "Don Mills",
+    "York Mills",
+    "Bayview Village",
+    "Newtonbrook",
+    "Bathurst Manor",
+    "Downsview",
+    "Parkwoods",
+    "Flemingdon Park",
+    "Hillcrest Village",
+    "Lawrence Manor",
+    "Bedford Park",
+    "Victoria Village"
+   ]
+  }
+ ],
+ "faqs": [
+  {
+   "q": "Who will clean my unit?",
+   "a": "Me. I'm Mann Patel, the owner, and I do every turnover myself, so your unit is cleaned the same careful way each time."
+  },
+  {
+   "q": "How do you get in if I'm not there?",
+   "a": "With your lockbox, door code or smart lock. I ask for the code by text once a turnover is confirmed. I never copy keys or write codes on them, and I delete codes within 7 days of your last scheduled clean."
+  },
+  {
+   "q": "Can you do same-day turnovers?",
+   "a": "Yes. I clean 7 days a week from 9am to 11pm. Tell me your usual checkout and check-in times, and I'll confirm I can fit each turnover in between before you rely on it."
+  },
+  {
+   "q": "How does payment work for my listings?",
+   "a": "You pay after each turnover by Interac e-Transfer, credit or debit card, or cash. There's no deposit, and each property gets its own receipt."
+  },
+  {
+   "q": "How is my price calculated?",
+   "a": "Your price is based on the service, the number of bedrooms and bathrooms, the type of home and any extras you add. You see it before you book. If your home needs much more or less time than expected, we tell you before we start, never after."
+  },
+  {
+   "q": "Do I pay when I book?",
+   "a": "No. There's no deposit. You pay after the clean by Interac e-Transfer, credit or debit card, or cash."
+  },
+  {
+   "q": "What if something is missed?",
+   "a": "Report anything missed within 24 hours of your clean and I'll come back and re-clean those areas, free."
+  },
+  {
+   "q": "Do you bring supplies and equipment?",
+   "a": "Yes. We bring cloths, mops, a vacuum and our products. If you'd like us to use your own products, or need fragrance-free, choose it under Products when you book."
+  },
+  {
+   "q": "Do I need to be home?",
+   "a": "No. You can leave access with a concierge, lockbox or key code. Choose how we get in when you book and we'll confirm the details by text."
+  },
+  {
+   "q": "Can I reschedule or cancel?",
+   "a": "Yes. Send a change request from the Help page, or email Mann, at least 24 hours before your arrival window and there's no charge."
+  },
+  {
+   "q": "Is my clean booked as soon as I send the form?",
+   "a": "Not yet. Sending the form is a request. Mann replies within 2 hours during business hours to agree your day, arrival window and final price. Your time is held once Mann confirms it with you."
+  },
+  {
+   "q": "How do I change or cancel a booking?",
+   "a": "Use the change request form at the top of this page with your reference (it starts with NR-), or email Mann, or reply to your confirmation message. Your booking stays as it is until Mann confirms the change. Changes are free up to 24 hours before your arrival window."
+  },
+  {
+   "q": "How do I book again?",
+   "a": "Use the booking form any time. On the same device, it remembers your home and the extras you chose last time, so you only check them and pick a day."
+  },
+  {
+   "q": "Are pets OK?",
+   "a": "Absolutely. Tell us about them when you book. For heavy shedding, add the pet hair extra so we schedule enough time."
+  },
+  {
+   "q": "Why do you wear house shoes?",
+   "a": "Street shoes carry grit and salt, especially in a Toronto winter. We change into indoor-only shoes at your door, so your floors only meet clean soles."
+  },
+  {
+   "q": "Should I book a deep clean first?",
+   "a": "If your home hasn't had a professional clean in the last few months, yes. A deep clean resets the build-up so every regular visit after it stays quick and consistent."
+  },
+  {
+   "q": "Are supplies included in the price?",
+   "a": "Yes. Every price includes our products and equipment: cloths, mops, a vacuum and cleaning products. There's nothing extra to buy."
+  },
+  {
+   "q": "Why do townhouses and houses cost more?",
+   "a": "A townhouse or house usually has stairs, more floor area and more entrances than a condo with the same number of bedrooms, so it takes longer to clean. The price box adjusts for this automatically."
+  },
+  {
+   "q": "Do regular plans cost less?",
+   "a": "Yes. Visits every week, every 2 weeks or every 4 weeks cost less than a one-time clean, and you can pause or change your plan with 24 hours' notice."
+  },
+  {
+   "q": "Is the oven and fridge included in a move-out clean?",
+   "a": "Yes. Inside the fridge, oven, cabinets, drawers and closets, and spot-cleaning the walls, are all included in a move-in or move-out clean. Laundry isn't part of it, because the home is empty."
+  },
+  {
+   "q": "Does the home need to be empty?",
+   "a": "For a move-in or move-out clean, it's best if furniture and boxes are out so we can reach every surface. If some items remain, mention it in your notes."
+  },
+  {
+   "q": "How long does a residence walkthrough take?",
+   "a": "Usually 20 to 30 minutes. We walk each room with you, note surfaces and priorities, and send a written care plan and quote afterwards."
+  },
+  {
+   "q": "Can you clean outside business hours?",
+   "a": "Tell us what suits your business in the quote form. We'll confirm the times we can offer in your quote."
+  },
+  {
+   "q": "Do I need a contract?",
+   "a": "No contract is needed to start. Most offices begin with a single visit, then choose a schedule."
+  },
+  {
+   "q": "Which areas do you serve?",
+   "a": "Scarborough and North York. Enter your postal code on the site to check. If you're just outside these areas, get in touch and we'll tell you honestly whether we can help."
+  },
+  {
+   "q": "How do I get in touch?",
+   "a": "Email nestnrestcleaning@gmail.com, or send your details through the booking form. Mann replies within 2 hours during business hours (every day, 9am to 11pm)."
+  },
+  {
+   "q": "Do gift cards expire?",
+   "a": "No. Nest & Rest gift cards never expire, and they can be used toward any service. Any balance left after a clean stays on the card."
+  },
+  {
+   "q": "How do I pay for a gift card?",
+   "a": "Send the form and we'll text you to confirm the details and send an Interac e-Transfer request. Your gift card is emailed as soon as it's paid."
+  },
+  {
+   "q": "How does the person I'm gifting book?",
+   "a": "They book online like anyone else and mention the code on their gift card. We take the gift value off their price after the clean."
+  },
+  {
+   "q": "Can the gift be for someone outside Scarborough or North York?",
+   "a": "The clean has to be in Scarborough or North York. If you're not sure, enter their postal code on the gift page to check."
+  },
+  {
+   "q": "Can you clean before listing photos or a showing?",
+   "a": "Yes. Tell us the date of your photos or first showing and we'll aim to clean the day before. Evenings and weekends are available."
+  },
+  {
+   "q": "Does someone need to be there?",
+   "a": "No. A lockbox or the concierge works well. We ask for the code by text once the clean is confirmed, and delete it within 7 days of the last scheduled clean."
+  },
+  {
+   "q": "How does payment work for multiple properties?",
+   "a": "You pay after each clean by Interac e-Transfer, credit or debit card. Each property gets its own receipt, so it's easy to bill back to an owner or seller."
+  }
+ ]
+}

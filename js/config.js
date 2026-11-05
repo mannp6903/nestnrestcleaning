@@ -143,6 +143,15 @@ window.NR_CONFIG = {
     location: ""
   },
 
+  /* The chat assistant: an AI (Claude) that answers visitors' questions from this file's prices, checklist, areas, FAQs
+     and policies, and sends them to the booking form. It runs on the Cloudflare Worker in chatbot/ (setup: chatbot/README.md).
+     endpoint: the Worker's address, starting with https://. Leave "" to keep the assistant off.
+     Use the assistant or Chatwoot (chat, below), not both. After changing it, run `node tools/build.mjs`.
+     After changing prices or policies, run the build and push: Cloudflare redeploys the Worker, so the assistant knows. */
+  assistant: {
+    endpoint: ""
+  },
+
   /* Live chat on your own Chatwoot. Fill in both to switch it on; leave both "" to keep it off.
      baseUrl: the address of your Chatwoot, starting with https://. websiteToken: the token Chatwoot gives for your website.
      After changing it, run `node tools/build.mjs`. */

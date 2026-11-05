@@ -2107,6 +2107,36 @@
   /* ---------- Chat: Chatwoot, loaded once the page has loaded and is idle ---------- */
   // Off in the preview and on the booking page (the build puts data-chat on every other page only when chat.baseUrl and chat.websiteToken are set).
   // Computers keep Chatwoot's own bubble. Where the bottom bar shows (phones) the bubble is hidden and the bar's Chat button opens the chat instead.
+  /* ---------- Chat assistant (config.assistant.endpoint: the Worker in chatbot/) ---------- */
+  // With assistant.endpoint set, the build marks every page except booking with the assistant's two files (data-assist and
+  // data-assist-js). They load only after the page has loaded and the browser is idle, so the assistant costs a page nothing:
+  // css/assistant.css first, so the button never shows unstyled, then js/assistant.js, the panel itself.
+  function initAssistant() {
+    var endpoint = String((C.assistant || {}).endpoint || "").trim();
+    var css = host ? host.getAttribute("data-assist") : "", js = host ? host.getAttribute("data-assist-js") : "";
+    if (!endpoint || !css || !js || PREVIEW || PAGE === "book") return;
+    function start() {
+      // What the panel uses from this script: the same escaping, storage and analytics helpers.
+      window.NR_ASSIST = { endpoint: endpoint, esc: esc, store: store, track: track };
+      var link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href = css;
+      // If either file can't load, the assistant simply stays away.
+      link.onload = function () {
+        var s = document.createElement("script");
+        s.src = js;
+        document.head.appendChild(s);
+      };
+      document.head.appendChild(link);
+    }
+    function whenIdle() {
+      if (window.requestIdleCallback) window.requestIdleCallback(start, { timeout: 2000 });
+      else setTimeout(start, 1000);
+    }
+    if (document.readyState === "complete") whenIdle();
+    else window.addEventListener("load", whenIdle);
+  }
+
   function initChat() {
     var cfg = C.chat || {};
     var base = String(cfg.baseUrl || "").trim().replace(/\/+$/, ""), token = String(cfg.websiteToken || "").trim();
@@ -2155,6 +2185,7 @@
   bindPriceTabs();
   bindBooking();
   initChat();
+  initAssistant();
   bindQuote();
   bindChange();
   bindReview();

@@ -32,6 +32,8 @@ const WEBHOOK = PROVIDER === "webhook";
 // The self-hosted tools, each off until its settings are filled in. SELF is true when any of them is on: the privacy policy then says where the server runs.
 const EA_ON = !!((C.booking || {}).easyAppointments || {}).url;
 const CHAT = !!(C.chat && C.chat.baseUrl && C.chat.websiteToken);
+// The chat assistant (chatbot/): on once assistant.endpoint is set in js/config.js.
+const ASSIST = !!(C.assistant && String(C.assistant.endpoint || "").trim());
 const NEWS = !!(C.newsletter && C.newsletter.optIn);
 const SELF = WEBHOOK || EA_ON || CHAT || NEWS;
 // Scripts are deferred on the live site so they never block the first paint. The preview inlines a flag between them, so it loads them in order instead.
@@ -40,7 +42,7 @@ const YEAR = new Date().getFullYear();
 const TODAY = new Date().toISOString().slice(0, 10);
 // Version tags from each file's contents, so browsers fetch the new CSS and JS as soon as a change is published.
 const ver = (f) => crypto.createHash("sha1").update(fs.readFileSync(path.join(ROOT, f))).digest("hex").slice(0, 8);
-const ASSET_V = { css: ver("css/site.css"), config: ver("js/config.js"), site: ver("js/site.js") };
+const ASSET_V = { css: ver("css/site.css"), config: ver("js/config.js"), site: ver("js/site.js"), assistCss: ver("css/assistant.css"), assistJs: ver("js/assistant.js") };
 
 /* ---------- helpers ---------- */
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -166,6 +168,8 @@ function checkStack() {
   if (WEBHOOK && !/^https:\/\//.test((C.delivery || {}).endpoint || "")) throw new Error(`delivery.endpoint in js/config.js must start with https:// when delivery.provider is "webhook".`);
   const chat = C.chat || {};
   if ((chat.baseUrl || chat.websiteToken) && !(chat.websiteToken && /^https:\/\//.test(chat.baseUrl || ""))) throw new Error("Fill in both chat.baseUrl and chat.websiteToken in js/config.js (baseUrl starting with https://), or leave both empty.");
+  if (ASSIST && !/^https:\/\//.test(C.assistant.endpoint)) throw new Error("assistant.endpoint in js/config.js must start with https://: it's your chatbot Worker's address (chatbot/README.md).");
+  if (ASSIST && CHAT) throw new Error("Switch on the chat assistant (assistant.endpoint) or Chatwoot (chat), not both: they would share the same corner of the screen.");
   if (NEWS && !ADDR) throw new Error("newsletter.optIn needs business.mailingAddress in js/config.js: Canada's anti-spam law (CASL) needs it in every offers email.");
   if (!["", "formsubmit", "sheet", "webhook", "none"].includes(PROVIDER)) throw new Error(`delivery.provider in js/config.js must be "formsubmit", "sheet", "webhook" or "none".`);
   const server = C.server || {};
@@ -272,7 +276,7 @@ const ICONS = `
 <symbol id="i-play" viewBox="0 0 24 24"><path d="M8.5 5.8v12.4a.8.8 0 0 0 1.2.7l9.6-6.2a.8.8 0 0 0 0-1.4L9.7 5.1a.8.8 0 0 0-1.2.7Z" fill="currentColor"/></symbol>
 <symbol id="i-camera" viewBox="0 0 24 24"><path d="M4 8h3.5l1.8-2.5h5.4L16.5 8H20v11H4Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><circle cx="12" cy="13.2" r="3.4" fill="none" stroke="currentColor" stroke-width="1.7"/></symbol>
 <symbol id="i-chev" viewBox="0 0 24 24"><path d="m7 9.5 5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
-${CHAT ? `<symbol id="i-chat" viewBox="0 0 24 24"><path d="M6 4.5h12a2.5 2.5 0 0 1 2.5 2.5v7.5a2.5 2.5 0 0 1-2.5 2.5h-6.5l-4.5 3.5V17H6a2.5 2.5 0 0 1-2.5-2.5V7A2.5 2.5 0 0 1 6 4.5Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M8.5 10.75h.01M12 10.75h.01M15.5 10.75h.01" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+${CHAT || ASSIST ? `<symbol id="i-chat" viewBox="0 0 24 24"><path d="M6 4.5h12a2.5 2.5 0 0 1 2.5 2.5v7.5a2.5 2.5 0 0 1-2.5 2.5h-6.5l-4.5 3.5V17H6a2.5 2.5 0 0 1-2.5-2.5V7A2.5 2.5 0 0 1 6 4.5Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M8.5 10.75h.01M12 10.75h.01M15.5 10.75h.01" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
 ` : ""}</defs></svg>`;
 const ic = (id, cls = "ic") => `<svg class="${cls}" aria-hidden="true"><use href="#${id}"/></svg>`;
 const SVC_ICON = { regular: "i-sparkle", deep: "i-layers", move: "i-box", detail: "i-drop", residence: "i-gem", office: "i-building", airbnb: "i-key" };
@@ -891,7 +895,7 @@ ${PREVIEW_DIR ? "<script>window.NR_CONFIG.preview = true;</script>" : ""}
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 ${headInner}
 </head>
-<body data-page="${pageType}" data-root="${depth ? "../".repeat(depth) : "./"}"${CHAT && pageType !== "book" && !PREVIEW_DIR ? " data-chat" : ""}>
+<body data-page="${pageType}" data-root="${depth ? "../".repeat(depth) : "./"}"${CHAT && pageType !== "book" && !PREVIEW_DIR ? " data-chat" : ""}${ASSIST && pageType !== "book" && !PREVIEW_DIR ? ` data-assist="${L("css/assistant.min.css")}?v=${ASSET_V.assistCss}" data-assist-js="${L("js/assistant.min.js")}?v=${ASSET_V.assistJs}"` : ""}>
 ${bodyInner}
 </body>
 </html>
@@ -2672,7 +2676,8 @@ legalPage({
           <tr><td>You request a quote</td><td>Name, phone, email (optional), postal code, details about the space or property, and any notes you add.</td></tr>
           <tr><td>You request a gift card</td><td>Your name, phone and email, the gift amount, the recipient's name, and optionally their email, postal code and your message.</td></tr>
           <tr><td>You leave a review</td><td>Rating, first name and last initial, neighbourhood (optional), the service, your review, and the phone or email you booked with so we can match it to your visit.</td></tr>
-          <tr><td>You call, text, WhatsApp or email us</td><td>Your number or address and what you tell us.</td></tr>${CHAT ? `
+          <tr><td>You call, text, WhatsApp or email us</td><td>Your number or address and what you tell us.</td></tr>${ASSIST ? `
+          <tr><td>You ask the website assistant a question</td><td>What you type in it. Please don't type personal details there: use the booking form instead.</td></tr>` : ""}${CHAT ? `
           <tr><td>You chat with us</td><td>Your messages, and your name or email if you give them.</td></tr>` : ""}
           <tr><td>You ask about working with us</td><td>Your name, contact details and what you tell us about your experience.</td></tr>
           <tr><td>You pay</td><td>Payment records such as the amount, date and method. We do not store full card numbers.</td></tr>
@@ -2700,6 +2705,7 @@ legalPage({
         ` : ""}${GA ? `<li><strong>Google Analytics</strong> (Google LLC) measures how visitors use this website: the pages viewed, how they arrived (for example from our flyer or business card), the type of device and an approximate location. It doesn't receive anything you type into our forms, and it stores data in the United States.</li>
         ` : ""}${WEBHOOK ? `<li><strong>n8n</strong>, our automation tool, on our own server, receives the website's forms, saves each request and forwards it to our Gmail inbox. If you give your email address, it sends you a receipt that only confirms your request arrived. ${esc(B.ownerFirstName)}'s own reply is what confirms a booking.</li>` : SHEET ? `<li><strong>Google Sheets and Gmail</strong> (Google) store and deliver the website's forms: each request is saved to our Google Sheet and emailed to our Gmail inbox. If you give your email address, you get an automatic receipt that only confirms your request arrived. ${esc(B.ownerFirstName)}'s own reply is what confirms a booking.</li>` : `<li><strong>FormSubmit</strong> (formsubmit.co) delivers the website's forms to our email inbox. If you give your email address, it may also send you an automatic acknowledgement. ${esc(B.ownerFirstName)}'s own reply is what confirms a booking.</li>`}
         ${NEWS ? `<li><strong>listmonk</strong>: if you tick the offers box, your name and email go to listmonk, our mailing list, on our own server. We send offers only after you confirm by email, and every email has an unsubscribe link.</li>
+        ` : ""}${ASSIST ? `<li><strong>Cloudflare</strong> (Cloudflare, Inc.) runs our website assistant, and <strong>Anthropic</strong> (Anthropic PBC) provides the AI model (Claude) that writes its answers. If you use the assistant, what you type goes through Cloudflare to Anthropic, which uses it to answer you under its commercial terms. We don't keep the conversation: it stays in your open browser tab and is gone when you close it.</li>
         ` : ""}${CHAT ? `<li><strong>Chatwoot</strong>: if you use the chat, your messages and anything you type in it go to Chatwoot, our chat tool, on our own server. When a page with the chat opens, Chatwoot also receives the technical details your browser sends, such as your IP address, and keeps an anonymous visitor record.</li>
         ` : ""}${B.whatsapp ? `<li><strong>WhatsApp</strong> (WhatsApp LLC, part of Meta Platforms) delivers and stores messages if you choose to contact us on WhatsApp.</li>
         ` : ""}<li><strong>Your bank or card payment provider</strong> processes payments you make by Interac e-Transfer or card.</li>
@@ -2785,6 +2791,31 @@ ${THEME_BOOT}
 `);
 }
 
+/* ---------- the chat assistant's facts ---------- */
+// chatbot/src/knowledge.json: everything the chat assistant (chatbot/, a Cloudflare Worker) knows, taken from js/config.js on
+// every build, so the assistant can't drift from the website. Cloudflare redeploys the Worker on each push to main (chatbot/README.md).
+// Only public facts go in it: it's served with the rest of the repository.
+if (!PREVIEW_DIR && !OUT_DIR) {
+  const pick = (o, keys) => Object.fromEntries(keys.filter((k) => o[k] !== undefined).map((k) => [k, o[k]]));
+  const knowledge = {
+    siteUrl: SITE, pricingVersion: C.pricingVersion, currency: C.currency, taxRate: C.taxRate || 0,
+    business: { ...pick(B, ["name", "tagline", "owner", "ownerFirstName", "email", "hours", "replyPromise"]), phoneDisplay: PHONE ? B.phoneDisplay : "" },
+    services: Object.fromEntries(svcKeys.map((k) => [k, pick(C.services[k], ["name", "slug", "base", "perBed", "perBath", "hours", "recurring", "intro", "idealFor", "rooms"])])),
+    quoteServices: Object.fromEntries(quoteKeys.map((k) => [k, pick(C.quoteServices[k], ["name", "slug", "short"])])),
+    homeTypes: C.homeTypes,
+    addons: C.addons.map((a) => ({ ...pick(a, ["id", "name", "price", "hours", "limit"]), status: Object.fromEntries(svcKeys.map((k) => [k, addonStatus(k, a.id)])) })),
+    frequencies: C.frequencies,
+    offers: { founding: founding ? pick(founding, ["active", "percent", "spots", "text"]) : null, referral: C.offers.referral, gift: { amounts: (C.offers.gift || {}).amounts || [] } },
+    checklist: C.checklist,
+    homeChecks: (C.homeChecks || []).map((c) => pick(c, ["label", "note", "quote"])),
+    policies: { ...pick(C.policies, ["cancelNoticeHours", "lateCancelFee", "recleanWindowHours", "damageReportHours", "accessCodeDeleteDays"]), guarantee: GUARANTEE_LINE },
+    serviceArea: C.serviceArea,
+    areas: C.areas.map((a) => ({ name: a.name, neighbourhoods: a.neighbourhoods })),
+    faqs: C.faqs.map((f) => ({ q: f.q, a: f.a }))
+  };
+  fs.writeFileSync(path.join(ROOT, "chatbot/src/knowledge.json"), JSON.stringify(knowledge, null, 1) + "\n");
+}
+
 /* ---------- sitemap + robots ---------- */
 if (!PREVIEW_DIR) {
   fs.writeFileSync(path.join(OUT, "sitemap.xml"), `<?xml version="1.0" encoding="UTF-8"?>
@@ -2810,6 +2841,9 @@ const compactCss = (s) => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\s+/g, " "
 // The script has no template strings or multi-line comments, so whole-line comments and indentation can go safely.
 const compactJs = (s) => s.split("\n").map((l) => l.trim()).filter((l) => l && !l.startsWith("//") && !(l.startsWith("/*") && l.endsWith("*/"))).join("\n") + "\n";
 fs.writeFileSync(path.join(OUT, "css/site.min.css"), compactCss(fs.readFileSync(path.join(ROOT, "css/site.css"), "utf8")));
+// The chat assistant's styles and panel, loaded by a page only once the assistant starts (data-assist on <body>).
+fs.writeFileSync(path.join(OUT, "css/assistant.min.css"), compactCss(fs.readFileSync(path.join(ROOT, "css/assistant.css"), "utf8")));
+fs.writeFileSync(path.join(OUT, "js/assistant.min.js"), compactJs(fs.readFileSync(path.join(ROOT, "js/assistant.js"), "utf8")));
 fs.writeFileSync(path.join(OUT, "js/site.min.js"), compactJs(fs.readFileSync(path.join(ROOT, "js/site.js"), "utf8")));
 
 console.log(`Built ${urls.length} pages into ${OUT}`);

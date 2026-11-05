@@ -1,41 +1,8 @@
 // Builds of the site with other settings patched in (node tools/build.mjs --out DIR, with NR_CONFIG_PATCH set), served from a temp folder.
 import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
-import { execFileSync } from "node:child_process";
-import { test, assert, startServer, loadConfig, newPage, withConfig, ROOT } from "./lib.mjs";
+import { test, assert, loadConfig, newPage, withConfig, buildWith, buildError, ROOT } from "./lib.mjs";
 import { toDetails, fillDetails } from "./booking.test.mjs";
-
-const BUILD = path.join(ROOT, "tools/build.mjs");
-
-const runBuild = (dir, patch) => execFileSync(process.execPath, [BUILD, "--out", dir], { env: { ...process.env, NR_CONFIG_PATCH: patch }, stdio: "pipe" });
-
-// Builds the site into a temp folder with `patch` (JavaScript) run right after js/config.js, and serves it.
-// close() stops the server and deletes the folder.
-async function buildWith(patch) {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "nr-stack-"));
-  try {
-    runBuild(dir, patch);
-  } catch (e) {
-    fs.rmSync(dir, { recursive: true, force: true });
-    throw e;
-  }
-  const server = await startServer(dir);
-  return { dir, url: server.url, close: async () => { await server.close(); fs.rmSync(dir, { recursive: true, force: true }); } };
-}
-
-// The build's error text when `patch` makes it fail, or "" when the build succeeds.
-function buildError(patch) {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "nr-stack-"));
-  try {
-    runBuild(dir, patch);
-    return "";
-  } catch (e) {
-    return String(e.stderr || "") || e.message;
-  } finally {
-    fs.rmSync(dir, { recursive: true, force: true });
-  }
-}
 
 // Settings that name the server the tools run on. Several checks need them so the "server" stop doesn't hide the one under test.
 const SERVER = 'window.NR_CONFIG.server = { name: "TestHost", location: "Toronto, Canada" };';

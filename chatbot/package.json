@@ -1,0 +1,17 @@
+{
+  "name": "nestnrest-chatbot",
+  "private": true,
+  "type": "module",
+  "description": "The Cloudflare Worker behind nestnrestcleaning.com's chat assistant. Setup: README.md in this folder.",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "check": "node test/sdk-check.mjs"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "1.4.0"
+  },
+  "devDependencies": {
+    "wrangler": "4.157.0"
+  }
+}
