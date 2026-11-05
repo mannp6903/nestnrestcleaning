@@ -1,0 +1,18 @@
+# The Cloudflare Worker behind the website's chat assistant. Setup steps: README.md in this folder.
+name = "nestnrest-chatbot"
+main = "src/worker.js"
+compatibility_date = "2026-10-01"
+
+[vars]
+# The pages that may use the chatbot. Add a comma and another address while testing a preview, then take it out again.
+ALLOWED_ORIGINS = "https://nestnrestcleaning.com"
+
+# Cloudflare's rate limiter: each visitor (by IP address) can ask up to 12 questions a minute. Raise or lower `limit` if
+# needed; `period` can be 10 or 60 seconds. namespace_id is any number you choose, unique among your Workers.
+[[ratelimits]]
+name = "LIMITER"
+namespace_id = "1001"
+simple = { limit = 12, period = 60 }
+
+# The Anthropic API key is a secret, set once with: npx wrangler secret put ANTHROPIC_API_KEY
+# It is never written in this file or anywhere in the website.

@@ -47,6 +47,7 @@ All settings are in `js/config.js`. Prices and contact details update on every p
 - **Live booking calendar (Easy!Appointments, on your own server):** fill in `booking.easyAppointments` (`url`, `provider`, `services`) instead of `booking.calLink`, never both. Setup is in [docs/ops-stack-setup.md](docs/ops-stack-setup.md), sections 2 and 8.
 - **Your own server:** `server.name` and `server.location` say where it runs, and the privacy policy repeats them. Fill both in before you switch on Easy!Appointments, n8n form delivery, chat or the offers box. See [docs/ops-stack-setup.md](docs/ops-stack-setup.md), sections 1 and 8.
 - **Forms sent to your own n8n:** `delivery: { provider: "webhook", endpoint: "https://…" }` sends every form to a workflow on your server. The workflow must answer `{ "ok": true, "reference": … }`. See [docs/ops-stack-setup.md](docs/ops-stack-setup.md), section 5.
+- **Chat assistant (AI):** `assistant.endpoint` is the address of the Cloudflare Worker in `chatbot/`. With it set, an "Ask a question" button on every page except booking answers questions from this file's prices, checklist, areas, FAQs and policies (Claude Haiku 5.5), and hands people to the booking form with their home filled in. It never books or confirms anything. Setup, costs and keeping it current: [chatbot/README.md](chatbot/README.md). After changing prices or policies, build and deploy the Worker again. Use it or Chatwoot, not both.
 - **Website chat (Chatwoot):** fill in both `chat.baseUrl` and `chat.websiteToken` to show chat on every page except booking. See [docs/ops-stack-setup.md](docs/ops-stack-setup.md), section 6.
 - **Offers emails (listmonk):** `newsletter.optIn: true` adds an unticked "Email me seasonal offers" box to the booking form. It needs `business.mailingAddress` (CASL). The box reaches listmonk only when `delivery.provider` is `"webhook"` and the n8n workflow's listmonk step is built; otherwise leave it off or add people in listmonk yourself. See [docs/ops-stack-setup.md](docs/ops-stack-setup.md), section 7.
 - **How far ahead people can ask:** `daysAhead` (21 today). The day strip has Earlier and Later buttons, so a longer window stays easy to use.
@@ -187,6 +188,7 @@ The checks cover:
 - **v8:** the desktop hero's headline, button, price box and art on the first screen; the home page within 6 desktop and 10 phone screens; the Help page's change request (sent, failed, by text or by email) and its Google Sheet tab; "Request a clean" everywhere, and the re-clean's hours always described as a window for reporting.
 - **v7:** no placeholder on any page, the landmark art's names, and the home price box and booking agreeing with the pricing formula.
 - **home:** the short home page: one main action in the hero, the four service cards, plans, quote paths, How to book, Contact, and nothing left over from the long page. **host:** the Airbnb host page, its form and the ways into it.
+- **chatbot:** the chat assistant's prices against every price table and the booking form, its request checks, rate limit and tool loop (with a stand-in model, no key needed), the knowledge file being current, and the chat panel: asking, links, errors, New chat, phones and desktops, privacy text. `cd chatbot && npm run check` also runs the Worker with Anthropic's real SDK.
 - **v5:** plans you can choose, prices that say what they're for, the price-box card and folded sections in booking, paged dates, pricing jump links, stage-matched words, service pages that lead with what's covered, the type scale, contrast of the new parts, and a complete phone booking (with a failed send and a retry) at 360, 390 and 430px.
 
 Both need Playwright with Chromium (`npm install -g playwright && npx playwright install chromium`). The checks serve the site from your computer and never send a real booking. For what only a real phone can show (its keyboard, autofill, VoiceOver or TalkBack), use `docs/phone-checklist.md`.
@@ -196,11 +198,13 @@ Both need Playwright with Chromium (`npm install -g playwright && npx playwright
 ```
 index.html, book/, services/, areas/, realtors/, gift/, guides/, help/, review/, 404.html   generated pages
 css/site.css       design system (edit this; the build writes css/site.min.css, which the pages load)
+css/assistant.css, js/assistant.js   the chat assistant's panel (the build writes .min copies; loaded only when the assistant is on)
 js/config.js       business settings (edit this)
 js/site.js         pricing, booking, forms, WhatsApp, tracking (the build writes js/site.min.js, which the pages load)
 tools/build.mjs    page generator
 tools/guides.mjs   the guide articles
 tools/qa/          browser checks (see Checking the site)
+chatbot/           the chat assistant's Cloudflare Worker (setup: chatbot/README.md)
 tools/add_photo.py turns one photo into the four files a photo slot needs (python3 tools/add_photo.py photo.jpg empty-home)
 assets/            logo, icons, founder photo, room photos, social-share image, fonts
 ```

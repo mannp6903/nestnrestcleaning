@@ -1,7 +1,9 @@
 // Shared helpers for the browser checks in tools/qa. Needs Playwright with Chromium.
 import http from "node:http";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
+import { execFileSync } from "node:child_process";
 import vm from "node:vm";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
@@ -36,6 +38,36 @@ export function startServer(root = ROOT) {
     // A browser can keep a connection open after its test ends, and close() alone then waits for it for ever.
     close: () => new Promise((r) => { server.close(r); if (server.closeAllConnections) server.closeAllConnections(); })
   })));
+}
+
+const BUILD = path.join(ROOT, "tools/build.mjs");
+const runBuild = (dir, patch) => execFileSync(process.execPath, [BUILD, "--out", dir], { env: { ...process.env, NR_CONFIG_PATCH: patch }, stdio: "pipe" });
+
+// Builds the site into a temp folder with `patch` (JavaScript) run right after js/config.js, and serves it.
+// close() stops the server and deletes the folder.
+export async function buildWith(patch) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "nr-stack-"));
+  try {
+    runBuild(dir, patch);
+  } catch (e) {
+    fs.rmSync(dir, { recursive: true, force: true });
+    throw e;
+  }
+  const server = await startServer(dir);
+  return { dir, url: server.url, close: async () => { await server.close(); fs.rmSync(dir, { recursive: true, force: true }); } };
+}
+
+// The build's error text when `patch` makes it fail, or "" when the build succeeds.
+export function buildError(patch) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "nr-stack-"));
+  try {
+    runBuild(dir, patch);
+    return "";
+  } catch (e) {
+    return String(e.stderr || "") || e.message;
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
 }
 
 const openContexts = new Set();

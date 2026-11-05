@@ -122,6 +122,22 @@ From the owner: the site felt too long; clients need a strong first screen, then
 - **Removed with them:** the room tabs and neighbourhood search scripts and about 160 rules of their styles, so every page's stylesheet is lighter (lab LCP on a slow phone: home 2.10s, from 2.23s).
 - **Checks:** `tools/qa/home.test.mjs` (the hero, the cards, plans, How to book, Contact and nothing left from the long page), `tools/qa/v8.test.mjs` (the first screen at 1440 × 900, 1280 × 800 and 1024 × 768; the page within 6 desktop and 10 phone screens) and the design, tablet, v4, v5 and v7 checks updated to match.
 
+## The chat assistant (November 2026)
+
+- **Placement:** a pill button bottom right, above the phone action bar (84px up, plus the safe area) and in the corner on
+  desktop. On phones it says "Ask" so it covers less; on desktop "Ask a question". It hides while the menu is open and is
+  never on the booking page, so nothing sits over the form. It loads after the page and only when the browser is idle,
+  and its styles and script are separate files (`css/assistant.css`, `js/assistant.js`) fetched at that moment, so the
+  pages carry nothing extra and it can't slow the first paint.
+- **Panel:** a small non-modal dialog: title, a one-line note that it's an AI that can make mistakes and that Mann confirms
+  every booking, the conversation (`role="log"`, announced politely), and a two-line box. Enter sends, Shift+Enter is a
+  new line, Escape closes and returns focus to the button. Visitor bubbles use the button colour; answers use the section
+  tint. Links are made only for the website's own addresses and the business email; any other address stays as text.
+- **Motion:** only the three "writing" dots pulse, on the settle easing, and not at all under reduced motion.
+- **Words:** the greeting says what it can answer and that booking goes through the form. Errors keep the question in the
+  box. The Worker writes its own error messages for visitors (busy, too long, too many questions), and the panel shows
+  them as they are.
+
 ## Phase 4: local depth and booking (November 2026)
 
 From [the redesign blueprint](redesign-blueprint-2026-11.md).
