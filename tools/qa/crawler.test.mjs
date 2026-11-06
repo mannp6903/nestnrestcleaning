@@ -3,11 +3,11 @@
 // the HTML itself, and must match js/config.js.
 import fs from "node:fs";
 import path from "node:path";
-import { test, assert, newPage, ROOT, loadConfig } from "./lib.mjs";
+import { test, assert, newPage, ROOT, loadConfig, built } from "./lib.mjs";
 import { fillDetails, toDetails } from "./booking.test.mjs";
 
-const PAGES = [...fs.readFileSync(path.join(ROOT, "sitemap.xml"), "utf8").matchAll(/<loc>[^<]*?nestnrestcleaning\.com([^<]*)<\/loc>/g)].map((m) => m[1] || "/");
-const read = (pg) => fs.readFileSync(path.join(ROOT, pg.replace(/^\//, ""), "index.html"), "utf8");
+const PAGES = [...fs.readFileSync(built("sitemap.xml"), "utf8").matchAll(/<loc>[^<]*?nestnrestcleaning\.com([^<]*)<\/loc>/g)].map((m) => m[1] || "/");
+const read = (pg) => fs.readFileSync(built(pg.replace(/^\//, ""), "index.html"), "utf8");
 const ld = (html) => [...html.matchAll(/<script type="application\/ld\+json">(.*?)<\/script>/gs)].map((m) => JSON.parse(m[1]));
 // The words on the page, as a crawler reads them: no scripts, no tags, entities decoded.
 const words = (html) => html.replace(/<script[\s\S]*?<\/script>/g, " ").replace(/<style[\s\S]*?<\/style>/g, " ").replace(/<[^>]+>/g, " ")

@@ -7,6 +7,17 @@
 window.NR_CONFIG = {
   siteUrl: "https://nestnrestcleaning.com",
 
+  /* Opening soon. While open is false, the website says you're still getting ready: a notice on the home page's hero and
+     in the top bar of every page, "Opening soon" on the header and phone buttons, and no form that sends anything (booking,
+     quotes, "Text me this price", gift cards). Prices, services and guides stay, so people can see what to expect.
+     WHEN YOU'RE READY FOR CLIENTS: change open to true, then run `node tools/build.mjs` and push. Everything comes back.
+     badge: the short label. notice: the sentence visitors read (keep it to one or two sentences). */
+  launch: {
+    open: false,
+    badge: "Opening soon",
+    notice: "I'm still getting Nest & Rest ready, so I'm not taking bookings yet. Have a look around: prices and services are all here."
+  },
+
   business: {
     name: "Nest & Rest Cleaning",
     tagline: "We clean. You rest.",

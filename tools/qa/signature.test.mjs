@@ -3,10 +3,10 @@
 // hides words.
 import fs from "node:fs";
 import path from "node:path";
-import { test, assert, newPage, contrast, ROOT } from "./lib.mjs";
+import { test, assert, newPage, contrast, ROOT, built } from "./lib.mjs";
 
-const PAGES = [...fs.readFileSync(path.join(ROOT, "sitemap.xml"), "utf8").matchAll(/<loc>[^<]*?nestnrestcleaning\.com([^<]*)<\/loc>/g)].map((m) => m[1] || "/");
-const read = (pg) => fs.readFileSync(path.join(ROOT, pg.replace(/^\//, ""), "index.html"), "utf8");
+const PAGES = [...fs.readFileSync(built("sitemap.xml"), "utf8").matchAll(/<loc>[^<]*?nestnrestcleaning\.com([^<]*)<\/loc>/g)].map((m) => m[1] || "/");
+const read = (pg) => fs.readFileSync(built(pg.replace(/^\//, ""), "index.html"), "utf8");
 
 export default async function () {
   test("the slogan is on screen from the first frame, and \"You rest.\" exhales once", async ({ browser, url }) => {

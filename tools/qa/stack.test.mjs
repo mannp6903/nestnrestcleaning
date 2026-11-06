@@ -1,7 +1,7 @@
 // Builds of the site with other settings patched in (node tools/build.mjs --out DIR, with NR_CONFIG_PATCH set), served from a temp folder.
 import fs from "node:fs";
 import path from "node:path";
-import { test, assert, loadConfig, newPage, withConfig, buildWith, buildError, ROOT } from "./lib.mjs";
+import { test, assert, loadConfig, newPage, withConfig, buildWith, buildError, ROOT, built } from "./lib.mjs";
 import { toDetails, fillDetails } from "./booking.test.mjs";
 
 // Settings that name the server the tools run on. Several checks need them so the "server" stop doesn't hide the one under test.
@@ -265,7 +265,7 @@ export default async function () {
     assert(!(await p.$("#f-offers")) && await reviewRow(p, "Offers emails") === null, "no box, no review row");
     await p.click("[data-submit]"); await p.waitForSelector("[data-done]:not([hidden])");
     assert(!("Offers emails" in p.posts.at(-1)), "no Offers emails key: " + Object.keys(p.posts.at(-1)).join(", "));
-    const priv = fs.readFileSync(path.join(ROOT, "privacy/index.html"), "utf8");
+    const priv = fs.readFileSync(built("privacy/index.html"), "utf8");
     assert(!/Offers mailing list|seasonal offers|offers emails|listmonk/i.test(priv), "the privacy policy mentions offers emails with the box off");
   });
 
@@ -324,7 +324,7 @@ export default async function () {
     const C = loadConfig();
     assert(!C.booking.easyAppointments.url && !C.chat.baseUrl && !C.newsletter.optIn && C.delivery.provider !== "webhook", "all off");
     for (const f of ["index.html", "book/index.html", "privacy/index.html", "policies/index.html"]) {
-      const h = fs.readFileSync(path.join(ROOT, f), "utf8");
+      const h = fs.readFileSync(built(f), "utf8");
       assert(!/data-chat|f-offers|Easy!Appointments|n8n|listmonk|Chatwoot/.test(h), f + " mentions a tool that's off");
     }
   });

@@ -2,10 +2,10 @@
 // page, and the same words everywhere ("Request a clean"; the re-clean guarantee's hours are for reporting what was missed).
 import fs from "node:fs";
 import path from "node:path";
-import { test, assert, newPage, mockDelivery, ROOT } from "./lib.mjs";
+import { test, assert, newPage, mockDelivery, ROOT, built } from "./lib.mjs";
 import { loadScript } from "./gas-fakes.mjs";
 
-const PAGES = [...fs.readFileSync(path.join(ROOT, "sitemap.xml"), "utf8").matchAll(/<loc>[^<]*?nestnrestcleaning\.com([^<]*)<\/loc>/g)].map((m) => m[1] || "/");
+const PAGES = [...fs.readFileSync(built("sitemap.xml"), "utf8").matchAll(/<loc>[^<]*?nestnrestcleaning\.com([^<]*)<\/loc>/g)].map((m) => m[1] || "/");
 
 export default async function () {
   // v9: one composition: the slogan, the main button, the price box and the start of the night panorama on the first screen,

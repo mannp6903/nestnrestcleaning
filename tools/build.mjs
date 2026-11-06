@@ -116,6 +116,26 @@ const FOUND_VIA = ((C.booking || {}).foundVia || []).filter(Boolean);
 const ACT = CAL
   ? { book: "Book a clean", short: "Book", again: "Book again", go: "Book this clean", send: "Choose your time", minutes: "Book in two minutes." }
   : { book: "Request a clean", short: "Request", again: "Request again", go: "Choose a preferred day", send: "Send cleaning request", minutes: "Request in two minutes." };
+// Opening soon (launch.open: false in js/config.js): the site says Mann is still getting ready. Prices, services and guides
+// stay; every way to send a request (booking, quotes, "Text me this price", gift cards) is left out, the header and phone
+// bar buttons say "Opening soon" (and lead to a page that explains), other booking buttons point to the prices, and the
+// home hero and the top bar of every page carry the notice. launch.open: true brings everything back.
+const SOON = !!(C.launch && C.launch.open === false);
+const SOON_BADGE = SOON ? String(C.launch.badge || "Opening soon").trim() : "";
+const SOON_NOTE = SOON ? String(C.launch.notice || "").trim() : "";
+if (SOON) Object.assign(ACT, { book: SOON_BADGE, short: SOON_BADGE, again: SOON_BADGE, go: "Booking opens soon", minutes: "Booking opens soon." });
+const soonBadge = () => `<span class="soon-badge">${ic("i-clock")}<span>${esc(SOON_BADGE)}</span></span>`;
+// In place of a form while the business is getting ready.
+const soonBox = (L, title) => `<div class="soon-box" data-soon>
+        <p>${soonBadge()}</p>
+        <p class="soon-title">${esc(title)}</p>
+        <p>${esc(SOON_NOTE)}</p>
+        <a class="text-link" href="${L("pricing/")}">See prices ${ic("i-arrow")}</a>
+      </div>`;
+// The page's main booking button. While opening soon, it points to the prices instead.
+const bookBtn = (L, cls = "btn btn-primary") => SOON
+  ? `<a class="${cls}" href="${L("pricing/")}">See prices ${ic("i-arrow")}</a>`
+  : `<a class="${cls}" href="${L("book/")}" data-track="book_click">${ACT.book} ${ic("i-arrow")}</a>`;
 // Google Analytics runs only once analytics.ga4Id is set; the privacy policy describes it from then on.
 const GA = !!(C.analytics && C.analytics.ga4Id);
 // The business mailing address (CASL and Ontario's Consumer Protection Act). Shown everywhere once it's set in config.
@@ -174,6 +194,8 @@ function checkStack() {
     if (sug !== undefined && (!Array.isArray(sug) || sug.length > 4 || sug.some((q) => typeof q !== "string" || !q.trim() || q.length > 60)))
       throw new Error("assistant.suggestions in js/config.js must be a list of up to 4 questions, each 60 characters or fewer.");
   }
+  if (SOON && !SOON_NOTE) throw new Error("launch.notice in js/config.js can't be empty while launch.open is false: it's the sentence visitors see.");
+  if (ASSIST && SOON) throw new Error("The chat assistant sends visitors to the booking form, so it stays off while launch.open is false in js/config.js. Switch it on after you open.");
   if (ASSIST && CHAT) throw new Error("Switch on the chat assistant (assistant.endpoint) or Chatwoot (chat), not both: they would share the same corner of the screen.");
   if (NEWS && !ADDR) throw new Error("newsletter.optIn needs business.mailingAddress in js/config.js: Canada's anti-spam law (CASL) needs it in every offers email.");
   if (!["", "formsubmit", "sheet", "webhook", "none"].includes(PROVIDER)) throw new Error(`delivery.provider in js/config.js must be "formsubmit", "sheet", "webhook" or "none".`);
@@ -379,11 +401,11 @@ function socialLinks(cls = "") {
 function announceBar() {
   const A = C.announce || {};
   // Each message is [full, short]: phones under 480px show the short one, so the bar stays on one line.
-  const msgs = [
+  const msgs = SOON ? [[`${SOON_BADGE}: not taking bookings yet`, `${SOON_BADGE}: no bookings yet`]] : [
     ...(founding && founding.active && spotsLeft > 0 ? [[`${founding.percent}% off your first visit, first ${founding.spots} households`, `${founding.percent}% off your first visit`]] : []),
     ...(A.messages || []).map((m) => [m, m])
   ];
-  if (!A.active || !msgs.length) return "";
+  if (!SOON && (!A.active || !msgs.length)) return "";
   const key = crypto.createHash("sha1").update(msgs.map((m) => m[0]).join("|")).digest("hex").slice(0, 8);
   const msgHtml = ([full, short]) => full === short ? esc(full) : `<span class="am-long">${esc(full)}</span><span class="am-short">${esc(short)}</span>`;
   return `<div class="announce" data-announce data-key="${key}" role="region" aria-label="Announcements">
@@ -605,20 +627,21 @@ function pricer(L, defaultKey = "regular", heading = "Your price, in seconds", {
     ${stepper("p-baths", "Bathrooms", 1, "data-p-baths")}
   </div>
   ${PRICE_BOX_ADDONS.map((a) => `<label class="check pricer-check"><input type="checkbox" data-p-addon="${a.id}"><span>${esc(a.priceBox)}</span><b>+${money(a.price)}</b></label>`).join("")}
-  <a class="btn btn-primary btn-block" href="${L("book/")}" data-p-go data-track="pricer_continue">${ACT.go} ${ic("i-arrow")}</a>
-  <p class="pricer-next">${ic("i-cal")}<span>${CAL ? "Bookings from" : "Earliest day to request:"} <strong data-next-open>tomorrow</strong></span></p>
-  ${owner ? `<p class="pricer-owner"><picture><source type="image/webp" srcset="${L("assets/founder-mann-patel-avatar.webp")}"><img src="${L("assets/founder-mann-patel-avatar.jpg")}" alt="" width="40" height="40" loading="lazy" decoding="async"></picture><span><strong>${esc(B.owner)}, owner,</strong> ${CAL ? "checks in after you pick a time." : "confirms your day, time and final price."}</span></p>` : ""}
+  ${SOON ? `<p class="pricer-soon" data-p-soon>${ic("i-clock")}<span><strong>${esc(ACT.go)}.</strong> This is what your clean will cost when it does.</span></p>`
+    : `<a class="btn btn-primary btn-block" href="${L("book/")}" data-p-go data-track="pricer_continue">${ACT.go} ${ic("i-arrow")}</a>
+  <p class="pricer-next">${ic("i-cal")}<span>${CAL ? "Bookings from" : "Earliest day to request:"} <strong data-next-open>tomorrow</strong></span></p>`}
+  ${owner && !SOON ? `<p class="pricer-owner"><picture><source type="image/webp" srcset="${L("assets/founder-mann-patel-avatar.webp")}"><img src="${L("assets/founder-mann-patel-avatar.jpg")}" alt="" width="40" height="40" loading="lazy" decoding="async"></picture><span><strong>${esc(B.owner)}, owner,</strong> ${CAL ? "checks in after you pick a time." : "confirms your day, time and final price."}</span></p>` : ""}
   <div class="pricer-alt">
     <a class="link-btn" data-p-incl href="${L("services/" + C.services[defaultKey].slug + "/")}#included">${ic("i-check")} What's included</a>
-    <button type="button" class="link-btn" data-textme-open aria-expanded="false" aria-controls="textme-${defaultKey}">${ic("i-sms")} Text me this price</button>
-    ${B.whatsapp ? `<a class="link-btn" data-p-wa href="${esc(waLink(WA_HELLO))}" target="_blank" rel="noopener" data-track="whatsapp_click">${ic("i-wa")} Ask on WhatsApp</a>` : ""}
+    ${SOON ? "" : `<button type="button" class="link-btn" data-textme-open aria-expanded="false" aria-controls="textme-${defaultKey}">${ic("i-sms")} Text me this price</button>`}
+    ${B.whatsapp && !SOON ? `<a class="link-btn" data-p-wa href="${esc(waLink(WA_HELLO))}" target="_blank" rel="noopener" data-track="whatsapp_click">${ic("i-wa")} Ask on WhatsApp</a>` : ""}
   </div>
-  <div class="textme" id="textme-${defaultKey}" data-textme hidden>
+  ${SOON ? "" : `<div class="textme" id="textme-${defaultKey}" data-textme hidden>
     <label for="tm-phone-${defaultKey}">Your mobile number</label>
     <div class="pc-row"><input id="tm-phone-${defaultKey}" type="tel" inputmode="tel" autocomplete="tel" placeholder="e.g. 647 555 0123" data-textme-phone><button class="btn btn-teal" type="button" data-textme-send>Send</button></div>
     <p class="field-hint" data-textme-note>${esc(B.ownerFirstName)} texts you this price once, ${esc(B.replyPromise)}. No spam.</p>
     <input type="text" name="_honey" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true" data-textme-honey>
-  </div>
+  </div>`}
   <p class="pricer-fine"><span>No email needed</span> · <span data-tax-note>${TAX_TEXT}</span> · <span>No payment to book</span> · <span>Free re-clean guarantee</span></p>
 </form>`;
 }
@@ -638,7 +661,7 @@ function stepper(id, label, value, attr) {
 function heroFacts() {
   const items = [
     ["i-card", "No deposit. Pay after your clean"],
-    ["i-clock", `Open ${C.openDays.length === 7 ? "daily" : "most days"}, ${clock(C.opens)} to ${clock(C.closes)}`],
+    ...(SOON ? [] : [["i-clock", `Open ${C.openDays.length === 7 ? "daily" : "most days"}, ${clock(C.opens)} to ${clock(C.closes)}`]]),
     ["i-shield", GUARANTEE_LABEL]
   ];
   // The insurance badge waits here until the policy starts (November 2026). To switch it on, move the <li> out of the
@@ -712,6 +735,14 @@ function faqBlock(tag, title = "Questions, answered.", cls = "", aside = "") {
 
 // cta: { href, label, track } replaces the booking button, for pages whose next step is a form of their own.
 function finalCta(L, title = "Come home to it.", text = `${ACT.minutes} No payment until it's done.`, cta = null) {
+  // Opening soon: one honest message on every page, pointing to the prices; nothing to send, no email button.
+  if (SOON) return `<section class="final-cta">
+  <div class="wrap final-inner">
+    <h2>${esc(SOON_BADGE)}.</h2>
+    <p>${esc(SOON_NOTE)}</p>
+    <div class="cta-row"><a class="btn btn-light" href="${L("pricing/")}">See prices</a></div>
+  </div>
+</section>`;
   return `<section class="final-cta">
   <div class="wrap final-inner">
     <h2>${esc(title)}</h2>
@@ -778,11 +809,11 @@ function businessSchema({ reviews = false } = {}) {
     openingHoursSpecification: [{ "@type": "OpeningHoursSpecification", dayOfWeek: C.openDays.map((d) => ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][d]), opens: C.opens, closes: C.closes }],
     ...(PROFILES.length ? { sameAs: PROFILES } : {}),
     hasOfferCatalog: offerCatalog(),
-    potentialAction: {
+    ...(SOON ? {} : { potentialAction: {
       "@type": "ReserveAction", name: ACT.book,
       target: { "@type": "EntryPoint", urlTemplate: SITE + "/book/", inLanguage: "en-CA", actionPlatform: ["https://schema.org/DesktopWebPlatform", "https://schema.org/MobileWebPlatform"] },
       result: { "@type": "Reservation", name: CAL ? "Home cleaning booking" : "Home cleaning request" }
-    },
+    } }),
     ...(reviews && (C.reviews || []).length ? { review: reviewSchema() } : {})
   };
 }
@@ -925,6 +956,7 @@ ${bodyInner}
 // in js/config.js, and the notes, go on the second step; contact details, the postal code and the rest on the first.
 // js/site.js shows one step at a time with the progress above them; without JavaScript both steps show, one after the other.
 function quoteForm(L, { name, title = "Request a free quote", reply, fields, button = "Request a free quote", note, steps = null }) {
+  if (SOON) return soonBox(L, "Not taking quote requests yet");
   const field = (f) => {
     const span = f.span === 2 ? " span-2" : "";
     if (f.type === "select") return `<div class="field${span}"><label for="q-${f.id}">${esc(f.label)}</label><div class="select-wrap"><select id="q-${f.id}" name="${esc(f.label)}"><option value="" selected>Choose one</option>${f.options.map((o) => `<option>${esc(o)}</option>`).join("")}</select>${ic("i-chev")}</div></div>`;
@@ -1005,7 +1037,7 @@ function homeServices(L) {
         <p class="svc-best">Best for: ${esc(s.idealFor[0])}</p>
         <p class="svc-price">From <b data-from="${k}">${money(s.base)}</b>${first ? ` <span class="svc-first">${first(s.base)} first visit</span>` : ""}</p>
         <div class="svc-card-actions">
-          <a class="btn btn-primary btn-sm" href="${L("book/")}?s=${k}" data-track="book_click">${ACT.short}</a>
+          ${SOON ? "" : `<a class="btn btn-primary btn-sm" href="${L("book/")}?s=${k}" data-track="book_click">${ACT.short}</a>`}
           <a class="text-link" href="${L("services/" + s.slug + "/#included")}">What's included</a>
         </div>
       </li>`; }).join("")}
@@ -1043,7 +1075,7 @@ function hoodChips(L, a, short = false) {
 // In the area, the check offers the booking button in the site's own words ("Request a clean"). cta sends it somewhere
 // else instead, such as the host form, and fill names a postal-code field on the same page to fill in.
 function postalForm(id, label = "Check your postal code", cta = null) {
-  const extra = cta ? ` data-pc-href="${esc(cta.href)}" data-pc-label="${esc(cta.label)}"${cta.fill ? ` data-pc-fill="${esc(cta.fill)}"` : ""}` : ` data-pc-label="${esc(ACT.book)}"`;
+  const extra = cta && !SOON ? ` data-pc-href="${esc(cta.href)}" data-pc-label="${esc(cta.label)}"${cta.fill ? ` data-pc-fill="${esc(cta.fill)}"` : ""}` : ` data-pc-label="${esc(ACT.book)}"`;
   return `<form class="pc-check" data-pc-form${extra} novalidate>
         <label for="${id}">${label}</label>
         <div class="pc-row"><input id="${id}" name="pc" autocomplete="postal-code" autocapitalize="characters" placeholder="e.g. M1B 2K3" maxlength="7"><button class="btn btn-primary" type="submit">Check</button></div>
@@ -1061,6 +1093,7 @@ function guideCards(L, list) {
 // Help page: change or cancel a booking without leaving the site. A request, not a change: the booking stays as it is
 // until Mann confirms. Asks only for what's needed to find the booking and reply (no address, no codes).
 function changeForm(L) {
+  if (SOON) return soonBox(L, "No bookings to change yet");
   const seg = (name, label, opts) => `<div class="field span-2"><span class="field-label" id="c-${name}-label">${label}</span>
           <div class="seg" role="radiogroup" aria-labelledby="c-${name}-label">
             ${opts.map(([v, t], i) => `<label><input type="radio" name="${name === "what" ? "Request" : "Reply by"}" value="${esc(v)}"${i ? "" : " checked"}><span>${esc(t)}</span></label>`).join("")}
@@ -1225,7 +1258,11 @@ function contactSection(L) {
   <div class="wrap contact-grid">
     <div class="contact-copy">
       <p class="label">Contact</p>
-      <h2 id="contact-title">Ready when you are.</h2>
+      ${SOON ? `<h2 id="contact-title">${esc(SOON_BADGE)}.</h2>
+      <p class="lede">${esc(SOON_NOTE)}</p>
+      <div class="cta-row">
+        ${bookBtn(L)}
+      </div>` : `<h2 id="contact-title">Ready when you are.</h2>
       <p class="lede">Request a clean in about two minutes, or ask ${esc(B.ownerFirstName)} anything first. ${esc(B.ownerFirstName)} replies <span data-reply>${esc(B.replyPromise)}</span>.</p>
       <div class="cta-row">
         <a class="btn btn-primary" href="${L("book/")}" data-track="book_click">${ACT.book} ${ic("i-arrow")}</a>
@@ -1233,7 +1270,7 @@ function contactSection(L) {
         ${PHONE ? `<a class="text-link" data-tel href="tel:${B.phone}" data-track="call_click">Call <span class="nowrap" data-phone-text>${esc(B.phoneDisplay)}</span> ${ic("i-arrow")}</a>`
           : `<a class="text-link" data-mailto href="mailto:${B.email}" data-track="email_click">Email ${esc(B.ownerFirstName)} ${ic("i-arrow")}</a>`}
       </div>
-      <p class="contact-help">Already booked? <a href="${L("help/")}">Change or cancel your booking</a></p>
+      <p class="contact-help">Already booked? <a href="${L("help/")}">Change or cancel your booking</a></p>`}
     </div>
     <div class="contact-card">
       <dl class="contact-list">
@@ -1259,10 +1296,11 @@ urls.push(page({
 <section class="hero hero-home">
   <div class="wrap hero-grid">
     <div class="hero-copy">
+      ${SOON ? `<p class="hero-soon" data-soon>${soonBadge()}<span>${esc(SOON_NOTE)}</span></p>` : ""}
       <h1 class="hero-title"><span class="hero-what">House cleaning in ${esc(B.areaLabel)}</span> <span class="display"><span class="w">We</span> <span class="w">clean.</span><br> <span class="accent"><span class="w">You</span> <span class="w">rest.</span><svg class="swoosh" viewBox="0 0 200 20" preserveAspectRatio="none" aria-hidden="true" focusable="false"><path d="M6 13 C 52 5, 118 3, 194 9"/></svg></span></span></h1>
       <p class="lede">Hi, I'm ${esc(B.ownerFirstName)}. I clean every home myself, so your weekends are for living, not scrubbing. Prices from <b data-from="regular">${money(C.services.regular.base)}</b>.</p>
       <div class="hero-cta">
-        <a class="btn btn-primary" href="${L("book/")}" data-track="book_click">${ACT.book} ${ic("i-arrow")}</a>
+        ${bookBtn(L)}
         <a class="text-link" href="${L("#how")}">How it works ${ic("i-arrow")}</a>
       </div>
       ${heroFacts()}
@@ -1313,7 +1351,7 @@ urls.push(page({
       </figure>
       ${bookingTerms(L)}
     </div>
-    <div class="center-cta"><a class="btn btn-primary" href="${L("book/")}" data-track="book_click">${ACT.book} ${ic("i-arrow")}</a></div>
+    <div class="center-cta">${bookBtn(L)}</div>
   </div>
 </section>
 
@@ -1322,7 +1360,7 @@ ${reviewsSection()}
 
 ${homeFaq.html}
 
-${gift && gift.active ? `<section class="gift-band" data-gift-banner data-months="${gift.bannerMonths.join(",")}" hidden>
+${gift && gift.active && !SOON ? `<section class="gift-band" data-gift-banner data-months="${gift.bannerMonths.join(",")}" hidden>
   <div class="wrap gift-band-inner">
     <span class="gift-ico">${ic("i-gift")}</span>
     <p><strong>${esc(gift.headline)}</strong> ${esc(gift.text)}</p>
@@ -1337,11 +1375,24 @@ ${contactSection(L)}
 /* ---------- booking ---------- */
 urls.push(page({
   depth: 1, pathOut: "book/index.html", pageType: "book", minimal: true, noBar: true,
-  title: `${CAL ? "Book" : "Request"} a Clean | ${B.name}`,
-  description: CAL
+  title: SOON ? `${SOON_BADGE} | ${B.name}` : `${CAL ? "Book" : "Request"} a Clean | ${B.name}`,
+  description: SOON ? SOON_NOTE : CAL
     ? "Book your home cleaning online in about two minutes. See your price, pick a time on our calendar, and pay after the clean."
     : "Request your home cleaning online in about two minutes. See your price, choose a preferred day and arrival window, and pay after the clean.",
   body: (L) => {
+    // Opening soon: the page says so, instead of the form.
+    if (SOON) return `
+<section class="book book-soon" data-soon>
+  <div class="wrap">
+    <p>${soonBadge()}</p>
+    <h1>Not taking bookings yet</h1>
+    <p class="lede">${esc(SOON_NOTE)}</p>
+    <div class="cta-row">
+      <a class="btn btn-primary" href="${L("pricing/")}">See prices ${ic("i-arrow")}</a>
+      <a class="text-link" href="${L()}">Back to the home page ${ic("i-arrow")}</a>
+    </div>
+  </div>
+</section>`;
     const freqField = `<div class="field" data-freq-field><span class="field-label" id="freq-label">How often</span>
               <div class="freq-grid" role="radiogroup" aria-labelledby="freq-label">
                 ${Object.keys(C.frequencies).map((k) => { const f = C.frequencies[k]; return `<label class="choice"><input type="radio" name="freq" value="${k}"><span class="choice-body"><strong>${esc(f.label)}</strong><span class="choice-desc">${f.discount ? `Save ${f.discount}%` : "No commitment"}</span></span></label>`; }).join("")}
@@ -1924,7 +1975,7 @@ ${priceExplainer()}
         ${priceTable(k)}
         <div class="price-card-foot">
           <a class="text-link" href="${L("services/" + s.slug + "/")}">What's included ${ic("i-arrow")}</a>
-          <a class="btn btn-primary btn-sm" href="${L("book/")}?s=${k}" data-track="book_click">${ACT.short}</a>
+          ${SOON ? "" : `<a class="btn btn-primary btn-sm" href="${L("book/")}?s=${k}" data-track="book_click">${ACT.short}</a>`}
         </div>
       </article>`; }).join("\n      ")}
     </div>
@@ -2281,7 +2332,7 @@ if (gift && gift.active) {
       ${photo(L, "bedroom", { sizes: "(min-width: 960px) 520px, 92vw", cls: "quote-photo" })}
     </div>
     <div class="hero-pricer">
-      <form class="quote-form gift-form" data-gift-form novalidate>
+      ${SOON ? soonBox(L, "Gift cards go on sale when I open") : `<form class="quote-form gift-form" data-gift-form novalidate>
         <p class="pricer-title">Choose a gift</p>
         <div class="field"><span class="field-label" id="gift-amt-label">Gift amount</span>
           <div class="seg seg-amounts" role="radiogroup" aria-labelledby="gift-amt-label">
@@ -2310,7 +2361,7 @@ if (gift && gift.active) {
         <p class="pricer-fine">Nothing to pay now. We text you to confirm and send an Interac e-Transfer request.</p>
         <p class="privacy-note">${SENT_VIA} See our <a href="${L("privacy/")}">Privacy Policy</a> and <a href="${L("policies/#gift")}">gift card terms</a>.</p>
       </form>
-      <div class="quote-done" data-gift-done hidden tabindex="-1"><p class="label">Request received</p><h2 data-gd-title>Thank you.</h2><p data-gd-text></p><p class="ref">Reference <strong data-gd-ref></strong></p></div>
+      <div class="quote-done" data-gift-done hidden tabindex="-1"><p class="label">Request received</p><h2 data-gd-title>Thank you.</h2><p data-gd-text></p><p class="ref">Reference <strong data-gd-ref></strong></p></div>`}
     </div>
   </div>
 </section>
@@ -2622,7 +2673,7 @@ page({
     <p class="kicker">Your review</p>
     <h1 class="display display-sub">How did we do?</h1>
     <p class="lede">Your honest feedback helps us improve and helps neighbours choose with confidence. It takes about a minute.</p>
-    <form class="review-form" data-review-form novalidate>
+    ${SOON ? soonBox(L, "Reviews open after the first cleans") : `<form class="review-form" data-review-form novalidate>
       <fieldset class="stars-field"><legend>Your rating</legend>
         <div class="stars-input">
           ${[5, 4, 3, 2, 1].map((n) => `<input type="radio" id="r${n}" name="rating" value="${n}"><label for="r${n}">${ic("i-star")}<span class="sr-only">${n} star${n > 1 ? "s" : ""}</span></label>`).join("")}
@@ -2644,7 +2695,7 @@ page({
       <p class="label">Thank you</p><h2>Review received.</h2>
       <p data-review-done-text>We'll publish it once it's matched to your visit. Thank you for taking the time.</p>
       <a class="btn btn-ghost" data-google-review href="#" target="_blank" rel="noopener" hidden>Also post it on Google</a>
-    </div>
+    </div>`}
   </div>
 </section>`
 });

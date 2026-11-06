@@ -3,7 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
-import { test, assert, newPage, mockDelivery, withConfig, ROOT } from "./lib.mjs";
+import { test, assert, newPage, mockDelivery, withConfig, ROOT, built, OPEN_PATCH } from "./lib.mjs";
 import { toDetails, fillDetails } from "./booking.test.mjs";
 
 const SHEET = 'window.NR_CONFIG.delivery = { provider: "sheet", endpoint: "https://script.google.com/macros/s/TEST/exec" };';
@@ -138,14 +138,14 @@ export default async function () {
   test("privacy wording follows the provider", async () => {
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "nr-sheet-"));
     try {
-      execFileSync(process.execPath, [path.join(ROOT, "tools/build.mjs"), "--preview", tmp], { env: { ...process.env, NR_PROVIDER: "sheet" }, stdio: "ignore" });
+      execFileSync(process.execPath, [path.join(ROOT, "tools/build.mjs"), "--preview", tmp], { env: { ...process.env, NR_PROVIDER: "sheet", NR_CONFIG_PATCH: OPEN_PATCH }, stdio: "ignore" });
       for (const f of ["book/index.html", "gift/index.html", "services/residence-care/index.html"]) {
         const html = fs.readFileSync(path.join(tmp, f), "utf8");
         assert(html.includes("saved to our Google Sheet and emailed to our Gmail inbox (both Google)") && !html.includes("FormSubmit"), f + " should name the sheet, not FormSubmit");
       }
       const privacy = fs.readFileSync(path.join(tmp, "privacy/index.html"), "utf8");
       assert(privacy.includes("Google Sheets and Gmail") && !privacy.includes("FormSubmit"), "the privacy page names the sheet");
-      assert(fs.readFileSync(path.join(ROOT, "book/index.html"), "utf8").includes("FormSubmit"), "the site as built today still names FormSubmit");
+      assert(fs.readFileSync(built("book/index.html"), "utf8").includes("FormSubmit"), "the site as built today still names FormSubmit");
     } finally {
       fs.rmSync(tmp, { recursive: true, force: true });
     }
