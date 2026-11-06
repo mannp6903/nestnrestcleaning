@@ -2,7 +2,7 @@
 // stand-in model, so no API key or network), the knowledge file the build writes, and the website's chat panel.
 import fs from "node:fs";
 import path from "node:path";
-import { test, assert, newPage, loadConfig, buildWith, buildError, contrast, contrastProblems, ROOT } from "./lib.mjs";
+import { test, assert, newPage, loadConfig, buildWith, buildError, contrast, contrastProblems, ROOT, built } from "./lib.mjs";
 import { quote, checkArea, basePrice } from "../../chatbot/src/pricing.js";
 import { handle, systemPrompt, tools, checkMessages, MODEL, LIMITS } from "../../chatbot/src/core.js";
 
@@ -46,8 +46,8 @@ const ask = (q) => ({ messages: [{ role: "user", content: q }] });
 export default async function () {
   test("the assistant's prices match every price on the website", async () => {
     let n = 0;
-    for (const f of ["pricing/index.html", ...fs.readdirSync(path.join(ROOT, "services")).map((s) => `services/${s}/index.html`)]) {
-      const p = path.join(ROOT, f);
+    for (const f of ["pricing/index.html", ...fs.readdirSync(built("services")).map((s) => `services/${s}/index.html`)]) {
+      const p = built(f);
       if (!fs.existsSync(p)) continue;
       for (const [, key, amount] of fs.readFileSync(p, "utf8").matchAll(/data-price="([^"]+)">\$([\d,]+)/g)) {
         const [service, bd, ba, home] = key.split(":");
@@ -224,7 +224,7 @@ export default async function () {
     await p.waitForTimeout(2600);
     assert(!(await p.$(".assist-open")), "no chat button without an endpoint");
     assert(!(await p.$("[data-assist]")) && !(await p.$('link[href*="assistant"]')), "and nothing of it loads");
-    const priv = fs.readFileSync(path.join(ROOT, "privacy/index.html"), "utf8");
+    const priv = fs.readFileSync(built("privacy/index.html"), "utf8");
     assert(!priv.includes("Anthropic"), "the privacy policy only names Anthropic once the assistant is on");
   });
 

@@ -3,6 +3,18 @@
 A mobile-first website for Nest & Rest Cleaning (Scarborough and North York, Toronto), built around the new nest-and-house logo.
 It's built to turn visitors into booked clients and to rank on Google for local searches.
 
+## Opening soon (switched on now)
+
+While Mann gets the business ready, the site says so and takes no requests: `launch.open` is `false` in `js/config.js`.
+The home page's hero and the top bar of every page say "Opening soon" with the notice from `launch.notice`. The header
+and phone buttons say "Opening soon" and lead to a page that explains. There's no booking form, quote form, "Text me this
+price", gift card form, change form or review form, and Google isn't told the site takes bookings. Prices, services,
+guides and the postal code check all stay, so people can see what to expect. The chat assistant can't be switched on
+until the site opens.
+
+**When you're ready for clients:** in `js/config.js`, change `launch: { open: false, ... }` to `open: true`, then run
+`node tools/build.mjs` and push. Everything comes back at once.
+
 ## Pages
 
 | Page | Purpose |
@@ -170,7 +182,7 @@ After a change, rebuild and run the browser checks:
 
 ```
 node tools/build.mjs
-node tools/qa/run.mjs            # all checks below; add a word to run one file, e.g. booking
+node tools/qa/run.mjs            # all checks below, on the site as it is once open for bookings (launch.test.mjs checks "opening soon"); add a word to run one file, e.g. booking
 node tools/qa/perf.mjs           # load speed on a slow phone: fails if a page takes over 2.2s or jumps around
 ```
 

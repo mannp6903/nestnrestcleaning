@@ -454,7 +454,8 @@
       $("[data-p-meta]", form).textContent = on ? "Regular price " + money(p) + " · estimate, about " + h + " hours on site" : "Estimate · about " + h + " hours on site";
       var go = $("[data-p-go]", form);
       // x: the price-box extras, always sent (empty when none), so the booking form charges what this box showed.
-      go.href = link("book/") + "?s=" + st.service + "&h=" + st.home + "&bd=" + st.beds + "&ba=" + st.baths + "&x=" + extras.map(function (a) { return a.id; }).join(",");
+      // (No button while the site is opening soon: launch.open in js/config.js.)
+      if (go) go.href = link("book/") + "?s=" + st.service + "&h=" + st.home + "&bd=" + st.beds + "&ba=" + st.baths + "&x=" + extras.map(function (a) { return a.id; }).join(",");
       var incl = $("[data-p-incl]", form);
       if (incl) incl.href = link("services/" + C.services[st.service].slug + "/") + "#included";
       // Counted once the visitor has changed something: the default price on page load isn't their quote yet.
@@ -522,7 +523,8 @@
         render();
       });
     });
-    $("[data-p-go]", form).addEventListener("click", function () {
+    var goBtn = $("[data-p-go]", form);
+    if (goBtn) goBtn.addEventListener("click", function () {
       // Other extras saved from an earlier booking stay; the price-box ones follow the box.
       var kept = (((quoteDraft() || {}).addons) || []).filter(function (id) { return boxIds.indexOf(id) === -1; });
       saveQuoteDraft({ service: st.service, homeType: st.home, beds: st.beds, baths: st.baths, addons: kept.concat(st.addons) });

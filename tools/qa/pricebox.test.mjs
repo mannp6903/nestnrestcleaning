@@ -1,7 +1,7 @@
 // The price box: while the founding offer runs, the first-visit price is the big number.
 import fs from "node:fs";
 import path from "node:path";
-import { test, assert, newPage, withConfig, ROOT, openSection } from "./lib.mjs";
+import { test, assert, newPage, withConfig, ROOT, openSection, built } from "./lib.mjs";
 
 const txt = async (p, sel) => (await p.textContent(sel)).trim();
 const AMT = "[data-pricer] [data-p-amount]", UNIT = "[data-pricer] [data-p-unit]", META = "[data-pricer] [data-p-meta]";
@@ -28,7 +28,7 @@ export default async function () {
   });
 
   test("built price box matches the script", async () => {
-    const html = fs.readFileSync(path.join(ROOT, "pricing/index.html"), "utf8");
+    const html = fs.readFileSync(built("pricing/index.html"), "utf8");
     const amount = (/data-p-amount>([^<]+)</.exec(html) || [])[1];
     assert(amount === "$116", "built amount: " + amount);
     assert(html.includes("Regular price $145 · estimate, about 2 hours on site"), "built meta line");

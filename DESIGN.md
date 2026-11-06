@@ -102,6 +102,9 @@ stay under about 70 characters.
 - **Navigation:** sticky white header (logo, five links, theme switch, Request a clean); phones get a menu and a
   bottom action bar.
 - **Footer:** navy, logo and slogan, services, areas, company links, contact, and the illustration note.
+- **Opening soon** (`launch.open: false`): a sand pill badge (`.soon-badge`, uppercase 12px) with one sentence. On the
+  home hero it sits above the slogan on a dark panel; in place of a form it's a white card (`.soon-box`); in the price box
+  it's a sand-soft line (`.pricer-soon`).
 - **Chat assistant:** a teal "Ask" pill bottom right (above the phone's action bar), opening a white panel with
   suggested questions; links only to the website and the email.
 

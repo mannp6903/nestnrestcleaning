@@ -122,6 +122,24 @@ From the owner: the site felt too long; clients need a strong first screen, then
 - **Removed with them:** the room tabs and neighbourhood search scripts and about 160 rules of their styles, so every page's stylesheet is lighter (lab LCP on a slow phone: home 2.10s, from 2.23s).
 - **Checks:** `tools/qa/home.test.mjs` (the hero, the cards, plans, How to book, Contact and nothing left from the long page), `tools/qa/v8.test.mjs` (the first screen at 1440 × 900, 1280 × 800 and 1024 × 768; the page within 6 desktop and 10 phone screens) and the design, tablet, v4, v5 and v7 checks updated to match.
 
+## Opening soon (6 November 2026)
+
+Mann is still getting the business ready and asked for the site to say so, so people don't contact him yet. One switch,
+`launch.open` in `js/config.js`; `false` today.
+
+- **The home hero** opens with the notice, above the slogan: a sand "Opening soon" badge and one sentence
+  (`launch.notice`), on its own dark panel so it reads over any part of the photo (8.2:1 even measured over white; the badge is 9.9:1). The
+  hero's sand button becomes "See prices", and the "Open daily" promise goes until opening.
+- **Every page:** the top bar says "Opening soon: not taking bookings yet" (instead of the founding offer). The header and
+  phone bar buttons say "Opening soon" and lead to the booking page, which explains and points to the prices. Other
+  booking buttons point to the prices; the closing band on every page carries the notice.
+- **Nothing sends:** the price box keeps pricing but says "Booking opens soon" where its button was, and loses "Text me
+  this price". The quote, gift card, change and review forms each become a small "Opening soon" card. No `ReserveAction`
+  in the structured data. The chat assistant can't be switched on while closed (the build stops).
+- **Tests:** every other check runs on the site as it is once open (`tools/qa/run.mjs` builds that copy), so the booking
+  flow stays tested; `tools/qa/launch.test.mjs` builds the closed version and checks the notice, that nothing on any page
+  can send a request, and that the open site has no trace of it.
+
 ## DESIGN.md, scroll rises and chat suggestions (6 November 2026)
 
 Mann asked for the site to be rated and then improved as far as possible (design, motion, the assistant).

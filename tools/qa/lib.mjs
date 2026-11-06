@@ -41,7 +41,19 @@ export function startServer(root = ROOT) {
 }
 
 const BUILD = path.join(ROOT, "tools/build.mjs");
-const runBuild = (dir, patch) => execFileSync(process.execPath, [BUILD, "--out", dir], { env: { ...process.env, NR_CONFIG_PATCH: patch }, stdio: "pipe" });
+// The checks test the site as it is once it's open for bookings, whatever launch.open says in js/config.js today.
+// tools/qa/launch.test.mjs builds the "opening soon" version on purpose (its patch runs after this one).
+export const OPEN_PATCH = "if (window.NR_CONFIG.launch) window.NR_CONFIG.launch.open = true;\n";
+const runBuild = (dir, patch) => execFileSync(process.execPath, [BUILD, "--out", dir], { env: { ...process.env, NR_CONFIG_PATCH: OPEN_PATCH + (patch || "") }, stdio: "pipe" });
+
+// The open copy of the site that tools/qa/run.mjs serves and the checks read (built pages, sitemap): see OPEN_PATCH.
+export function buildOpenCopy() {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "nr-open-"));
+  runBuild(dir, "");
+  return { dir, remove: () => fs.rmSync(dir, { recursive: true, force: true }) };
+}
+// A built file as the checks should read it: from that open copy when run.mjs made one, else from the repository.
+export const built = (...parts) => path.join(process.env.NR_QA_SITE || ROOT, ...parts);
 
 // Builds the site into a temp folder with `patch` (JavaScript) run right after js/config.js, and serves it.
 // close() stops the server and deletes the folder.
@@ -183,7 +195,7 @@ async function routeChatwoot(page) {
 }
 // Serves js/config.js with extra lines appended, e.g. to switch the provider or the founding offer for one test.
 export async function withConfig(page, js) {
-  const src = fs.readFileSync(path.join(ROOT, "js/config.js"), "utf8") + "\n" + js + "\n";
+  const src = fs.readFileSync(path.join(ROOT, "js/config.js"), "utf8") + "\n" + OPEN_PATCH + js + "\n";
   await page.route(/\/js\/config\.js/, (r) => r.fulfill({ status: 200, contentType: "text/javascript", body: src }));
 }
 export async function closeAll() { for (const c of [...openContexts]) await c.close().catch(() => {}); }

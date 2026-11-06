@@ -3,10 +3,10 @@
 // shorter home page: what each clean includes is on the service and pricing pages, and every neighbourhood on its district page.)
 import fs from "node:fs";
 import path from "node:path";
-import { test, assert, newPage, loadConfig, ROOT } from "./lib.mjs";
+import { test, assert, newPage, loadConfig, ROOT, built } from "./lib.mjs";
 
 const C = loadConfig();
-const PAGES = [...fs.readFileSync(path.join(ROOT, "sitemap.xml"), "utf8").matchAll(/<loc>[^<]*?nestnrestcleaning\.com([^<]*)<\/loc>/g)].map((m) => m[1] || "/");
+const PAGES = [...fs.readFileSync(built("sitemap.xml"), "utf8").matchAll(/<loc>[^<]*?nestnrestcleaning\.com([^<]*)<\/loc>/g)].map((m) => m[1] || "/");
 // The same formula as price() in tools/build.mjs and js/site.js, written out here so a change to either is caught.
 const roundTo = (n, s) => Math.round(n / s) * s;
 const priceOf = (k, beds, baths, home) => {
