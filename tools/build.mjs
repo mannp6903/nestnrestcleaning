@@ -1245,7 +1245,7 @@ urls.push(page({
 <section class="hero hero-home">
   <div class="wrap hero-grid">
     <div class="hero-copy">
-      <h1 class="hero-title"><span class="hero-what">House cleaning in ${esc(B.areaLabel)}</span> <span class="display">We clean.<br> <span class="accent">You rest.</span></span></h1>
+      <h1 class="hero-title"><span class="hero-what">House cleaning in ${esc(B.areaLabel)}</span> <span class="display"><span class="w">We</span> <span class="w">clean.</span><br> <span class="accent"><span class="w">You</span> <span class="w">rest.</span><svg class="swoosh" viewBox="0 0 200 20" preserveAspectRatio="none" aria-hidden="true" focusable="false"><path d="M6 13 C 52 5, 118 3, 194 9"/></svg></span></span></h1>
       <p class="lede">Hi, I'm ${esc(B.ownerFirstName)}. I clean every home myself, so your weekends are for living, not scrubbing. Prices from <b data-from="regular">${money(C.services.regular.base)}</b>.</p>
       <div class="hero-cta">
         <a class="btn btn-primary" href="${L("book/")}" data-track="book_click">${ACT.book} ${ic("i-arrow")}</a>

@@ -82,6 +82,8 @@ export default async function () {
     const p = await newPage(browser, { width: 1440, height: 900 });
     const box = (sel) => p.$eval(sel, (e) => { const s = getComputedStyle(e), r = e.getBoundingClientRect(); return { radius: parseFloat(s.borderTopLeftRadius), shadow: s.boxShadow, h: r.height, w: r.width }; });
     await p.goto(url + "/");
+    // Sizes at rest: the hero's entrance (a pop on this button) is finished first.
+    await p.evaluate(() => document.getAnimations().forEach((a) => { if (a.effect && a.effect.getComputedTiming().iterations !== Infinity && (!a.timeline || a.timeline.constructor.name === "DocumentTimeline")) a.finish(); }));
     const primary = await box(".hero-cta .btn-primary");
     assert(primary.radius >= 26 && Math.abs(primary.h - 52) <= 1, "primary button should be a 52px pill, got " + JSON.stringify(primary));
     const small = await box("#services .btn-sm");

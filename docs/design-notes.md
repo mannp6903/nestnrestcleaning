@@ -122,6 +122,23 @@ From the owner: the site felt too long; clients need a strong first screen, then
 - **Removed with them:** the room tabs and neighbourhood search scripts and about 160 rules of their styles, so every page's stylesheet is lighter (lab LCP on a slow phone: home 2.10s, from 2.23s).
 - **Checks:** `tools/qa/home.test.mjs` (the hero, the cards, plans, How to book, Contact and nothing left from the long page), `tools/qa/v8.test.mjs` (the first screen at 1440 × 900, 1280 × 800 and 1024 × 768; the page within 6 desktop and 10 phone screens) and the design, tablet, v4, v5 and v7 checks updated to match.
 
+## The home hero's entrance (November 2026)
+
+Mann asked for the hero's words to pop up rather than sit still. All CSS, once, over by about 1.6s (the button's light
+sweep ends at 2.7s), and nothing moves under reduced motion (`tools/qa/signature.test.mjs` checks it).
+
+- **Order:** "House cleaning in Scarborough & North York" wipes in from the left; "We", "clean.", "You", "rest." pop up one
+  after another (from below, slightly small and blurred, with a small overshoot, `--ease-pop`); a teal line draws itself
+  under "rest." like a pen stroke (`.swoosh`, decorative, `aria-hidden`, absolutely placed so it adds no height); "Request
+  a clean" pops, "How it works" slides in; the three promises slide in one by one, each icon popping with a ring pulse;
+  Mann's line slides in and his photo pops; the price box rises in a little further than before.
+- **The speed rule:** every word is painted from the first frame. The slogan's words start faint (opacity .25), never
+  invisible. The lede is the largest paint on phones and, now that each slogan word is its own small box, on computers too:
+  it only moves, never fades. Measured on the throttled lab settings (`tools/qa/perf.mjs` plus the same at 1440px): home
+  LCP 2.17s on the phone (2.20s before) and 2.52 to 2.58s at 1440px (2.52s before), within run-to-run noise.
+- This replaces Phase 3's "none hides words" for the home hero only: the words are still there from the first frame, just
+  faint for a moment.
+
 ## The chat assistant (November 2026)
 
 - **Placement:** a pill button bottom right, above the phone action bar (84px up, plus the safe area) and in the corner on

@@ -25,6 +25,28 @@ export default async function () {
     assert(await calm.$eval(".hero-home .accent", (e) => e.getAnimations().length) === 0, "no exhale under reduced motion");
   });
 
+  test("the home hero pops in: every word painted from the first frame, over within 3s, still under reduced motion", async ({ browser, url }) => {
+    const p = await newPage(browser, { width: 1440, height: 900 });
+    await p.goto(url + "/", { waitUntil: "domcontentloaded" });
+    const first = await p.$$eval(".hero-home .hero-title .w", (ws) => ws.map((w) => ({ text: w.textContent, opacity: +getComputedStyle(w).opacity, n: w.getAnimations().length })));
+    assert(first.map((w) => w.text).join(" ") === "We clean. You rest.", "one span per word: " + JSON.stringify(first));
+    assert(first.every((w) => w.opacity > 0 && w.n === 1), "each word pops, and is never invisible: " + JSON.stringify(first));
+    // The lede is the largest paint on phones: it may move, but never fade.
+    const lede = await p.$eval(".hero-home .lede", (e) => e.getAnimations().flatMap((a) => a.effect.getKeyframes().map((k) => Object.keys(k))).flat());
+    assert(!lede.includes("opacity"), "the lede never fades: " + lede.join(","));
+    const longest = await p.evaluate(() => Math.max(...document.querySelectorAll(".hero-home *").length ? [...document.querySelectorAll(".hero-home *")].flatMap((e) => e.getAnimations().filter((a) => !a.timeline || a.timeline.constructor.name === "DocumentTimeline").map((a) => { const t = a.effect.getComputedTiming(); return (t.delay || 0) + (t.activeDuration || 0); })) : [0]));
+    assert(longest <= 2800, "the entrance is over by 2.8s (the button's light sweep included): " + longest);
+    assert(await p.$eval(".hero-home .swoosh", (s) => s.getAttribute("aria-hidden") === "true" && !s.textContent.trim()), "the line under rest. is decoration only");
+    await p.evaluate(() => document.getAnimations().forEach((a) => { if (a.effect && a.effect.getComputedTiming().iterations !== Infinity) a.finish(); }));
+    const end = await p.$$eval(".hero-home .hero-title .w, .hero-home .hero-facts li, .hero-home .hero-cta .btn-primary, .hero-home .hero-owner", (es) => es.map((e) => [getComputedStyle(e).opacity, getComputedStyle(e).transform]));
+    assert(end.every(([o, t]) => o === "1" && (t === "none" || t === "matrix(1, 0, 0, 1, 0, 0)")), "everything rests in place: " + JSON.stringify(end));
+    assert(await p.$eval(".hero-home .swoosh path", (e) => Math.abs(parseFloat(getComputedStyle(e).strokeDashoffset) || 0) < 0.01), "the line is fully drawn");
+    const calm = await newPage(browser, { width: 1440, height: 900, reducedMotion: "reduce" });
+    await calm.goto(url + "/");
+    assert(await calm.$$eval(".hero-home *", (es) => es.filter((e) => e.getAnimations().length).length) === 0, "nothing moves under reduced motion");
+    assert(await calm.$eval(".hero-home .swoosh path", (e) => getComputedStyle(e).strokeDashoffset === "0px" || getComputedStyle(e).strokeDasharray === "none"), "and the line is just there");
+  });
+
   test("night to dawn: the hero's lights go out as it scrolls away, and stay on under reduced motion", async ({ browser, url }) => {
     const lit = (p) => p.$$eval(".hero-home .lm-wide .lm-lit-0, .hero-home .lm-wide .lm-lit-1, .hero-home .lm-wide .lm-lit-2", (es) => es.map((e) => +getComputedStyle(e).opacity));
     const p = await newPage(browser, { width: 1280, height: 900 });
