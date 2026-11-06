@@ -1,9 +1,9 @@
-// Phase 3's signature moments (docs/redesign-blueprint-2026-11.md): the slogan's exhale, night to dawn on the home hero,
-// the price box's "build your clean" house and the page transitions. Each one moves only when motion is welcome, and none
+// Phase 3's signature moments (docs/redesign-blueprint-2026-11.md): the slogan's exhale, the price box's "build your
+// clean" house and the page transitions; and since November 2026 the home hero's entrance and its skyline photo. Each one moves only when motion is welcome, and none
 // hides words.
 import fs from "node:fs";
 import path from "node:path";
-import { test, assert, newPage, ROOT } from "./lib.mjs";
+import { test, assert, newPage, contrast, ROOT } from "./lib.mjs";
 
 const PAGES = [...fs.readFileSync(path.join(ROOT, "sitemap.xml"), "utf8").matchAll(/<loc>[^<]*?nestnrestcleaning\.com([^<]*)<\/loc>/g)].map((m) => m[1] || "/");
 const read = (pg) => fs.readFileSync(path.join(ROOT, pg.replace(/^\//, ""), "index.html"), "utf8");
@@ -47,24 +47,44 @@ export default async function () {
     assert(await calm.$eval(".hero-home .swoosh path", (e) => getComputedStyle(e).strokeDashoffset === "0px" || getComputedStyle(e).strokeDasharray === "none"), "and the line is just there");
   });
 
-  test("night to dawn: the hero's lights go out as it scrolls away, and stay on under reduced motion", async ({ browser, url }) => {
-    const lit = (p) => p.$$eval(".hero-home .lm-wide .lm-lit-0, .hero-home .lm-wide .lm-lit-1, .hero-home .lm-wide .lm-lit-2", (es) => es.map((e) => +getComputedStyle(e).opacity));
-    const p = await newPage(browser, { width: 1280, height: 900 });
-    await p.goto(url + "/");
-    const night = await lit(p);
-    assert(night.length >= 12 && night.every((o) => o > 0.8), "lit at night: " + night.join(","));
-    await p.evaluate(() => window.scrollTo(0, 700));
-    await p.waitForTimeout(300);
-    const dawn = await lit(p);
-    assert(dawn.every((o) => o < 0.3), "out by dawn: " + dawn.join(","));
-    await p.evaluate(() => window.scrollTo(0, 0));
-    await p.waitForTimeout(300);
-    assert((await lit(p)).every((o) => o > 0.8), "and back on when scrolling back up");
-    const calm = await newPage(browser, { width: 1280, height: 900, reducedMotion: "reduce" });
-    await calm.goto(url + "/");
-    await calm.evaluate(() => window.scrollTo(0, 700));
-    await calm.waitForTimeout(300);
-    assert((await lit(calm)).every((o) => o > 0.8), "reduced motion: the hero stays at night");
+  // November 2026: the home hero's drawn skyline gave way to a photo of the skyline at dawn (assets/hero).
+  test("the hero photo: the right size for each screen, loaded early on the home page only, and every word readable over it", async ({ browser, url }) => {
+    const home = read("/");
+    const pre = [...home.matchAll(/<link rel="preload" as="image" type="image\/webp" href="([^"]+)" media="([^"]+)" fetchpriority="high">/g)].map((m) => [m[1].replace(/^.*\//, ""), m[2]]);
+    assert(JSON.stringify(pre.map((x) => x[0])) === JSON.stringify(["cn-tower-dawn-600.webp", "cn-tower-dawn-892.webp", "cn-tower-dawn-2560.webp"]), "home preloads one photo per screen size: " + JSON.stringify(pre));
+    for (const pg of PAGES.filter((x) => x !== "/")) assert(!read(pg).includes("cn-tower-dawn"), pg + " should not load the home hero's photo");
+    for (const f of ["600", "892", "2560"]) for (const ext of ["webp", "jpg"]) assert(fs.existsSync(path.join(ROOT, `assets/hero/cn-tower-dawn-${f}.${ext}`)), `assets/hero/cn-tower-dawn-${f}.${ext} is missing`);
+    for (const [width, height, file, mob] of [[390, 844, "600", true], [768, 1024, "892", false], [1440, 900, "2560", false]]) {
+      const p = await newPage(browser, { width, height, isMobile: mob, reducedMotion: "reduce" });
+      await p.goto(url + "/");
+      const bg = await p.$eval(".hero.hero-home", (e) => getComputedStyle(e).backgroundImage);
+      assert(bg.includes(`cn-tower-dawn-${file}.webp`), `${width}px should use the ${file} photo: ${bg.slice(0, 160)}`);
+      // Contrast against the photo itself: hide the words, read the pixels behind each line (above the phone's action bar),
+      // and compare the text colour with the brightest 5% of them.
+      const bar = await p.$eval(".action-bar", (e) => getComputedStyle(e).display === "none" ? Infinity : e.getBoundingClientRect().top).catch(() => Infinity);
+      const items = await p.$$eval(".hero-home .hero-what, .hero-home .hero-title .w, .hero-home .lede, .hero-home .text-link, .hero-home .hero-facts li span, .hero-home .hero-owner > span:last-child", (es, bar) => es.map((e) => {
+        const r = e.getBoundingClientRect(), s = getComputedStyle(e), size = parseFloat(s.fontSize);
+        return { text: e.textContent.trim().slice(0, 24), color: s.color, x: r.left, y: r.top, w: r.width, h: r.height, min: size >= 24 || (size >= 18.66 && +s.fontWeight >= 700) ? 3 : 4.5 };
+      }).filter((i) => i.w > 2 && i.h > 2 && i.y >= 0 && i.y + i.h <= Math.min(bar, innerHeight)), bar);
+      await p.addStyleTag({ content: ".hero-home, .hero-home * { color: transparent !important; text-shadow: none !important; } .hero-home .swoosh, .hero-home .ic, .hero-home .btn, .hero-home picture { visibility: hidden !important; } .hero-home .text-link { border-color: transparent !important; }" });
+      const shot = (await p.screenshot()).toString("base64");
+      const bgs = await p.evaluate(async ({ shot, items }) => {
+        const img = new Image(); img.src = "data:image/png;base64," + shot; await img.decode();
+        const c = document.createElement("canvas"); c.width = img.width; c.height = img.height; const g = c.getContext("2d"); g.drawImage(img, 0, 0);
+        const lin = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+        const k = img.width / innerWidth; // the screenshot is at the screen's pixel density
+        return items.map((it) => {
+          const d = g.getImageData(Math.round(it.x * k), Math.round(it.y * k), Math.round(it.w * k), Math.round(it.h * k)).data, px = [];
+          for (let i = 0; i < d.length; i += 4) px.push([0.2126 * lin(d[i]) + 0.7152 * lin(d[i + 1]) + 0.0722 * lin(d[i + 2]), d[i], d[i + 1], d[i + 2]]);
+          px.sort((a, b) => a[0] - b[0]); const q = px[Math.floor(px.length * 0.95)];
+          return `rgb(${q[1]}, ${q[2]}, ${q[3]})`;
+        });
+      }, { shot, items });
+      const bad = items.map((it, i) => ({ ...it, ratio: contrast(it.color, bgs[i]) })).filter((it) => !(it.ratio >= it.min)).map((it) => `"${it.text}" ${it.ratio.toFixed(2)}:1 (needs ${it.min})`);
+      assert(items.length >= 8, `${width}px: expected the hero's words to be measured, got ${items.length}`);
+      assert(!bad.length, `${width}px: words too faint over the photo: ${bad.join("; ")}`);
+      await p.context().close();
+    }
   });
 
   test("the price box's house fills with the home it describes", async ({ browser, url }) => {

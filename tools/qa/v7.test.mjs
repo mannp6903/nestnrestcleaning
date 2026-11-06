@@ -28,17 +28,8 @@ export default async function () {
     assert(!bad.length, bad.join("; "));
   });
 
-  test("landmark art: named for screen readers, decorative inside links, and a different arrangement on phones", async ({ browser, url }) => {
-    for (const width of [390, 1440]) {
-      const p = await newPage(browser, { width, height: 900 });
-      await p.goto(url + "/");
-      const shown = await p.$$eval(".hero-scene svg", (ss) => ss.filter((s) => s.getClientRects().length).map((s) => ({ role: s.getAttribute("role"), label: s.getAttribute("aria-label") || "", vb: s.getAttribute("viewBox") })));
-      assert(shown.length === 1, `${width}px: one arrangement of the art shows at a time, got ${shown.length}`);
-      const hero = shown[0];
-      assert(hero.role === "img" && /Scarborough Bluffs/.test(hero.label) && /Mel Lastman Square/.test(hero.label), `${width}px hero art: ${JSON.stringify(hero)}`);
-      assert(hero.vb === (width >= 960 ? "0 0 1440 240" : "0 0 480 150"), `${width}px: the wide panorama on computers, the phone arrangement on phones, got ${hero.vb}`);
-      await p.context().close();
-    }
+  // The home hero's drawn skyline gave way to a photo (November 2026); the district pages keep their landmark art.
+  test("landmark art on every district page", async ({ browser, url }) => {
     const p = await newPage(browser, { width: 1440, height: 900 });
     for (const a of C.areas) {
       await p.goto(url + "/areas/" + a.slug + "/");

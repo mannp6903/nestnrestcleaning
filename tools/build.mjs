@@ -9,7 +9,7 @@ import vm from "node:vm";
 import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
 import guideList from "./guides.mjs";
-import { heroWide, heroNarrow, districtScene } from "./landmarks.mjs";
+import { districtScene } from "./landmarks.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const args = process.argv.slice(2);
@@ -434,7 +434,7 @@ function footer(L) {
       </div>
     </div>
     <div class="footer-bottom">
-      <p>© <span data-year>${YEAR}</span> ${esc(B.name)}, ${esc(B.base)}, Ontario. Room photos are illustrations, not photos of client homes.</p>
+      <p>© <span data-year>${YEAR}</span> ${esc(B.name)}, ${esc(B.base)}, Ontario. The room pictures and the home page&#39;s skyline are illustrations, not photos of client homes.</p>
       <ul class="legal">
         <li><a href="${L("privacy/")}">Privacy Policy</a></li>
         <li><a href="${L("policies/")}">Service Policies</a></li>
@@ -870,7 +870,10 @@ ${noindex ? '<meta name="robots" content="noindex">\n' : ""}<meta name="theme-co
 <link rel="apple-touch-icon" href="${L("assets/apple-touch-icon.png")}">
 <link rel="preload" href="${L("assets/fonts/fraunces-soft.woff2")}" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="${L("assets/fonts/figtree.woff2")}" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="${L("css/site.min.css")}?v=${ASSET_V.css}">
+${pageType === "home" ? `<link rel="preload" as="image" type="image/webp" href="${L("assets/hero/cn-tower-dawn-600.webp")}" media="(max-width: 29.99em)" fetchpriority="high">
+<link rel="preload" as="image" type="image/webp" href="${L("assets/hero/cn-tower-dawn-892.webp")}" media="(min-width: 30em) and (max-width: 59.99em)" fetchpriority="high">
+<link rel="preload" as="image" type="image/webp" href="${L("assets/hero/cn-tower-dawn-2560.webp")}" media="(min-width: 60em)" fetchpriority="high">
+` : ""}<link rel="stylesheet" href="${L("css/site.min.css")}?v=${ASSET_V.css}">
 ${ld}`;
   const bodyInner = `${ICONS}
 <a class="skip" href="#main">Skip to content</a>
@@ -1261,7 +1264,6 @@ urls.push(page({
       <div class="hero-pricer">${pricer(L)}</div>
     </div>
   </div>
-  <figure class="hero-scene">${heroNarrow()}${heroWide()}<figcaption><span>North York Centre</span><span>Scarborough Bluffs</span></figcaption></figure>
 </section>
 
 <section class="section" id="services" aria-labelledby="services-title">
