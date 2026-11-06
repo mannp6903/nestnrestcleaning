@@ -55,10 +55,12 @@
   --ls-h1: -0.014em;
   --ls-h2: -0.01em;
 
-  /* Motion: everything settles, nothing bounces. One damped curve and three speeds, for every transition and animation.
+  /* Motion: everything settles. One damped curve and three speeds, for every transition and animation.
      quick: a control answering a touch; settle: a part of the page arriving; slow: the home hero's one entrance.
-     Under reduced motion nothing moves (see "prefers-reduced-motion: reduce" below). */
+     The one exception is --ease-pop, a small overshoot used only by the home hero's entrance (once, about 1.6s).
+     Under reduced motion nothing moves (see "prefers-reduced-motion: reduce" below). DESIGN.md has the rules. */
   --ease-settle: cubic-bezier(.16, 1, .3, 1);
+  --ease-pop: cubic-bezier(.34, 1.56, .64, 1);
   --settle-quick: 250ms;
   --settle: 600ms;
   --settle-slow: 900ms;
@@ -379,10 +381,11 @@ body.menu-open { overflow: hidden; }
 .pricer-amount { position: relative; flex: 1 1 auto; padding-right: 86px; }
 .pricer-amount .house { position: absolute; right: 0; bottom: -5px; width: 72px; height: auto; }
 .pricer-for { flex: 1 1 100%; font-size: var(--fs-small); font-weight: 600; line-height: 1.4; color: var(--ink); }
+.pricer-for span { display: inline-block; } /* a narrow box breaks between the service and the home, not inside "1-bedroom" */
 .pricer-amount { font-family: var(--display); font-weight: 800; font-size: clamp(2.3rem, 9vw, 2.75rem); line-height: 1; font-variant-numeric: tabular-nums; }
 .pricer-unit { font-family: var(--body); font-size: 1rem; font-weight: 600; color: var(--muted); letter-spacing: 0; }
-.pricer-meta { font-size: 0.9rem; color: var(--muted); line-height: 1.4; flex: 1 1 100%; }
-.pricer-deal { flex: 1 1 100%; margin-top: 2px; font-size: 0.9rem; line-height: 1.4; font-weight: 600; color: var(--teal-ink); }
+.pricer-meta { font-size: 0.9rem; color: var(--muted); line-height: 1.4; flex: 1 1 100%; text-wrap: balance; }
+.pricer-deal { flex: 1 1 100%; margin-top: 2px; font-size: 0.9rem; line-height: 1.4; font-weight: 600; color: var(--teal-ink); text-wrap: balance; }
 .pricer-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .pricer-row > [hidden] + .stepper { grid-column: 1 / -1; }
 /* A question about the home that changes the price (heavy pet hair), on one line under the steppers. */
@@ -392,7 +395,8 @@ body.menu-open { overflow: hidden; }
 .pricer-check b { font-family: var(--money); font-weight: 700; font-variant-numeric: tabular-nums lining-nums; }
 .pricer-next { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.9rem; color: var(--muted); }
 .pricer-next .ic { color: var(--teal-ink); width: 18px; height: 18px; }
-.pricer-next strong { color: var(--ink); }
+.pricer-next span { text-wrap: balance; }
+.pricer-next strong { color: var(--ink); white-space: nowrap; }
 .pricer-owner { display: flex; align-items: center; gap: 12px; margin: 0; padding: 12px 14px; border-radius: var(--field-radius); background: var(--section-tint); font-size: 0.9rem; line-height: 1.4; color: var(--muted); }
 .pricer-owner picture { flex: none; width: 40px; height: 40px; border-radius: 50%; overflow: hidden; box-shadow: 0 0 0 2px var(--paper), 0 0 0 3.5px var(--teal); }
 .pricer-owner img { width: 100%; height: 100%; object-fit: cover; }
@@ -419,7 +423,8 @@ body.menu-open { overflow: hidden; }
 .textme .pc-row { flex-wrap: wrap; }
 .textme .pc-row input { flex: 1 1 180px; }
 .textme .pc-row .btn { flex: 1 0 auto; }
-.pricer-fine { font-size: var(--fs-fine); color: var(--muted); text-align: center; }
+.pricer-fine { font-size: var(--fs-fine); color: var(--muted); text-align: center; text-wrap: balance; }
+.pricer-fine span { white-space: nowrap; } /* break only between the promises */
 
 /* Fields */
 .field { display: grid; gap: 7px; min-width: 0; }
@@ -1388,7 +1393,6 @@ a.svc-card:hover .svc-arrow { transform: translateX(4px); }
 .hero-home .swoosh path { fill: none; stroke: var(--teal-light); stroke-width: 6; stroke-linecap: round; vector-effect: non-scaling-stroke; opacity: .9; }
 .hero-home .hero-title .w { display: inline-block; }
 @media (prefers-reduced-motion: no-preference) {
-  :root { --ease-pop: cubic-bezier(.34, 1.56, .64, 1); }
   .hero-home .hero-what { animation: nr-wipe .7s .05s var(--ease-settle) both; }
   @keyframes nr-wipe { from { clip-path: inset(0 100% 0 0); transform: translateX(-12px); } to { clip-path: inset(0 0 0 0); } }
   .hero-home .hero-title .w { transform-origin: 50% 80%; animation: nr-pop-word .8s var(--ease-pop) both; }
@@ -1613,10 +1617,19 @@ a.svc-card:hover .svc-arrow { transform: translateX(4px); }
   .hero-home .hero-copy { gap: 14px; }
 }
 
-/* Steps rise gently as they scroll into view. Transform only, so text never fades below its contrast. */
+/* Below the first screen, cards and steps rise gently into place as they scroll into view, driven by the scroll itself
+   (no script). Items side by side follow each other by a beat. Transform only, so text never fades below its contrast and
+   nothing on the first screen moves; under reduced motion, and in browsers without scroll timelines, everything simply sits
+   in place. js/site.js switches them on (.rise-on) once the page has loaded, so they cost the first screen nothing. */
 @supports (animation-timeline: view()) {
   @media (prefers-reduced-motion: no-preference) {
-    .turnover li { animation: nr-rise var(--ease-settle) both; animation-timeline: view(); animation-range: entry 0% entry 70%; }
+    .rise-on :is(.turnover li, .svc-cards > li, .price-facts > .pf, .steps-3 > li, .terms > li, .faq-list > details, .contact-card,
+    .svc-grid > li, .incl-grid > .incl-room) {
+      animation: nr-rise var(--ease-settle) both; animation-timeline: view(); animation-range: entry 0% entry 70%;
+    }
+    .rise-on :is(.svc-cards, .price-facts, .steps-3, .terms, .svc-grid, .incl-grid) > :nth-child(4n+2) { animation-range: entry 6% entry 76%; }
+    .rise-on :is(.svc-cards, .price-facts, .steps-3, .terms, .svc-grid, .incl-grid) > :nth-child(4n+3) { animation-range: entry 12% entry 82%; }
+    .rise-on :is(.svc-cards, .price-facts, .steps-3, .terms, .svc-grid, .incl-grid) > :nth-child(4n+4) { animation-range: entry 18% entry 88%; }
     @keyframes nr-rise { from { transform: translateY(22px); } }
   }
 }

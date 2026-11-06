@@ -74,10 +74,35 @@
       log.scrollTop = log.scrollHeight;
       return p;
     }
+    // Suggested questions under the greeting, until the first question is asked: one tap sends it as typed.
+    var SUGGEST = ((C.assistant && C.assistant.suggestions) || []).filter(function (q) { return typeof q === "string" && q.trim(); }).slice(0, 4);
+    function chips() {
+      if (!SUGGEST.length || history.length) return;
+      var box = document.createElement("div");
+      box.className = "assist-chips";
+      box.setAttribute("data-assist-chips", "");
+      box.setAttribute("role", "group");
+      box.setAttribute("aria-label", "Suggested questions");
+      SUGGEST.forEach(function (q) {
+        var b = document.createElement("button");
+        b.type = "button";
+        b.className = "assist-chip";
+        b.textContent = q;
+        b.addEventListener("click", function () {
+          if (busy) return;
+          input.value = q;
+          track("assistant_suggestion");
+          form.requestSubmit ? form.requestSubmit() : form.dispatchEvent(new Event("submit", { cancelable: true }));
+        });
+        box.appendChild(b);
+      });
+      log.appendChild(box);
+    }
     function greet() {
       log.innerHTML = "";
       bubble("assistant", "Hi! Ask me about prices, what each clean includes, or whether we clean your area. To book, I'll point you to the form, and " + esc(B.ownerFirstName) + " confirms it personally.");
       history.forEach(function (m) { bubble(m.role, m.role === "user" ? esc(m.content) : assistLinks(m.content)); });
+      chips();
       newBtn.hidden = !history.length;
     }
     greet();
@@ -104,6 +129,8 @@
       if (!text || busy) return;
       busy = true;
       input.value = "";
+      var sugBox = $("[data-assist-chips]", log);
+      if (sugBox) sugBox.parentNode.removeChild(sugBox);
       history.push({ role: "user", content: text });
       bubble("user", esc(text));
       var wait = bubble("assistant", "<span class=\"assist-dots\" aria-label=\"Writing an answer\"><span></span><span></span><span></span></span>", "is-waiting");

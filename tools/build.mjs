@@ -169,6 +169,11 @@ function checkStack() {
   const chat = C.chat || {};
   if ((chat.baseUrl || chat.websiteToken) && !(chat.websiteToken && /^https:\/\//.test(chat.baseUrl || ""))) throw new Error("Fill in both chat.baseUrl and chat.websiteToken in js/config.js (baseUrl starting with https://), or leave both empty.");
   if (ASSIST && !/^https:\/\//.test(C.assistant.endpoint)) throw new Error("assistant.endpoint in js/config.js must start with https://: it's your chatbot Worker's address (chatbot/README.md).");
+  {
+    const sug = C.assistant && C.assistant.suggestions;
+    if (sug !== undefined && (!Array.isArray(sug) || sug.length > 4 || sug.some((q) => typeof q !== "string" || !q.trim() || q.length > 60)))
+      throw new Error("assistant.suggestions in js/config.js must be a list of up to 4 questions, each 60 characters or fewer.");
+  }
   if (ASSIST && CHAT) throw new Error("Switch on the chat assistant (assistant.endpoint) or Chatwoot (chat), not both: they would share the same corner of the screen.");
   if (NEWS && !ADDR) throw new Error("newsletter.optIn needs business.mailingAddress in js/config.js: Canada's anti-spam law (CASL) needs it in every offers email.");
   if (!["", "formsubmit", "sheet", "webhook", "none"].includes(PROVIDER)) throw new Error(`delivery.provider in js/config.js must be "formsubmit", "sheet", "webhook" or "none".`);
@@ -196,6 +201,12 @@ function price(key, beds, baths, home = "condo") {
 function priceFor(key, beds, baths, home = "condo") {
   const h = C.homeTypes[home].short.toLowerCase();
   return C.services[key].menuName + " · " + (key === "detail" ? `kitchen and ${baths} bathroom${baths > 1 ? "s" : ""}, ${h}` : `${beds}-bedroom, ${baths}-bathroom ${h}`);
+}
+// The price box's line in two parts, the service and the home, so a narrow box breaks between them and never inside
+// "1-bedroom" (.pricer-for span in css/site.css). The text is the same; js/site.js (setFor) keeps it this way as it changes.
+function forLine(text) {
+  const i = text.indexOf(" · ");
+  return i < 0 ? esc(text) : `<span>${esc(text.slice(0, i))}</span> · <span>${esc(text.slice(i + 3))}</span>`;
 }
 function hours(key, beds, baths) {
   const s = C.services[key];
@@ -572,7 +583,7 @@ function pricer(L, defaultKey = "regular", heading = "Your price, in seconds", {
     ${ratingPill()}
   </div>
   <div class="pricer-result" aria-live="polite">
-    <p class="pricer-for" data-p-for>${esc(priceFor(defaultKey, 1, 1, home))}</p>
+    <p class="pricer-for" data-p-for>${forLine(priceFor(defaultKey, 1, 1, home))}</p>
     <p class="pricer-amount"><span data-p-amount>${money(on ? afterDiscount(p, founding.percent) : p)}</span> <span class="pricer-unit" data-p-unit${on ? "" : " hidden"}>first visit</span>${houseArt(defaultKey, 1, 1, home)}</p>
     <p class="pricer-meta" data-p-meta>${on ? `Regular price ${money(p)} · estimate, about ${h} hours on site` : `Estimate · about ${h} hours on site`}</p>
     ${offerLine()}
@@ -608,7 +619,7 @@ function pricer(L, defaultKey = "regular", heading = "Your price, in seconds", {
     <p class="field-hint" data-textme-note>${esc(B.ownerFirstName)} texts you this price once, ${esc(B.replyPromise)}. No spam.</p>
     <input type="text" name="_honey" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true" data-textme-honey>
   </div>
-  <p class="pricer-fine"><span data-tax-note>${TAX_TEXT}</span> · No payment to book · Free re-clean guarantee</p>
+  <p class="pricer-fine"><span>No email needed</span> · <span data-tax-note>${TAX_TEXT}</span> · <span>No payment to book</span> · <span>Free re-clean guarantee</span></p>
 </form>`;
 }
 

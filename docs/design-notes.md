@@ -122,6 +122,40 @@ From the owner: the site felt too long; clients need a strong first screen, then
 - **Removed with them:** the room tabs and neighbourhood search scripts and about 160 rules of their styles, so every page's stylesheet is lighter (lab LCP on a slow phone: home 2.10s, from 2.23s).
 - **Checks:** `tools/qa/home.test.mjs` (the hero, the cards, plans, How to book, Contact and nothing left from the long page), `tools/qa/v8.test.mjs` (the first screen at 1440 × 900, 1280 × 800 and 1024 × 768; the page within 6 desktop and 10 phone screens) and the design, tablet, v4, v5 and v7 checks updated to match.
 
+## DESIGN.md, scroll rises and chat suggestions (6 November 2026)
+
+Mann asked for the site to be rated and then improved as far as possible (design, motion, the assistant).
+
+- **DESIGN.md** at the root is now the one-page design system: every token with its job, plus component, motion and image
+  rules. These notes keep the history and the reasons. `--ease-pop` moved into the tokens, and the motion comment now
+  says what it's for (the hero's entrance only).
+- **Compared with:** hellamaid.ca, cleanpapi.ca and torontoshinecleaning.ca (first screen on a computer, colours and
+  fonts read from each page). All three put a price tool and proof (Google rating, "insured") beside the headline, use one
+  loud warm action colour, set everything in a rounded sans, and show a phone number in the header. Two of the three ask
+  for a name, email and phone before they show a price. What we kept: the price with no contact details, the serif and
+  sans pairing (nobody local looks like it), one action colour per surface. What we can't copy yet: reviews (none to
+  show; never invented) and a phone number (kept private). DESIGN.md has the full list.
+- **Scroll rises:** below the first screen, the home page's service cards, plan/extras/quote boxes, booking steps, terms,
+  questions and contact card, plus the service grid and the "what's included" rooms on other pages, rise 22px into place
+  as they enter the screen. Cards side by side follow each other by a beat. Scroll-driven CSS (`animation-timeline:
+  view()`), no script; transform only, so text never fades below its contrast; nothing on the first screen takes part,
+  so it can't touch the largest paint; still under reduced motion and in browsers without scroll timelines
+  (`tools/qa/signature.test.mjs`).
+- **Chat suggestions:** the assistant's panel opens with up to four suggested questions as small outlined cards, two by
+  two so all four fit on a phone (`assistant.suggestions` in `js/config.js`; the build refuses more than four or any
+  longer than 60 characters). One tap sends a question as written; they go once a question is asked and come back with a
+  new chat. The panel now rises from its button and the suggestions follow a beat apart (still under reduced motion).
+  Taps are counted as `assistant_suggestion`, never with the question.
+- **The price box says "No email needed"** first in its fine print, since that's what sets it apart from the local
+  competition. On phones its lines now break between ideas, not inside them: the line above the price is two parts (the
+  service; the home), so it never breaks inside "1-bedroom"; the price, offer and fine-print lines are balanced; each
+  promise in the fine print stays whole.
+- **Speed:** the rises are switched on by `js/site.js` (`.rise-on`) only once the page has loaded. Setting up a scroll
+  timeline for every card at first paint cost a throttled phone about 30ms of home-page LCP; switched on after load, they
+  cost nothing measurable. Back to back on the same machine, home LCP was 2.17 to 2.19s before this round and 2.18 to
+  2.20s after, within run-to-run noise, but right at the 2.2s budget either way: the next thing on the first screen
+  needs to pay for itself.
+
 ## The home hero's photo (November 2026)
 
 Mann asked for a picture behind the hero. Three were made and placed on the real hero (the CN Tower at dawn, the
@@ -169,7 +203,8 @@ sweep ends at 2.7s), and nothing moves under reduced motion (`tools/qa/signature
   every booking, the conversation (`role="log"`, announced politely), and a two-line box. Enter sends, Shift+Enter is a
   new line, Escape closes and returns focus to the button. Visitor bubbles use the button colour; answers use the section
   tint. Links are made only for the website's own addresses and the business email; any other address stays as text.
-- **Motion:** only the three "writing" dots pulse, on the settle easing, and not at all under reduced motion.
+- **Motion:** the panel rises from its button, the suggested questions follow a beat apart, and the three "writing" dots
+  pulse, all on the settle easing and none of it under reduced motion.
 - **Words:** the greeting says what it can answer and that booking goes through the form. Errors keep the question in the
   box. The Worker writes its own error messages for visitors (busy, too long, too many questions), and the panel shows
   them as they are.

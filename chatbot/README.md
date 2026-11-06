@@ -101,9 +101,13 @@ In `js/config.js`, put the Worker's address in `assistant.endpoint`:
 
 ```js
 assistant: {
-  endpoint: "https://nestnrest-chatbot.YOUR-NAME.workers.dev"
+  endpoint: "https://nestnrest-chatbot.YOUR-NAME.workers.dev",
+  suggestions: [ ...leave as they are, or change them... ]
 },
 ```
+
+`suggestions` are the (up to four) questions shown as buttons when the chat opens. Change them to whatever visitors ask
+most; keep each one short and answerable from `js/config.js`.
 
 Then rebuild, run the checks and publish as usual:
 
