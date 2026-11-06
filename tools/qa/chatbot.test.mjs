@@ -9,7 +9,7 @@ import { handle, systemPrompt, tools, checkMessages, MODEL, LIMITS } from "../..
 const K = JSON.parse(fs.readFileSync(path.join(ROOT, "chatbot/src/knowledge.json"), "utf8"));
 const SITE = "https://nestnrestcleaning.com";
 const ENDPOINT = "https://assist.example.test/";
-const ASSIST = `window.NR_CONFIG.assistant = { endpoint: ${JSON.stringify(ENDPOINT)} };`;
+const ASSIST = `window.NR_CONFIG.assistant.endpoint = ${JSON.stringify(ENDPOINT)};`;
 
 // A request as a browser on the website would send it.
 const req = (body, { method = "POST", origin = SITE, headers = {} } = {}) => new Request("https://bot.example.test/", {
@@ -231,6 +231,8 @@ export default async function () {
   test("the build checks the assistant's settings", async () => {
     assert(buildError('window.NR_CONFIG.assistant = { endpoint: "http://bot.example.test" };').includes("assistant.endpoint in js/config.js must start with https://"), "http:// is refused");
     assert(buildError(ASSIST + 'window.NR_CONFIG.chat = { baseUrl: "https://chat.example.test", websiteToken: "abc" };').includes("not both"), "the assistant and Chatwoot together are refused");
+    assert(buildError('window.NR_CONFIG.assistant.suggestions = ["a", "b", "c", "d", "e"];').includes("up to 4 questions"), "five suggestions are refused");
+    assert(buildError(`window.NR_CONFIG.assistant.suggestions = ["${"x".repeat(61)}"];`).includes("60 characters"), "a long suggestion is refused");
   });
 
   test("the chat panel: ask, answer, links, errors, new chat, privacy", async ({ browser }) => {
@@ -263,6 +265,18 @@ export default async function () {
       await p.click(".assist-open");
       assert(await p.evaluate(() => document.activeElement && document.activeElement.id === "assist-input"), "opening puts the cursor in the box");
       assert(await p.getAttribute(".assist-open", "aria-expanded") === "true", "the button says it's open");
+      await p.evaluate(() => Promise.all(document.querySelector("#assist-panel").getAnimations({ subtree: true }).map((a) => a.finished)));
+      const chips = await p.$$eval(".assist-chip", (bs) => bs.map((b) => b.textContent));
+      assert(chips.length && JSON.stringify(chips) === JSON.stringify(loadConfig().assistant.suggestions.slice(0, 4)), "the suggested questions from js/config.js are offered: " + chips);
+      const fit = await p.$$eval(".assist-chip", (bs) => { const log = document.querySelector("[data-assist-log]").getBoundingClientRect(); return bs.every((b) => { const r = b.getBoundingClientRect(); return r.bottom <= log.bottom + 1 && r.height >= 44; }); });
+      assert(fit, "every suggestion shows without scrolling and is a full-size tap target");
+      await p.click(".assist-chip >> nth=0");
+      await p.waitForFunction(() => document.querySelectorAll(".assist-msg.assist-assistant").length === 2 && !document.querySelector(".is-waiting"));
+      assert(bodies[0].messages.length === 1 && bodies[0].messages[0].content === chips[0], "a suggestion is sent as written");
+      assert(!(await p.$(".assist-chip")), "the suggestions go once a question is asked");
+      await p.click("[data-assist-new]");
+      assert((await p.$$(".assist-chip")).length === chips.length, "and come back with a new chat");
+      bodies.length = 0;
       await p.fill("#assist-input", "How much is a 1 bed condo?");
       await p.press("#assist-input", "Enter");
       await p.waitForFunction(() => document.querySelectorAll(".assist-msg.assist-assistant").length === 2 && !document.querySelector(".is-waiting"));
@@ -273,18 +287,20 @@ export default async function () {
       assert((await p.textContent(".assist-msg.assist-assistant:last-child")).includes("https://evil.example/x"), "other addresses stay as text");
       events.push(...await p.evaluate(() => window.__events || []));
       assert(events.some((e) => e.includes("assistant_open")) && events.some((e) => e.includes("assistant_question")), "opening and asking are counted: " + events.join(" "));
+      assert(events.some((e) => e.includes("assistant_suggestion")), "a tapped suggestion is counted");
       assert(!events.some((e) => e.includes("condo")), "analytics never get what was typed");
 
       // A second question sends the conversation so far; the chat survives a reload in the same tab.
       await p.fill("#assist-input", "And with an oven?");
       await p.click(".assist-form button[type=submit]");
-      await p.waitForFunction(() => document.querySelectorAll(".assist-msg.assist-assistant").length === 3);
+      await p.waitForFunction(() => document.querySelectorAll(".assist-msg.assist-assistant").length === 3 && !document.querySelector(".is-waiting"));
       assert(bodies[1].messages.length === 3 && bodies[1].messages[1].role === "assistant", "the second question carries the first answer");
       await p.reload();
       await p.waitForSelector(".assist-open", { timeout: 6000 });
       await p.click(".assist-open");
       assert(await p.$$eval(".assist-msg", (els) => els.length) === 5, "the chat is still there after a reload");
       assert(!(await p.$eval("[data-assist-new]", (el) => el.hidden)), "New chat shows once there is a chat");
+      assert(!(await p.$(".assist-chip")), "no suggestions over a chat already under way");
 
       // Errors: the Worker's message is shown and the question goes back in the box, so nothing is lost.
       mode = "busy";

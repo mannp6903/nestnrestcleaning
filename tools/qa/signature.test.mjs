@@ -87,6 +87,39 @@ export default async function () {
     }
   });
 
+  test("below the first screen, cards rise into place as they scroll in: transform only, at rest once in view, still under reduced motion", async ({ browser, url }) => {
+    const groups = [".svc-cards > li", ".price-facts > .pf", ".steps-3 > li", ".terms > li", ".faq-list > details", ".contact-card"];
+    const p = await newPage(browser, { width: 1440, height: 900 });
+    await p.goto(url + "/");
+    // Switched on only once the page has loaded, so the first screen never waits for them.
+    await p.waitForFunction(() => document.readyState === "complete");
+    await p.waitForFunction(() => document.documentElement.classList.contains("rise-on"));
+    for (const sel of groups) {
+      const s = await p.$eval(sel, (el) => { const cs = getComputedStyle(el); return { name: cs.animationName, timeline: cs.animationTimeline, top: el.getBoundingClientRect().top }; });
+      assert(s.name === "nr-rise" && /view/.test(s.timeline), `${sel}: rises with the scroll: ${JSON.stringify(s)}`);
+      assert(s.top > 900, `${sel}: is below the first screen, so nothing on it waits to move`);
+    }
+    const css = fs.readFileSync(path.join(ROOT, "css/site.css"), "utf8");
+    const rise = css.match(/@keyframes nr-rise \{([^}]*\})/)[1];
+    assert(/transform/.test(rise) && !/opacity/.test(rise), "the rise moves only, never fades: " + rise);
+    // Scrolled into view, every card is at rest; side by side, they arrive a beat apart.
+    const top = await p.$eval(".svc-cards", (e) => e.getBoundingClientRect().top + scrollY);
+    await p.evaluate((y) => scrollTo(0, y), top - 900 + 120);
+    await p.waitForTimeout(200);
+    const mid = await p.$$eval(".svc-cards > li", (els) => els.map((e) => new DOMMatrix(getComputedStyle(e).transform).m42));
+    assert(mid[0] < mid[mid.length - 1], "entering, the first card is ahead of the last: " + mid.join(", "));
+    await p.evaluate((y) => scrollTo(0, y), top - 120);
+    await p.waitForTimeout(200);
+    const rest = await p.$$eval(".svc-cards > li", (els) => els.map((e) => new DOMMatrix(getComputedStyle(e).transform).m42));
+    assert(rest.every((y) => y === 0), "in view, every card is in place: " + rest.join(", "));
+    await p.context().close();
+    const calm = await newPage(browser, { width: 1440, height: 900, reducedMotion: "reduce" });
+    await calm.goto(url + "/");
+    await calm.waitForFunction(() => document.documentElement.classList.contains("rise-on"));
+    for (const sel of groups) assert(await calm.$eval(sel, (el) => getComputedStyle(el).animationName) === "none", `${sel}: still under reduced motion`);
+    await calm.context().close();
+  });
+
   test("the price box's house fills with the home it describes", async ({ browser, url }) => {
     // Built into every price box, right before any script runs.
     for (const pg of PAGES) {

@@ -148,14 +148,14 @@ From the October 2026 website audit. Everything the website itself can fix is do
 
 ## Brand
 
-How the site looks and why (tokens, components, the reference patterns behind them, image sources and the replacements wanted) is in [docs/design-notes.md](docs/design-notes.md).
+The design system in one page (every colour, size, radius, shadow and motion token with its job, and the rules for components and images) is [DESIGN.md](DESIGN.md): read it before changing how the site looks. The history and the reasons behind each decision (the reference patterns, image sources and the replacements wanted) are in [docs/design-notes.md](docs/design-notes.md).
 
 - **Logo:** `assets/logo.svg` (horizontal), `logo-stacked.svg`, `logo-mark.svg` and their `-white` versions for dark backgrounds. Traced from the original logo artwork; the wordmark is Barlow Condensed.
 - **Colours:** navy `#0A2D5C`, teal `#2FA4A6`, sky `#6FC3E0`, sand `#EFD9AE` on ivory `#F7F3EA`. All tokens are at the top of `css/site.css`.
 - **Fonts:** Fraunces (headings: soft, rounded serifs, "You rest.") and Figtree (buttons, prices, labels and text: "We clean."), self-hosted in `assets/fonts` under the SIL Open Font License. How the Fraunces file was made is in `docs/design-notes.md`.
 - **Service colours:** each service has its own hue from Toronto at night: regular is lake teal, deep is dusk violet, move-in/out is dawn apricot, kitchen and bath is sky. They're tokens at the top of `css/site.css`, checked for contrast in both themes.
-- **Motion:** everything "settles": one soft easing curve and three speeds (`--ease-settle`, `--settle-quick`, `--settle`, `--settle-slow` in `css/site.css`). Nothing bounces or loops, text on the home hero is never faded in (it's the largest thing on a phone's first screen), and nothing moves for visitors who ask for reduced motion.
-- **Signature moments:** "You rest." exhales once on the home page; the home hero's city goes from night to dawn as you scroll; every price box has a small house that fills with the rooms you describe; and pages change with a short crossfade, a service card's title gliding into its page's heading. How each works, and the rule that keeps the house from slowing phones down, is in `docs/design-notes.md` ("Phase 3").
+- **Motion:** everything "settles": one soft easing curve and three speeds (`--ease-settle`, `--settle-quick`, `--settle`, `--settle-slow` in `css/site.css`). The one exception is the home hero's entrance, which pops once with a small overshoot (`--ease-pop`). Below the first screen, cards and steps rise a little as they scroll into view. Nothing loops, the home hero's words are painted from the first frame, and nothing moves for visitors who ask for reduced motion.
+- **Signature moments:** the home hero's words pop up and a line draws itself under "You rest."; every price box has a small house that fills with the rooms you describe; and pages change with a short crossfade, a service card's title gliding into its page's heading. How each works, and the rule that keeps the house from slowing phones down, is in `docs/design-notes.md` ("Phase 3").
 - **Room photos** in `assets/photos` are AI-generated illustrations, and the footer says so. An empty-home picture for move-in and move-out is waiting in your Canva uploads: see "Wanted" in `docs/design-notes.md` for the four files to save; the build uses them as soon as they're there. Replace them with real photos from your own jobs (with the client's permission) as soon as you have them: same file names, 928 × 1152 px.
 
 ## Hosting

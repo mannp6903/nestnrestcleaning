@@ -313,6 +313,19 @@
     var h = (C.homeTypes[home] || C.homeTypes.condo).short.toLowerCase();
     return C.services[key].menuName + " · " + (key === "detail" ? "kitchen and " + baths + " bathroom" + (baths > 1 ? "s" : "") + ", " + h : beds + "-bedroom, " + baths + "-bathroom " + h);
   }
+  // The line above a price, in two parts (the service; the home) so a narrow box breaks it between them, never inside
+  // "1-bedroom". Same text as before; tools/build.mjs (forLine) writes the first one the same way.
+  function setFor(el, text) {
+    var i = text.indexOf(" · ");
+    if (i < 0) { el.textContent = text; return; }
+    var a = document.createElement("span"), b = document.createElement("span");
+    a.textContent = text.slice(0, i);
+    b.textContent = text.slice(i + 3);
+    el.textContent = "";
+    el.appendChild(a);
+    el.appendChild(document.createTextNode(" · "));
+    el.appendChild(b);
+  }
   function hoursFor(key, beds, baths, home, addons) {
     var s = C.services[key];
     var f = (C.homeTypes[home] || C.homeTypes.condo).factor;
@@ -432,7 +445,7 @@
       // While the founding offer runs, the first-visit price leads and the regular price sits under it (the booking total's rule).
       var f = C.offers.founding, on = !!(f && f.active), h = hoursFor(st.service, st.beds, st.baths, st.home, extras);
       var pf = $("[data-p-for]", form);
-      if (pf) pf.textContent = priceFor(st.service, st.beds, st.baths, st.home) + extras.map(function (a) { return " + " + a.name.toLowerCase(); }).join("");
+      if (pf) setFor(pf, priceFor(st.service, st.beds, st.baths, st.home) + extras.map(function (a) { return " + " + a.name.toLowerCase(); }).join(""));
       var amt = $("[data-p-amount]", form), shown = money(on ? afterDiscount(p, f.percent) : p);
       if (touched && amt.textContent !== shown) pulse($(".pricer-result", form));
       amt.textContent = shown;
@@ -2137,6 +2150,16 @@
     else window.addEventListener("load", whenIdle);
   }
 
+  /* ---------- Scroll rises (css/site.css, "Below the first screen") ---------- */
+  // The rises are switched on only once the page has loaded: setting up a scroll timeline for every card costs a slow phone
+  // about 30ms, and that's time the first screen should have. The cards are below the first screen then, so nobody sees
+  // them arrive late.
+  function initRise() {
+    function on() { requestAnimationFrame(function () { document.documentElement.classList.add("rise-on"); }); }
+    if (document.readyState === "complete") on();
+    else window.addEventListener("load", on);
+  }
+
   function initChat() {
     var cfg = C.chat || {};
     var base = String(cfg.baseUrl || "").trim().replace(/\/+$/, ""), token = String(cfg.websiteToken || "").trim();
@@ -2186,6 +2209,7 @@
   bindBooking();
   initChat();
   initAssistant();
+  initRise();
   bindQuote();
   bindChange();
   bindReview();

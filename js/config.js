@@ -149,7 +149,15 @@ window.NR_CONFIG = {
      Use the assistant or Chatwoot (chat, below), not both. After changing it, run `node tools/build.mjs`.
      After changing prices or policies, run the build and push: Cloudflare redeploys the Worker, so the assistant knows. */
   assistant: {
-    endpoint: ""
+    endpoint: "",
+    /* Up to 4 questions shown as buttons when the chat opens, so visitors don't face an empty box. Each one is sent as
+       typed when tapped. Keep them short (40 characters or fewer reads best on phones; 60 at most) and answerable from this file. */
+    suggestions: [
+      "Deep clean price for a 2-bedroom condo?",
+      "Do you clean in my area?",
+      "What's in a regular clean?",
+      "Do I need to be home?"
+    ]
   },
 
   /* Live chat on your own Chatwoot. Fill in both to switch it on; leave both "" to keep it off.
