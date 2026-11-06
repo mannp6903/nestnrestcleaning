@@ -278,10 +278,10 @@ export default async function () {
       assert(r.bg === "none", `${path} hero should have a plain background, got ${r.bg.slice(0, 40)}`);
       assert(SERIF.test(r.h1), `${path} h1 should use Fraunces, got ${r.h1}`);
     }
-    // v9: the one exception is the home hero, the site's front door: navy night over the landmark art.
+    // v9: the one exception is the home hero, the site's front door: navy, over the skyline photo at dawn (November 2026).
     await p.goto(url + "/");
-    const home = await p.$eval(".hero-home", (e) => ({ color: getComputedStyle(e).backgroundColor, h1: getComputedStyle(e.querySelector("h1")).fontFamily, art: !!e.querySelector(".hero-scene svg") }));
-    assert(home.color === "rgb(10, 45, 92)" && home.art && SERIF.test(home.h1), "the home hero is navy with its art: " + JSON.stringify(home));
+    const home = await p.$eval(".hero-home", (e) => ({ color: getComputedStyle(e).backgroundColor, h1: getComputedStyle(e.querySelector("h1")).fontFamily, photo: /cn-tower-dawn/.test(getComputedStyle(e).backgroundImage) }));
+    assert(home.color === "rgb(10, 45, 92)" && home.photo && SERIF.test(home.h1), "the home hero is navy with its photo: " + JSON.stringify(home));
   });
 
   test("FAQ is one list with dividers", async ({ browser, url }) => {

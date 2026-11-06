@@ -11,6 +11,7 @@
   --teal-ink: #1A7476; /* small teal text on light backgrounds (4.5:1 or better) */
   --teal-light: #6FD0CD;
   --sky: #6FC3E0;
+  --sky-light: #B5E2F2; /* the kicker over the home hero's photo: 4.5:1 or better on its brightest part */
   --sky-soft: #E4F3F8;
   --sand: #EFD9AE;
   --sand-soft: #F8EEDA;
@@ -1414,27 +1415,6 @@ a.svc-card:hover .svc-arrow { transform: translateX(4px); }
   .hero-home .hero-owner picture { animation: nr-pop-icon .8s 1.18s var(--ease-pop) both; }
 }
 
-/* Night to dawn: the hours given back. As the home hero's skyline crosses the screen, North York's and the street's lights
-   go out a group at a time, the sky warms behind the skyline and the lake brightens. It's tied to scrolling (a view
-   timeline), so it moves only as the visitor does, and backwards too. Under reduced motion, or in a browser without
-   scroll-driven animation, the hero simply stays at night. */
-@supports (animation-timeline: view()) {
-  @media (prefers-reduced-motion: no-preference) {
-    .hero-home .hero-scene { view-timeline: --dawn block; }
-    .hero-home .hero-scene::before { content: ""; position: absolute; inset: -55% 0 0; z-index: -1; pointer-events: none;
-      background: radial-gradient(ellipse 80% 70% at 62% 100%, rgba(242, 180, 138, .75), rgba(184, 170, 242, .26) 55%, transparent 78%);
-      opacity: 0; animation: nr-dawn linear both; animation-timeline: --dawn; animation-range: cover 12% cover 55%; }
-    @keyframes nr-dawn { to { opacity: 1; } }
-    .hero-home .lm .lm-lit-0, .hero-home .lm .lm-lit-1, .hero-home .lm .lm-lit-2 { animation: nr-lights-off linear both; animation-timeline: --dawn; }
-    .hero-home .lm .lm-lit-0 { animation-range: cover 12% cover 26%; }
-    .hero-home .lm .lm-lit-1 { animation-range: cover 22% cover 38%; }
-    .hero-home .lm .lm-lit-2 { animation-range: cover 34% cover 50%; }
-    @keyframes nr-lights-off { to { opacity: .1; } }
-    .hero-home .lm .lm-water { animation: nr-lake linear both; animation-timeline: --dawn; animation-range: cover 15% cover 55%; }
-    @keyframes nr-lake { to { fill: #2D6F8C; } }
-  }
-}
-
 /* Moving between pages: a calm crossfade, the header holding still, and a service card's title gliding into the service
    page's heading (view-transition-name: svc-<service>, set by tools/build.mjs). Browsers without cross-document view
    transitions load the page as before; under reduced motion there's no transition at all. */
@@ -1505,15 +1485,6 @@ a.svc-card:hover .svc-arrow { transform: translateX(4px); }
 .shot figcaption { font-family: var(--display); font-weight: 600; font-size: 0.95rem; line-height: 1.35; color: var(--ink); }
 @media (min-width: 37.5em) { .mann-shots { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 
-/* Hero landmark scene: North York Centre and the Scarborough Bluffs. The labels name the places; the art is an illustration.
-   v9 sets it along the foot of the navy hero (see "v9 home" below). */
-.hero-scene { margin: 0; position: relative; }
-.hero-scene figcaption { position: absolute; left: 0; right: 0; bottom: 6px; display: flex; justify-content: space-between; padding-inline: 5%; font-family: var(--display); font-weight: 700; font-size: 0.75rem; line-height: 1.2; color: var(--muted); pointer-events: none; }
-.hero-scene { margin-inline: calc(-1 * var(--gutter)) calc(-1 * var(--gutter-r)); }
-.hero-scene figcaption span { padding: 2px 7px; border-radius: 6px; background: var(--section-tint); }
-/* Tablets: the phone arrangement at a sensible size, not stretched to the full width. */
-@media (min-width: 37.5em) and (max-width: 59.9375em) { .hero-scene { margin-inline: 0; max-width: 560px; } }
-.hero-scene .lm { aspect-ratio: 480 / 150; }
 .hero-home .hero-owner { margin-block: 4px clamp(28px, 5vw, 44px); }
 
 /* District pages: the district's landmark art in place of a room photo (computers). */
@@ -1542,9 +1513,7 @@ a.svc-card:hover .svc-arrow { transform: translateX(4px); }
 }
 @media (min-width: 60em) {
   .hero-home .hero-grid { grid-template-areas: "copy visual" "owner visual"; grid-template-rows: auto 1fr; }
-  .hero-scene { order: 9; margin: 0; }
   /* The menu names Airbnb hosts on computers, so the hero's Airbnb link is for phones. */
-  .hero-scene figcaption { padding-inline: 4%; }
   .hero-home .hero-owner { margin-bottom: 0; }
   .area-hero-art { display: block; }
   .hero-home .hero-visual { margin-bottom: 0; }
@@ -1642,7 +1611,6 @@ a.svc-card:hover .svc-arrow { transform: translateX(4px); }
 }
 @media (min-width: 60em) and (max-height: 860px) {
   .hero-home .hero-copy { gap: 14px; }
-  .hero-home .hero-scene .lm { max-height: 150px; }
 }
 
 /* Steps rise gently as they scroll into view. Transform only, so text never fades below its contrast. */
@@ -1663,33 +1631,32 @@ a.svc-card:hover .svc-arrow { transform: translateX(4px); }
    The hero is night over North York and the Bluffs: deep navy, the slogan large in cream and light teal, one sand button,
    and the landmark art along its foot with lit windows (the dark-theme artwork colours, in both themes). The price box sits
    beside the words on computers and under them on phones. After it, only what a client needs to book. */
+/* The home hero's photo: Toronto's skyline and the CN Tower at dawn, across the lake (an illustration, made with Ideogram
+   on 6 Nov 2026; assets/hero). Phones get a tall crop with the tower on the right, behind the headline, fading into navy
+   before the button; computers get the wide view under a navy shade on the words' side, with the tower just right of the
+   price box from 1280px, and between the words and the box from 960 to 1279px. The files are small (10, 18 and 44 KB as
+   WebP) and preloaded on the home page only: on phones the photo is now the hero's largest paint. */
 .hero.hero-home {
-  --lm-water: #15344A; --lm-ripple: #2A5A78; --lm-beach: #4A3F2C;
-  --lm-cliff: #5E4E33; --lm-cliff-shade: #463A27; --lm-cliff-light: #6E5D3F;
-  --lm-tree: #1F7C7E; --lm-tree-2: #2A9C9E; --lm-trunk: #4A3D28; --lm-grass: #133A3D; --lm-hill: #0E2A47; --lm-plaza: #1C3048;
-  --lm-house: #23395A; --lm-house-2: #2C4466; --lm-roof: #0A1B33; --lm-roof-2: #1B6E70; --lm-window: #F0D9A0; --lm-door: #0A1B33;
-  --lm-tower: #2C4A6E; --lm-tower-2: #34557C; --lm-tower-3: #24405F; --lm-win: #F0D9A0;
-  --lm-civic: #2C4466; --lm-glass: #3E6E8E; --lm-mullion: #23395A; --lm-pool: #2D6F8C; --lm-jet: #A9D8EA;
-  --lm-hull: #C9D5E3; --lm-mast: #8FA7C4; --lm-far: #1E3F66;
-  padding-block: clamp(28px, 5vw, 40px) 0;
+  padding-block: clamp(28px, 5vw, 40px) clamp(36px, 6vw, 64px);
   color: var(--on-navy);
   background-color: var(--navy);
-  background-image:
-    radial-gradient(1.5px 1.5px at 8% 14%, rgba(247, 243, 234, .75), transparent 60%),
-    radial-gradient(1px 1px at 21% 6%, rgba(247, 243, 234, .6), transparent 60%),
-    radial-gradient(1.5px 1.5px at 37% 22%, rgba(247, 243, 234, .5), transparent 60%),
-    radial-gradient(1px 1px at 46% 9%, rgba(247, 243, 234, .7), transparent 60%),
-    radial-gradient(1.5px 1.5px at 58% 4%, rgba(247, 243, 234, .55), transparent 60%),
-    radial-gradient(1px 1px at 63% 30%, rgba(247, 243, 234, .45), transparent 60%),
-    radial-gradient(1.5px 1.5px at 93% 12%, rgba(247, 243, 234, .6), transparent 60%),
-    radial-gradient(1px 1px at 97% 34%, rgba(247, 243, 234, .5), transparent 60%),
-    radial-gradient(ellipse 70% 60% at 85% 0%, rgba(111, 195, 224, .2), transparent 70%),
-    linear-gradient(180deg, #082650 0%, var(--navy) 55%, #0C3266 100%);
+  background-image: linear-gradient(90deg, rgba(6, 22, 48, .45) 0%, rgba(6, 22, 48, .2) 55%, rgba(6, 22, 48, 0) 80%), linear-gradient(180deg, rgba(6, 22, 48, .55) 0, rgba(6, 22, 48, .68) 65vw, rgba(10, 45, 92, .97) 120vw, var(--navy) 133vw), url("../assets/hero/cn-tower-dawn-600.jpg");
+  background-image: linear-gradient(90deg, rgba(6, 22, 48, .45) 0%, rgba(6, 22, 48, .2) 55%, rgba(6, 22, 48, 0) 80%), linear-gradient(180deg, rgba(6, 22, 48, .55) 0, rgba(6, 22, 48, .68) 65vw, rgba(10, 45, 92, .97) 120vw, var(--navy) 133vw), image-set(url("../assets/hero/cn-tower-dawn-600.webp") type("image/webp"), url("../assets/hero/cn-tower-dawn-600.jpg") type("image/jpeg"));
+  background-repeat: no-repeat;
+  /* Two shades on phones: darker on the words' side (left), and fading to navy below the headline. */
+  background-size: 100% 100%, 100% 100%, 100% auto;
+  background-position: 0 0, 0 0, 0 0;
+}
+@media (min-width: 30em) {
+  .hero.hero-home {
+    background-image: linear-gradient(90deg, rgba(6, 22, 48, .45) 0%, rgba(6, 22, 48, .2) 55%, rgba(6, 22, 48, 0) 80%), linear-gradient(180deg, rgba(6, 22, 48, .55) 0, rgba(6, 22, 48, .68) 65vw, rgba(10, 45, 92, .97) 120vw, var(--navy) 133vw), url("../assets/hero/cn-tower-dawn-892.jpg");
+    background-image: linear-gradient(90deg, rgba(6, 22, 48, .45) 0%, rgba(6, 22, 48, .2) 55%, rgba(6, 22, 48, 0) 80%), linear-gradient(180deg, rgba(6, 22, 48, .55) 0, rgba(6, 22, 48, .68) 65vw, rgba(10, 45, 92, .97) 120vw, var(--navy) 133vw), image-set(url("../assets/hero/cn-tower-dawn-892.webp") type("image/webp"), url("../assets/hero/cn-tower-dawn-892.jpg") type("image/jpeg"));
+  }
 }
 :root[data-theme="dark"] .hero.hero-home { background-color: var(--navy-3); }
 .hero-home .hero-grid { grid-template-areas: "copy" "visual"; gap: clamp(28px, 6vw, 40px); }
 .hero-home .hero-copy { gap: clamp(16px, 3vw, 22px); }
-.hero-home .hero-what { color: var(--sky); }
+.hero-home .hero-what { color: var(--sky-light); }
 .hero-home .hero-title .display { color: var(--cream); font-family: var(--display); font-weight: 800; letter-spacing: -0.03em; }
 .hero-home .accent { color: var(--teal-light); font-family: var(--serif); font-weight: 500; letter-spacing: -0.01em; }
 .hero-home .lede { color: var(--on-navy-2); max-width: 40ch; }
@@ -1707,24 +1674,28 @@ a.svc-card:hover .svc-arrow { transform: translateX(4px); }
 .hero-home .hero-visual { margin: 0; color: var(--ink); }
 .hero-home .hero-visual::before { display: none; }
 .hero-home .pricer { box-shadow: 0 30px 60px -28px rgba(0, 0, 0, .65); }
-/* The art: the phone arrangement under the price box; the wide panorama on computers. */
-.hero-home .hero-scene { position: relative; z-index: 0; margin: clamp(20px, 5vw, 32px) 0 0; }
-.hero-home .hero-scene .lm-wide { display: none; }
-.hero-home .hero-scene figcaption { color: var(--on-navy-2); }
-.hero-home .hero-scene figcaption span { background: rgba(7, 30, 63, .72); }
-@media (min-width: 37.5em) and (max-width: 59.9375em) { .hero-home .hero-scene { max-width: none; } .hero-home .hero-scene .lm-narrow { max-height: 200px; } }
 @media (min-width: 60em) {
-  .hero.hero-home { padding-top: clamp(28px, 3vw, 40px); }
+  /* --hero-w is the photo's width: wide enough to cover the hero's height with the tower's tip near the top, and to keep
+     the tower where it's placed. In the 2560 x 960 file the tower is 70.5% across and its tip 6.6% down (2.46% of the
+     width). Between 960 and 1279px it stands 540px left of the screen's right edge, between the words and the box. */
+  .hero.hero-home {
+    --hero-w: max(2490px, 106.4vw + 399px);
+    padding-top: clamp(28px, 3vw, 40px);
+    background-image: linear-gradient(90deg, rgba(6, 22, 48, .92) 0%, rgba(6, 22, 48, .84) 45%, rgba(6, 22, 48, .3) 66%, rgba(6, 22, 48, .06) 100%), url("../assets/hero/cn-tower-dawn-2560.jpg");
+    background-image: linear-gradient(90deg, rgba(6, 22, 48, .92) 0%, rgba(6, 22, 48, .84) 45%, rgba(6, 22, 48, .3) 66%, rgba(6, 22, 48, .06) 100%), image-set(url("../assets/hero/cn-tower-dawn-2560.webp") type("image/webp"), url("../assets/hero/cn-tower-dawn-2560.jpg") type("image/jpeg"));
+    background-size: 100% 100%, var(--hero-w) auto;
+    background-position: 0 0, calc(100vw - 540px - 0.705 * var(--hero-w)) calc(30px - 0.0246 * var(--hero-w));
+  }
   .hero-home .hero-grid { grid-template-columns: minmax(0, 1fr) minmax(400px, 460px); grid-template-areas: "copy visual"; grid-template-rows: auto; column-gap: clamp(40px, 6vw, 96px); align-items: start; }
-  /* The words keep clear of the art: their column reserves the band the panorama rises into. */
-  .hero-home .hero-copy { padding-top: clamp(8px, 2vw, 28px); padding-bottom: 112px; gap: 22px; }
+  .hero-home .hero-copy { padding-top: clamp(8px, 2vw, 28px); gap: 22px; }
   .hero-home .hero-title { gap: 14px; }
   .hero-home .hero-title .display { line-height: 1; }
   .hero-facts { display: flex; flex-wrap: wrap; gap: 12px 28px; }
-  /* The panorama runs under both columns; the price box stands on it. */
-  .hero-home .hero-scene { order: 0; margin-top: -112px; }
-  .hero-home .hero-scene .lm-narrow { display: none; }
-  .hero-home .hero-scene .lm-wide { display: block; height: clamp(190px, 15vw, 240px); }
+}
+/* From 1280px the price box's right edge is 562px right of the screen's middle: the tower stands halfway between it and
+   the screen's edge. */
+@media (min-width: 80em) {
+  .hero.hero-home { background-position: 0 0, calc(75vw + 281px - 0.705 * var(--hero-w)) calc(30px - 0.0246 * var(--hero-w)); }
 }
 @media (min-width: 60em) and (max-height: 860px) {
   .hero-home .hero-copy { gap: 18px; }

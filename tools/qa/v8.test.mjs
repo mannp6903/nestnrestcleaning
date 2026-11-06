@@ -10,19 +10,19 @@ const PAGES = [...fs.readFileSync(path.join(ROOT, "sitemap.xml"), "utf8").matchA
 export default async function () {
   // v9: one composition: the slogan, the main button, the price box and the start of the night panorama on the first screen,
   // the price box standing on the art and the words kept clear of it.
-  test("desktop hero: headline, main button, price box and landmark art all on the first screen", async ({ browser, url }) => {
+  test("desktop hero: headline, main button and price box on the first screen, over the skyline photo", async ({ browser, url }) => {
     for (const [width, height] of [[1440, 900], [1280, 800], [1024, 768]]) {
       const p = await newPage(browser, { width, height });
       await p.goto(url + "/");
       const b = await p.evaluate(() => {
         const r = (s) => { const e = document.querySelector(s).getBoundingClientRect(); return { top: Math.round(e.top), bottom: Math.round(e.bottom) }; };
-        return { h1: r(".hero-home h1"), art: r(".hero-scene svg.lm-wide"), cta: r(".hero-cta .btn-primary"), go: r(".hero-home [data-p-go]"), box: r(".hero-home .pricer"), owner: r(".hero-home .hero-owner") };
+        const hero = document.querySelector(".hero-home"), hb = hero.getBoundingClientRect();
+        return { h1: r(".hero-home h1"), cta: r(".hero-cta .btn-primary"), go: r(".hero-home [data-p-go]"), box: r(".hero-home .pricer"), owner: r(".hero-home .hero-owner"),
+          hero: { top: Math.round(hb.top), bottom: Math.round(hb.bottom) }, photo: (getComputedStyle(hero).backgroundImage.match(/cn-tower-dawn-\d+/) || [""])[0] };
       });
       for (const k of ["h1", "cta", "go"]) assert(b[k].top >= 0 && b[k].bottom <= height, `${width}x${height}: ${k} should be on the first screen: ${JSON.stringify(b)}`);
-      // A 768px-tall screen fits the words, the button and the price box; the art may start just below.
-      if (height >= 800) assert(b.art.top < height, `${width}x${height}: the art should start on the first screen: ${JSON.stringify(b)}`);
-      assert(b.box.bottom > b.art.top && b.box.bottom < b.art.bottom, `${width}x${height}: the price box should stand on the art: ${JSON.stringify(b)}`);
-      assert(b.owner.bottom <= b.art.top + 8, `${width}x${height}: the words should stay clear of the art: ${JSON.stringify(b)}`);
+      assert(b.photo === "cn-tower-dawn-2560", `${width}x${height}: the hero should show the wide skyline photo: ${JSON.stringify(b)}`);
+      assert(b.box.bottom <= b.hero.bottom && b.owner.bottom <= b.hero.bottom, `${width}x${height}: the price box and Mann's line stay inside the hero: ${JSON.stringify(b)}`);
       await p.context().close();
     }
   });

@@ -122,6 +122,25 @@ From the owner: the site felt too long; clients need a strong first screen, then
 - **Removed with them:** the room tabs and neighbourhood search scripts and about 160 rules of their styles, so every page's stylesheet is lighter (lab LCP on a slow phone: home 2.10s, from 2.23s).
 - **Checks:** `tools/qa/home.test.mjs` (the hero, the cards, plans, How to book, Contact and nothing left from the long page), `tools/qa/v8.test.mjs` (the first screen at 1440 × 900, 1280 × 800 and 1024 × 768; the page within 6 desktop and 10 phone screens) and the design, tablet, v4, v5 and v7 checks updated to match.
 
+## The home hero's photo (November 2026)
+
+Mann asked for a picture behind the hero. Three were made and placed on the real hero (the CN Tower at dawn, the
+Scarborough Bluffs at sunrise, a clean living room); he chose the CN Tower. It replaces the drawn night skyline along the
+hero's foot, and with it the scroll-linked "night to dawn" (the photo is the dawn).
+
+- **Placement:** on phones and tablets a tall crop with the tower on the right, behind the headline, fading into navy
+  before the button. On computers the wide view, the tower 70.5% across the file: from 1280px it stands halfway between
+  the price box's right edge (562px right of the middle) and the screen's edge; from 960 to 1279px, where there's no room
+  there, it stands 540px left of the screen's right edge, between the words and the box. `--hero-w` keeps the photo wide
+  enough to cover the hero's height at every width.
+- **Readable words:** a navy shade over the words' side (two on phones: left to right, and top to bottom), and the kicker
+  in `--sky-light`. `tools/qa/signature.test.mjs` hides the words, reads the photo's pixels behind each line and checks
+  4.5:1 (3:1 for large text) against the brightest 5% of them, at 390, 768 and 1440px. Measured: 5.7:1 or better on
+  phones, 4.9:1 on a tablet, 6.5:1 or better on computers.
+- **Speed:** 10 KB (phones), 18 KB (tablets) and 44 KB (computers) as WebP, preloaded on the home page only, one per
+  screen size. The photo is now the largest paint on phones and computers. Throttled lab check (`tools/qa/perf.mjs`):
+  home LCP 2.17s on the phone (2.17s before), 2.36s at 1440px (2.52s before, the drawn panorama was heavier).
+
 ## The home hero's entrance (November 2026)
 
 Mann asked for the hero's words to pop up rather than sit still. All CSS, once, over by about 1.6s (the button's light
@@ -184,7 +203,7 @@ checks each one.
 - **"You rest." exhales** (home slogan): it arrives at Fraunces weight 780 and settles to 500 over 1.5s, once. The words are on
   screen from the first frame.
 - **One light sweep** across the home hero's main button, once, after the slogan has settled.
-- **Night to dawn** (home hero art): a view timeline on `.hero-scene`. As the skyline crosses the screen, the lit windows go out in
+- **Night to dawn** (home hero art, retired in November 2026 with the art itself, replaced by the skyline photo): a view timeline on `.hero-scene`. As the skyline crosses the screen, the lit windows go out in
   three groups (`lm-lit-0/1/2`, assigned in `tools/landmarks.mjs`), a warm glow rises behind the skyline and the lake brightens. It's
   tied to scrolling, so it reverses on the way back up. Browsers without scroll-driven animation, and reduced motion, keep the night.
 - **Build your clean** (`houseArt()` in `tools/build.mjs`, `renderHouse()` in `js/site.js`): a small house at the right end of every
@@ -237,11 +256,12 @@ Not adopted: a contact form in front of the price, repeated calls to action, and
 | Image | Source | Where |
 |---|---|---|
 | Owner portrait (`assets/founder-mann-patel*`) | Supplied by the owner | Hero owner line, founder section, vision page |
-| Room photos (`assets/photos/*`: living room, kitchen, entryway, bathroom, bedroom) | AI-generated illustrations. The footer says "Room photos are illustrations, not photos of client homes." | Home service cards, service, guide and gift pages |
+| Room photos (`assets/photos/*`: living room, kitchen, entryway, bathroom, bedroom) | AI-generated illustrations. The footer says "The room pictures and the home page's skyline are illustrations, not photos of client homes." | Home service cards, service, guide and gift pages |
+| Home hero skyline (`assets/hero/cn-tower-dawn-*`) | AI-generated illustration of Toronto's skyline and the CN Tower at dawn, made with Ideogram 4.5 on 6 Nov 2026 (private generation in the owner's Ideogram account), chosen by Mann from three options (the CN Tower, the Scarborough Bluffs, a clean living room). Cropped to 2560 x 960 for computers and 892 x 971 / 600 x 653 for phones, WebP with JPEG fallbacks | Home hero background only |
 | Empty home (`assets/photos/empty-home-*`, not in the repository yet) | AI-generated illustration, made in Canva on 30 Oct 2026 and saved in the owner's Canva uploads, or a real photo of an empty condo after a move-out clean | The Move-In / Move-Out card and service page, in place of the slippers, as soon as the files are added |
 | Deep-clean close-up (`assets/photos/deep-detail-*`, not in the repository yet) | Wanted: a real close-up result (a degreased stovetop, a descaled tap, clean grout) | The Deep Cleaning card and service page, in place of the kitchen, as soon as the files are added. Update its description in `PHOTOS` in `tools/build.mjs` to match the photo |
 | Logo (`assets/logo*.svg`) | Traced from the original logo artwork | Header, footer, navy-band watermark |
-| Landmark artwork (`tools/landmarks.mjs`, inline SVG) | Original illustration drawn for this site in code, 31 Oct 2026; owned by the business | Home hero, home district cards, district page heroes, the panorama above the home page's last call to action |
+| Landmark artwork (`tools/landmarks.mjs`, inline SVG) | Original illustration drawn for this site in code, 31 Oct 2026; owned by the business | Home district cards, district page heroes, the panorama above the home page's last call to action (the home hero's panorama, `heroWide()`/`heroNarrow()`, was replaced by the skyline photo in November 2026) |
 | Logo nest (`assets/logo-nest.svg`) | The logo mark without its house | Behind the home price box |
 
 No stock or generated people are shown as staff or customers, and there are no before-and-after images.
